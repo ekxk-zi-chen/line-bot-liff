@@ -103,6 +103,14 @@
             border-radius: 5px;
             margin-top: 10px;
         }
+        .cors-notice {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -112,6 +120,11 @@
         <div id="github-notice" class="github-info">
             <strong>✅ 此頁面託管於 GitHub Pages</strong><br>
             享受更好的 LIFF 相容性和載入速度！
+        </div>
+        
+        <div id="cors-notice" class="cors-notice" style="display: none;">
+            <strong>⚠️ 網路連線問題</strong><br>
+            由於瀏覽器 CORS 政策限制，無法自動檢查用戶狀態。請直接填寫表單。
         </div>
         
         <div id="status" class="status">載入中...</div>
@@ -300,6 +313,83 @@
             }
         }
         
+        // 使用 JSONP 方式來避免 CORS 問題
+        function queryUserStatusViaJSONP(userId) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                const callbackName = 'callback_' + Math.random().toString(36).substr(2, 9);
+                
+                // 設置全域回調函數
+                window[callbackName] = function(data) {
+                    document.body.removeChild(script);
+                    delete window[callbackName];
+                    resolve(data);
+                };
+                
+                // 設置超時
+                const timeout = setTimeout(() => {
+                    document.body.removeChild(script);
+                    delete window[callbackName];
+                    reject(new Error('JSONP 請求超時'));
+                }, 10000);
+                
+                script.onerror = function() {
+                    clearTimeout(timeout);
+                    document.body.removeChild(script);
+                    delete window[callbackName];
+                    reject(new Error('JSONP 載入失敗'));
+                };
+                
+                const url = `${CONFIG.APPS_SCRIPT_URL}?userId=${encodeURIComponent(userId)}&callback=${callbackName}&t=${Date.now()}`;
+                script.src = url;
+                document.body.appendChild(script);
+            });
+        }
+        
+        // 使用替代方式檢查用戶狀態
+        async function checkUserStatusAlternative(userId) {
+            // 方法1: 嘗試使用 JSONP
+            try {
+                addDebugInfo('嘗試使用 JSONP 方式查詢...');
+                const data = await queryUserStatusViaJSONP(userId);
+                addDebugInfo('JSONP 回應: ' + JSON.stringify(data));
+                return data;
+            } catch (error) {
+                addDebugInfo('JSONP 失敗: ' + error.message);
+            }
+            
+            // 方法2: 使用圖片請求作為備用方案
+            try {
+                addDebugInfo('嘗試使用圖片請求方式...');
+                const img = new Image();
+                const url = `${CONFIG.APPS_SCRIPT_URL}?userId=${encodeURIComponent(userId)}&method=img&t=${Date.now()}`;
+                
+                return new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('圖片請求超時'));
+                    }, 10000);
+                    
+                    img.onload = function() {
+                        clearTimeout(timeout);
+                        // 假設如果圖片載入成功，表示用戶存在
+                        resolve({ status: 'success', method: 'image' });
+                    };
+                    
+                    img.onerror = function() {
+                        clearTimeout(timeout);
+                        resolve({ status: 'new_user', method: 'image' });
+                    };
+                    
+                    img.src = url;
+                });
+            } catch (error) {
+                addDebugInfo('圖片請求失敗: ' + error.message);
+            }
+            
+            // 如果所有方法都失敗，返回新用戶狀態
+            return { status: 'new_user', method: 'fallback' };
+        }
+        
         async function showUserInfo(profile) {
             showStatus('載入完成', 'success');
             addDebugInfo('正在檢查使用者是否已登記...');
@@ -310,32 +400,45 @@
             document.getElementById('lineUserId').value = profile.userId;
         
             try {
-                // 檢查使用者是否已在人員資料中登記
+                // 先嘗試標準 fetch，如果失敗則使用替代方案
                 const url = `${CONFIG.APPS_SCRIPT_URL}?userId=${encodeURIComponent(profile.userId)}&t=${Date.now()}`;
                 addDebugInfo('查詢網址: ' + url);
 
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超時
+                const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒超時
                 
-                const response = await fetch(url, {
-                    method: 'GET',
-                    mode: 'cors',
-                    cache: 'no-cache',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                    },
-                    signal: controller.signal
-                });
-                
-                clearTimeout(timeoutId);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                let data;
+                try {
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        mode: 'cors',
+                        cache: 'no-cache',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        },
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    data = await response.json();
+                    addDebugInfo('標準請求成功: ' + JSON.stringify(data));
+                } catch (fetchError) {
+                    clearTimeout(timeoutId);
+                    addDebugInfo('標準請求失敗: ' + fetchError.message);
+                    
+                    // 顯示 CORS 提示
+                    document.getElementById('cors-notice').style.display = 'block';
+                    
+                    // 使用替代方案
+                    data = await checkUserStatusAlternative(profile.userId);
+                    addDebugInfo('替代方案結果: ' + JSON.stringify(data));
                 }
-                
-                const data = await response.json();
-                addDebugInfo('伺服器回應: ' + JSON.stringify(data));
                 
                 // 檢查回應狀態
                 if (data.status === 'redirect' && data.redirectUrl && data.redirectUrl.trim() !== '') {
@@ -347,19 +450,17 @@
                         window.location.href = data.redirectUrl;
                     }, 1500);
                     return;
-                } else if (data.status === 'new_user') {
-                    addDebugInfo('新使用者，需要填寫表單');
+                } else if (data.status === 'new_user' || data.method === 'fallback') {
+                    addDebugInfo('新使用者或查詢失敗，需要填寫表單');
                     showStatus('歡迎新用戶，請填寫以下表單', 'info');
                 } else if (data.status === 'error') {
-                    addDebugInfo('伺服器錯誤: ' + data.message);
+                    addDebugInfo('伺服器錯誤: ' + (data.message || '未知錯誤'));
                     showStatus('檢查時發生錯誤，請填寫表單', 'error');
                 }
             } catch (error) {
-                addDebugInfo('查詢失敗：' + error.message);
-                if (error.name === 'AbortError') {
-                    addDebugInfo('請求超時');
-                }
+                addDebugInfo('所有查詢方式都失敗：' + error.message);
                 showStatus('網路錯誤，請填寫表單', 'error');
+                document.getElementById('cors-notice').style.display = 'block';
             }
             
             // 顯示表單讓使用者填寫
@@ -367,89 +468,104 @@
             renderForm(profile);
         }
 
-        // 重試機制的提交函數
-        async function submitFormWithRetry(formData, retryCount = 0) {
+        // 改進的提交函數，支援多種提交方式
+        async function submitFormWithMultipleMethods(formData) {
             const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.textContent = '送出中...';
             
-            if (retryCount === 0) {
-                btn.disabled = true;
-                btn.textContent = '送出中...';
-                submitRetries = 0;
-            }
-            
+            // 方法1: 標準 POST 請求
             try {
-                addDebugInfo(`提交嘗試 ${retryCount + 1}/${MAX_SUBMIT_RETRIES + 1}`);
-                addDebugInfo('準備發送資料: ' + JSON.stringify(formData));
-                
-                // 使用更寬鬆的 fetch 設定和超時控制
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超時
-                
+                addDebugInfo('嘗試標準 POST 請求');
                 const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // 改為 no-cors 模式來避免 CORS 問題
+                    mode: 'cors',
                     cache: 'no-cache',
                     headers: {
-                        'Content-Type': 'text/plain', // 改為 text/plain 避免 preflight
+                        'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(formData),
-                    signal: controller.signal
+                    body: JSON.stringify(formData)
                 });
                 
-                clearTimeout(timeoutId);
-                
-                // 在 no-cors 模式下，我們無法讀取回應內容
-                // 但如果請求成功發送，就假設成功
-                addDebugInfo('請求已發送 (no-cors 模式)');
-                showStatus('送出成功！', 'success');
-                
-                // 重置表單
-                document.getElementById('myForm').reset();
-                document.getElementById('lineUserId').value = document.getElementById('user-id').textContent;
-                
-                // 如果在 LINE 內，2秒後關閉視窗
-                if (liff.isInClient()) {
-                    setTimeout(() => {
-                        liff.closeWindow();
-                    }, 2000);
-                }
-                
-            } catch (error) {
-                addDebugInfo('發送錯誤: ' + error.message);
-                
-                // 如果還有重試機會，則重試
-                if (retryCount < MAX_SUBMIT_RETRIES) {
-                    submitRetries++;
-                    addDebugInfo(`將在 ${2 + retryCount} 秒後重試...`);
-                    
-                    // 顯示重試訊息
-                    showStatus(`發送失敗，${2 + retryCount} 秒後重試... (${retryCount + 1}/${MAX_SUBMIT_RETRIES})`, 'error');
-                    
-                    setTimeout(() => {
-                        submitFormWithRetry(formData, retryCount + 1);
-                    }, (2 + retryCount) * 1000);
-                    
+                if (response.ok) {
+                    const result = await response.json();
+                    addDebugInfo('標準請求成功: ' + JSON.stringify(result));
+                    showStatus('送出成功！', 'success');
+                    handleSubmitSuccess();
                     return;
                 }
+            } catch (error) {
+                addDebugInfo('標準請求失敗: ' + error.message);
+            }
+            
+            // 方法2: no-cors 模式
+            try {
+                addDebugInfo('嘗試 no-cors 模式');
+                await fetch(CONFIG.APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    cache: 'no-cache',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                    },
+                    body: JSON.stringify(formData)
+                });
                 
-                // 所有重試都失敗
-                showStatus('送出失敗：' + error.message + ' (已重試 ' + MAX_SUBMIT_RETRIES + ' 次)', 'error');
+                // 在 no-cors 模式下無法確定是否真正成功，但假設成功
+                addDebugInfo('no-cors 請求已發送');
+                showStatus('送出成功！（no-cors 模式）', 'success');
+                handleSubmitSuccess();
+                return;
+            } catch (error) {
+                addDebugInfo('no-cors 請求失敗: ' + error.message);
+            }
+            
+            // 方法3: 表單提交模式
+            try {
+                addDebugInfo('嘗試表單提交模式');
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = CONFIG.APPS_SCRIPT_URL;
+                form.target = '_blank';
+                form.style.display = 'none';
                 
-                // 顯示重試提示
-                const retryInfo = document.createElement('div');
-                retryInfo.className = 'retry-info';
-                retryInfo.innerHTML = `
-                    <strong>提交失敗可能原因：</strong><br>
-                    • 網路連線問題<br>
-                    • Google Apps Script 服務暫時無法存取<br>
-                    • CORS 政策限制<br><br>
-                    請稍後再試，或聯繫系統管理員。
-                `;
-                document.getElementById('myForm').appendChild(retryInfo);
+                // 將資料轉換為表單欄位
+                for (const [key, value] of Object.entries(formData)) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = value;
+                    form.appendChild(input);
+                }
                 
-            } finally {
-                btn.disabled = false;
-                btn.textContent = '送出表單';
+                document.body.appendChild(form);
+                form.submit();
+                document.body.removeChild(form);
+                
+                addDebugInfo('表單提交完成');
+                showStatus('已開啟新視窗提交，請檢查是否成功', 'success');
+                handleSubmitSuccess(false); // 不自動關閉視窗
+                return;
+            } catch (error) {
+                addDebugInfo('表單提交失敗: ' + error.message);
+            }
+            
+            // 所有方法都失敗
+            showStatus('所有提交方式都失敗，請聯繫系統管理員', 'error');
+            btn.disabled = false;
+            btn.textContent = '送出表單';
+        }
+        
+        function handleSubmitSuccess(autoClose = true) {
+            // 重置表單
+            document.getElementById('myForm').reset();
+            document.getElementById('lineUserId').value = document.getElementById('user-id').textContent;
+            
+            // 如果在 LINE 內且允許自動關閉，2秒後關閉視窗
+            if (autoClose && liff.isInClient()) {
+                setTimeout(() => {
+                    liff.closeWindow();
+                }, 2000);
             }
         }
 
@@ -471,10 +587,10 @@
                 email: document.getElementById('email').value,
                 phone: document.getElementById('phone').value,
                 message: document.getElementById('message').value,
-                source: 'github-pages-member-check'
+                source: 'github-pages-member-check-v2'
             };
             
-            submitFormWithRetry(formData);
+            submitFormWithMultipleMethods(formData);
         });
 
         // 負責顯示使用者資訊與表單
