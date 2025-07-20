@@ -161,8 +161,7 @@
         console.log('GitHub Pages LIFF 應用啟動...');
         // 全局變數，從網址讀slot
         const urlParams = new URLSearchParams(window.location.search);
-        const slot = urlParams.get('slot') || "";  // 沒有就空字串
-        addDebugInfo('從網址取得 slot 參數：' + slot);
+
         // 設定區域 - 請修改這些設定
         const CONFIG = {
             LIFF_ID: "2007782293-RgkE5pPW", // 你的 LIFF ID
@@ -206,6 +205,12 @@
                     addDebugInfo('LIFF 版本: ' + (liff.getVersion ? liff.getVersion() : '未知'));
                     addDebugInfo('是否在 LINE 中: ' + liff.isInClient());
                     addDebugInfo('OS: ' + liff.getOS());
+
+                    // 從 LIFF context 取得參數（改這裡）
+                    const queryString = liff.getContext().queryString || "";
+                    const params = new URLSearchParams(queryString);
+                    slot = params.get("slot") || "";
+                    addDebugInfo('從 LIFF state 取得 slot 參數：' + slot);
                     
                     // 檢查登入狀態
                     const isLoggedIn = liff.isLoggedIn();
