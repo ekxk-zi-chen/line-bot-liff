@@ -291,7 +291,7 @@
             document.getElementById('user-id').textContent = profile.userId;
             document.getElementById('lineUserId').value = profile.userId;
         
-            const url = CONFIG.APPS_SCRIPT_URL + "?userId=" + profile.userId;
+            const url = CONFIG.APPS_SCRIPT_URL + "?userId=" + profile.userId + "&slot=" + encodeURIComponent(slot);
             addDebugInfo('查詢網址: ' + url);
         
             // 正確串接 fetch
@@ -330,7 +330,8 @@
                 email: document.getElementById('email').value,
                 phone: document.getElementById('phone').value,
                 message: document.getElementById('message').value,
-                source: 'github-pages'
+                source: 'github-pages',
+                slot: slot  // 加上這行，把 slot 一併送出
             };
         
             fetch(CONFIG.APPS_SCRIPT_URL, {
