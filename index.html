@@ -158,6 +158,7 @@
     </div>
 
     <script>
+        let slot = ""; // ← 定義為全域變數
         console.log('GitHub Pages LIFF 應用啟動...');
         // 全局變數，從網址讀slot
         const urlParams = new URLSearchParams(window.location.search);
@@ -209,7 +210,7 @@
                     // 從 LIFF context 取得參數（改這裡）
                     const queryString = liff.getContext().queryString || "";
                     const params = new URLSearchParams(queryString);
-                    const slot = params.get("slot") || "";
+                    slot = params.get("slot") || ""; // ← 更新全域 slot
                     addDebugInfo('從 LIFF state 取得 slot 參數：' + slot);
                     
                     // 檢查登入狀態
