@@ -184,12 +184,13 @@
         
         function addDebugInfo(info) {
             if (!CONFIG.DEBUG_MODE) return;
-            
+        
             const debugEl = document.getElementById('debug-content');
             const time = new Date().toLocaleTimeString();
-            debugEl.innerHTML += <div>[${time}] ${info}</div>;
+            debugEl.innerHTML += `<div>[${time}] ${info}</div>`;
             document.getElementById('debug-info').style.display = 'block';
         }
+
 
         function startLiff() {
             showStatus('開始初始化 LIFF');
@@ -283,14 +284,16 @@
             showStatus('載入完成', 'success');
             addDebugInfo('正在檢查是否已有對應連結...');
         
-            // 基本顯示
+            // 顯示基本資訊
             document.getElementById('display-name').textContent = profile.displayName;
             document.getElementById('user-id').textContent = profile.userId;
             document.getElementById('lineUserId').value = profile.userId;
         
-            // 向 Apps Script 查詢是否需要 redirect
-            fetch(CONFIG.APPS_SCRIPT_URL + "?userId=" + profile.userId)
-                addDebugInfo('查詢網址: ' + CONFIG.APPS_SCRIPT_URL + "?userId=" + profile.userId);
+            // 查詢是否有 redirectUrl
+            const fetchUrl = CONFIG.APPS_SCRIPT_URL + "?userId=" + profile.userId;
+            addDebugInfo('查詢網址: ' + fetchUrl);
+        
+            fetch(fetchUrl)
                 .then(res => res.json())
                 .then(data => {
                     if (data.redirectUrl) {
@@ -306,6 +309,7 @@
                     renderForm(profile);
                 });
         }
+
 
 
         // 表單提交 - 發送到 Google Apps Script
