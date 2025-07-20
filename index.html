@@ -184,30 +184,28 @@
         }
 
         async function startLiff() {
-            showStatus('開始初始化 LIFF');
-            addDebugInfo('開始 LIFF 初始化 - GitHub Pages 環境');
+          showStatus('開始初始化 LIFF');
+          await liff.init({ liffId: CONFIG.LIFF_ID });
+          showStatus('LIFF 初始化完成');
         
-            try {
-                await liff.init({ liffId: CONFIG.LIFF_ID });
-                showStatus('LIFF 初始化完成');
-                addDebugInfo('LIFF 初始化成功');
+          // ─────────── 这里开始，解析 slot ───────────
+          const urlParams = new URLSearchParams(window.location.search);
+          slot = urlParams.get('slot') || "";
+          if (!slot) {
+            const liffState = urlParams.get('liff.state') || "";
+            if (liffState) {
+              const decoded = decodeURIComponent(liffState); // "?slot=B6"
+              const inner = new URLSearchParams(decoded);
+              slot = inner.get('slot') || "";
+            }
+          }
+          addDebugInfo('最終解析到的 slot = ' + slot);
+          // ─────────── 解析结束 ───────────
         
-                // 先用 window.location.search 讀取 slot
-                const params = new URLSearchParams(window.location.search);
-                slot = params.get("slot") || "";
-        
-                // fallback 用 liff.getContext() 的 queryString
-                if (!slot) {
-                    const liffContextQuery = liff.getContext().queryString || "";
-                    const liffParams = new URLSearchParams(liffContextQuery);
-                    slot = liffParams.get("slot") || "";
-                }
-                addDebugInfo('取得 slot 參數：' + slot);
-        
-                if (!liff.isLoggedIn()) {
-                    showLoginOptions();
-                    return;
-                }
+          if (!liff.isLoggedIn()) {
+            showLoginOptions();
+            return;
+          }
         
                 showStatus('已登入，取得使用者資料中');
                 const profile = await getUserProfile();
