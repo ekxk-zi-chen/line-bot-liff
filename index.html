@@ -158,11 +158,11 @@
     </div>
 
     <script>
-        let slot = ""; // ← 定義為全域變數
+        
         console.log('GitHub Pages LIFF 應用啟動...');
         // 全局變數，從網址讀slot
         const urlParams = new URLSearchParams(window.location.search);
-
+        slot = urlParams.get("slot") || "";
         // 設定區域 - 請修改這些設定
         const CONFIG = {
             LIFF_ID: "2007782293-RgkE5pPW", // 你的 LIFF ID
@@ -294,7 +294,7 @@
               .then(data => {
                 if (data.redirectUrl) {
                   addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
-                  window.location.assign(data.redirectUrl); // ✅ 自動跳轉
+                  window.location.href = data.redirectUrl; // 改成這個試試看
                 } else {
                   addDebugInfo('未找到 redirectUrl，顯示表單');
                   renderForm(profile);
