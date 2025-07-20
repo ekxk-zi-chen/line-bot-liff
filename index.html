@@ -279,13 +279,14 @@
                 const res = await fetch(url);
                 const data = await res.json();
         
-                if (data.redirectUrl && data.redirectUrl !== "") {
-                    addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
-                    window.location.href = data.redirectUrl;
+                if (typeof data.redirectUrl === "string" && data.redirectUrl.trim().length > 0) {
+                  addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
+                  window.location.href = data.redirectUrl;
                 } else {
-                    addDebugInfo('未找到 redirectUrl，顯示表單');
-                    renderForm(profile);
+                  addDebugInfo('未找到 redirectUrl 或為空，顯示表單');
+                  renderForm(profile);
                 }
+
             } catch (error) {
                 addDebugInfo('查詢失敗，顯示表單：' + error.message);
                 renderForm(profile);
