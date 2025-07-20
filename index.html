@@ -187,9 +187,10 @@
             
             const debugEl = document.getElementById('debug-content');
             const time = new Date().toLocaleTimeString();
-            debugEl.innerHTML += `<div>[${time}] ${info}</div>`;
+            debugEl.innerHTML += `<div>[${time}] ${info}</div>`;  // 用模板字串
             document.getElementById('debug-info').style.display = 'block';
         }
+
 
         function startLiff() {
             showStatus('開始初始化 LIFF');
