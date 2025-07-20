@@ -187,7 +187,7 @@
             
             const debugEl = document.getElementById('debug-content');
             const time = new Date().toLocaleTimeString();
-            debugEl.innerHTML += <div>[${time}] ${info}</div>;
+            debugEl.innerHTML += `<div>[${time}] ${info}</div>`;
             document.getElementById('debug-info').style.display = 'block';
         }
 
