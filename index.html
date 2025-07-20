@@ -333,7 +333,7 @@
         
             fetch(CONFIG.APPS_SCRIPT_URL, {
                 method: 'POST',
-                mode: 'no-cors',
+                mode: 'cors',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             })
