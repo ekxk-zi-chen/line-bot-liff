@@ -377,7 +377,7 @@
                     mode: 'no-cors', // 改為 no-cors 模式來避免 CORS 問題
                     cache: 'no-cache',
                     headers: {
-                        'Content-Type': 'text/plain', // 改為 text/plain 避免 preflight
+                        'Content-Type': 'application/json', // 改為 text/plain 避免 preflight
                     },
                     body: JSON.stringify(formData),
                     signal: controller.signal
