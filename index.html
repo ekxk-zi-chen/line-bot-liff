@@ -188,31 +188,30 @@
           await liff.init({ liffId: CONFIG.LIFF_ID });
           showStatus('LIFF 初始化完成');
         
-          // 取 slot
+          // 1. 先解析 slot，无论是在浏览器还是 LINE 都能拿到
           const params = new URLSearchParams(window.location.search);
-          slot = params.get('slot') || "";
+          slot = params.get('slot') || '';
           addDebugInfo('取得 slot：' + slot);
         
-          const inClient = liff.isInClient();
-          addDebugInfo('是否在 LINE 中: ' + inClient);
-        
-          if (!inClient) {
-            // ← 非 LINE 客户端，直接显示表单，不用登录、也不用后端 redirect
-            addDebugInfo('非 LINE 客户端，直接顯示表單');
+          // 2. 如果不是在 LINE 客户端（isInClient() === false），直接 renderForm
+          if (!liff.isInClient()) {
+            addDebugInfo('偵測到不是 LINE App，直接顯示表單');
             renderForm({ displayName: '', userId: '' });
             return;
           }
         
-          // 正常 LINE 客户端流程
+          // 3. 在 LINE 客户端里，如果没登录就先登录
           if (!liff.isLoggedIn()) {
             showLoginOptions();
             return;
           }
         
+          // 4. 已登录：拿 profile 再处理
           showStatus('已登入，取得使用者資料中');
           const profile = await getUserProfile();
           await showUserInfo(profile);
         }
+
 
 
 
@@ -258,40 +257,35 @@
         }
 
         async function showUserInfo(profile) {
-            showStatus('載入完成', 'success');
-            addDebugInfo('正在檢查是否已有對應連結...');
+          showStatus('載入完成', 'success');
+          addDebugInfo('開始後端檢查 redirect');
         
-            document.getElementById('display-name').textContent = profile.displayName || "";
-            document.getElementById('user-id').textContent = profile.userId || "";
-            document.getElementById('lineUserId').value = profile.userId || "";
+          // 填入使用者資料（即使空也填）
+          document.getElementById('display-name').textContent = profile.displayName || '';
+          document.getElementById('user-id').textContent = profile.userId || '';
+          document.getElementById('lineUserId').value = profile.userId || '';
         
-            // userId 沒有值，直接顯示表單，不用呼叫後端
-            if (!profile.userId) {
-                addDebugInfo('userId 空值，直接顯示表單');
-                renderForm(profile);
-                return;
+          // 如果後端還是拿不到 redirectUrl，就直接顯示表單
+          const url = `${CONFIG.APPS_SCRIPT_URL}?userId=${profile.userId}&slot=${encodeURIComponent(slot)}`;
+          addDebugInfo('向後端發 fetch: ' + url);
+        
+          try {
+            const res = await fetch(url);
+            const data = await res.json();
+        
+            if (data.redirectUrl) {
+              addDebugInfo('有 redirectUrl，跳轉中: ' + data.redirectUrl);
+              window.location.href = data.redirectUrl;
+            } else {
+              addDebugInfo('redirectUrl 空，顯示表單');
+              renderForm(profile);
             }
-        
-            const url = `${CONFIG.APPS_SCRIPT_URL}?userId=${profile.userId}&slot=${encodeURIComponent(slot)}`;
-            addDebugInfo('查詢網址: ' + url);
-        
-            try {
-                const res = await fetch(url);
-                const data = await res.json();
-        
-                if (typeof data.redirectUrl === "string" && data.redirectUrl.trim().length > 0) {
-                  addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
-                  window.location.href = data.redirectUrl;
-                } else {
-                  addDebugInfo('未找到 redirectUrl 或為空，顯示表單');
-                  renderForm(profile);
-                }
-
-            } catch (error) {
-                addDebugInfo('查詢失敗，顯示表單：' + error.message);
-                renderForm(profile);
-            }
+          } catch (err) {
+            addDebugInfo('fetch 失敗，顯示表單: ' + err.message);
+            renderForm(profile);
+          }
         }
+
 
 
         // 表單提交
