@@ -288,27 +288,27 @@
             document.getElementById('user-id').textContent = profile.userId;
             document.getElementById('lineUserId').value = profile.userId;
         
-            // 向 Apps Script 查詢是否需要 redirect
-            const queryUrl = CONFIG.APPS_SCRIPT_URL + "?userId=" + profile.userId;
-            addDebugInfo('查詢網址: ' + queryUrl);
-            
-            fetch(queryUrl)
-              .then(res => res.json())
-              .then(data => {
-                if (data.redirectUrl) {
-                  addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
-                  window.location.href = data.redirectUrl;
-                } else {
-                  addDebugInfo('未找到 redirectUrl，顯示表單');
-                  renderForm(profile);
-                }
-              })
-              .catch(err => {
-                addDebugInfo('查詢失敗，顯示表單：' + err.message);
-                renderForm(profile);
-              });
-
+            const url = CONFIG.APPS_SCRIPT_URL + "?userId=" + profile.userId;
+            addDebugInfo('查詢網址: ' + url);
+        
+            // 正確串接 fetch
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.redirectUrl) {
+                        addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
+                        window.location.href = data.redirectUrl;
+                    } else {
+                        addDebugInfo('未找到 redirectUrl，顯示表單');
+                        renderForm(profile);
+                    }
+                })
+                .catch(err => {
+                    addDebugInfo('查詢失敗，顯示表單：' + err.message);
+                    renderForm(profile);
+                });
         }
+
 
 
         // 表單提交 - 發送到 Google Apps Script
