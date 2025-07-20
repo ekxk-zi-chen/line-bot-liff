@@ -290,6 +290,7 @@
         
             // 向 Apps Script 查詢是否需要 redirect
             fetch(CONFIG.APPS_SCRIPT_URL + "?userId=" + profile.userId)
+                addDebugInfo('查詢網址: ' + CONFIG.APPS_SCRIPT_URL + "?userId=" + profile.userId);
                 .then(res => res.json())
                 .then(data => {
                     if (data.redirectUrl) {
