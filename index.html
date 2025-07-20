@@ -302,7 +302,7 @@
         
         async function showUserInfo(profile) {
             showStatus('載入完成', 'success');
-            addDebugInfo('正在檢查是否已有對應連結...');
+            addDebugInfo('正在檢查使用者是否已登記...');
         
             // 基本顯示
             document.getElementById('display-name').textContent = profile.displayName;
@@ -310,7 +310,7 @@
             document.getElementById('lineUserId').value = profile.userId;
         
             try {
-                // 改良的 fetch 請求 - 增加更多重試機制
+                // 檢查使用者是否已在人員資料中登記
                 const url = `${CONFIG.APPS_SCRIPT_URL}?userId=${encodeURIComponent(profile.userId)}&t=${Date.now()}`;
                 addDebugInfo('查詢網址: ' + url);
 
@@ -337,20 +337,33 @@
                 const data = await response.json();
                 addDebugInfo('伺服器回應: ' + JSON.stringify(data));
                 
-                if (data.redirectUrl && data.redirectUrl.trim() !== '') {
-                    addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
-                    window.location.href = data.redirectUrl;
+                // 檢查回應狀態
+                if (data.status === 'redirect' && data.redirectUrl && data.redirectUrl.trim() !== '') {
+                    addDebugInfo('使用者已登記，準備跳轉到圖文表單：' + data.redirectUrl);
+                    showStatus('已登記用戶，跳轉中...', 'success');
+                    
+                    // 延遲跳轉，讓使用者看到訊息
+                    setTimeout(() => {
+                        window.location.href = data.redirectUrl;
+                    }, 1500);
                     return;
+                } else if (data.status === 'new_user') {
+                    addDebugInfo('新使用者，需要填寫表單');
+                    showStatus('歡迎新用戶，請填寫以下表單', 'info');
+                } else if (data.status === 'error') {
+                    addDebugInfo('伺服器錯誤: ' + data.message);
+                    showStatus('檢查時發生錯誤，請填寫表單', 'error');
                 }
             } catch (error) {
                 addDebugInfo('查詢失敗：' + error.message);
                 if (error.name === 'AbortError') {
                     addDebugInfo('請求超時');
                 }
+                showStatus('網路錯誤，請填寫表單', 'error');
             }
             
-            // 如果沒有跳轉，顯示表單
-            addDebugInfo('未找到 redirectUrl 或查詢失敗，顯示表單');
+            // 顯示表單讓使用者填寫
+            addDebugInfo('顯示填寫表單');
             renderForm(profile);
         }
 
@@ -458,7 +471,7 @@
                 email: document.getElementById('email').value,
                 phone: document.getElementById('phone').value,
                 message: document.getElementById('message').value,
-                source: 'github-pages-fixed-v2'
+                source: 'github-pages-member-check'
             };
             
             submitFormWithRetry(formData);
