@@ -158,11 +158,11 @@
     </div>
 
     <script>
-        
+        let slot = ""; // ← 定義為全域變數
         console.log('GitHub Pages LIFF 應用啟動...');
         // 全局變數，從網址讀slot
         const urlParams = new URLSearchParams(window.location.search);
-        slot = urlParams.get("slot") || "";
+
         // 設定區域 - 請修改這些設定
         const CONFIG = {
             LIFF_ID: "2007782293-RgkE5pPW", // 你的 LIFF ID
@@ -190,46 +190,57 @@
             
             const debugEl = document.getElementById('debug-content');
             const time = new Date().toLocaleTimeString();
-            debugEl.innerHTML += `<div>[${time}] ${info}</div>`;
+            debugEl.innerHTML += <div>[${time}] ${info}</div>;
             document.getElementById('debug-info').style.display = 'block';
         }
 
-        async function startLiff() {
-          try {
+        function startLiff() {
             showStatus('開始初始化 LIFF');
             addDebugInfo('開始 LIFF 初始化 - GitHub Pages 環境');
-        
-            await liff.init({ liffId: CONFIG.LIFF_ID });
-        
-            showStatus('LIFF 初始化完成');
-            addDebugInfo('LIFF 初始化成功');
-            addDebugInfo('LIFF 版本: ' + (liff.getVersion ? liff.getVersion() : '未知'));
-            addDebugInfo('是否在 LINE 中: ' + liff.isInClient());
-            addDebugInfo('OS: ' + liff.getOS());
-        
-            // 這裡改成用 window.location.search
-            const params = new URLSearchParams(window.location.search);
-            slot = params.get("slot") || "";
-            addDebugInfo('從網址取得 slot 參數：' + slot);
-        
-            const isLoggedIn = liff.isLoggedIn();
-            addDebugInfo('登入狀態: ' + (isLoggedIn ? '已登入' : '未登入'));
-        
-            if (isLoggedIn) {
-              showStatus('已登入，取得使用者資料中');
-              const profile = await getUserProfile();
-              showUserInfo(profile);
-            } else {
-              showLoginOptions();
+            
+            try {
+                liff.init({ liffId: CONFIG.LIFF_ID })
+                .then(function() {
+                    showStatus('LIFF 初始化完成');
+                    addDebugInfo('LIFF 初始化成功');
+                    addDebugInfo('LIFF 版本: ' + (liff.getVersion ? liff.getVersion() : '未知'));
+                    addDebugInfo('是否在 LINE 中: ' + liff.isInClient());
+                    addDebugInfo('OS: ' + liff.getOS());
+
+                    // 從 LIFF context 取得參數（改這裡）
+                    const queryString = liff.getContext().queryString || "";
+                    const params = new URLSearchParams(queryString);
+                    slot = params.get("slot") || ""; // ← 更新全域 slot
+                    addDebugInfo('從 LIFF state 取得 slot 參數：' + slot);
+                    
+                    // 檢查登入狀態
+                    const isLoggedIn = liff.isLoggedIn();
+                    addDebugInfo('登入狀態: ' + (isLoggedIn ? '已登入' : '未登入'));
+                    
+                    if (isLoggedIn) {
+                        showStatus('已登入，取得使用者資料中');
+                        return getUserProfile();
+                    } else {
+                        showLoginOptions();
+                        return null;
+                    }
+                })
+                .then(function(profile) {
+                    if (profile) {
+                        showUserInfo(profile);
+                    }
+                })
+                .catch(function(error) {
+                    showStatus('LIFF 初始化失敗: ' + error.message, 'error');
+                    addDebugInfo('錯誤詳情: ' + JSON.stringify(error));
+                    console.error('LIFF Error:', error);
+                });
+            } catch (e) {
+                showStatus('執行錯誤: ' + e.message, 'error');
+                addDebugInfo('執行錯誤: ' + e.message);
+                console.error('Script Error:', e);
             }
-          } catch (error) {
-            showStatus('LIFF 初始化失敗: ' + error.message, 'error');
-            addDebugInfo('錯誤詳情: ' + JSON.stringify(error));
-            console.error('LIFF Error:', error);
-          }
         }
-
-
         
         function showLoginOptions() {
             loginAttempts++;
@@ -295,7 +306,7 @@
               .then(data => {
                 if (data.redirectUrl) {
                   addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
-                  window.location.href = data.redirectUrl; // 改成這個試試看
+                  window.location.href = data.redirectUrl; // ✅ 自動跳轉
                 } else {
                   addDebugInfo('未找到 redirectUrl，顯示表單');
                   renderForm(profile);
