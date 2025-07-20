@@ -194,53 +194,41 @@
             document.getElementById('debug-info').style.display = 'block';
         }
 
-        function startLiff() {
-            showStatus('開始初始化 LIFF');
-            addDebugInfo('開始 LIFF 初始化 - GitHub Pages 環境');
+        async function startLiff() {
+              try {
+                showStatus('開始初始化 LIFF');
+                addDebugInfo('開始 LIFF 初始化 - GitHub Pages 環境');
             
-            try {
-                liff.init({ liffId: CONFIG.LIFF_ID })
-                .then(function() {
-                    showStatus('LIFF 初始化完成');
-                    addDebugInfo('LIFF 初始化成功');
-                    addDebugInfo('LIFF 版本: ' + (liff.getVersion ? liff.getVersion() : '未知'));
-                    addDebugInfo('是否在 LINE 中: ' + liff.isInClient());
-                    addDebugInfo('OS: ' + liff.getOS());
-
-                    // 從 LIFF context 取得參數（改這裡）
-                    const queryString = liff.getContext().queryString || "";
-                    const params = new URLSearchParams(queryString);
-                    slot = params.get("slot") || ""; // ← 更新全域 slot
-                    addDebugInfo('從 LIFF state 取得 slot 參數：' + slot);
-                    
-                    // 檢查登入狀態
-                    const isLoggedIn = liff.isLoggedIn();
-                    addDebugInfo('登入狀態: ' + (isLoggedIn ? '已登入' : '未登入'));
-                    
-                    if (isLoggedIn) {
-                        showStatus('已登入，取得使用者資料中');
-                        return getUserProfile();
-                    } else {
-                        showLoginOptions();
-                        return null;
-                    }
-                })
-                .then(function(profile) {
-                    if (profile) {
-                        showUserInfo(profile);
-                    }
-                })
-                .catch(function(error) {
-                    showStatus('LIFF 初始化失敗: ' + error.message, 'error');
-                    addDebugInfo('錯誤詳情: ' + JSON.stringify(error));
-                    console.error('LIFF Error:', error);
-                });
-            } catch (e) {
-                showStatus('執行錯誤: ' + e.message, 'error');
-                addDebugInfo('執行錯誤: ' + e.message);
-                console.error('Script Error:', e);
+                await liff.init({ liffId: CONFIG.LIFF_ID });
+            
+                showStatus('LIFF 初始化完成');
+                addDebugInfo('LIFF 初始化成功');
+                addDebugInfo('LIFF 版本: ' + (liff.getVersion ? liff.getVersion() : '未知'));
+                addDebugInfo('是否在 LINE 中: ' + liff.isInClient());
+                addDebugInfo('OS: ' + liff.getOS());
+            
+                const queryString = liff.getContext().queryString || "";
+                const params = new URLSearchParams(queryString);
+                slot = params.get("slot") || "";
+                addDebugInfo('從 LIFF state 取得 slot 參數：' + slot);
+            
+                const isLoggedIn = liff.isLoggedIn();
+                addDebugInfo('登入狀態: ' + (isLoggedIn ? '已登入' : '未登入'));
+            
+                if (isLoggedIn) {
+                  showStatus('已登入，取得使用者資料中');
+                  const profile = await getUserProfile();
+                  showUserInfo(profile);
+                } else {
+                  showLoginOptions();
+                }
+              } catch (error) {
+                showStatus('LIFF 初始化失敗: ' + error.message, 'error');
+                addDebugInfo('錯誤詳情: ' + JSON.stringify(error));
+                console.error('LIFF Error:', error);
+              }
             }
-        }
+
         
         function showLoginOptions() {
             loginAttempts++;
