@@ -373,7 +373,7 @@
                 const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'cors', // 改為 no-cors 模式來避免 CORS 問題
-                    cache: 'cache',
+                    cache: 'no-cache',
                     headers: {
                         'Content-Type': 'application/json', // 改為 text/plain 避免 preflight
                     },
