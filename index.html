@@ -85,6 +85,8 @@
             margin-bottom: 20px;
             font-size: 12px;
             color: #666;
+            max-height: 200px;
+            overflow-y: auto;
             display: none;
         }
         .github-info {
@@ -94,6 +96,10 @@
             padding: 15px;
             border-radius: 5px;
             margin-bottom: 20px;
+        }
+        .retry-btn {
+            background-color: #ff6b6b;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -154,6 +160,10 @@
             <button type="submit" class="submit-btn" id="submit-btn">
                 送出表單
             </button>
+            
+            <button type="button" class="retry-btn" id="retry-connection-btn" style="display: none;">
+                重試連接
+            </button>
         </form>
     </div>
 
@@ -164,10 +174,13 @@
         const CONFIG = {
             LIFF_ID: "2007782293-RgkE5pPW", // 你的 LIFF ID
             APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec", // 請替換為你的 Apps Script 網址
-            DEBUG_MODE: true // 開發時設為 true，正式上線可設為 false
+            DEBUG_MODE: true, // 開發時設為 true，正式上線可設為 false
+            REQUEST_TIMEOUT: 15000, // 15 秒超時
+            MAX_RETRY_ATTEMPTS: 3 // 最大重試次數
         };
         
         let loginAttempts = 0;
+        let requestAttempts = 0;
         const MAX_LOGIN_ATTEMPTS = 3;
         let isLiffReady = false;
         
@@ -190,6 +203,61 @@
             const time = new Date().toLocaleTimeString();
             debugEl.innerHTML += `<div>[${time}] ${info}</div>`;
             document.getElementById('debug-info').style.display = 'block';
+            
+            // 自動捲動到最新
+            debugEl.scrollTop = debugEl.scrollHeight;
+        }
+
+        // 改良的網路請求函數，包含重試機制和更好的錯誤處理
+        async function makeRequest(url, options = {}, retryCount = 0) {
+            addDebugInfo(`嘗試請求 (第 ${retryCount + 1} 次): ${url}`);
+            
+            // 設定超時
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
+            
+            const requestOptions = {
+                ...options,
+                signal: controller.signal,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache',
+                    ...options.headers
+                }
+            };
+            
+            try {
+                const response = await fetch(url, requestOptions);
+                clearTimeout(timeoutId);
+                
+                addDebugInfo(`回應狀態: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                addDebugInfo(`回應資料: ${JSON.stringify(data).substring(0, 200)}...`);
+                return data;
+                
+            } catch (error) {
+                clearTimeout(timeoutId);
+                
+                if (error.name === 'AbortError') {
+                    addDebugInfo(`請求超時 (${CONFIG.REQUEST_TIMEOUT}ms)`);
+                } else {
+                    addDebugInfo(`請求錯誤: ${error.message}`);
+                }
+                
+                // 如果還有重試機會且不是嚴重錯誤，則重試
+                if (retryCount < CONFIG.MAX_RETRY_ATTEMPTS && !error.message.includes('404')) {
+                    await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000)); // 漸進式延遲
+                    return makeRequest(url, options, retryCount + 1);
+                }
+                
+                throw error;
+            }
         }
 
         // 改良的 LIFF 初始化函數
@@ -212,6 +280,7 @@
                 addDebugInfo('LIFF 版本: ' + (liff.getVersion ? liff.getVersion() : '未知'));
                 addDebugInfo('是否在 LINE 中: ' + liff.isInClient());
                 addDebugInfo('OS: ' + liff.getOS());
+                addDebugInfo('語言: ' + liff.getLanguage());
                 
                 // 檢查登入狀態
                 const isLoggedIn = liff.isLoggedIn();
@@ -234,10 +303,10 @@
                 
                 // 如果是在 LINE 內但初始化失敗，嘗試重新整理
                 if (window.location.href.includes('line')) {
-                    addDebugInfo('偵測到在 LINE 環境內，3 秒後嘗試重新載入');
+                    addDebugInfo('偵測到在 LINE 環境內，5 秒後嘗試重新載入');
                     setTimeout(() => {
                         location.reload();
-                    }, 3000);
+                    }, 5000);
                 }
             }
         }
@@ -291,7 +360,7 @@
         }
         
         async function showUserInfo(profile) {
-            showStatus('載入完成', 'success');
+            showStatus('載入完成，檢查是否已有對應連結...', 'info');
             addDebugInfo('正在檢查是否已有對應連結...');
         
             // 基本顯示
@@ -300,88 +369,76 @@
             document.getElementById('lineUserId').value = profile.userId;
         
             try {
-                // 改良的 fetch 請求
+                // 使用改良的請求函數
                 const url = `${CONFIG.APPS_SCRIPT_URL}?userId=${encodeURIComponent(profile.userId)}&t=${Date.now()}`;
-                addDebugInfo('查詢網址: ' + url);
-        
-                const response = await fetch(url, {
-                    method: 'GET',
-                    mode: 'cors',
-                    cache: 'no-cache',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                });
+                const data = await makeRequest(url, { method: 'GET' });
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                addDebugInfo('伺服器回應: ' + JSON.stringify(data));
-                
-                if (data.redirectUrl && data.redirectUrl.trim() !== '') {
+                if (data.status === 'ok' && data.redirectUrl && data.redirectUrl.trim() !== '') {
                     addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
-                    window.location.href = data.redirectUrl;
+                    showStatus('找到對應連結，正在跳轉...', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = data.redirectUrl;
+                    }, 1000);
                     return;
+                } else if (data.status === 'not_found') {
+                    addDebugInfo('未找到對應的用戶連結');
+                } else {
+                    addDebugInfo('伺服器回應異常: ' + JSON.stringify(data));
                 }
+                
             } catch (error) {
                 addDebugInfo('查詢失敗：' + error.message);
+                showStatus('連接伺服器失敗，將顯示表單讓您填寫', 'error');
+                document.getElementById('retry-connection-btn').style.display = 'block';
             }
             
             // 如果沒有跳轉，顯示表單
-            addDebugInfo('未找到 redirectUrl 或查詢失敗，顯示表單');
+            addDebugInfo('顯示表單供用戶填寫');
             renderForm(profile);
         }
 
         // 改良的表單提交函數
         async function submitForm(formData) {
             const btn = document.getElementById('submit-btn');
+            const originalText = btn.textContent;
             btn.disabled = true;
             btn.textContent = '送出中...';
             
             try {
                 addDebugInfo('準備發送資料: ' + JSON.stringify(formData));
                 
-                const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
+                const data = await makeRequest(CONFIG.APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'cors',
-                    cache: 'no-cache',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                    },
                     body: JSON.stringify(formData)
                 });
                 
-                addDebugInfo('回應狀態: ' + response.status + ' ' + response.statusText);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const result = await response.json();
-                addDebugInfo('伺服器回應: ' + JSON.stringify(result));
-                
-                showStatus('送出成功！', 'success');
-                
-                // 重置表單
-                document.getElementById('myForm').reset();
-                document.getElementById('lineUserId').value = document.getElementById('user-id').textContent;
-                
-                // 如果在 LINE 內，2秒後關閉視窗
-                if (liff.isInClient()) {
-                    setTimeout(() => {
-                        liff.closeWindow();
-                    }, 2000);
+                if (data.result === 'success') {
+                    showStatus('送出成功！', 'success');
+                    addDebugInfo('資料送出成功');
+                    
+                    // 重置表單
+                    document.getElementById('myForm').reset();
+                    document.getElementById('lineUserId').value = document.getElementById('user-id').textContent;
+                    
+                    // 如果在 LINE 內，3秒後關閉視窗
+                    if (liff.isInClient()) {
+                        addDebugInfo('3 秒後將關閉視窗');
+                        setTimeout(() => {
+                            liff.closeWindow();
+                        }, 3000);
+                    }
+                } else {
+                    throw new Error(data.message || '伺服器回傳異常狀態');
                 }
                 
             } catch (error) {
                 addDebugInfo('發送錯誤: ' + error.message);
                 showStatus('送出時發生錯誤：' + error.message, 'error');
+                document.getElementById('retry-connection-btn').style.display = 'block';
             } finally {
                 btn.disabled = false;
-                btn.textContent = '送出表單';
+                btn.textContent = originalText;
             }
         }
 
@@ -397,7 +454,7 @@
                 email: document.getElementById('email').value,
                 phone: document.getElementById('phone').value,
                 message: document.getElementById('message').value,
-                source: 'github-pages-fixed'
+                source: 'github-pages-fixed-v2'
             };
             
             submitForm(formData);
@@ -416,53 +473,22 @@
             document.getElementById('github-notice').style.display = 'none';
         }
         
+        // 重試連接按鈕
+        document.getElementById('retry-connection-btn').addEventListener('click', async function() {
+            this.style.display = 'none';
+            const profile = {
+                displayName: document.getElementById('display-name').textContent,
+                userId: document.getElementById('user-id').textContent
+            };
+            
+            requestAttempts = 0; // 重置重試計數
+            await showUserInfo(profile);
+        });
+        
         // 檢查環境
         function checkEnvironment() {
             addDebugInfo('環境檢測 - GitHub Pages');
-            addDebugInfo('User Agent: ' + navigator.userAgent);
+            addDebugInfo('User Agent: ' + navigator.userAgent.substring(0, 100) + '...');
             addDebugInfo('當前網址: ' + window.location.href);
             addDebugInfo('主機名稱: ' + window.location.hostname);
-            addDebugInfo('是否 HTTPS: ' + (location.protocol === 'https:'));
-            
-            if (typeof liff === 'undefined') {
-                showStatus('LIFF SDK 載入失敗', 'error');
-                addDebugInfo('LIFF SDK 未載入');
-                return false;
-            }
-            
-            addDebugInfo('LIFF SDK 載入成功');
-            return true;
-        }
-
-        // 頁面載入完成後初始化
-        window.addEventListener('load', function() {
-            console.log('GitHub Pages 頁面載入完成');
-            addDebugInfo('頁面載入完成 - GitHub Pages 環境');
-            
-            if (checkEnvironment()) {
-                // 延遲啟動，確保所有資源都已載入
-                setTimeout(() => {
-                    startLiff();
-                }, 1000);
-            } else {
-                // 如果環境檢查失敗，嘗試重新載入
-                setTimeout(() => {
-                    location.reload();
-                }, 3000);
-            }
-        });
-
-        // 錯誤處理
-        window.addEventListener('error', function(e) {
-            addDebugInfo('頁面錯誤: ' + e.message + ' 於 ' + e.filename + ':' + e.lineno);
-            console.error('Page Error:', e);
-        });
-        
-        // 處理 Promise 錯誤
-        window.addEventListener('unhandledrejection', function(e) {
-            addDebugInfo('未處理的 Promise 錯誤: ' + e.reason);
-            console.error('Unhandled Promise Rejection:', e);
-        });
-    </script>
-</body>
-</html>
+            addDebug
