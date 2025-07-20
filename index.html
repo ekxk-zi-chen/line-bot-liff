@@ -302,20 +302,21 @@
         
             // 正確串接 fetch
             fetch(url)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.redirectUrl) {
-                        addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
-                        window.location.href = data.redirectUrl;
-                    } else {
-                        addDebugInfo('未找到 redirectUrl，顯示表單');
-                        renderForm(profile);
-                    }
-                })
-                .catch(err => {
-                    addDebugInfo('查詢失敗，顯示表單：' + err.message);
-                    renderForm(profile);
-                });
+              .then(res => res.json())
+              .then(data => {
+                if (data.redirectUrl) {
+                  addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
+                  window.location.href = data.redirectUrl; // ✅ 自動跳轉
+                } else {
+                  addDebugInfo('未找到 redirectUrl，顯示表單');
+                  renderForm(profile);
+                }
+              })
+              .catch(err => {
+                addDebugInfo('查詢失敗，顯示表單：' + err.message);
+                renderForm(profile);
+              });
+
         }
 
 
