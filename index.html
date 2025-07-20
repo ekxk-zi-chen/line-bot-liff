@@ -172,7 +172,7 @@
         const CONFIG = {
             LIFF_ID: "2007782293-RgkE5pPW", // 你的 LIFF ID
             APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec", // 請替換為你的 Apps Script 網址
-            DEBUG_MODE: true // 開發時設為 true，正式上線可設為 false
+            DEBUG_: true // 開發時設為 true，正式上線可設為 false
         };
         
         let loginAttempts = 0;
@@ -194,7 +194,7 @@
         }
         
         function addDebugInfo(info) {
-            if (!CONFIG.DEBUG_MODE) return;
+            if (!CONFIG.DEBUG_) return;
             
             const debugEl = document.getElementById('debug-content');
             const time = new Date().toLocaleTimeString();
@@ -318,12 +318,13 @@
                 const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超時
                 
                 const response = await fetch(url, {
-                    method: 'GET', // 或 'POST'
+                    method: 'GET',
+                    mode: 'cors',  // 明確啟用 CORS
                     headers: {
-                        'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     }
                 });
+
                 
                 clearTimeout(timeoutId);
                 
