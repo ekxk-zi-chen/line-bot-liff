@@ -332,33 +332,27 @@
             };
         
             fetch(CONFIG.APPS_SCRIPT_URL, {
-                method: 'POST',
-                mode: 'cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+              method: 'POST',
+              mode: 'cors',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
             })
-            .then(res => res.json()) // ← 這行很重要
-            .then(function() {
-                addDebugInfo('資料已發送至 Apps Script');
-                showStatus('送出成功！', 'success');
-        
-                document.getElementById('myForm').reset();
-                document.getElementById('lineUserId').value = document.getElementById('user-id').textContent;
-        
-                if (liff.isInClient()) {
-                    setTimeout(() => liff.closeWindow(), 2000);
-                }
-        
-                btn.disabled = false;
-                btn.textContent = '送出表單';
+            .then(res => {
+              if (!res.ok) throw new Error('HTTP status ' + res.status);
+              return res.json();
             })
-            .catch(function(error) {
-                addDebugInfo('發送錯誤: ' + error.message);
-                showStatus('送出時發生錯誤，請稍後再試', 'error');
-                btn.disabled = false;
-                btn.textContent = '送出表單';
+            .then(json => {
+              addDebugInfo('資料已發送至 Apps Script');
+              showStatus('送出成功！', 'success');
+              // 其餘程式
+            })
+            .catch(error => {
+              addDebugInfo('發送錯誤: ' + error.message);
+              showStatus('送出時發生錯誤，請稍後再試', 'error');
+              btn.disabled = false;
+              btn.textContent = '送出表單';
             });
-        });
+
 
 
         //負責顯示使用者資訊與表單
