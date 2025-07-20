@@ -159,7 +159,10 @@
 
     <script>
         console.log('GitHub Pages LIFF 應用啟動...');
-        
+        // 全局變數，從網址讀slot
+        const urlParams = new URLSearchParams(window.location.search);
+        const slot = urlParams.get('slot') || "";  // 沒有就空字串
+        addDebugInfo('從網址取得 slot 參數：' + slot);
         // 設定區域 - 請修改這些設定
         const CONFIG = {
             LIFF_ID: "2007782293-RgkE5pPW", // 你的 LIFF ID
