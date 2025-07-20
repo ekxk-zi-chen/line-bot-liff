@@ -186,30 +186,33 @@
         async function startLiff() {
             showStatus('開始初始化 LIFF');
             addDebugInfo('開始 LIFF 初始化 - GitHub Pages 環境');
-
+        
             try {
                 await liff.init({ liffId: CONFIG.LIFF_ID });
                 showStatus('LIFF 初始化完成');
                 addDebugInfo('LIFF 初始化成功');
-                addDebugInfo('LIFF 版本: ' + (liff.getVersion ? liff.getVersion() : '未知'));
-                addDebugInfo('是否在 LINE 中: ' + liff.isInClient());
-                addDebugInfo('OS: ' + liff.getOS());
-
-                // 從 LIFF context 拿參數 slot（優先此）
-                const queryString = liff.getContext().queryString || "";
-                const params = new URLSearchParams(queryString);
+        
+                // 先用 window.location.search 讀取 slot
+                const params = new URLSearchParams(window.location.search);
                 slot = params.get("slot") || "";
-                addDebugInfo('從 LIFF state 取得 slot 參數：' + slot);
-
+        
+                // fallback 用 liff.getContext() 的 queryString
+                if (!slot) {
+                    const liffContextQuery = liff.getContext().queryString || "";
+                    const liffParams = new URLSearchParams(liffContextQuery);
+                    slot = liffParams.get("slot") || "";
+                }
+                addDebugInfo('取得 slot 參數：' + slot);
+        
                 if (!liff.isLoggedIn()) {
                     showLoginOptions();
                     return;
                 }
-
+        
                 showStatus('已登入，取得使用者資料中');
                 const profile = await getUserProfile();
                 await showUserInfo(profile);
-
+        
             } catch (error) {
                 showStatus('LIFF 初始化失敗: ' + error.message, 'error');
                 addDebugInfo('錯誤詳情: ' + JSON.stringify(error));
