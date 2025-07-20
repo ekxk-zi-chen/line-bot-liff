@@ -260,19 +260,26 @@
         async function showUserInfo(profile) {
             showStatus('載入完成', 'success');
             addDebugInfo('正在檢查是否已有對應連結...');
-
-            document.getElementById('display-name').textContent = profile.displayName;
-            document.getElementById('user-id').textContent = profile.userId;
-            document.getElementById('lineUserId').value = profile.userId;
-
+        
+            document.getElementById('display-name').textContent = profile.displayName || "";
+            document.getElementById('user-id').textContent = profile.userId || "";
+            document.getElementById('lineUserId').value = profile.userId || "";
+        
+            // userId 沒有值，直接顯示表單，不用呼叫後端
+            if (!profile.userId) {
+                addDebugInfo('userId 空值，直接顯示表單');
+                renderForm(profile);
+                return;
+            }
+        
             const url = `${CONFIG.APPS_SCRIPT_URL}?userId=${profile.userId}&slot=${encodeURIComponent(slot)}`;
             addDebugInfo('查詢網址: ' + url);
-
+        
             try {
                 const res = await fetch(url);
                 const data = await res.json();
-
-                if (data.redirectUrl) {
+        
+                if (data.redirectUrl && data.redirectUrl !== "") {
                     addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
                     window.location.href = data.redirectUrl;
                 } else {
@@ -284,6 +291,7 @@
                 renderForm(profile);
             }
         }
+
 
         // 表單提交
         document.getElementById('myForm').addEventListener('submit', async (e) => {
