@@ -288,8 +288,11 @@
             document.getElementById('user-id').textContent = profile.userId;
             document.getElementById('lineUserId').value = profile.userId;
         
-            // 向 Apps Script 查詢是否需要 redirect
-            fetch(CONFIG.APPS_SCRIPT_URL + "?userId=" + profile.userId)
+            const url = CONFIG.APPS_SCRIPT_URL + "?userId=" + profile.userId;
+            addDebugInfo('查詢網址: ' + url);
+        
+            // 正確串接 fetch
+            fetch(url)
                 .then(res => res.json())
                 .then(data => {
                     if (data.redirectUrl) {
@@ -305,6 +308,7 @@
                     renderForm(profile);
                 });
         }
+
 
 
         // 表單提交 - 發送到 Google Apps Script
