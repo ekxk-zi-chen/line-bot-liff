@@ -281,27 +281,41 @@
         
         function showUserInfo(profile) {
             showStatus('載入完成', 'success');
-            
+            addDebugInfo('正在檢查是否已有對應連結...');
+        
+            // 基本顯示
             document.getElementById('display-name').textContent = profile.displayName;
             document.getElementById('user-id').textContent = profile.userId;
             document.getElementById('lineUserId').value = profile.userId;
-            
-            document.getElementById('user-info').style.display = 'block';
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('myForm').style.display = 'block';
-            document.getElementById('status').style.display = 'none';
-            document.getElementById('github-notice').style.display = 'none';
+        
+            // 向 Apps Script 查詢是否需要 redirect
+            fetch(CONFIG.APPS_SCRIPT_URL + "?userId=" + profile.userId)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.redirectUrl) {
+                        addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
+                        window.location.href = data.redirectUrl;
+                    } else {
+                        addDebugInfo('未找到 redirectUrl，顯示表單');
+                        renderForm(profile);
+                    }
+                })
+                .catch(err => {
+                    addDebugInfo('查詢失敗，顯示表單：' + err.message);
+                    renderForm(profile);
+                });
         }
+
 
         // 表單提交 - 發送到 Google Apps Script
         document.getElementById('myForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            var btn = document.getElementById('submit-btn');
+            const btn = document.getElementById('submit-btn');
             btn.disabled = true;
             btn.textContent = '送出中...';
-            
-            var data = {
+        
+            const data = {
                 timestamp: new Date().toLocaleString('zh-TW'),
                 lineUserId: document.getElementById('lineUserId').value,
                 displayName: document.getElementById('display-name').textContent,
@@ -311,33 +325,24 @@
                 message: document.getElementById('message').value,
                 source: 'github-pages'
             };
-            
-            addDebugInfo('準備發送資料到: ' + CONFIG.APPS_SCRIPT_URL);
-            addDebugInfo('發送資料: ' + JSON.stringify(data));
-            
-            // 發送到 Google Apps Script
+        
             fetch(CONFIG.APPS_SCRIPT_URL, {
                 method: 'POST',
-                mode: 'no-cors', // Apps Script 需要這個設定
+                mode: 'no-cors',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             })
             .then(function() {
-                // no-cors 模式無法讀取回應，所以假設成功
                 addDebugInfo('資料已發送至 Apps Script');
                 showStatus('送出成功！', 'success');
-                
-                // 清空表單
+        
                 document.getElementById('myForm').reset();
                 document.getElementById('lineUserId').value = document.getElementById('user-id').textContent;
-                
-                // 如果在 LINE 中，可以關閉視窗
+        
                 if (liff.isInClient()) {
-                    setTimeout(function() {
-                        liff.closeWindow();
-                    }, 2000);
+                    setTimeout(() => liff.closeWindow(), 2000);
                 }
-                
+        
                 btn.disabled = false;
                 btn.textContent = '送出表單';
             })
@@ -349,6 +354,19 @@
             });
         });
 
+
+        //負責顯示使用者資訊與表單
+        function renderForm(profile) {
+            document.getElementById('display-name').textContent = profile.displayName;
+            document.getElementById('user-id').textContent = profile.userId;
+            document.getElementById('lineUserId').value = profile.userId;
+        
+            document.getElementById('user-info').style.display = 'block';
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('myForm').style.display = 'block';
+            document.getElementById('status').style.display = 'none';
+            document.getElementById('github-notice').style.display = 'none';
+        }
         // 檢查環境
         function checkEnvironment() {
             addDebugInfo('環境檢測 - GitHub Pages');
