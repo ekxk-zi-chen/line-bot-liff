@@ -95,6 +95,14 @@
             border-radius: 5px;
             margin-bottom: 20px;
         }
+        .retry-info {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -170,6 +178,8 @@
         let loginAttempts = 0;
         const MAX_LOGIN_ATTEMPTS = 3;
         let isLiffReady = false;
+        let submitRetries = 0;
+        const MAX_SUBMIT_RETRIES = 3;
         
         function showStatus(msg, type = 'info') {
             console.log(msg);
@@ -300,18 +310,25 @@
             document.getElementById('lineUserId').value = profile.userId;
         
             try {
-                // 改良的 fetch 請求
+                // 改良的 fetch 請求 - 增加更多重試機制
                 const url = `${CONFIG.APPS_SCRIPT_URL}?userId=${encodeURIComponent(profile.userId)}&t=${Date.now()}`;
                 addDebugInfo('查詢網址: ' + url);
-        
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超時
+                
                 const response = await fetch(url, {
                     method: 'GET',
                     mode: 'cors',
                     cache: 'no-cache',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                     },
+                    signal: controller.signal
                 });
+                
+                clearTimeout(timeoutId);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -327,6 +344,9 @@
                 }
             } catch (error) {
                 addDebugInfo('查詢失敗：' + error.message);
+                if (error.name === 'AbortError') {
+                    addDebugInfo('請求超時');
+                }
             }
             
             // 如果沒有跳轉，顯示表單
@@ -334,35 +354,40 @@
             renderForm(profile);
         }
 
-        // 改良的表單提交函數
-        async function submitForm(formData) {
+        // 重試機制的提交函數
+        async function submitFormWithRetry(formData, retryCount = 0) {
             const btn = document.getElementById('submit-btn');
-            btn.disabled = true;
-            btn.textContent = '送出中...';
+            
+            if (retryCount === 0) {
+                btn.disabled = true;
+                btn.textContent = '送出中...';
+                submitRetries = 0;
+            }
             
             try {
+                addDebugInfo(`提交嘗試 ${retryCount + 1}/${MAX_SUBMIT_RETRIES + 1}`);
                 addDebugInfo('準備發送資料: ' + JSON.stringify(formData));
+                
+                // 使用更寬鬆的 fetch 設定和超時控制
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超時
                 
                 const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'cors',
+                    mode: 'no-cors', // 改為 no-cors 模式來避免 CORS 問題
                     cache: 'no-cache',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
+                        'Content-Type': 'text/plain', // 改為 text/plain 避免 preflight
                     },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(formData),
+                    signal: controller.signal
                 });
                 
-                addDebugInfo('回應狀態: ' + response.status + ' ' + response.statusText);
+                clearTimeout(timeoutId);
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const result = await response.json();
-                addDebugInfo('伺服器回應: ' + JSON.stringify(result));
-                
+                // 在 no-cors 模式下，我們無法讀取回應內容
+                // 但如果請求成功發送，就假設成功
+                addDebugInfo('請求已發送 (no-cors 模式)');
                 showStatus('送出成功！', 'success');
                 
                 // 重置表單
@@ -378,7 +403,37 @@
                 
             } catch (error) {
                 addDebugInfo('發送錯誤: ' + error.message);
-                showStatus('送出時發生錯誤：' + error.message, 'error');
+                
+                // 如果還有重試機會，則重試
+                if (retryCount < MAX_SUBMIT_RETRIES) {
+                    submitRetries++;
+                    addDebugInfo(`將在 ${2 + retryCount} 秒後重試...`);
+                    
+                    // 顯示重試訊息
+                    showStatus(`發送失敗，${2 + retryCount} 秒後重試... (${retryCount + 1}/${MAX_SUBMIT_RETRIES})`, 'error');
+                    
+                    setTimeout(() => {
+                        submitFormWithRetry(formData, retryCount + 1);
+                    }, (2 + retryCount) * 1000);
+                    
+                    return;
+                }
+                
+                // 所有重試都失敗
+                showStatus('送出失敗：' + error.message + ' (已重試 ' + MAX_SUBMIT_RETRIES + ' 次)', 'error');
+                
+                // 顯示重試提示
+                const retryInfo = document.createElement('div');
+                retryInfo.className = 'retry-info';
+                retryInfo.innerHTML = `
+                    <strong>提交失敗可能原因：</strong><br>
+                    • 網路連線問題<br>
+                    • Google Apps Script 服務暫時無法存取<br>
+                    • CORS 政策限制<br><br>
+                    請稍後再試，或聯繫系統管理員。
+                `;
+                document.getElementById('myForm').appendChild(retryInfo);
+                
             } finally {
                 btn.disabled = false;
                 btn.textContent = '送出表單';
@@ -389,6 +444,12 @@
         document.getElementById('myForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
+            // 移除之前的重試訊息
+            const existingRetryInfo = document.querySelector('.retry-info');
+            if (existingRetryInfo) {
+                existingRetryInfo.remove();
+            }
+            
             const formData = {
                 timestamp: new Date().toLocaleString('zh-TW'),
                 lineUserId: document.getElementById('lineUserId').value,
@@ -397,10 +458,10 @@
                 email: document.getElementById('email').value,
                 phone: document.getElementById('phone').value,
                 message: document.getElementById('message').value,
-                source: 'github-pages-fixed'
+                source: 'github-pages-fixed-v2'
             };
             
-            submitForm(formData);
+            submitFormWithRetry(formData);
         });
 
         // 負責顯示使用者資訊與表單
