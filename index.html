@@ -185,40 +185,35 @@
 
         async function startLiff() {
           showStatus('開始初始化 LIFF');
-          try {
-            await liff.init({ liffId: CONFIG.LIFF_ID });
-            showStatus('LIFF 初始化完成');
-            addDebugInfo('LIFF 初始化成功');
+          await liff.init({ liffId: CONFIG.LIFF_ID });
+          showStatus('LIFF 初始化完成');
         
-            // —— 1. 优先从 window.location.search 拿 slot ——
-            let params = new URLSearchParams(window.location.search);
-            slot = params.get('slot') || '';
+          // 取 slot
+          const params = new URLSearchParams(window.location.search);
+          slot = params.get('slot') || "";
+          addDebugInfo('取得 slot：' + slot);
         
-            // —— 2. 如果是 LINE 客户端打开，则从 liff.getContext().queryString 拿 slot ——
-            if (!slot && liff.isInClient()) {
-              const ctxQs = liff.getContext().queryString || '';
-              const inner = new URLSearchParams(ctxQs);
-              slot = inner.get('slot') || '';
-            }
-            addDebugInfo('解析到 slot = ' + slot);
+          const inClient = liff.isInClient();
+          addDebugInfo('是否在 LINE 中: ' + inClient);
         
-            // —— 3. 登录检查 —— 
-            if (!liff.isLoggedIn()) {
-              showLoginOptions();
-              return;
-            }
-        
-            // —— 4. 已登录，获取 profile 并走后端逻辑 —— 
-            showStatus('已登入，取得使用者資料中');
-            const profile = await getUserProfile();
-            await showUserInfo(profile);
-        
-          } catch (err) {
-            showStatus('初始化失敗：' + err.message, 'error');
-            addDebugInfo('錯誤細節：' + JSON.stringify(err));
-            console.error(err);
+          if (!inClient) {
+            // ← 非 LINE 客户端，直接显示表单，不用登录、也不用后端 redirect
+            addDebugInfo('非 LINE 客户端，直接顯示表單');
+            renderForm({ displayName: '', userId: '' });
+            return;
           }
+        
+          // 正常 LINE 客户端流程
+          if (!liff.isLoggedIn()) {
+            showLoginOptions();
+            return;
+          }
+        
+          showStatus('已登入，取得使用者資料中');
+          const profile = await getUserProfile();
+          await showUserInfo(profile);
         }
+
 
 
 
