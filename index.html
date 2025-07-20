@@ -318,14 +318,11 @@
                 const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超時
                 
                 const response = await fetch(url, {
-                    method: 'GET',
-                    mode: 'cors',
-                    cache: 'no-cache',
+                    method: 'GET', // 或 'POST'
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                    },
-                    signal: controller.signal
+                        'Accept': 'application/json'
+                    }
                 });
                 
                 clearTimeout(timeoutId);
