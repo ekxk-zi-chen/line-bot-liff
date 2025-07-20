@@ -185,38 +185,46 @@
 
         async function startLiff() {
           showStatus('開始初始化 LIFF');
-          await liff.init({ liffId: CONFIG.LIFF_ID });
-          showStatus('LIFF 初始化完成');
+          try {
+            await liff.init({ liffId: CONFIG.LIFF_ID });
+            showStatus('LIFF 初始化完成');
+            addDebugInfo('LIFF 初始化成功');
+            addDebugInfo('LIFF 版本: ' + (liff.getVersion ? liff.getVersion() : '未知'));
+            addDebugInfo('是否在 LINE 中: ' + liff.isInClient());
+            addDebugInfo('OS: ' + liff.getOS());
         
-          // ─────────── 这里开始，解析 slot ───────────
-          const urlParams = new URLSearchParams(window.location.search);
-          slot = urlParams.get('slot') || "";
-          if (!slot) {
-            const liffState = urlParams.get('liff.state') || "";
-            if (liffState) {
-              const decoded = decodeURIComponent(liffState); // "?slot=B6"
-              const inner = new URLSearchParams(decoded);
-              slot = inner.get('slot') || "";
+            // ──────── 解析 slot ────────
+            const urlParams = new URLSearchParams(window.location.search);
+            slot = urlParams.get('slot') || '';
+            if (!slot) {
+              const liffState = urlParams.get('liff.state') || '';
+              if (liffState) {
+                const decoded = decodeURIComponent(liffState); // "?slot=B6"
+                const inner = new URLSearchParams(decoded);
+                slot = inner.get('slot') || '';
+              }
             }
-          }
-          addDebugInfo('最終解析到的 slot = ' + slot);
-          // ─────────── 解析结束 ───────────
+            addDebugInfo('最終解析到的 slot = ' + slot);
+            // ──────── 解析结束 ────────
         
-          if (!liff.isLoggedIn()) {
-            showLoginOptions();
-            return;
-          }
-        
-                showStatus('已登入，取得使用者資料中');
-                const profile = await getUserProfile();
-                await showUserInfo(profile);
-        
-            } catch (error) {
-                showStatus('LIFF 初始化失敗: ' + error.message, 'error');
-                addDebugInfo('錯誤詳情: ' + JSON.stringify(error));
-                console.error('LIFF Error:', error);
+            // 如果尚未登入，就顯示登入按鈕，並結束這個流程
+            if (!liff.isLoggedIn()) {
+              showLoginOptions();
+              return;
             }
+        
+            // 已經登入，取得 Profile 再處理
+            showStatus('已登入，取得使用者資料中');
+            const profile = await getUserProfile();
+            await showUserInfo(profile);
+        
+          } catch (error) {
+            showStatus('LIFF 初始化失敗: ' + error.message, 'error');
+            addDebugInfo('錯誤詳情: ' + JSON.stringify(error));
+            console.error('LIFF Error:', error);
+          }
         }
+
 
         function showLoginOptions() {
             loginAttempts++;
