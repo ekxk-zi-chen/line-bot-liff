@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>LIFF 表單</title>
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
@@ -86,6 +86,8 @@
             font-size: 12px;
             color: #666;
             display: none;
+            max-height: 150px;
+            overflow-y: auto;
         }
         .github-info {
             background-color: #e6f3ff;
@@ -120,30 +122,26 @@
         </div>
 
         <div id="login-section" style="display: none;">
-            <button type="button" class="login-btn" id="manual-login-btn">
-                登入 LINE
-            </button>
-            <button type="button" class="refresh-btn" id="refresh-btn">
-                重新載入頁面
-            </button>
+            <button type="button" class="login-btn" id="manual-login-btn">登入 LINE</button>
+            <button type="button" class="refresh-btn" id="refresh-btn">重新載入頁面</button>
         </div>
 
         <form id="myForm" style="display: none;">
-            <input type="hidden" id="lineUserId" name="lineUserId">
+            <input type="hidden" id="lineUserId" name="lineUserId" />
             
             <div class="form-group">
                 <label for="name">姓名：</label>
-                <input type="text" id="name" name="name" required>
+                <input type="text" id="name" name="name" required />
             </div>
 
             <div class="form-group">
                 <label for="email">Email：</label>
-                <input type="email" id="email" name="email" required>
+                <input type="email" id="email" name="email" required />
             </div>
 
             <div class="form-group">
                 <label for="phone">電話：</label>
-                <input type="tel" id="phone" name="phone" required>
+                <input type="tel" id="phone" name="phone" required />
             </div>
 
             <div class="form-group">
@@ -151,184 +149,150 @@
                 <textarea id="message" name="message" rows="4"></textarea>
             </div>
 
-            <button type="submit" class="submit-btn" id="submit-btn">
-                送出表單
-            </button>
+            <button type="submit" class="submit-btn" id="submit-btn">送出表單</button>
         </form>
     </div>
 
     <script>
-        let slot = ""; // ← 定義為全域變數
-        console.log('GitHub Pages LIFF 應用啟動...');
-        // 全局變數，從網址讀slot
-        const urlParams = new URLSearchParams(window.location.search);
+        'use strict';
+        let slot = "";
 
-        // 設定區域 - 請修改這些設定
         const CONFIG = {
-            LIFF_ID: "2007782293-RgkE5pPW", // 你的 LIFF ID
-            APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec", // 請替換為你的 Apps Script 網址
-            DEBUG_MODE: true // 開發時設為 true，正式上線可設為 false
+            LIFF_ID: "2007782293-RgkE5pPW",
+            APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec",
+            DEBUG_MODE: true
         };
-        
+
         let loginAttempts = 0;
         const MAX_LOGIN_ATTEMPTS = 3;
-        
+
         function showStatus(msg, type = 'info') {
             console.log(msg);
             const statusEl = document.getElementById('status');
             statusEl.textContent = msg;
             statusEl.className = 'status';
-            if (type === 'error') {
-                statusEl.className += ' error';
-            } else if (type === 'success') {
-                statusEl.className += ' success';
-            }
+            if (type === 'error') statusEl.classList.add('error');
+            else if (type === 'success') statusEl.classList.add('success');
         }
-        
+
         function addDebugInfo(info) {
             if (!CONFIG.DEBUG_MODE) return;
-            
             const debugEl = document.getElementById('debug-content');
             const time = new Date().toLocaleTimeString();
-            debugEl.innerHTML += <div>[${time}] ${info}</div>;
+            debugEl.innerHTML += `<div>[${time}] ${info}</div>`;
             document.getElementById('debug-info').style.display = 'block';
         }
 
-        function startLiff() {
+        async function startLiff() {
             showStatus('開始初始化 LIFF');
             addDebugInfo('開始 LIFF 初始化 - GitHub Pages 環境');
-            
-            try {
-                liff.init({ liffId: CONFIG.LIFF_ID })
-                .then(function() {
-                    showStatus('LIFF 初始化完成');
-                    addDebugInfo('LIFF 初始化成功');
-                    addDebugInfo('LIFF 版本: ' + (liff.getVersion ? liff.getVersion() : '未知'));
-                    addDebugInfo('是否在 LINE 中: ' + liff.isInClient());
-                    addDebugInfo('OS: ' + liff.getOS());
 
-                    // 從 LIFF context 取得參數（改這裡）
-                    const queryString = liff.getContext().queryString || "";
-                    const params = new URLSearchParams(queryString);
-                    slot = params.get("slot") || ""; // ← 更新全域 slot
-                    addDebugInfo('從 LIFF state 取得 slot 參數：' + slot);
-                    
-                    // 檢查登入狀態
-                    const isLoggedIn = liff.isLoggedIn();
-                    addDebugInfo('登入狀態: ' + (isLoggedIn ? '已登入' : '未登入'));
-                    
-                    if (isLoggedIn) {
-                        showStatus('已登入，取得使用者資料中');
-                        return getUserProfile();
-                    } else {
-                        showLoginOptions();
-                        return null;
-                    }
-                })
-                .then(function(profile) {
-                    if (profile) {
-                        showUserInfo(profile);
-                    }
-                })
-                .catch(function(error) {
-                    showStatus('LIFF 初始化失敗: ' + error.message, 'error');
-                    addDebugInfo('錯誤詳情: ' + JSON.stringify(error));
-                    console.error('LIFF Error:', error);
-                });
-            } catch (e) {
-                showStatus('執行錯誤: ' + e.message, 'error');
-                addDebugInfo('執行錯誤: ' + e.message);
-                console.error('Script Error:', e);
+            try {
+                await liff.init({ liffId: CONFIG.LIFF_ID });
+                showStatus('LIFF 初始化完成');
+                addDebugInfo('LIFF 初始化成功');
+                addDebugInfo('LIFF 版本: ' + (liff.getVersion ? liff.getVersion() : '未知'));
+                addDebugInfo('是否在 LINE 中: ' + liff.isInClient());
+                addDebugInfo('OS: ' + liff.getOS());
+
+                // 從 LIFF context 拿參數 slot（優先此）
+                const queryString = liff.getContext().queryString || "";
+                const params = new URLSearchParams(queryString);
+                slot = params.get("slot") || "";
+                addDebugInfo('從 LIFF state 取得 slot 參數：' + slot);
+
+                if (!liff.isLoggedIn()) {
+                    showLoginOptions();
+                    return;
+                }
+
+                showStatus('已登入，取得使用者資料中');
+                const profile = await getUserProfile();
+                await showUserInfo(profile);
+
+            } catch (error) {
+                showStatus('LIFF 初始化失敗: ' + error.message, 'error');
+                addDebugInfo('錯誤詳情: ' + JSON.stringify(error));
+                console.error('LIFF Error:', error);
             }
         }
-        
+
         function showLoginOptions() {
             loginAttempts++;
             if (loginAttempts > MAX_LOGIN_ATTEMPTS) {
                 showStatus('登入嘗試次數過多，請重新載入頁面', 'error');
                 return;
             }
-            
             showStatus('需要登入 LINE 帳號');
             document.getElementById('login-section').style.display = 'block';
-            
-            // 登入按鈕
-            document.getElementById('manual-login-btn').onclick = function() {
+
+            document.getElementById('manual-login-btn').onclick = () => {
                 addDebugInfo('使用者點擊登入按鈕');
-                this.disabled = true;
-                this.textContent = '登入中...';
-                
+                const btn = document.getElementById('manual-login-btn');
+                btn.disabled = true;
+                btn.textContent = '登入中...';
                 try {
                     liff.login();
-                } catch (error) {
-                    showStatus('登入失敗: ' + error.message, 'error');
-                    addDebugInfo('登入錯誤: ' + error.message);
-                    this.disabled = false;
-                    this.textContent = '登入 LINE';
+                } catch (e) {
+                    showStatus('登入失敗: ' + e.message, 'error');
+                    addDebugInfo('登入錯誤: ' + e.message);
+                    btn.disabled = false;
+                    btn.textContent = '登入 LINE';
                 }
             };
-            
-            // 重新載入按鈕
-            document.getElementById('refresh-btn').onclick = function() {
-                location.reload();
-            };
+
+            document.getElementById('refresh-btn').onclick = () => location.reload();
         }
-        
-        function getUserProfile() {
-            return liff.getProfile()
-                .then(function(profile) {
-                    addDebugInfo('成功取得使用者資料: ' + profile.displayName);
-                    addDebugInfo('User ID: ' + profile.userId);
-                    return profile;
-                })
-                .catch(function(error) {
-                    showStatus('無法取得使用者資料: ' + error.message, 'error');
-                    addDebugInfo('取得資料錯誤: ' + error.message);
-                    throw error;
-                });
+
+        async function getUserProfile() {
+            try {
+                const profile = await liff.getProfile();
+                addDebugInfo('成功取得使用者資料: ' + profile.displayName);
+                addDebugInfo('User ID: ' + profile.userId);
+                return profile;
+            } catch (error) {
+                showStatus('無法取得使用者資料: ' + error.message, 'error');
+                addDebugInfo('取得資料錯誤: ' + error.message);
+                throw error;
+            }
         }
-        
-        function showUserInfo(profile) {
+
+        async function showUserInfo(profile) {
             showStatus('載入完成', 'success');
             addDebugInfo('正在檢查是否已有對應連結...');
-        
-            // 基本顯示
+
             document.getElementById('display-name').textContent = profile.displayName;
             document.getElementById('user-id').textContent = profile.userId;
             document.getElementById('lineUserId').value = profile.userId;
-        
-            const url = CONFIG.APPS_SCRIPT_URL + "?userId=" + profile.userId + "&slot=" + encodeURIComponent(slot);
-            addDebugInfo('查詢網址: ' + url);
-        
-            // 正確串接 fetch
-            fetch(url)
-              .then(res => res.json())
-              .then(data => {
-                if (data.redirectUrl) {
-                  addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
-                  window.location.href = data.redirectUrl; // ✅ 自動跳轉
-                } else {
-                  addDebugInfo('未找到 redirectUrl，顯示表單');
-                  renderForm(profile);
-                }
-              })
-              .catch(err => {
-                addDebugInfo('查詢失敗，顯示表單：' + err.message);
-                renderForm(profile);
-              });
 
+            const url = `${CONFIG.APPS_SCRIPT_URL}?userId=${profile.userId}&slot=${encodeURIComponent(slot)}`;
+            addDebugInfo('查詢網址: ' + url);
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (data.redirectUrl) {
+                    addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
+                    window.location.href = data.redirectUrl;
+                } else {
+                    addDebugInfo('未找到 redirectUrl，顯示表單');
+                    renderForm(profile);
+                }
+            } catch (error) {
+                addDebugInfo('查詢失敗，顯示表單：' + error.message);
+                renderForm(profile);
+            }
         }
 
-
-
-        // 表單提交 - 發送到 Google Apps Script
-        document.getElementById('myForm').addEventListener('submit', function(e) {
+        // 表單提交
+        document.getElementById('myForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const btn = document.getElementById('submit-btn');
             btn.disabled = true;
             btn.textContent = '送出中...';
-        
+
             const data = {
                 timestamp: new Date().toLocaleString('zh-TW'),
                 lineUserId: document.getElementById('lineUserId').value,
@@ -338,82 +302,77 @@
                 phone: document.getElementById('phone').value,
                 message: document.getElementById('message').value,
                 source: 'github-pages',
-                slot: slot  // 加上這行，把 slot 一併送出
+                slot: slot
             };
-        
-            fetch(CONFIG.APPS_SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            })
-            .then(function() {
+
+            try {
+                await fetch(CONFIG.APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
                 addDebugInfo('資料已發送至 Apps Script');
                 showStatus('送出成功！', 'success');
-        
+
                 document.getElementById('myForm').reset();
                 document.getElementById('lineUserId').value = document.getElementById('user-id').textContent;
-        
+
                 if (liff.isInClient()) {
                     setTimeout(() => liff.closeWindow(), 2000);
                 }
-        
+
                 btn.disabled = false;
                 btn.textContent = '送出表單';
-            })
-            .catch(function(error) {
+
+            } catch (error) {
                 addDebugInfo('發送錯誤: ' + error.message);
                 showStatus('送出時發生錯誤，請稍後再試', 'error');
                 btn.disabled = false;
                 btn.textContent = '送出表單';
-            });
+            }
         });
 
-
-        //負責顯示使用者資訊與表單
         function renderForm(profile) {
             document.getElementById('display-name').textContent = profile.displayName;
             document.getElementById('user-id').textContent = profile.userId;
             document.getElementById('lineUserId').value = profile.userId;
-        
+
             document.getElementById('user-info').style.display = 'block';
             document.getElementById('login-section').style.display = 'none';
             document.getElementById('myForm').style.display = 'block';
             document.getElementById('status').style.display = 'none';
             document.getElementById('github-notice').style.display = 'none';
         }
-        // 檢查環境
+
         function checkEnvironment() {
             addDebugInfo('環境檢測 - GitHub Pages');
             addDebugInfo('User Agent: ' + navigator.userAgent);
             addDebugInfo('當前網址: ' + window.location.href);
             addDebugInfo('主機名稱: ' + window.location.hostname);
-            
+
             if (typeof liff === 'undefined') {
                 showStatus('LIFF SDK 載入失敗', 'error');
                 addDebugInfo('LIFF SDK 未載入');
                 return false;
             }
-            
+
             addDebugInfo('LIFF SDK 載入成功');
             return true;
         }
 
-        // 頁面載入
-        window.addEventListener('load', function() {
+        window.addEventListener('load', () => {
             console.log('GitHub Pages 頁面載入完成');
             addDebugInfo('頁面載入完成 - GitHub Pages 環境');
-            
+
             if (checkEnvironment()) {
-                // GitHub Pages 環境下 LIFF 載入更快
-                setTimeout(function() {
+                setTimeout(() => {
                     startLiff();
                 }, 500);
             }
         });
 
-        // 錯誤處理
-        window.addEventListener('error', function(e) {
+        window.addEventListener('error', e => {
             addDebugInfo('頁面錯誤: ' + e.message);
             console.error('Page Error:', e);
         });
