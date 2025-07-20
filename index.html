@@ -209,7 +209,7 @@
                     // 從 LIFF context 取得參數（改這裡）
                     const queryString = liff.getContext().queryString || "";
                     const params = new URLSearchParams(queryString);
-                    slot = params.get("slot") || "";
+                    const slot = params.get("slot") || "";
                     addDebugInfo('從 LIFF state 取得 slot 參數：' + slot);
                     
                     // 檢查登入狀態
