@@ -329,6 +329,10 @@
                     addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
                     window.location.href = data.redirectUrl;
                     return;
+                } else if (data.status === "needsignup") {
+                    addDebugInfo('收到特殊資料，直接跳轉 Registration_form.html');
+                    window.location.href = `signup.html?userId=${encodeURIComponent(profile.userId)}`;
+                    return;
                 } else if (data.status === "special") {
                     addDebugInfo('收到特殊資料，直接跳轉 Registration_form.html');
                     window.location.href = `Registration_form.html?userId=${encodeURIComponent(profile.userId)}`;
