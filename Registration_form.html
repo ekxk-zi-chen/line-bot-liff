@@ -27,7 +27,12 @@
     </style>
 </head>
 <body>
+
     <div class="card">
+        <div style="text-align: center; line-height: 1.5; margin-bottom: 12px;">
+          <div id="title" style="font-size: 24px; font-weight: bold;"></div>
+          <div id="script" style="font-size: 16px; color: gray; margin-top: 4px;">
+        </div>
         <h2 id="title">載入中...</h2>
         <p id="description"></p>
         <p id="note"></p>
@@ -65,10 +70,7 @@
                 document.getElementById("script").textContent = data.script || "";
 
 
-                <div style="text-align: center; line-height: 1.5; margin-bottom: 12px;">
-                  <div id="title" style="font-size: 24px; font-weight: bold;"></div>
-                  <div id="script" style="font-size: 16px; color: gray; margin-top: 4px;"></div>
-                </div>
+
 
 
                 document.getElementById("description").textContent = data.description || "";
@@ -98,7 +100,6 @@
 
                 document.getElementById("title").textContent = "錯誤";
                 document.getElementById("description").textContent = "";
-                ntent = "";
                 document.getElementById("items").innerHTML = "";
                 console.error(error);
             }
