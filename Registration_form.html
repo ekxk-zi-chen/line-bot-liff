@@ -41,6 +41,8 @@
 
         async function fetchData() {
             try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const userId = urlParams.get('userId') || "";
                 const response = await fetch(`${APPS_SCRIPT_URL}?slot=${encodeURIComponent(SLOT)}&t=${Date.now()}`, {
                     method: 'GET',
                     mode: 'cors',
