@@ -54,9 +54,9 @@
                 }
 
                 const data = await response.json();
-
+                console.log('收到資料:', data);
                 if (data.status !== "special") {
-                    throw new Error("資料狀態非 'special'");
+                  throw new Error(`資料狀態非 'special'，實際為 '${data.status}'`);
                 }
                 
                 document.getElementById("title").textContent = data.title || "無標題";
