@@ -43,7 +43,7 @@
             try {
                 const urlParams = new URLSearchParams(window.location.search);
                 const userId = urlParams.get('userId') || "";
-                const response = await fetch(`${APPS_SCRIPT_URL}?slot=${encodeURIComponent(SLOT)}&t=${Date.now()}`, {
+                const response = await fetch(`${APPS_SCRIPT_URL}?slot=${encodeURIComponent(SLOT)}&userId=${encodeURIComponent(userId)}&t=${Date.now()}`, {
                     method: 'GET',
                     mode: 'cors',
                     headers: {
