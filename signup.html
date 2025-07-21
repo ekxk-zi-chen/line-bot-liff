@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <title>特搜線上報名</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to bottom right, #f0f4f8, #dcefff);
+      padding: 20px;
+    }
+    .card {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 4px; /* 調整標題下方間距 */
+    }
+    #script {
+      font-size: 20px;
+      color: gray;
+      margin-top: 4px;
+      text-align: center;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 15px;
+    }
+    input[type="text"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    textarea::placeholder {
+      color: #999;
+    }
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background-color: #4CAF50;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 10px;
+      text-align: center;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>特搜線上報名</h2>
+    <div id="script"></div> <!-- 這裡放 script 內容 -->
+
+    <form id="form">
+      <label>1. 是否參加</label>
+      <select name="join" required>
+        <option value="參加">參加</option>
+        <option value="不參加">不參加</option>
+      </select>
+
+      <label>2. 不參加原因說明</label>
+      <input type="text" name="reason" placeholder="請盡量填寫原因，不然老大會罵你" />
+
+      <label>3. 預計抵達時間</label>
+      <select name="arrival" required>
+        <option value="30分鐘內抵達">30分鐘內抵達</option>
+        <option value=">30分鐘">大於30分鐘</option>
+      </select>
+
+      <input type="hidden" name="userId" id="userIdField" />
+
+      <button type="submit">送出</button>
+      <div id="status"></div>
+    </form>
+  </div>
+
+  <script>
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec";
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+    const title_script = urlParams.get('script');
+    const SLOT = "signup";
+
+    if (!userId) {
+      document.getElementById('form').style.display = 'none';
+      document.getElementById('status').innerText = '無法取得使用者資訊，請重新開啟頁面。';
+    } else {
+      document.getElementById('userIdField').value = userId;
+    }
+
+    // 顯示 script 內容
+    if (title_script) {
+      document.getElementById('script').textContent = title_script;
+    }
+
+    // 動態顯示/隱藏不參加原因欄位
+    const joinSelect = document.querySelector('select[name="join"]');
+    const reasonInput = document.querySelector('input[name="reason"]');
+    const reasonLabel = reasonInput.previousElementSibling;
+
+    function toggleReasonField() {
+      if (joinSelect.value === "參加") {
+        reasonInput.style.display = "none";
+        reasonLabel.style.display = "none";
+        reasonInput.value = "";  // 清空欄位
+      } else {
+        reasonInput.style.display = "block";
+        reasonLabel.style.display = "block";
+      }
+    }
+
+    joinSelect.addEventListener('change', toggleReasonField);
+    toggleReasonField(); // 初始呼叫一次，確保狀態正確
+
+    document.getElementById('form').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(this);
+      const data = {};
+      formData.forEach((value, key) => {
+        data[key] = value;
+      });
+
+      // 加入你的邏輯：如果參加，清空 reason
+      if (data.join === "參加") {
+        data.reason = "";
+      }
+
+      fetch(`${APPS_SCRIPT_URL}?slot=${encodeURIComponent(SLOT)}&userId=${encodeURIComponent(userId)}`, {
+        method: "POST",
+        body: JSON.stringify(data),
+        mode: 'no-cors',
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }).catch(err => {
+        console.warn('送出失敗，但不影響流程', err);
+      });
+
+      if (window.liff && liff.isInClient()) {
+        setTimeout(() => liff.closeWindow(), 2000);
+      } else {
+        // 如果不是在 liff 裡面，送出後給點提示
+        document.getElementById('status').innerText = '已送出，感謝填寫！';
+        // 禁用按鈕避免重複送出
+        this.querySelector('button[type="submit"]').disabled = true;
+      }
+    });
+  </script>
+
+</body>
+</html>
