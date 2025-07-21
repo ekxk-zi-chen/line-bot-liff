@@ -58,11 +58,21 @@
                 if (data.status !== "special") {
                     throw new Error("資料狀態非 'special'");
                 }
-
+                
                 document.getElementById("title").textContent = data.title || "無標題";
                 document.getElementById("description").textContent = data.description || "";
-                document.getElementById("note").textContent = data.note || "";
-
+                const noteContainer = document.getElementById("note");
+                noteContainer.innerHTML = "";
+                if (Array.isArray(data.note)) {
+                  data.note.forEach(line => {
+                    const p = document.createElement("p");
+                    p.textContent = line;
+                    noteContainer.appendChild(p);
+                  });
+                } else {
+                  noteContainer.textContent = data.note || "";
+                }
+                
                 const ul = document.getElementById("items");
                 ul.innerHTML = ""; // 清空舊資料
 
@@ -77,7 +87,7 @@
 
                 document.getElementById("title").textContent = "錯誤";
                 document.getElementById("description").textContent = "";
-                document.getElementById("note").textContent = "";
+                ntent = "";
                 document.getElementById("items").innerHTML = "";
                 console.error(error);
             }
