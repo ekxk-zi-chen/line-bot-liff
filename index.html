@@ -311,7 +311,8 @@
         
             try {
                 // 改良的 fetch 請求 - 增加更多重試機制
-                const url = `${CONFIG.APPS_SCRIPT_URL}?userId=${encodeURIComponent(profile.userId)}&t=${Date.now()}`;
+                const url = `${CONFIG.APPS_SCRIPT_URL}?userId=${encodeURIComponent(profile.userId)}&slot=${encodeURIComponent(SLOT)}&t=${Date.now()}`;
+
                 addDebugInfo('查詢網址: ' + url);
 
                 const controller = new AbortController();
