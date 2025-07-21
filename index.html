@@ -330,18 +330,10 @@
                     window.location.href = data.redirectUrl;
                     return;
                 } else if (data.status === "special") {
-                    addDebugInfo('收到特殊資料，跳轉另一個html');
-                    // 將資料打包成 URL 查詢字串
-                    const queryParams = new URLSearchParams({
-                        title: data.title || "",
-                        description: data.description || "",
-                        note: data.note || "",
-                        items: JSON.stringify(data.items || [])
-                    });
-                
-                    // 跳轉到 Registration_form.html 並帶上資料
-                    window.location.href = `Registration_form.html?${queryParams.toString()}`;
+                    addDebugInfo('收到特殊資料，直接跳轉 Registration_form.html');
+                    window.location.href = 'Registration_form.html';
                     return;
+                }
                 } else {
                     addDebugInfo('未找到資料或格式錯誤');
                 }
