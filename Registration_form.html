@@ -20,6 +20,10 @@
         ul {
             padding-left: 20px;
         }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -28,32 +32,58 @@
         <p id="description"></p>
         <p id="note"></p>
         <ul id="items"></ul>
+        <p id="error-msg" class="error" style="display:none;"></p>
     </div>
 
     <script>
-        // 取得 URL 上的參數
-        const urlParams = new URLSearchParams(window.location.search);
-        const title = urlParams.get('title') || "無標題";
-        const description = urlParams.get('description') || "";
-        const note = urlParams.get('note') || "";
-        const itemsRaw = urlParams.get('items') || "[]";
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec";
+        const SLOT = "special"; // 或你需要的 slot 值
 
-        // 更新網頁內容
-        document.getElementById("title").textContent = title;
-        document.getElementById("description").textContent = description;
-        document.getElementById("note").textContent = note;
+        async function fetchData() {
+            try {
+                const response = await fetch(`${APPS_SCRIPT_URL}?slot=${encodeURIComponent(SLOT)}&t=${Date.now()}`, {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
 
-        try {
-            const items = JSON.parse(itemsRaw);
-            const ul = document.getElementById("items");
-            items.forEach(item => {
-                const li = document.createElement("li");
-                li.textContent = item;
-                ul.appendChild(li);
-            });
-        } catch (e) {
-            console.error("items 解析錯誤", e);
+                if (!response.ok) {
+                    throw new Error(`HTTP 錯誤 ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.status !== "special") {
+                    throw new Error("資料狀態非 'special'");
+                }
+
+                document.getElementById("title").textContent = data.title || "無標題";
+                document.getElementById("description").textContent = data.description || "";
+                document.getElementById("note").textContent = data.note || "";
+
+                const ul = document.getElementById("items");
+                ul.innerHTML = ""; // 清空舊資料
+
+                (data.items || []).forEach(item => {
+                    const li = document.createElement("li");
+                    li.textContent = item;
+                    ul.appendChild(li);
+                });
+            } catch (error) {
+                document.getElementById("error-msg").style.display = "block";
+                document.getElementById("error-msg").textContent = "讀取資料失敗：" + error.message;
+
+                document.getElementById("title").textContent = "錯誤";
+                document.getElementById("description").textContent = "";
+                document.getElementById("note").textContent = "";
+                document.getElementById("items").innerHTML = "";
+                console.error(error);
+            }
         }
+
+        fetchData();
     </script>
 </body>
 </html>
