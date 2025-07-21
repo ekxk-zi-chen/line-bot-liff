@@ -62,6 +62,15 @@
                 }
                 
                 document.getElementById("title").textContent = data.title || "無標題";
+                document.getElementById("script").textContent = data.script || "";
+
+
+                <div style="text-align: center; line-height: 1.5; margin-bottom: 12px;">
+                  <div id="title" style="font-size: 24px; font-weight: bold;"></div>
+                  <div id="script" style="font-size: 16px; color: gray; margin-top: 4px;"></div>
+                </div>
+
+
                 document.getElementById("description").textContent = data.description || "";
                 const noteContainer = document.getElementById("note");
                 noteContainer.innerHTML = "";
