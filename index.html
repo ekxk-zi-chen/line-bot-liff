@@ -456,6 +456,7 @@
                 email: document.getElementById('email').value,
                 phone: document.getElementById('phone').value,
                 message: document.getElementById('message').value,
+                slot: SLOT,
                 source: 'github-pages-fixed-v2'
             };
             
@@ -493,6 +494,16 @@
             return true;
         }
 
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+        
+        const SLOT = getQueryParam('slot');
+        addDebugInfo('收到 slot 參數: ' + SLOT);
+
+
+        
         // 頁面載入完成後初始化
         window.addEventListener('load', function() {
             console.log('GitHub Pages 頁面載入完成');
