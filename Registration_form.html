@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>註冊表單</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .card {
+            padding: 20px;
+            border-radius: 12px;
+            background: #f9f9f9;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+        }
+        ul {
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2 id="title">載入中...</h2>
+        <p id="description"></p>
+        <p id="note"></p>
+        <ul id="items"></ul>
+    </div>
+
+    <script>
+        // 取得 URL 上的參數
+        const urlParams = new URLSearchParams(window.location.search);
+        const title = urlParams.get('title') || "無標題";
+        const description = urlParams.get('description') || "";
+        const note = urlParams.get('note') || "";
+        const itemsRaw = urlParams.get('items') || "[]";
+
+        // 更新網頁內容
+        document.getElementById("title").textContent = title;
+        document.getElementById("description").textContent = description;
+        document.getElementById("note").textContent = note;
+
+        try {
+            const items = JSON.parse(itemsRaw);
+            const ul = document.getElementById("items");
+            items.forEach(item => {
+                const li = document.createElement("li");
+                li.textContent = item;
+                ul.appendChild(li);
+            });
+        } catch (e) {
+            console.error("items 解析錯誤", e);
+        }
+    </script>
+</body>
+</html>
