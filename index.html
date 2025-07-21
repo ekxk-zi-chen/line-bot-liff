@@ -315,8 +315,7 @@
                         'Accept': 'application/json'
                     }
                 });
-
-                
+                  
                 clearTimeout(timeoutId);
                 
                 if (!response.ok) {
@@ -326,11 +325,27 @@
                 const data = await response.json();
                 addDebugInfo('伺服器回應: ' + JSON.stringify(data));
                 
-                if (data.redirectUrl && data.redirectUrl.trim() !== '') {
+                if (data.status === "ok" && data.redirectUrl && data.redirectUrl.trim() !== "") {
                     addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
                     window.location.href = data.redirectUrl;
                     return;
+                } else if (data.status === "special") {
+                    addDebugInfo('收到特殊資料，跳轉另一個html');
+                    // 將資料打包成 URL 查詢字串
+                    const queryParams = new URLSearchParams({
+                        title: data.title || "",
+                        description: data.description || "",
+                        note: data.note || "",
+                        items: JSON.stringify(data.items || [])
+                    });
+                
+                    // 跳轉到 Registration_form.html 並帶上資料
+                    window.location.href = `Registration_form.html?${queryParams.toString()}`;
+                    return;
+                } else {
+                    addDebugInfo('未找到資料或格式錯誤');
                 }
+
             } catch (error) {
                 addDebugInfo('查詢失敗：' + error.message);
                 if (error.name === 'AbortError') {
