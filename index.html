@@ -330,7 +330,7 @@
                     window.location.href = data.redirectUrl;
                     return;
                 } else if (data.status === "needsignup") {
-                    addDebugInfo('收到特殊資料，直接跳轉 Registration_form.html');
+                    addDebugInfo('初次登入成功進入報名介面，直接跳轉 Registration_form.html');
                     window.location.href = `signup.html?userId=${encodeURIComponent(profile.userId)}`;
                     return;
                 } else if (data.status === "special") {
@@ -392,13 +392,9 @@
                 // 重置表單
                 document.getElementById('myForm').reset();
                 document.getElementById('lineUserId').value = document.getElementById('user-id').textContent;
-                
+                window.location.href = `signup.html?userId=${encodeURIComponent(profile.userId)}`;
                 // 如果在 LINE 內，2秒後關閉視窗
-                if (liff.isInClient()) {
-                    setTimeout(() => {
-                        liff.closeWindow();
-                    }, 2000);
-                }
+
                 
             } catch (error) {
                 addDebugInfo('發送錯誤: ' + error.message);
