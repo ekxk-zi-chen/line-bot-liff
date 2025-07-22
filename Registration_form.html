@@ -2,28 +2,83 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>註冊表單</title>
+    <title>已報名人數</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-        }
-        .card {
-            padding: 20px;
-            border-radius: 12px;
-            background: #f9f9f9;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        h2 {
-            margin-top: 0;
-        }
-        ul {
-            padding-left: 20px;
-        }
-        .error {
-            color: red;
-            font-weight: bold;
-        }
+      body {
+        font-family: "標楷體", "PMingLiU", "DFKai-SB", serif;
+        background: #f5f7fa;
+        padding: 30px 20px;
+        color: #333;
+        line-height: 1.8;
+      }
+      .card {
+        max-width: 600px;
+        margin: 20px auto;
+        background: white;
+        padding: 28px 36px;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        box-sizing: border-box;
+      }
+      h2, #title {
+        font-weight: bold;
+        font-size: 36px;
+        text-align: center;
+        margin: 0 0 10px;
+        color: #222;
+      }
+      #script {
+        font-size: 20px;
+        color: #666;
+        font-style: italic;
+        text-align: center;
+        margin-bottom: 18px;
+      }
+      #description {
+        font-size: 18px;
+        text-align: center;
+        margin-bottom: 24px;
+      }
+      #note {
+        margin-bottom: 24px;
+      }
+      #note p {
+        font-size: 16px;
+        margin: 6px 0;
+        position: relative;
+        padding-left: 28px;
+        color: #444;
+      }
+      #note p::before {
+        content: "🚒";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 18px;
+      }
+      ul#items {
+        list-style: none;
+        padding-left: 0;
+        margin: 0;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      ul#items li {
+        font-size: 17px;
+        padding: 8px 12px;
+        border-bottom: 1px solid #eee;
+        border-radius: 8px;
+        background: #fafafa;
+        margin-bottom: 8px;
+      }
+      .error {
+        color: #d32f2f;
+        font-weight: 700;
+        font-size: 16px;
+        text-align: center;
+        margin-top: 20px;
+      }
     </style>
 </head>
 <body>
