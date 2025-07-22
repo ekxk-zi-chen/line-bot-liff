@@ -4,188 +4,144 @@
   <meta charset="UTF-8" />
   <title>已報名人數</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700&display=swap');
 
-    * {
-      box-sizing: border-box;
-    }
-    body {
+    html, body {
       margin: 0;
-      background: #f5f7fa;
-      font-family: 'Noto Sans TC', '微軟正黑體', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      color: #222;
-      line-height: 1.8;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      padding: 40px 24px;
-      font-size: 26px; /* 進一步放大字體 */
+      padding: 0;
+      height: 100%;
+      font-family: 'Noto Sans TC', '微軟正黑體', sans-serif;
+      background: #f0f2f5;
+      font-size: 30px;
+      color: #111;
     }
 
     .container {
-      max-width: 720px;
-      margin: 56px auto 36px;
-      padding: 0 24px;
+      height: 100%;
+      width: 100%;
+      padding: 0;
+      margin: 0;
     }
+
     .card {
-      background: #fff;
-      border-radius: 28px;
-      padding: 48px 56px 60px;
-      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.22);
-      user-select: none;
+      height: 100%;
+      width: 100%;
+      background: #ffffff;
+      padding: 60px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
     }
 
     #header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 44px;
-      gap: 28px;
+      margin-bottom: 50px;
+      gap: 30px;
     }
+
     #title {
+      font-size: 4rem;
       font-weight: 900;
-      font-size: 3.8rem; /* 約61px */
-      color: #111;
       flex-grow: 1;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      user-select: text;
-    }
-    #refreshBtn {
-      padding: 18px 36px;
-      font-size: 1.7rem;
-      font-weight: 800;
-      cursor: pointer;
-      border: 3.5px solid #4caf50;
-      background: #fff;
-      color: #4caf50;
-      border-radius: 16px;
-      transition: background-color 0.3s ease, color 0.3s ease;
-      flex-shrink: 0;
-      user-select: none;
-      box-shadow: 0 8px 26px rgba(76, 175, 80, 0.35);
-    }
-    #refreshBtn:hover,
-    #refreshBtn:focus {
-      background-color: #4caf50;
-      color: #fff;
-      outline: none;
-      box-shadow: 0 10px 28px rgba(76, 175, 80, 0.55);
     }
 
-    #script {
-      font-style: italic;
-      font-size: 1.9rem;
-      color: #666;
-      margin-bottom: 48px;
-      text-align: center;
-      white-space: pre-wrap;
+    #refreshBtn {
+      font-size: 2.2rem;
+      font-weight: bold;
+      padding: 20px 36px;
+      border-radius: 18px;
+      border: 4px solid #4caf50;
+      background: #fff;
+      color: #4caf50;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(76, 175, 80, 0.35);
+      transition: all 0.3s ease;
+      flex-shrink: 0;
     }
-    #description {
-      font-size: 2rem;
-      text-align: center;
-      margin-bottom: 48px;
-      white-space: pre-wrap;
-      color: #333;
-      user-select: text;
+
+    #refreshBtn:hover {
+      background-color: #4caf50;
+      color: #fff;
     }
+
+    #script,
+    #description,
     #note {
-      font-size: 1.7rem;
-      color: #555;
-      margin-bottom: 52px;
+      font-size: 2.4rem;
       text-align: center;
+      margin-bottom: 40px;
       white-space: pre-wrap;
-      min-height: 100px;
-      user-select: text;
+    }
+
+    #note p {
+      margin: 0.5em 0;
     }
 
     ul#items {
       list-style: none;
       padding-left: 0;
       margin: 0 auto;
-      max-height: 440px;
       overflow-y: auto;
-      width: 100%;
-      border-radius: 20px;
-      background: #fafafa;
-      box-shadow: inset 0 0 18px rgb(0 0 0 / 0.08);
+      border-radius: 16px;
+      background: #f9f9f9;
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.08);
+      flex-grow: 1;
     }
+
     ul#items li {
-      font-size: 1.7rem;
-      padding: 22px 36px;
-      border-bottom: 1.2px solid #eee;
+      font-size: 2.2rem;
+      padding: 28px;
+      border-bottom: 1px solid #eee;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 20px;
-      color: #222;
       font-weight: 700;
-      user-select: text;
     }
+
     ul#items li::before {
       content: "🚒";
-      font-size: 2.1rem;
-      line-height: 1;
+      font-size: 2.8rem;
     }
+
     ul#items li:last-child {
       border-bottom: none;
     }
 
-    .error {
+    #error-msg {
       color: #d32f2f;
       font-weight: 700;
-      font-size: 2rem;
+      font-size: 2.2rem;
       text-align: center;
-      margin-top: 48px;
-      user-select: none;
+      margin-top: 32px;
     }
 
-    ul#items::-webkit-scrollbar {
-      width: 12px;
-    }
-    ul#items::-webkit-scrollbar-track {
-      background: #f0f0f0;
-      border-radius: 16px;
-    }
-    ul#items::-webkit-scrollbar-thumb {
-      background: #4caf50;
-      border-radius: 16px;
-    }
+    @media (max-width: 768px) {
+      html, body {
+        font-size: 24px;
+      }
 
-    /* 手機優化 */
-    @media (max-width: 480px) {
-      body {
-        font-size: 22px;
-        padding: 36px 20px;
-      }
-      .container {
-        max-width: 100%;
-        margin: 36px auto;
-        padding: 0 20px;
-      }
-      .card {
-        padding: 44px 40px 52px;
-        border-radius: 26px;
-      }
       #title {
         font-size: 3rem;
       }
+
       #refreshBtn {
-        padding: 16px 32px;
-        font-size: 1.5rem;
+        font-size: 1.8rem;
+        padding: 16px 28px;
       }
-      #script,
-      #description,
-      #note {
-        font-size: 1.5rem;
-      }
+
       ul#items li {
-        font-size: 1.5rem;
-        padding: 20px 30px;
-        gap: 16px;
+        font-size: 1.8rem;
+        padding: 24px;
       }
+
       ul#items li::before {
-        font-size: 1.9rem;
+        font-size: 2.2rem;
       }
     }
   </style>
@@ -202,7 +158,7 @@
       <p id="description"></p>
       <p id="note"></p>
       <ul id="items" aria-live="polite" aria-relevant="additions"></ul>
-      <p id="error-msg" class="error" style="display:none;"></p>
+      <p id="error-msg" style="display:none;"></p>
     </div>
   </div>
 
@@ -227,7 +183,6 @@
         }
 
         const data = await response.json();
-        console.log('收到資料:', data);
         if (data.status !== "special") {
           throw new Error(`資料狀態非 'special'，實際為 '${data.status}'`);
         }
@@ -235,6 +190,7 @@
         document.getElementById("title").textContent = data.title || "無標題";
         document.getElementById("script").textContent = data.script || "";
         document.getElementById("description").textContent = data.description || "";
+
         const noteContainer = document.getElementById("note");
         noteContainer.innerHTML = "";
         if (Array.isArray(data.note)) {
@@ -268,7 +224,6 @@
     }
 
     document.getElementById('refreshBtn').addEventListener('click', fetchData);
-
     fetchData();
   </script>
 </body>
