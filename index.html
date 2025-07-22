@@ -396,7 +396,8 @@
                 // 如果在 LINE 內，2秒後關閉視窗
                 if (liff.isInClient()) {
                     setTimeout(() => {
-                        console.log("將要跳轉至 signup.html，userId:", profile.userId);
+                        addDebugInfo("將要跳轉至 signup.html，userId:", profile.userId);
+                        showStatus("將要跳轉至 signup.html，userId:", profile.userId);
                         window.location.href = `signup.html?userId=${encodeURIComponent(profile.userId)}`;
                     }, 2000);
                 }
