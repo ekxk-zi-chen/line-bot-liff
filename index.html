@@ -392,8 +392,12 @@
                 // 重置表單
                 document.getElementById('myForm').reset();
                 document.getElementById('lineUserId').value = document.getElementById('user-id').textContent;
-                window.location.href = `signup.html?userId=${encodeURIComponent(profile.userId)}`;
-                // 如果在 LINE 內，2秒後關閉視窗
+                
+                  setTimeout(() => {
+                    window.location.href = `signup.html?userId=${encodeURIComponent(profile.userId)}`;
+                  }, 500);
+               
+                
 
                 
             } catch (error) {
