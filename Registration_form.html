@@ -82,10 +82,26 @@
     </style>
 </head>
 <body>
-
+  <div class="container" style="position: relative; max-width: 600px; margin: 20px auto;">
+    <button id="refreshBtn" style="
+      position: absolute;
+      top: 0;
+      right: 0;
+      padding: 6px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid #4CAF50;
+      background: white;
+      color: #4CAF50;
+      border-radius: 6px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      ">
+      🔄 刷新
+    </button>
+      
     <div class="card">
       <div style="text-align: center; line-height: 1.5; margin-bottom: 12px;">
-        <div id="title" style="font-size: 32px; font-weight: bold;">載入中...</div>
+        <div id="title" style="font-size: 32px; font-weight: bold;">統計人數中...</div>
         <div id="script" style="font-size: 20px; color: gray; margin-top: 4px;"></div>
       </div>
         
@@ -160,7 +176,13 @@
                 console.error(error);
             }
         }
-
+        // 綁定按鈕事件
+        const refreshBtn = document.getElementById('refreshBtn');
+        refreshBtn.addEventListener('click', () => {
+        fetchData();
+        });
+    
+      // 頁面載入時先執行一次
         fetchData();
     </script>
 </body>
