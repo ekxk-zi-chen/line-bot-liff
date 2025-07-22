@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>已報名人數</title>
     <style>
       body {
@@ -12,16 +12,33 @@
         line-height: 1.8;
       }
       .container {
-        position: relative;
-        max-width: 700px; /* 放大寬度 */
+        max-width: 700px;
         margin: 40px auto 20px;
-        padding-top: 40px; /* 預留按鈕空間 */
+        padding-top: 0;
+      }
+      .card {
+        max-width: 700px;
+        margin: 0 auto;
+        background: white;
+        padding: 28px 36px;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        box-sizing: border-box;
+      }
+      #header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      #title {
+        font-weight: bold;
+        font-size: 40px;
+        color: #222;
+        user-select: none;
       }
       #refreshBtn {
-        position: absolute;
-        top: 0;
-        right: 0;
-        padding: 8px 14px;
+        padding: 6px 12px;
         font-size: 16px;
         cursor: pointer;
         border: 1px solid #4CAF50;
@@ -29,65 +46,39 @@
         color: #4CAF50;
         border-radius: 6px;
         transition: background-color 0.3s ease, color 0.3s ease;
-        z-index: 10;
+        user-select: none;
       }
       #refreshBtn:hover {
         background-color: #4CAF50;
         color: white;
       }
-      .card {
-        max-width: 700px;
-        margin: 20px auto;
-        background: white;
-        padding: 28px 36px;
-        border-radius: 16px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-        box-sizing: border-box;
-      }
-      h2, #title {
-        font-weight: bold;
-        font-size: 40px;
-        text-align: center;
-        margin: 0 0 10px;
-        color: #222;
-      }
-      #script, #description, #note {
-        font-size: 20px; /* 放大內容字體 */
-        color: #666;
+      #script {
+        font-size: 24px;
+        color: gray;
+        margin-bottom: 24px;
         font-style: italic;
         text-align: center;
-        margin-bottom: 24px;
-        white-space: pre-wrap;  /* 重要：保留換行 */
+        white-space: pre-wrap; /* 保留換行 */
       }
       #description {
         font-size: 24px;
         text-align: center;
         margin-bottom: 24px;
+        white-space: pre-wrap;
       }
       #note {
-        margin-bottom: 24px;
-      }
-      #note p {
         font-size: 24px;
-        margin: 6px 0;
-        position: relative;
-        padding-left: 28px;
         color: #444;
-      }
-      #note p::before {
-        content: "🚒";
-        position: absolute;
-        left: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 24px;
+        margin-bottom: 24px;
+        text-align: center;
+        white-space: pre-wrap;
       }
       ul#items {
         list-style: none;
         padding-left: 0;
         margin: 0;
         max-height: 300px;
-        overflow-y: left;
+        overflow-y: auto;
       }
       ul#items li {
         font-size: 24px;
@@ -95,7 +86,17 @@
         border-bottom: 1px solid #eee;
         border-radius: 8px;
         background: #fafafa;
-        margin-bottom: 8px;
+
+        display: flex;
+        align-items: center;     /* 文字與 emoji 垂直置中 */
+        justify-content: center; /* 整行置中 */
+        gap: 8px;                /* emoji 與文字間距 */
+        text-align: center;
+        user-select: none;
+      }
+      ul#items li::before {
+        content: "🚒";
+        font-size: 24px;
       }
       .error {
         color: #d32f2f;
@@ -107,95 +108,88 @@
     </style>
 </head>
 <body>
-  <div class="container" style="position: relative; max-width: 700px; margin: 20px auto;">
-    <button id="refreshBtn">🔄 刷新</button>
-
-      
+  <div class="container">
     <div class="card">
-      <div style="text-align: center; line-height: 1.5; margin-bottom: 12px;">
-        <div id="title" style="font-size: 40px; font-weight: bold;">統計人數中...</div>
-        <div id="script" style="font-size: 24px; color: gray; margin-top: 4px;"></div>
+      <div id="header">
+        <div id="title">統計人數中...</div>
+        <button id="refreshBtn" type="button">🔄 刷新</button>
       </div>
-        
-      <p id="description" style="text-align: center;"></p>
-      <p id="note" style="text-align: center;"</p>
-      <ul id="items" style="text-align: center; list-style-position: inside;"></ul>
+
+      <div id="script"></div>
+      <p id="description"></p>
+      <p id="note"></p>
+      <ul id="items"></ul>
       <p id="error-msg" class="error" style="display:none;"></p>
     </div>
+  </div>
 
+  <script>
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec";
+    const SLOT = "special"; // 或你需要的 slot 值
 
-    <script>
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec";
-        const SLOT = "special"; // 或你需要的 slot 值
-
-        async function fetchData() {
-            try {
-                const urlParams = new URLSearchParams(window.location.search);
-                const userId = urlParams.get('userId') || "";
-                const response = await fetch(`${APPS_SCRIPT_URL}?slot=${encodeURIComponent(SLOT)}&userId=${encodeURIComponent(userId)}&t=${Date.now()}`, {
-                    method: 'GET',
-                    mode: 'cors',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP 錯誤 ${response.status}: ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                console.log('收到資料:', data);
-                if (data.status !== "special") {
-                  throw new Error(`資料狀態非 'special'，實際為 '${data.status}'`);
-                }
-                
-                document.getElementById("title").textContent = data.title || "無標題";
-                document.getElementById("script").textContent = data.script || "";
-
-
-
-
-
-                document.getElementById("description").textContent = data.description || "";
-                const noteContainer = document.getElementById("note");
-                noteContainer.innerHTML = "";
-                if (Array.isArray(data.note)) {
-                  data.note.forEach(line => {
-                    const p = document.createElement("p");
-                    p.textContent = line;
-                    noteContainer.appendChild(p);
-                  });
-                } else {
-                  noteContainer.textContent = data.note || "";
-                }
-                
-                const ul = document.getElementById("items");
-                ul.innerHTML = ""; // 清空舊資料
-
-                (data.items || []).forEach(item => {
-                    const li = document.createElement("li");
-                    li.textContent = item;
-                    ul.appendChild(li);
-                });
-            } catch (error) {
-                document.getElementById("error-msg").style.display = "block";
-                document.getElementById("error-msg").textContent = "讀取資料失敗：" + error.message;
-
-                document.getElementById("title").textContent = "錯誤";
-                document.getElementById("description").textContent = "";
-                document.getElementById("items").innerHTML = "";
-                console.error(error);
-            }
-        }
-        // 綁定按鈕事件
-        const refreshBtn = document.getElementById('refreshBtn');
-        refreshBtn.addEventListener('click', () => {
-        fetchData();
+    async function fetchData() {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId') || "";
+        const response = await fetch(`${APPS_SCRIPT_URL}?slot=${encodeURIComponent(SLOT)}&userId=${encodeURIComponent(userId)}&t=${Date.now()}`, {
+          method: 'GET',
+          mode: 'cors',
+          headers: {
+            'Accept': 'application/json'
+          }
         });
-    
-      // 頁面載入時先執行一次
-        fetchData();
-    </script>
+
+        if (!response.ok) {
+          throw new Error(`HTTP 錯誤 ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('收到資料:', data);
+        if (data.status !== "special") {
+          throw new Error(`資料狀態非 'special'，實際為 '${data.status}'`);
+        }
+
+        document.getElementById("title").textContent = data.title || "無標題";
+        document.getElementById("script").textContent = data.script || "";
+        document.getElementById("description").textContent = data.description || "";
+        const noteContainer = document.getElementById("note");
+        noteContainer.innerHTML = "";
+        if (Array.isArray(data.note)) {
+          data.note.forEach(line => {
+            const p = document.createElement("p");
+            p.textContent = line;
+            noteContainer.appendChild(p);
+          });
+        } else {
+          noteContainer.textContent = data.note || "";
+        }
+
+        const ul = document.getElementById("items");
+        ul.innerHTML = ""; // 清空舊資料
+        (data.items || []).forEach(item => {
+          const li = document.createElement("li");
+          li.textContent = item;
+          ul.appendChild(li);
+        });
+
+        // 隱藏錯誤訊息
+        document.getElementById("error-msg").style.display = "none";
+        document.getElementById("error-msg").textContent = "";
+      } catch (error) {
+        document.getElementById("error-msg").style.display = "block";
+        document.getElementById("error-msg").textContent = "讀取資料失敗：" + error.message;
+        document.getElementById("title").textContent = "錯誤";
+        document.getElementById("description").textContent = "";
+        document.getElementById("items").innerHTML = "";
+        console.error(error);
+      }
+    }
+
+    // 綁定按鈕事件
+    document.getElementById('refreshBtn').addEventListener('click', fetchData);
+
+    // 頁面載入時先執行一次
+    fetchData();
+  </script>
 </body>
 </html>
