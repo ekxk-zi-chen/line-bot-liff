@@ -8,59 +8,97 @@
     body {
       font-family: Arial, sans-serif;
       background: linear-gradient(to bottom right, #f0f4f8, #dcefff);
-      padding: 20px;
+      padding: 30px;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #333;
     }
     .card {
-      max-width: 500px;
+      max-width: 520px;
       margin: auto;
       background: white;
-      padding: 20px;
+      padding: 28px 32px;
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12);
     }
     h2 {
       text-align: center;
-      margin-bottom: 4px; /* 調整標題下方間距 */
+      margin-bottom: 12px;
+      font-size: 28px;
+      font-weight: 700;
+      color: #222;
     }
     #script {
-      font-size: 20px;
-      color: gray;
-      margin-top: 4px;
+      font-size: 22px;
+      color: #666;
+      margin-bottom: 20px;
       text-align: center;
+      font-style: italic;
     }
     label {
-      font-weight: bold;
+      font-weight: 600;
       display: block;
-      margin-top: 15px;
+      margin-top: 22px;
+      margin-bottom: 6px;
+      font-size: 17px;
+      color: #444;
     }
     input[type="text"],
     select,
     textarea {
       width: 100%;
-      padding: 8px;
-      margin-top: 5px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+      padding: 12px 14px;
+      margin-top: 2px;
+      border-radius: 8px;
+      border: 1.5px solid #bbb;
       box-sizing: border-box;
+      font-size: 16px;
+      transition: border-color 0.3s ease;
+    }
+    input[type="text"]:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #4CAF50;
+      box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
     }
     textarea::placeholder {
       color: #999;
     }
     button {
-      margin-top: 20px;
+      margin-top: 28px;
       width: 100%;
-      padding: 12px;
+      padding: 14px;
       background-color: #4CAF50;
       color: white;
-      font-size: 16px;
+      font-size: 18px;
+      font-weight: 700;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
+      transition: background-color 0.25s ease;
+    }
+    button:hover:not(:disabled) {
+      background-color: #45a049;
+    }
+    button:disabled {
+      background-color: #9ccc9c;
+      cursor: not-allowed;
     }
     #status {
-      margin-top: 10px;
+      margin-top: 16px;
       text-align: center;
-      color: red;
+      color: #d32f2f;
+      font-weight: 600;
+      font-size: 16px;
+    }
+    /* 讓不參加原因欄位隱藏時佔位不跳動 */
+    .hidden {
+      display: none !important;
+      height: 0;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
     }
   </style>
 </head>
@@ -71,22 +109,36 @@
 
     <form id="form">
       <label>1. 是否參加</label>
-      <select name="join" required>
-        <option value="參加">參加</option>
-        <option value="不參加">不參加</option>
-      </select>
-
-      <label>2. 不參加原因說明</label>
-      <input type="text" name="reason" placeholder="請盡量填寫原因，不然老大會罵你" />
-
-      <label>3. 預計抵達時間</label>
-      <select name="arrival" required>
-        <option value="30分鐘內抵達">30分鐘內抵達</option>
-        <option value=">30分鐘">大於30分鐘</option>
-      </select>
-
+      <div>
+        <label style="font-weight: normal; margin-right: 20px;">
+          <input type="radio" name="join" value="參加" /> 參加
+        </label>
+        <label style="font-weight: normal;">
+          <input type="radio" name="join" value="不參加" /> 不參加
+        </label>
+      </div>
+    
+      <label id="reasonLabel" style="display:none; margin-top: 18px;">2. 不參加原因說明</label>
+      <input
+        type="text"
+        name="reason"
+        id="reasonInput"
+        placeholder="請盡量填寫原因，不然老大會罵你"
+        style="display:none; margin-top: 6px;"
+      />
+    
+      <label style="margin-top: 22px;">3. 預計抵達時間</label>
+      <div>
+        <label style="font-weight: normal; margin-right: 20px;">
+          <input type="radio" name="arrival" value="30分鐘內抵達" checked /> 30分鐘內抵達
+        </label>
+        <label style="font-weight: normal;">
+          <input type="radio" name="arrival" value=">30分鐘" /> 大於30分鐘
+        </label>
+      </div>
+    
       <input type="hidden" name="userId" id="userIdField" />
-
+    
       <button type="submit">送出</button>
       <div id="status"></div>
     </form>
@@ -98,52 +150,55 @@
     const userId = urlParams.get('userId');
     const title_script = urlParams.get('script');
     const SLOT = "signup";
-
+  
     if (!userId) {
       document.getElementById('form').style.display = 'none';
       document.getElementById('status').innerText = '無法取得使用者資訊，請重新開啟頁面。';
     } else {
       document.getElementById('userIdField').value = userId;
     }
-
-    // 顯示 script 內容
+  
     if (title_script) {
       document.getElementById('script').textContent = title_script;
     }
-
-    // 動態顯示/隱藏不參加原因欄位
-    const joinSelect = document.querySelector('select[name="join"]');
-    const reasonInput = document.querySelector('input[name="reason"]');
-    const reasonLabel = reasonInput.previousElementSibling;
-
+  
+    const joinRadios = document.querySelectorAll('input[name="join"]');
+    const reasonInput = document.getElementById('reasonInput');
+    const reasonLabel = document.getElementById('reasonLabel');
+  
     function toggleReasonField() {
-      if (joinSelect.value === "參加") {
-        reasonInput.style.display = "none";
-        reasonLabel.style.display = "none";
-        reasonInput.value = "";  // 清空欄位
-      } else {
+      let selected = null;
+      joinRadios.forEach(radio => {
+        if (radio.checked) selected = radio.value;
+      });
+      if (selected === "不參加") {
         reasonInput.style.display = "block";
         reasonLabel.style.display = "block";
+      } else {
+        reasonInput.style.display = "none";
+        reasonLabel.style.display = "none";
+        reasonInput.value = "";
       }
     }
-
-    joinSelect.addEventListener('change', toggleReasonField);
-    toggleReasonField(); // 初始呼叫一次，確保狀態正確
-
+  
+    joinRadios.forEach(radio => {
+      radio.addEventListener('change', toggleReasonField);
+    });
+    toggleReasonField(); // 頁面初始狀態
+  
     document.getElementById('form').addEventListener('submit', function(e) {
       e.preventDefault();
-
       const formData = new FormData(this);
       const data = {};
       formData.forEach((value, key) => {
         data[key] = value;
       });
-
-      // 加入你的邏輯：如果參加，清空 reason
+  
+      // 如果選擇參加，清空 reason
       if (data.join === "參加") {
         data.reason = "";
       }
-
+  
       fetch(`${APPS_SCRIPT_URL}?slot=${encodeURIComponent(SLOT)}&userId=${encodeURIComponent(userId)}`, {
         method: "POST",
         body: JSON.stringify(data),
@@ -155,25 +210,18 @@
       }).catch(err => {
         console.warn('送出失敗，但不影響流程', err);
       });
-
+  
       if (window.liff && liff.isInClient()) {
-        // 禁用按鈕避免重複送出
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('userId');  // 取得 userId 字串（如果有）
-
         this.querySelector('button[type="submit"]').disabled = true;
-        // 兩秒後執行跳轉
         setTimeout(() => {
           window.location.href = 'Registration_form.html?userId=' + userId;
-        }, 2000);    // 2000 毫秒 = 2 秒
+        }, 2000);
       } else {
-        // 如果不是在 liff 裡面，送出後給點提示
         document.getElementById('status').innerText = '已送出，感謝填寫！';
-        // 禁用按鈕避免重複送出
         this.querySelector('button[type="submit"]').disabled = true;
-         setTimeout(() => {
+        setTimeout(() => {
           window.location.href = 'Registration_form.html?userId=' + userId;
-        }, 2000);    // 2000 毫秒 = 2 秒
+        }, 2000);
       }
     });
   </script>
