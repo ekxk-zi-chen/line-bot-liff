@@ -1,131 +1,213 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
-    <meta charset="UTF-8" />
-    <title>已報名人數</title>
-    <style>
+  <meta charset="UTF-8" />
+  <title>已報名人數</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+
+    /* Reset & base */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: #f5f7fa;
+      font-family: 'Noto Sans TC', '微軟正黑體', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: #222;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      padding: 24px 16px;
+      font-size: 18px; /* 基礎字體大 */
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 40px auto 20px;
+      padding: 0 16px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 32px 36px 40px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+      user-select: none;
+    }
+
+    #header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      gap: 16px;
+    }
+    #title {
+      font-weight: 900;
+      font-size: 2.5rem; /* 約40px */
+      color: #111;
+      flex-grow: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #refreshBtn {
+      padding: 10px 20px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: 2px solid #4caf50;
+      background: #fff;
+      color: #4caf50;
+      border-radius: 10px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      flex-shrink: 0;
+      user-select: none;
+      box-shadow: 0 4px 8px rgba(76, 175, 80, 0.2);
+    }
+    #refreshBtn:hover,
+    #refreshBtn:focus {
+      background-color: #4caf50;
+      color: #fff;
+      outline: none;
+      box-shadow: 0 6px 14px rgba(76, 175, 80, 0.4);
+    }
+
+    #script {
+      font-style: italic;
+      font-size: 1.3rem;
+      color: #666;
+      margin-bottom: 30px;
+      text-align: center;
+      white-space: pre-wrap;
+    }
+    #description {
+      font-size: 1.35rem;
+      text-align: center;
+      margin-bottom: 30px;
+      white-space: pre-wrap;
+      color: #333;
+    }
+    #note {
+      font-size: 1.2rem;
+      color: #555;
+      margin-bottom: 36px;
+      text-align: center;
+      white-space: pre-wrap;
+      min-height: 60px;
+    }
+
+    ul#items {
+      list-style: none;
+      padding-left: 0;
+      margin: 0 auto;
+      max-height: 360px;
+      overflow-y: auto;
+      width: 100%;
+      border-radius: 12px;
+      background: #fafafa;
+      box-shadow: inset 0 0 10px rgb(0 0 0 / 0.05);
+    }
+    ul#items li {
+      font-size: 1.3rem;
+      padding: 14px 24px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: #222;
+      font-weight: 600;
+      user-select: text;
+    }
+    ul#items li::before {
+      content: "🚒";
+      font-size: 1.6rem;
+      line-height: 1;
+    }
+    ul#items li:last-child {
+      border-bottom: none;
+    }
+
+    .error {
+      color: #d32f2f;
+      font-weight: 700;
+      font-size: 1.4rem;
+      text-align: center;
+      margin-top: 32px;
+      user-select: none;
+    }
+
+    /* 滾動條美化 (Webkit) */
+    ul#items::-webkit-scrollbar {
+      width: 8px;
+    }
+    ul#items::-webkit-scrollbar-track {
+      background: #f0f0f0;
+      border-radius: 10px;
+    }
+    ul#items::-webkit-scrollbar-thumb {
+      background: #4caf50;
+      border-radius: 10px;
+    }
+
+    /* 手機優化 */
+    @media (max-width: 480px) {
       body {
-        font-family: "標楷體", "PMingLiU", "DFKai-SB", serif;
-        background: #f5f7fa;
-        padding: 30px 20px;
-        color: #333;
-        line-height: 1.8;
+        font-size: 16px;
+        padding: 20px 12px;
       }
       .container {
-        max-width: 700px;
-        margin: 40px auto 20px;
-        padding-top: 0;
+        max-width: 100%;
+        margin: 20px auto;
+        padding: 0 12px;
       }
       .card {
-        max-width: 700px;
-        margin: 0 auto;
-        background: white;
-        padding: 28px 36px;
-        border-radius: 16px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-        box-sizing: border-box;
-      }
-      #header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 12px;
+        padding: 28px 20px 36px;
+        border-radius: 18px;
       }
       #title {
-        font-weight: bold;
-        font-size: 40px;
-        color: #222;
-        user-select: none;
+        font-size: 1.8rem;
       }
       #refreshBtn {
-        padding: 6px 12px;
-        font-size: 16px;
-        cursor: pointer;
-        border: 1px solid #4CAF50;
-        background: white;
-        color: #4CAF50;
-        border-radius: 6px;
-        transition: background-color 0.3s ease, color 0.3s ease;
-        user-select: none;
+        padding: 8px 16px;
+        font-size: 1rem;
       }
-      #refreshBtn:hover {
-        background-color: #4CAF50;
-        color: white;
-      }
-      #script {
-        font-size: 24px;
-        color: gray;
-        margin-bottom: 24px;
-        font-style: italic;
-        text-align: center;
-        white-space: pre-wrap; /* 保留換行 */
-      }
-      #description {
-        font-size: 24px;
-        text-align: center;
-        margin-bottom: 24px;
-        white-space: pre-wrap;
-      }
+      #script,
+      #description,
       #note {
-        font-size: 24px;
-        color: #444;
-        margin-bottom: 24px;
-        text-align: center;
-        white-space: pre-wrap;
-      }
-      ul#items {
-        list-style: none;
-        padding-left: 0;
-        margin: 0;
-        max-height: 300px;
-        overflow-y: auto;
+        font-size: 1.1rem;
       }
       ul#items li {
-        font-size: 24px;
-        padding: 8px 12px;
-        border-bottom: 1px solid #eee;
-        border-radius: 8px;
-        background: #fafafa;
-
-        display: flex;
-        align-items: center;     /* 文字與 emoji 垂直置中 */
-        justify-content: center; /* 整行置中 */
-        gap: 8px;                /* emoji 與文字間距 */
-        text-align: center;
-        user-select: none;
+        font-size: 1.15rem;
+        padding: 12px 18px;
+        gap: 8px;
       }
       ul#items li::before {
-        content: "🚒";
-        font-size: 24px;
+        font-size: 1.4rem;
       }
-      .error {
-        color: #d32f2f;
-        font-weight: 700;
-        font-size: 24px;
-        text-align: center;
-        margin-top: 20px;
-      }
-    </style>
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <div class="card">
+    <div class="card" role="main" aria-labelledby="title">
       <div id="header">
         <div id="title">統計人數中...</div>
-        <button id="refreshBtn" type="button">🔄 刷新</button>
+        <button id="refreshBtn" type="button" aria-label="重新整理列表">🔄 刷新</button>
       </div>
 
       <div id="script"></div>
       <p id="description"></p>
       <p id="note"></p>
-      <ul id="items"></ul>
+      <ul id="items" aria-live="polite" aria-relevant="additions"></ul>
       <p id="error-msg" class="error" style="display:none;"></p>
     </div>
   </div>
 
   <script>
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec";
-    const SLOT = "special"; // 或你需要的 slot 值
+    const SLOT = "special";
 
     async function fetchData() {
       try {
@@ -165,14 +247,13 @@
         }
 
         const ul = document.getElementById("items");
-        ul.innerHTML = ""; // 清空舊資料
+        ul.innerHTML = "";
         (data.items || []).forEach(item => {
           const li = document.createElement("li");
           li.textContent = item;
           ul.appendChild(li);
         });
 
-        // 隱藏錯誤訊息
         document.getElementById("error-msg").style.display = "none";
         document.getElementById("error-msg").textContent = "";
       } catch (error) {
@@ -185,10 +266,8 @@
       }
     }
 
-    // 綁定按鈕事件
     document.getElementById('refreshBtn').addEventListener('click', fetchData);
 
-    // 頁面載入時先執行一次
     fetchData();
   </script>
 </body>
