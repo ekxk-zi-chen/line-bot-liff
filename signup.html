@@ -158,6 +158,9 @@
 
       if (window.liff && liff.isInClient()) {
         // 禁用按鈕避免重複送出
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId');  // 取得 userId 字串（如果有）
+
         this.querySelector('button[type="submit"]').disabled = true;
         // 兩秒後執行跳轉
         setTimeout(() => {
@@ -168,6 +171,9 @@
         document.getElementById('status').innerText = '已送出，感謝填寫！';
         // 禁用按鈕避免重複送出
         this.querySelector('button[type="submit"]').disabled = true;
+         setTimeout(() => {
+          window.location.href = 'Registration_form.html?userId=' + userId;
+        }, 2000);    // 2000 毫秒 = 2 秒
       }
     });
   </script>
