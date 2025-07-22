@@ -11,8 +11,32 @@
         color: #333;
         line-height: 1.8;
       }
+      .container {
+        position: relative;
+        max-width: 700px; /* 放大寬度 */
+        margin: 40px auto 20px;
+        padding-top: 40px; /* 預留按鈕空間 */
+      }
+      #refreshBtn {
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding: 8px 14px;
+        font-size: 16px;
+        cursor: pointer;
+        border: 1px solid #4CAF50;
+        background: white;
+        color: #4CAF50;
+        border-radius: 6px;
+        transition: background-color 0.3s ease, color 0.3s ease;
+        z-index: 10;
+      }
+      #refreshBtn:hover {
+        background-color: #4CAF50;
+        color: white;
+      }
       .card {
-        max-width: 600px;
+        max-width: 700px;
         margin: 20px auto;
         background: white;
         padding: 28px 36px;
@@ -22,20 +46,21 @@
       }
       h2, #title {
         font-weight: bold;
-        font-size: 36px;
+        font-size: 40px;
         text-align: center;
         margin: 0 0 10px;
         color: #222;
       }
-      #script {
-        font-size: 20px;
+      #script, #description, #note {
+        font-size: 20px; /* 放大內容字體 */
         color: #666;
         font-style: italic;
         text-align: center;
-        margin-bottom: 18px;
+        margin-bottom: 24px;
+        white-space: pre-wrap;  /* 重要：保留換行 */
       }
       #description {
-        font-size: 18px;
+        font-size: 24px;
         text-align: center;
         margin-bottom: 24px;
       }
@@ -43,7 +68,7 @@
         margin-bottom: 24px;
       }
       #note p {
-        font-size: 16px;
+        font-size: 24px;
         margin: 6px 0;
         position: relative;
         padding-left: 28px;
@@ -55,17 +80,17 @@
         left: 0;
         top: 50%;
         transform: translateY(-50%);
-        font-size: 18px;
+        font-size: 24px;
       }
       ul#items {
         list-style: none;
         padding-left: 0;
         margin: 0;
         max-height: 300px;
-        overflow-y: auto;
+        overflow-y: left;
       }
       ul#items li {
-        font-size: 17px;
+        font-size: 24px;
         padding: 8px 12px;
         border-bottom: 1px solid #eee;
         border-radius: 8px;
@@ -75,34 +100,21 @@
       .error {
         color: #d32f2f;
         font-weight: 700;
-        font-size: 16px;
+        font-size: 24px;
         text-align: center;
         margin-top: 20px;
       }
     </style>
 </head>
 <body>
-  <div class="container" style="position: relative; max-width: 600px; margin: 20px auto;">
-    <button id="refreshBtn" style="
-      position: absolute;
-      top: 0;
-      right: 0;
-      padding: 6px 12px;
-      font-size: 14px;
-      cursor: pointer;
-      border: 1px solid #4CAF50;
-      background: white;
-      color: #4CAF50;
-      border-radius: 6px;
-      transition: background-color 0.3s ease, color 0.3s ease;
-      ">
-      🔄 刷新
-    </button>
+  <div class="container" style="position: relative; max-width: 700px; margin: 20px auto;">
+    <button id="refreshBtn">🔄 刷新</button>
+
       
     <div class="card">
       <div style="text-align: center; line-height: 1.5; margin-bottom: 12px;">
-        <div id="title" style="font-size: 32px; font-weight: bold;">統計人數中...</div>
-        <div id="script" style="font-size: 20px; color: gray; margin-top: 4px;"></div>
+        <div id="title" style="font-size: 40px; font-weight: bold;">統計人數中...</div>
+        <div id="script" style="font-size: 24px; color: gray; margin-top: 4px;"></div>
       </div>
         
       <p id="description" style="text-align: center;"></p>
