@@ -157,7 +157,12 @@
       });
 
       if (window.liff && liff.isInClient()) {
-        setTimeout(() => liff.closeWindow(), 2000);
+        // 禁用按鈕避免重複送出
+        this.querySelector('button[type="submit"]').disabled = true;
+        // 兩秒後執行跳轉
+        setTimeout(() => {
+          window.location.href = 'signup.html?userId=' + userId;
+        }, 2000);    // 2000 毫秒 = 2 秒
       } else {
         // 如果不是在 liff 裡面，送出後給點提示
         document.getElementById('status').innerText = '已送出，感謝填寫！';
