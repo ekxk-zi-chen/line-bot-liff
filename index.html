@@ -162,7 +162,7 @@
         const CONFIG = {
             LIFF_ID: "2007782293-RgkE5pPW", // 你的 LIFF ID
             APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec", // 請替換為你的 Apps Script 網址
-            DEBUG_: false // 開發時設為 true，正式上線可設為 false
+            DEBUG_: true // 開發時設為 true，正式上線可設為 false
         };
         
         let loginAttempts = 0;
@@ -396,6 +396,7 @@
                 // 如果在 LINE 內，2秒後關閉視窗
                 if (liff.isInClient()) {
                     setTimeout(() => {
+                        console.log("將要跳轉至 signup.html，userId:", profile.userId);
                         window.location.href = `signup.html?userId=${encodeURIComponent(profile.userId)}`;
                     }, 2000);
                 }
