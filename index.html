@@ -396,9 +396,14 @@
                 // 如果在 LINE 內，2秒後關閉視窗
                 if (liff.isInClient()) {
                     setTimeout(() => {
-                        addDebugInfo("將要跳轉至 signup.html，userId:", profile.userId);
-                        showStatus("將要跳轉至 signup.html，userId:", profile.userId);
-                        window.location.href = `signup.html?userId=${encodeURIComponent(profile.userId)}`;
+                        addDebugInfo("取得目前網址#1" + window.location.search);
+                        showStatus("取得目前網址#2" + window.location.search);
+
+                        const userId = document.getElementById('user-id').textContent;
+                        window.location.href = 'signup.html?userId=' + encodeURIComponent(userId);
+                        addDebugInfo("跳轉目前網址#3" + window.location.href);
+                        showStatus("跳轉目前網址#4" + window.location.href);
+                        
                     }, 2000);
                 }
                 
