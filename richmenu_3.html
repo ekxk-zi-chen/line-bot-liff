@@ -84,8 +84,14 @@
         height: 100%;
         z-index: 999;
         transform: translateX(-100%);
+        width: 240px;
       }
 
+      .main-content {
+        width: 100vw;
+        height: 100vh;
+      }
+    
       .sidebar.open {
         transform: translateX(0);
       }
@@ -120,30 +126,31 @@
   <script>
     const slotCache = {};
     let currentSlot = null;
-
+    const MOBILE_BREAKPOINT = 768;
+  
     function toggleSidebar() {
       document.getElementById("sidebar").classList.toggle("open");
     }
-
+  
     function selectAndHide(slot) {
       loadContent(slot);
       const sidebar = document.getElementById("sidebar");
-      if (window.innerWidth <= 768) {
+      if (window.innerWidth <= MOBILE_BREAKPOINT) {
         sidebar.classList.remove("open");
       }
     }
-
+  
     window.addEventListener("DOMContentLoaded", async () => {
       const viewer = document.getElementById("viewer");
       const urlParams = new URLSearchParams(window.location.search);
       const userId = urlParams.get('userId') || "";
       const slotFromURL = "B4";
-
+  
       try {
         const url = `https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec?userId=${encodeURIComponent(userId)}&slot=${encodeURIComponent(slotFromURL)}`;
         const res = await fetch(url);
         const data = await res.json();
-
+  
         if (data.status === "richmenu_3") {
           Object.keys(data).forEach(key => {
             if (key !== "status") {
@@ -151,6 +158,10 @@
             }
           });
           console.log("快取完成：", slotCache);
+  
+          if (slotCache["B4"]) {
+            loadContent("B4");
+          }
         } else {
           alert("伺服器回傳錯誤，請稍後再試。");
           console.error("Server returned error status:", data);
@@ -160,18 +171,33 @@
         alert("初始化資料失敗，請稍後再試。");
       }
     });
-
+  
     function loadContent(slot) {
       if (slot === currentSlot) return;
       currentSlot = slot;
       const viewer = document.getElementById("viewer");
-
+  
       if (slotCache[slot]) {
         viewer.src = slotCache[slot];
       } else {
         alert(`找不到 ${slot} 對應的資料，請稍後再試。`);
       }
     }
+  
+    // 新增點擊 main-content 空白區域關閉側邊欄
+    document.getElementById("main-content").addEventListener("click", () => {
+      const sidebar = document.getElementById("sidebar");
+  
+      if (window.innerWidth <= MOBILE_BREAKPOINT && sidebar.classList.contains("open")) {
+        sidebar.classList.remove("open");
+      }
+    });
+  
+    // 阻止點擊 sidebar 本身時關閉側邊欄事件冒泡
+    document.getElementById("sidebar").addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
   </script>
+
 </body>
 </html>
