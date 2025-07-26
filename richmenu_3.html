@@ -86,7 +86,7 @@
       const viewer = document.getElementById("viewer");
       const urlParams = new URLSearchParams(window.location.search);
       const userId = urlParams.get('userId') || "";
-      const slotFromURL = B4;
+      const slotFromURL = "B4";
 
       try {
         const url = `https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec?userId=${encodeURIComponent(userId)}&slot=${encodeURIComponent(slotFromURL)}`;
