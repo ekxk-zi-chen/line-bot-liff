@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>左右分割頁面 + App Script</title>
+  <style>
+    /* 你原本的CSS不變 */
+    * {
+      box-sizing: border-box;
+    }
+
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      display: flex;
+      height: 100%;
+    }
+
+    .sidebar {
+      width: 240px;
+      background-color: #2c3e50;
+      color: white;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .sidebar h2 {
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .sidebar ul li {
+      margin: 12px 0;
+      cursor: pointer;
+      color: #ecf0f1;
+    }
+
+    .sidebar ul li:hover {
+      color: #1abc9c;
+    }
+
+    .main-content {
+      flex-grow: 1;
+      position: relative;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h2>功能選單</h2>
+      <ul>
+        <li onclick="loadContent('B4')">打開 PDF</li>
+        <li onclick="loadContent('B5')">打開 個人裝備</li>
+        <li onclick="loadContent('B6')">打開 人車</li>
+      </ul>
+    </div>
+    <div class="main-content">
+      <iframe id="viewer" src=""></iframe>  
+    </div>
+  </div>
+
+  <script>
+    const slotCache = {};  // slot -> redirectUrl 快取表
+    let currentSlot = null;
+
+    // 頁面載入後立刻 fetch 所有 slot 的資料
+    window.addEventListener("DOMContentLoaded", async () => {
+      const viewer = document.getElementById("viewer");
+      const urlParams = new URLSearchParams(window.location.search);
+      const userId = urlParams.get('userId') || "";
+      const slotFromURL = urlParams.get('slot') || "";
+
+      try {
+        const url = `https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec?userId=${encodeURIComponent(userId)}&slot=${encodeURIComponent(slotFromURL)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.status === "ok") {
+          // 移除 status 欄位，只留下 slot 對應表
+          Object.keys(data).forEach(key => {
+            if (key !== "status") {
+              slotCache[key] = data[key];
+            }
+          });
+
+
+          console.log("快取完成：", slotCache);
+        } else {
+          alert("伺服器回傳錯誤，請稍後再試。");
+          console.error("Server returned error status:", data);
+        }
+      } catch (error) {
+        console.error("初始化時取得資料失敗：", error);
+        alert("初始化資料失敗，請稍後再試。");
+      }
+    });
+
+    function loadContent(slot) {
+      if (slot === currentSlot) return;  // 避免重複點擊
+      currentSlot = slot;
+
+      const viewer = document.getElementById("viewer");
+
+      if (slotCache[slot]) {
+        viewer.src = slotCache[slot];
+      } else {
+        alert(`找不到 ${slot} 對應的資料，請稍後再試。`);
+      }
+    }
+  </script>
+
+
+</body>
+</html>
