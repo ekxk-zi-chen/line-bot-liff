@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>左右分割頁面 + App Script</title>
   <style>
-    /* 你原本的CSS不變 */
     * {
       box-sizing: border-box;
     }
@@ -28,6 +27,7 @@
       color: white;
       padding: 20px;
       overflow-y: auto;
+      transition: transform 0.3s ease;
     }
 
     .sidebar h2 {
@@ -60,16 +60,56 @@
       height: 100%;
       border: none;
     }
+
+    .menu-button {
+      display: none;
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: #2c3e50;
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 1000;
+    }
+
+    /* 手機版：隱藏 sidebar，改顯示 menu 按鈕 */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100%;
+        z-index: 999;
+        transform: translateX(-100%);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .menu-button {
+        display: block;
+      }
+
+      .container {
+        flex-direction: column;
+      }
+    }
   </style>
 </head>
 <body>
+  <button class="menu-button" onclick="toggleSidebar()">功能選單</button>
+
   <div class="container">
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
       <h2>功能選單</h2>
       <ul>
-        <li onclick="loadContent('B4')">打開 PDF</li>
-        <li onclick="loadContent('B5')">打開 個人裝備</li>
-        <li onclick="loadContent('B6')">打開 人車</li>
+        <li onclick="selectAndHide('B4')">打開 PDF</li>
+        <li onclick="selectAndHide('B5')">打開 個人裝備</li>
+        <li onclick="selectAndHide('B6')">打開 人車</li>
       </ul>
     </div>
     <div class="main-content">
@@ -78,10 +118,21 @@
   </div>
 
   <script>
-    const slotCache = {};  // slot -> redirectUrl 快取表
+    const slotCache = {};
     let currentSlot = null;
 
-    // 頁面載入後立刻 fetch 所有 slot 的資料
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("open");
+    }
+
+    function selectAndHide(slot) {
+      loadContent(slot);
+      const sidebar = document.getElementById("sidebar");
+      if (window.innerWidth <= 768) {
+        sidebar.classList.remove("open");
+      }
+    }
+
     window.addEventListener("DOMContentLoaded", async () => {
       const viewer = document.getElementById("viewer");
       const urlParams = new URLSearchParams(window.location.search);
@@ -94,14 +145,11 @@
         const data = await res.json();
 
         if (data.status === "richmenu_3") {
-          // 移除 status 欄位，只留下 slot 對應表
           Object.keys(data).forEach(key => {
             if (key !== "status") {
               slotCache[key] = data[key];
             }
           });
-
-
           console.log("快取完成：", slotCache);
         } else {
           alert("伺服器回傳錯誤，請稍後再試。");
@@ -114,9 +162,8 @@
     });
 
     function loadContent(slot) {
-      if (slot === currentSlot) return;  // 避免重複點擊
+      if (slot === currentSlot) return;
       currentSlot = slot;
-
       const viewer = document.getElementById("viewer");
 
       if (slotCache[slot]) {
@@ -126,7 +173,5 @@
       }
     }
   </script>
-
-
 </body>
 </html>
