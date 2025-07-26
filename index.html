@@ -337,6 +337,10 @@
                     addDebugInfo('收到特殊資料，直接跳轉 Registration_form.html');
                     window.location.href = `Registration_form.html?userId=${encodeURIComponent(profile.userId)}`;
                     return;
+                } else if (data.status === "menu_3") {
+                    addDebugInfo('初次登入成功進入報名介面，直接跳轉 Registration_form.html');
+                    window.location.href = `richmenu_3.html?userId=${encodeURIComponent(profile.userId)}`;
+                    return;
                 } else {
                     addDebugInfo('未找到資料或格式錯誤');
                 }
