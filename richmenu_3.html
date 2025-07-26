@@ -86,14 +86,14 @@
       const viewer = document.getElementById("viewer");
       const urlParams = new URLSearchParams(window.location.search);
       const userId = urlParams.get('userId') || "";
-      const slotFromURL = urlParams.get('slot') || "";
+      const slotFromURL = B4;
 
       try {
         const url = `https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec?userId=${encodeURIComponent(userId)}&slot=${encodeURIComponent(slotFromURL)}`;
         const res = await fetch(url);
         const data = await res.json();
 
-        if (data.status === "ok") {
+        if (data.status === "richmenu_3") {
           // 移除 status 欄位，只留下 slot 對應表
           Object.keys(data).forEach(key => {
             if (key !== "status") {
