@@ -330,7 +330,7 @@
                     window.location.href = data.redirectUrl;
                     return;
                 } else if (data.status === "needsignup") {
-                    addDebugInfo('初次登入成功進入報名介面，直接跳轉 Registration_form.html');
+                    addDebugInfo('初次登入成功進入報名介面，直接跳轉 signup.html');
                     window.location.href = `signup.html?userId=${encodeURIComponent(profile.userId)}`;
                     return;
                 } else if (data.status === "special") {
@@ -338,7 +338,7 @@
                     window.location.href = `Registration_form.html?userId=${encodeURIComponent(profile.userId)}`;
                     return;
                 } else if (data.status === "richmenu_3") {
-                    addDebugInfo('初次登入成功進入報名介面，直接跳轉 Registration_form.html');
+                    addDebugInfo('選單3，直接跳轉 richmenu_3.html');
                     window.location.href = `richmenu_3.html?userId=${encodeURIComponent(profile.userId)}`;
                     return;
                 } else {
