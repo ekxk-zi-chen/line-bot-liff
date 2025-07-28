@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>支撐相關</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body, html {
+      font-size: 18px;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      display: flex;
+      height: 100%;
+    }
+
+    .sidebar {
+      width: 240px;
+      background-color: #2c3e50;
+      color: white;
+      padding: 60px 20px 20px;
+      overflow-y: auto;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar h2 {
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .sidebar ul li {
+      margin: 12px 0;
+      cursor: pointer;
+      color: #ecf0f1;
+    }
+
+    .sidebar ul li:hover {
+      color: #1abc9c;
+    }
+
+    .main-content {
+      flex-grow: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .menu-button {
+      display: none;
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background-color: #2c3e50;
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 1000;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100%;
+        z-index: 999;
+        transform: translateX(-100%);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .menu-button {
+        display: block;
+      }
+
+      .container {
+        flex-direction: column;
+      }
+    }
+
+    select, input, button {
+      margin: 10px 0;
+      padding: 8px;
+      font-size: 16px;
+    }
+
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #ecf0f1;
+      border-left: 4px solid #1abc9c;
+    }
+    .result-section {
+      margin-bottom: 16px;
+    }
+
+    .result-section h3 {
+      border-bottom: 2px solid #1abc9c;
+      padding-bottom: 4px;
+      margin-bottom: 10px;
+      color: #16a085;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px dashed #ccc;
+    }
+
+    .result-label {
+      flex: 1;
+      color: #333;
+    }
+
+    .result-value {
+      flex: 0 0 auto;
+      font-weight: bold;
+      color: #e67e22;
+    }
+
+  </style>
+</head>
+<body>
+  <button class="menu-button" onclick="toggleSidebar()">選單</button>
+
+  <div class="container">
+    <div class="sidebar" id="sidebar">
+      <h2>數學不好</h2>
+      <ul>
+        <li onclick="showCalculationForm()">計算</li>
+      </ul>
+    </div>
+      <div class="main-content" id="main-content">
+        <h2>套一句花搜搜二的名言:<br>
+          <span style="color: red;">成也支撐敗也支撐</span>
+        <p><strong>說明：</strong></p>
+        <ul style="padding-left: 30px; line-height: 1.6;">
+          <li>支撐種類包含：箱型支撐、牆面支撐、斜樓板支撐</li>
+          <li>可根據現場測量資料自動計算所需支撐長度與材料</li>
+          <li>計算結果會區分為「臨時支撐」與「完整支撐」</li>
+        </ul>
+        <ul style="padding-left: 30px; line-height: 1.6; background-color: #ffe5e5;">
+          <li style="color: red; font-weight: bold;">小朋友才在那邊算得很精細</li>
+        </ul>
+
+        <p style="color: #666; font-size: 14px;">請點選左側選單來開始選擇計算類型。</p>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("open");
+    }
+
+    function showCalculationForm() {
+      const container = document.getElementById("main-content");
+      container.innerHTML = `
+        <h2>支撐計算</h2>
+        <label>選擇計算類型：
+          <select id="calcType" onchange="renderCalcForm()">
+            <option value="">-- 選擇支撐類型 --</option>
+            <option value="box">箱型支撐</option>
+            <option value="wall">牆面支撐</option>
+            <option value="floor">斜樓板支撐</option>
+          </select>
+        </label>
+        <div id="dynamicForm"></div>
+        <div id="dynamicResult"></div>
+      `;
+
+      if (window.innerWidth <= 768) {
+        document.getElementById("sidebar").classList.remove("open");
+      }
+    }
+
+    function renderCalcForm() {
+      const type = document.getElementById("calcType").value;
+      const form = document.getElementById("dynamicForm");
+      const result = document.getElementById("dynamicResult");
+      result.innerHTML = "";
+
+      if (type === "box") {
+        form.innerHTML = `
+          <label>測量長度 (cm)：<input type="number" id="length" /></label><br/>
+          <label>頂板厚度 (cm)：<input type="number" id="top" value="10" /></label><br/>
+          <label>底板厚度 (cm)：<input type="number" id="bottom" value="10" /></label><br/>
+          <label>楔型木厚度 (cm)：<input type="number" id="wedge" value="5" /></label><br/>
+          <label>支撐柱間距 (cm)：<input type="number" id="spacing" value="120" /></label><br/>
+          <label>連接柱寬度 (cm)：<input type="number" id="connector" value="10" /></label><br/>
+          <button onclick="calculateBox()">計算箱型支撐</button>
+        `;
+      } else if (type === "wall") {
+        form.innerHTML = `
+          <label>測量長度 (cm)：<input type="number" id="length" /></label><br/>
+          <label>頂板厚度 (cm)：<input type="number" id="top" value="10" /></label><br/>
+          <label>底板厚度 (cm)：<input type="number" id="bottom" value="10" /></label><br/>
+          <label>楔型木厚度 (cm)：<input type="number" id="wedge" value="5" /></label><br/>
+          <label>支撐柱間距 (cm)：<input type="number" id="spacing" value="120" /></label><br/>
+          <label>連接柱寬度 (cm)：<input type="number" id="connector" value="15" /></label><br/>
+          <label>止檔寬度 (cm)：<input type="number" id="stopper" value="60" /></label><br/>
+          <label>角度 (度)：<input type="number" id="angle" value="45" /></label><br/>
+          <button onclick="calculateWall()">計算牆面支撐</button>
+        `;
+      } else if (type === "floor") {
+        form.innerHTML = `
+          <label>測量長度 (cm)：<input type="number" id="length" /></label><br/>
+          <label>頂板厚度 (cm)：<input type="number" id="top" value="10" /></label><br/>
+          <label>底板厚度 (cm)：<input type="number" id="bottom" value="10" /></label><br/>
+          <label>楔型木厚度 (cm)：<input type="number" id="wedge" value="5" /></label><br/>
+          <label>支撐柱間距 (cm)：<input type="number" id="spacing" value="120" /></label><br/>
+          <label>連接柱寬度 (cm)：<input type="number" id="connector" value="15" /></label><br/>
+          <label>止檔寬度 (cm)：<input type="number" id="stopper" value="5" /></label><br/>
+          <label>角度 (度)：<input type="number" id="angle" value="45" /></label><br/>
+          <button onclick="calculateFloor()">計算樓板支撐</button>
+        `;
+      } else {
+        form.innerHTML = "";
+      }
+    }
+
+    function calculateWall() {
+      const parsedData = {
+        "測量長度": parseFloat(document.getElementById("length").value),
+        "頂板厚度": parseFloat(document.getElementById("top").value),
+        "底板厚度": parseFloat(document.getElementById("bottom").value),
+        "楔型木厚度": parseFloat(document.getElementById("wedge").value),
+        "支撐柱間距": parseFloat(document.getElementById("spacing").value),
+        "連接柱寬度": parseFloat(document.getElementById("connector").value),
+        "止檔寬度": parseFloat(document.getElementById("stopper").value),
+        "角度": parseFloat(document.getElementById("angle").value),
+      };
+
+      const result = document.getElementById("dynamicResult");
+
+      if (Object.values(parsedData).every(val => !isNaN(val))) {
+        const rad = parsedData["角度"] * Math.PI / 180;
+        const rad90 = (90 - parsedData["角度"]) * Math.PI / 180;
+
+
+        const shoreLength = ((parsedData["止檔寬度"] / Math.tan(rad) * Math.cos(rad)) +
+                            (parsedData["止檔寬度"] / Math.tan(rad90) * Math.cos(rad90)) +
+                            ((parsedData["測量長度"] * 2 / 3 - parsedData["底板厚度"]) / Math.sin(rad))).toFixed(1);
+
+        const headerLength = (parsedData["測量長度"] * 2 / 3 + 60 + 15).toFixed(1);
+        const bottomLength = (((parsedData["測量長度"] * 2 / 3 - parsedData["底板厚度"]) / Math.tan(rad)) + parsedData["楔型木厚度"] * 0.9 + 60 + 15).toFixed(1);
+        const temporaryShore = ((parsedData["測量長度"] - 75) * Math.SQRT2 - 5).toFixed(1);
+        const topLength = parsedData["測量長度"] < 180? parsedData["測量長度"] - 10: 180;
+        let warningMessage = "";
+        if (parsedData["測量長度"] < headerLength) {
+          warningMessage = `<div class="warning" style="color:red; font-weight:bold; padding: 10px 0;">
+            ⚠️⚠️⚠️ 計算的頂板值 > 實際測量高度 ⚠️⚠️⚠️
+          </div>`;
+        }
+        
+        result.innerHTML = `
+          <div class="result">
+            ${warningMessage}
+            <div class="result-section">
+
+              <h3>臨時支撐</h3>
+              <div class="result-row"><div class="result-label">頂板</div><div class="result-value">${topLength} * 2</div></div>
+              <div class="result-row"><div class="result-label">支撐柱</div><div class="result-value">${temporaryShore} * 2</div></div>
+              <div class="result-row"><div class="result-label">槽式基座</div><div class="result-value">2個</div></div>
+              <div class="result-row"><div class="result-label">連接柱</div><div class="result-value">120 * 4</div></div>
+              <div class="result-row"><div class="result-label">止檔</div><div class="result-value">60 * 2</div></div>
+              <div class="result-row"><div class="result-label">全夾板</div><div class="result-value">4片</div></div>
+              <div class="result-row"><div class="result-label">大楔形木</div><div class="result-value">2組</div></div>
+              <div class="result-row"><div class="result-label">鋼筋</div><div class="result-value">約10根</div></div>
+              <div class="result-row"><div class="result-label">基座防滑木</div><div class="result-value">2個約30~45公分</div></div>
+            </div>
+            <div class="result-section">
+              <h3>完整支撐</h3>
+              <div class="result-row"><div class="result-label">頂板</div><div class="result-value">${headerLength} * 2</div></div>
+              <div class="result-row"><div class="result-label">底板</div><div class="result-value">${bottomLength} * 2</div></div>
+              <div class="result-row"><div class="result-label">支撐柱</div><div class="result-value">${shoreLength} * 2</div></div>
+              <div class="result-row"><div class="result-label">中點連接</div><div class="result-value">約 ${(shoreLength / 2).toFixed(1)} * 4</div></div>
+              <div class="result-row"><div class="result-label">止檔</div><div class="result-value">60 * 4</div></div>
+              <div class="result-row"><div class="result-label">全夾板</div><div class="result-value">12片</div></div>
+              <div class="result-row"><div class="result-label">大楔形木</div><div class="result-value">4組</div></div>
+              <div class="result-row"><div class="result-label">鋼筋</div><div class="result-value">8~12根</div></div>
+              <div class="result-row"><div class="result-label">長枕木</div><div class="result-value">1支</div></div>
+            </div>
+          </div>
+        `;
+      } else {
+        result.innerHTML = `<div class="result">缺少必要資料，無法計算！</div>`;
+      }
+    }
+
+    function calculateBox() {
+      const parsedData = {
+        "測量長度": parseFloat(document.getElementById("length").value),
+        "頂板厚度": parseFloat(document.getElementById("top").value),
+        "底板厚度": parseFloat(document.getElementById("bottom").value),
+        "楔型木厚度": parseFloat(document.getElementById("wedge").value),
+        "支撐柱間距": parseFloat(document.getElementById("spacing").value),
+        "連接柱寬度": parseFloat(document.getElementById("connector").value),
+      };
+
+      let formattedMessage = "填寫的資料為 箱型支撐\n";
+      for (let key in parsedData) {
+        formattedMessage += `${key}: ${parsedData[key]}, `;
+      }
+      formattedMessage = formattedMessage.slice(0, -2); // 去掉尾巴
+
+      const result = document.getElementById("dynamicResult");
+
+      if (Object.values(parsedData).every(val => !isNaN(val))) {
+        const shorelenth = parsedData["測量長度"] - parsedData["頂板厚度"] - parsedData["底板厚度"] - parsedData["楔型木厚度"] * 1.1;
+
+        const frontAngle = Math.sqrt(
+          Math.pow(parsedData["測量長度"] * 0.5 - parsedData["連接柱寬度"], 2) +
+          Math.pow(parsedData["支撐柱間距"] + 20, 2)
+        ).toFixed(1);
+
+        const sideAngle = Math.sqrt(
+          Math.pow(((shorelenth - 10) * 0.5) - (parsedData["連接柱寬度"] * 2), 2) +
+          Math.pow(parsedData["支撐柱間距"], 2)
+        ).toFixed(1);
+
+        const resultHTML = `
+          <div class="result">
+            <div class="result-section">
+              <h3>臨時支撐</h3>
+              <div class="result-row"><div class="result-label">頂底板</div><div class="result-value">90 * 4</div></div>
+              <div class="result-row"><div class="result-label">支撐柱</div><div class="result-value">${shorelenth.toFixed(1)} * 4</div></div>
+              <div class="result-row"><div class="result-label">兩倍夾板</div><div class="result-value">3個</div></div>
+              <div class="result-row"><div class="result-label">半夾板</div><div class="result-value">4片</div></div>
+              <div class="result-row"><div class="result-label">楔形木</div><div class="result-value">4組</div></div>
+            </div>
+
+            <div class="result-section">
+              <h3>完整支撐</h3>
+              <div class="result-row"><div class="result-label">頂板</div><div class="result-value">180 * 2</div></div>
+              <div class="result-row"><div class="result-label">底板</div><div class="result-value">180 * 2</div></div>
+              <div class="result-row"><div class="result-label">支撐柱</div><div class="result-value">${shorelenth.toFixed(1)} * 4</div></div>
+              <div class="result-row"><div class="result-label">水平連接</div><div class="result-value">${parsedData["支撐柱間距"]} * 8</div></div>
+              <div class="result-row"><div class="result-label">正面斜角</div><div class="result-value">${frontAngle} * 4</div></div>
+              <div class="result-row"><div class="result-label">側面斜角</div><div class="result-value">${sideAngle} * 4</div></div>
+              <div class="result-row"><div class="result-label">半夾板</div><div class="result-value">12片</div></div>
+              <div class="result-row"><div class="result-label">楔形木</div><div class="result-value">4組</div></div>
+            </div>
+          </div>
+        `;
+
+
+        result.innerHTML = resultHTML;
+      } else {
+        result.innerHTML = `<div class="result">缺少必要資料，無法計算！</div>`;
+      }
+    }
+
+
+    function calculateFloor() {
+      const parsedData = {
+        "測量長度": parseFloat(document.getElementById("length").value),
+        "頂板厚度": parseFloat(document.getElementById("top").value),
+        "底板厚度": parseFloat(document.getElementById("bottom").value),
+        "楔型木厚度": parseFloat(document.getElementById("wedge").value),
+        "支撐柱間距": parseFloat(document.getElementById("spacing").value),
+        "連接柱寬度": parseFloat(document.getElementById("connector").value),
+        "止檔寬度": parseFloat(document.getElementById("stopper").value),
+        "角度": parseFloat(document.getElementById("angle").value),
+      };
+
+      const result = document.getElementById("dynamicResult");
+
+      // 檢查輸入資料是否完整
+      if (Object.values(parsedData).every(val => !isNaN(val))) {
+        const rad = parsedData["角度"] * Math.PI / 180;
+
+        const temporaryshorelenth = (parsedData["測量長度"] + 5 - parsedData["頂板厚度"] - (parsedData["底板厚度"] / Math.cos(rad)) - 1).toFixed(1);
+        const shorelenth = (parsedData["測量長度"] - parsedData["頂板厚度"] - (parsedData["底板厚度"] / Math.cos(rad)) - 1).toFixed(1);
+        const shortshorelenth = (parsedData["測量長度"] - parsedData["頂板厚度"] - (parsedData["底板厚度"] / Math.cos(rad)) - ((parsedData["支撐柱間距"] - 10) * Math.tan(rad)) - 1).toFixed(1);
+        const bottomlenth = (parsedData["支撐柱間距"] / Math.cos(rad) + 30 + 30 + 45).toFixed(1);
+
+        result.innerHTML = `
+          <div class="result">
+            <div class="result-section">
+              <h3>臨時支撐</h3>
+              <div class="result-row"><div class="result-label">頂板</div><div class="result-value">90 * 2</div></div>
+              <div class="result-row"><div class="result-label">支撐柱</div><div class="result-value">${temporaryshorelenth} * 2</div></div>
+              <div class="result-row"><div class="result-label">槽式基座</div><div class="result-value">2個</div></div>
+              <div class="result-row"><div class="result-label">全夾板</div><div class="result-value">2片</div></div>
+              <div class="result-row"><div class="result-label">鋼筋</div><div class="result-value">4根</div></div>
+            </div>
+
+            <div class="result-section">
+              <h3>完整支撐</h3>
+              <div class="result-row"><div class="result-label">頂板</div><div class="result-value">180 * 2</div></div>
+              <div class="result-row"><div class="result-label">底板</div><div class="result-value">${bottomlenth} * 2</div></div>
+              <div class="result-row"><div class="result-label">長支撐柱</div><div class="result-value">${shorelenth} * 2</div></div>
+              <div class="result-row"><div class="result-label">短支撐柱</div><div class="result-value">${shortshorelenth} * 2</div></div>
+              <div class="result-row"><div class="result-label">水平連接</div><div class="result-value">${parsedData["支撐柱間距"]} * 4</div></div>
+              <div class="result-row"><div class="result-label">止檔</div><div class="result-value">4個</div></div>
+              <div class="result-row"><div class="result-label">半夾板</div><div class="result-value">8片</div></div>
+              <div class="result-row"><div class="result-label">鋼筋</div><div class="result-value">4根</div></div>
+              <div class="result-row"><div class="result-label">對角連接柱</div><div class="result-value">現場量測 * 4</div></div>
+              <div class="result-row"><div class="result-label">側邊連接柱</div><div class="result-value">現場量測 * 4</div></div>
+            </div>
+          </div>
+        `;
+      } else {
+        result.innerHTML = `<div class="result">缺少必要資料，無法計算！</div>`;
+      }
+    }
+
+  </script>
+
+
+
+</body>
+</html>
