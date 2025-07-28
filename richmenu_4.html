@@ -54,6 +54,7 @@
     .main-content {
       flex-grow: 1;
       padding: 20px;
+      padding-top: 60px; /* ✅ 大螢幕版 */
       overflow-y: auto;
     }
 
@@ -72,6 +73,9 @@
     }
 
     @media (max-width: 768px) {
+      .main-content {
+        padding-top: 30px; /* 手機離頂部有點距離 */
+      }
       .sidebar {
         position: fixed;
         left: 0;
@@ -152,12 +156,12 @@
           <span style="color: red;">成也支撐敗也支撐</span>
         <p><strong>說明：</strong></p>
         <ul style="padding-left: 30px; line-height: 1.6;">
-          <li>支撐種類包含：箱型支撐、牆面支撐、斜樓板支撐</li>
+          <li>支撐種類包含：<br>箱型支撐、牆面支撐、斜樓板支撐</li>
           <li>可根據現場測量資料自動計算所需支撐長度與材料</li>
-          <li>計算結果會區分為「臨時支撐」與「完整支撐」</li>
+          <li>計算結果會區分為<br>「臨時支撐」<br>「完整支撐」</li>
         </ul>
-        <ul style="padding-left: 30px; line-height: 1.6; background-color: #ffe5e5;">
-          <li style="color: red; font-weight: bold;">小朋友才在那邊算得很精細</li>
+        <ul style="padding-left: 28px; line-height: 1.6; background-color: #ffe5e5;">
+          <li style="color: red; font-weight: bold;">小朋友才計較得很精細</li>
         </ul>
 
         <p style="color: #666; font-size: 14px;">請點選左側選單來開始選擇計算類型。</p>
