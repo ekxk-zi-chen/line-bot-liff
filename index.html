@@ -341,6 +341,10 @@
                     addDebugInfo('選單3，直接跳轉 richmenu_3.html');
                     window.location.href = `richmenu_3.html?userId=${encodeURIComponent(profile.userId)}`;
                     return;
+                } else if (data.status === "richmenu_4") {
+                    addDebugInfo('選單3，直接跳轉 richmenu_4.html');
+                    window.location.href = `richmenu_4.html`;
+                    return;
                 } else {
                     addDebugInfo('未找到資料或格式錯誤');
                 }
