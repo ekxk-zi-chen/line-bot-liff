@@ -71,6 +71,21 @@
       cursor: pointer;
       z-index: 1000;
     }
+    .form-group {
+      margin-bottom: 12px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 4px;
+      color: #333;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 8px;
+      font-size: 16px;
+    }
 
     @media (max-width: 768px) {
       .main-content {
@@ -204,36 +219,102 @@
 
       if (type === "box") {
         form.innerHTML = `
-          <label>測量長度 (cm)：<input type="number" id="length" /></label><br/>
-          <label>頂板厚度 (cm)：<input type="number" id="top" value="10" /></label><br/>
-          <label>底板厚度 (cm)：<input type="number" id="bottom" value="10" /></label><br/>
-          <label>楔型木厚度 (cm)：<input type="number" id="wedge" value="5" /></label><br/>
-          <label>支撐柱間距 (cm)：<input type="number" id="spacing" value="120" /></label><br/>
-          <label>連接柱寬度 (cm)：<input type="number" id="connector" value="10" /></label><br/>
+          <div class="form-group">
+            <label for="length">測量長度 (cm)：</label>
+            <input type="number" id="length" />
+          </div>
+          <div class="form-group">
+            <label for="top">頂板厚度 (cm)：</label>
+            <input type="number" id="top" value="10" />
+          </div>
+          <div class="form-group">
+            <label for="bottom">底板厚度 (cm)：</label>
+            <input type="number" id="bottom" value="10" />
+          </div>
+          <div class="form-group">
+            <label for="wedge">楔型木厚度 (cm)：</label>
+            <input type="number" id="wedge" value="5" />
+          </div>
+          <div class="form-group">
+            <label for="spacing">支撐柱間距 (cm)：</label>
+            <input type="number" id="spacing" value="120" />
+          </div>
+          <div class="form-group">
+            <label for="connector">連接柱寬度 (cm)：</label>
+            <input type="number" id="connector" value="10" />
+          </div>
           <button onclick="calculateBox()">計算箱型支撐</button>
         `;
       } else if (type === "wall") {
         form.innerHTML = `
-          <label>測量長度 (cm)：<input type="number" id="length" /></label><br/>
-          <label>頂板厚度 (cm)：<input type="number" id="top" value="10" /></label><br/>
-          <label>底板厚度 (cm)：<input type="number" id="bottom" value="10" /></label><br/>
-          <label>楔型木厚度 (cm)：<input type="number" id="wedge" value="5" /></label><br/>
-          <label>支撐柱間距 (cm)：<input type="number" id="spacing" value="120" /></label><br/>
-          <label>連接柱寬度 (cm)：<input type="number" id="connector" value="15" /></label><br/>
-          <label>止檔寬度 (cm)：<input type="number" id="stopper" value="60" /></label><br/>
-          <label>角度 (度)：<input type="number" id="angle" value="45" /></label><br/>
+          <div class="form-group">
+            <label for="length">測量長度 (cm)：</label>
+            <input type="number" id="length" />
+          </div>
+          <div class="form-group">
+            <label for="top">頂板厚度 (cm)：</label>
+            <input type="number" id="top" value="10" />
+          </div>
+          <div class="form-group">
+            <label for="bottom">底板厚度 (cm)：</label>
+            <input type="number" id="bottom" value="10" />
+          </div>
+          <div class="form-group">
+            <label for="wedge">楔型木厚度 (cm)：</label>
+            <input type="number" id="wedge" value="5" />
+          </div>
+          <div class="form-group">
+            <label for="spacing">支撐柱間距 (cm)：</label>
+            <input type="number" id="spacing" value="120" />
+          </div>
+          <div class="form-group">
+            <label for="connector">連接柱寬度 (cm)：</label>
+            <input type="number" id="connector" value="15" />
+          </div>
+          <div class="form-group">
+            <label for="stopper">止檔寬度 (cm)：</label>
+            <input type="number" id="stopper" value="60" />
+          </div>
+          <div class="form-group">
+            <label for="angle">角度 (度)：</label>
+            <input type="number" id="angle" value="45" />
+          </div>
           <button onclick="calculateWall()">計算牆面支撐</button>
         `;
       } else if (type === "floor") {
         form.innerHTML = `
-          <label>測量長度 (cm)：<input type="number" id="length" /></label><br/>
-          <label>頂板厚度 (cm)：<input type="number" id="top" value="10" /></label><br/>
-          <label>底板厚度 (cm)：<input type="number" id="bottom" value="10" /></label><br/>
-          <label>楔型木厚度 (cm)：<input type="number" id="wedge" value="5" /></label><br/>
-          <label>支撐柱間距 (cm)：<input type="number" id="spacing" value="120" /></label><br/>
-          <label>連接柱寬度 (cm)：<input type="number" id="connector" value="15" /></label><br/>
-          <label>止檔寬度 (cm)：<input type="number" id="stopper" value="5" /></label><br/>
-          <label>角度 (度)：<input type="number" id="angle" value="45" /></label><br/>
+          <div class="form-group">
+            <label for="length">測量長度 (cm)：</label>
+            <input type="number" id="length" />
+          </div>
+          <div class="form-group">
+            <label for="top">頂板厚度 (cm)：</label>
+            <input type="number" id="top" value="10" />
+          </div>
+          <div class="form-group">
+            <label for="bottom">底板厚度 (cm)：</label>
+            <input type="number" id="bottom" value="10" />
+          </div>
+          <div class="form-group">
+            <label for="wedge">楔型木厚度 (cm)：</label>
+            <input type="number" id="wedge" value="5" />
+          </div>
+          <div class="form-group">
+            <label for="spacing">支撐柱間距 (cm)：</label>
+            <input type="number" id="spacing" value="120" />
+          </div>
+          <div class="form-group">
+            <label for="connector">連接柱寬度 (cm)：</label>
+            <input type="number" id="connector" value="15" />
+          </div>
+          <div class="form-group">
+            <label for="stopper">止檔寬度 (cm)：</label>
+            <input type="number" id="stopper" value="5" />
+          </div>
+          <div class="form-group">
+            <label for="angle">角度 (度)：</label>
+            <input type="number" id="angle" value="45" />
+          </div>
           <button onclick="calculateFloor()">計算樓板支撐</button>
         `;
       } else {
