@@ -155,8 +155,10 @@
     }
 
   </style>
+
 </head>
 <body>
+
   <button class="menu-button" onclick="toggleSidebar()">選單</button>
 
   <div class="container">
@@ -166,23 +168,28 @@
         <li onclick="showCalculationForm()">計算</li>
       </ul>
     </div>
-      <div class="main-content" id="main-content">
-        <h2>套一句花搜搜二的名言:<br>
-          <span style="color: red;">成也支撐敗也支撐</span>
-        <p><strong>說明：</strong></p>
-        <ul style="padding-left: 30px; line-height: 1.6;">
-          <li>支撐種類包含：<br>箱型支撐、牆面支撐、斜樓板支撐</li>
-          <li>可根據現場測量資料自動計算所需支撐長度與材料</li>
-          <li>計算結果會區分為<br>「臨時支撐」<br>「完整支撐」</li>
-        </ul>
-        <ul style="padding-left: 28px; line-height: 1.6; background-color: #ffe5e5;">
-          <li style="color: red; font-weight: bold;">小朋友才計較得很精細</li>
-        </ul>
+    <div class="main-content" id="main-content">
+      <h2>套一句花搜搜二的名言:<br>
+        <span style="color: red;">成也支撐敗也支撐</span>
+      <p><strong>說明：</strong></p>
+      <ul style="padding-left: 30px; line-height: 1.6;">
+        <li>支撐種類包含：<br>箱型支撐、牆面支撐、斜樓板支撐</li>
+        <li>可根據現場測量資料自動計算所需支撐長度與材料</li>
+        <li>計算結果會區分為<br>「臨時支撐」<br>「完整支撐」</li>
+      </ul>
+      <ul style="padding-left: 28px; line-height: 1.6; background-color: #ffe5e5;">
+        <li style="color: red; font-weight: bold;">小朋友才計較得很精細</li>
+      </ul>
 
-        <p style="color: #666; font-size: 14px;">請點選左側選單來開始選擇計算類型。</p>
-      </div>
-
+      <p style="color: #666; font-size: 14px;">請點選左側選單來開始選擇計算類型。</p>
     </div>
+
+
+    <!-- ...existing code... -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.124.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.124.0/examples/js/controls/OrbitControls.min.js"></script>
+
+  <!-- ...existing code... -->
   </div>
 
   <script>
@@ -445,10 +452,224 @@
               <div class="result-row"><div class="result-label">楔形木</div><div class="result-value">4組</div></div>
             </div>
           </div>
+          <!-- ...existing code... -->
+          <div id="threejs-box-viewer" style="width:100%;height:350px;"></div>
+          <!-- ...existing code... -->
         `;
 
 
         result.innerHTML = resultHTML;
+
+
+        // 清除舊的 3D 畫布
+        const oldCanvas = document.getElementById("threejs-canvas");
+        if (oldCanvas) oldCanvas.remove();
+
+        // 建立 Three.js 場景
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(60, 400/350, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setSize(400, 350);
+        renderer.domElement.id = "threejs-canvas";
+        document.getElementById("threejs-box-viewer").appendChild(renderer.domElement);
+
+        // 加入光源
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(1, 2, 3);
+        scene.add(light);
+        const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambient);
+
+        // 頂板長度固定 180cm
+
+        const topThickness = parsedData["頂板厚度"] / 100; // m
+        const spacing = parsedData["支撐柱間距"] / 100; // m
+        const thickness = 10 / 100; // m
+        const height = Math.max(0.1, Math.min(shorelenth / 100, 10));
+        const cantilever = 0.3; // 懸樑 30cm
+        const defaultTopLength = 180 / 100; // 原本固定長度
+        const topLength = spacing * 1.5;
+
+        // 柱子 geometry
+        const pillarGeometry = new THREE.BoxGeometry(thickness, height, thickness);
+        const pillarMaterial = new THREE.MeshPhongMaterial({
+          color: 0x1abc9c,
+          transparent: true,
+          opacity: 0.7,
+          side: THREE.DoubleSide
+        });
+
+        // 頂板 geometry
+        const topGeometry = new THREE.BoxGeometry(topLength, topThickness, topThickness);
+        const topMaterial = new THREE.MeshPhongMaterial({
+          color: 0xf1c40f,
+          transparent: true,
+          opacity: 0.8,
+          side: THREE.DoubleSide
+        });
+
+        // 柱子中心到頂板邊緣距離
+        const offsetX = (topLength / 2) - cantilever*(spacing/1.2) - (thickness / 2) ;
+
+        // 柱子Z軸分布
+        const offsetZ = spacing / 2;
+        // 柱子座標（四角）
+        const pillarPositions = [
+          [-offsetX, height/2, -offsetZ],
+          [ offsetX, height/2, -offsetZ],
+          [-offsetX, height/2,  offsetZ],
+          [ offsetX, height/2,  offsetZ]
+        ];
+
+        // 建立四根柱子
+        pillarPositions.forEach(pos => {
+          const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial.clone());
+          pillar.position.set(...pos);
+          scene.add(pillar);
+        });
+
+        // 頂板座標（兩塊，橫跨X方向，Z分別在±offsetZ）
+        const topPositions = [
+          [0, height + topThickness/2, -offsetZ],
+          [0, height + topThickness/2,  offsetZ]
+        ];
+
+        topPositions.forEach(pos => {
+          const topBoard = new THREE.Mesh(topGeometry, topMaterial.clone());
+          topBoard.position.set(...pos);
+          scene.add(topBoard);
+        });
+
+
+        
+        // 楔型木尺寸
+        const wedgeLength = 0.3; // 固定30cm
+        const wedgeHeight = parsedData["楔型木厚度"] / 100; // 變數，單位m
+        const wedgeThickness = thickness; // 跟柱子一樣
+
+        // 楔型木 geometry（長方體，代表兩個半三角形合成）
+        const wedgeGeometry = new THREE.BoxGeometry(wedgeLength, wedgeHeight, wedgeThickness);
+        const wedgeMaterial = new THREE.MeshPhongMaterial({
+          color: 0xe67e22,
+          transparent: true,
+          opacity: 0.8,
+          side: THREE.DoubleSide
+        });
+
+        pillarPositions.forEach(pos => {
+          // 柱子底部 Y 座標
+          const pillarBottomY = pos[1] - height / 2;
+          // 楔型木中心 Y 座標
+          const wedgeY = pillarBottomY - wedgeHeight / 2;
+
+          // 楔型木位置：X/Z 跟柱子一樣，Y在柱子底下
+          const wedge = new THREE.Mesh(wedgeGeometry, wedgeMaterial.clone());
+          wedge.position.set(pos[0], wedgeY, pos[2]);
+          scene.add(wedge);
+
+          // 加一條斜線（對角線）
+          const points = [
+            new THREE.Vector3(-wedgeLength/2, wedgeHeight/2, -wedgeThickness/2),
+            new THREE.Vector3(wedgeLength/2, -wedgeHeight/2, wedgeThickness/2)
+          ];
+          const wedgeLineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+          const wedgeLineMaterial = new THREE.LineBasicMaterial({ color: 0x333333 });
+          const wedgeLine = new THREE.Line(wedgeLineGeometry, wedgeLineMaterial);
+          wedgeLine.position.copy(wedge.position);
+          scene.add(wedgeLine);
+        });
+
+        // 底板 geometry
+        const bottomThickness = parsedData["底板厚度"] / 100; // m
+        const bottomGeometry = new THREE.BoxGeometry(topLength, bottomThickness, thickness); 
+        const bottomMaterial = new THREE.MeshPhongMaterial({
+          color: 0x3498db,
+          transparent: true,
+          opacity: 0.8,
+          side: THREE.DoubleSide
+        });
+
+        // 計算底板Y座標（在所有wedge底下）
+        
+        const bottomY = (pillarPositions[0][1] - height / 2) - wedgeHeight - bottomThickness / 2;
+
+        // 底板座標（兩塊，橫跨X方向，Z分別在±offsetZ）
+        const bottomPositions = [
+          [0, bottomY, -offsetZ],
+          [0, bottomY,  offsetZ]
+        ];
+
+        bottomPositions.forEach(pos => {
+          const bottomBoard = new THREE.Mesh(bottomGeometry, bottomMaterial.clone());
+          bottomBoard.position.set(...pos);
+          scene.add(bottomBoard);
+        });
+
+        // 中間連接柱尺寸
+        const connectorLength = spacing;           // 沿 X 軸方向（支撐柱間距）
+        const connectorThickness = parsedData["連接柱寬度"]/100;           // 沿 Y 軸，高度厚度（固定 5cm）
+        const connectorWidth = 0.05;                // 沿 Z 軸，寬度（固定 10cm）
+
+        // 建立 geometry
+        const connectorGeometry = new THREE.BoxGeometry(connectorLength, connectorThickness, connectorWidth);
+        const connectorMaterial = new THREE.MeshPhongMaterial({
+          color: 0x8e44ad, // 紫色
+          transparent: true,
+          opacity: 0.8,
+          side: THREE.DoubleSide
+        });
+
+        // 位置設定
+        const connectorX = 0;  // X 軸居中（橫向跨兩柱）
+        const connectorY = parsedData["測量長度"] / 2 / 100;  // 測量長度的一半，高度位置
+        const connectorZ = offsetZ+thickness/2+connectorWidth/2;  // 放在其中一側柱子外側（可以調整為 +0.12 或其他）                      // 居中
+
+        // 定義兩根的 Z 位置
+        const connectorPositions = [
+          [connectorX, connectorY,  connectorZ],  // 右側
+          [connectorX, connectorY, -connectorZ],  // 左側（對稱）
+        ];
+
+        // 建立兩根中間連接柱
+        connectorPositions.forEach(pos => {
+          const connector = new THREE.Mesh(connectorGeometry, connectorMaterial.clone());
+          connector.position.set(...pos);
+          scene.add(connector);
+        });
+
+
+
+
+
+        //之後可以刪除
+        // 建立 XYZ 軸向輔助線（長度單位 = 公尺，可調整）
+        //x,y,z:紅,綠,藍
+        const axesHelper = new THREE.AxesHelper(1);  // 長度 1 公尺
+        scene.add(axesHelper);
+
+
+
+        
+        // 相機位置
+        const maxSize = Math.max(spacing, height, thickness);
+        camera.position.set(maxSize * 2, maxSize * 2, maxSize * 2);
+        camera.lookAt(0, 0, 0);
+
+        // 控制器
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.1;
+
+        // 渲染
+        function animate() {
+          requestAnimationFrame(animate);
+          controls.update();
+          renderer.render(scene, camera);
+        }
+        animate();
+
+
+
       } else {
         result.innerHTML = `<div class="result">缺少必要資料，無法計算！</div>`;
       }
