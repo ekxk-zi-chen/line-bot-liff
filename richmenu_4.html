@@ -418,6 +418,7 @@
 
       if (Object.values(parsedData).every(val => !isNaN(val))) {
         const shorelenth = parsedData["測量長度"] - parsedData["頂板厚度"] - parsedData["底板厚度"] - parsedData["楔型木厚度"] * 1.1;
+        const idealShorelenth = parsedData["測量長度"] - parsedData["頂板厚度"] - parsedData["底板厚度"] - parsedData["楔型木厚度"];
 
         const frontAngle = Math.sqrt(
           Math.pow(parsedData["測量長度"] * 0.5 - parsedData["連接柱寬度"], 2) +
@@ -484,8 +485,8 @@
 
         const topThickness = parsedData["頂板厚度"] / 100; // m
         const spacing = parsedData["支撐柱間距"] / 100; // m
-        const thickness = 10 / 100; // m
-        const height = Math.max(0.1, Math.min(shorelenth / 100, 10));
+        const thickness = 10 / 100; // 預設固定10Cm
+        const height = Math.max(0.1, Math.min(idealShorelenth / 100, 10));
         const cantilever = 0.3; // 懸樑 30cm
         const defaultTopLength = 180 / 100; // 原本固定長度
         const topLength = spacing * 1.5;
@@ -500,7 +501,7 @@
         });
 
         // 頂板 geometry
-        const topGeometry = new THREE.BoxGeometry(topLength, topThickness, topThickness);
+        const topGeometry = new THREE.BoxGeometry(topLength, topThickness, thickness);
         const topMaterial = new THREE.MeshPhongMaterial({
           color: 0xf1c40f,
           transparent: true,
@@ -558,7 +559,7 @@
         
         pillarPositions.forEach(pos => {
           // 柱子底部 Y 座標
-          const pillarBottomY = pos[1] - height / 2;
+          const pillarBottomY = pos[1] - height / 2;//這是歸零
           // 楔型木中心 Y 座標
           const wedgeY = pillarBottomY - wedgeHeight / 2;
 
@@ -621,11 +622,11 @@
 
         // 位置設定
         const connectorX = 0;  // X 軸居中（橫向跨兩柱）
-        const connectorY = parsedData["測量長度"] / 2 / 100;  // 測量長度的一半，高度位置
+        const idealtotalY = parsedData["測量長度"]  / 100;  // 總測量長度的一半
         const connectorZ = offsetZ+thickness/2+connectorWidth/2;  // 放在其中一側柱子外側（可以調整為 +0.12 或其他）                      // 居中
         
 
-        //定位實際y值
+        //定位實際y值，中心座標Y
         const connectorPositionY = (topThickness+height-bottomThickness-wedgeHeight)/2
        
        
@@ -649,16 +650,17 @@
         // --- 側邊連接柱位置 ---
         const connectorX_2 = offsetX + thickness / 2 + connectorLength2 / 2; // X 軸在柱子外側
         const connectorZ_2 = 0; // Z 軸居中
-        const connectorY_2 = parsedData["測量長度"] / 2 / 100;
+        const connectorYup = idealtotalY / 2 - topThickness - connectorThickness /2; // 側邊板上理想值
+        const connectorYdown = idealtotalY / 2 - bottomThickness - wedgeHeight - connectorThickness /2 ; // 側邊板下理想值
 
         // --- 位置矩陣（對稱左右）---
         const connectorPositions_2 = [
-          [ connectorX_2,  connectorPositionY, connectorZ_2],  // 右側
-          [-connectorX_2,  connectorPositionY, connectorZ_2],
-          [ connectorX_2,  connectorPositionY + height/2 - 0.03, connectorZ_2],  // 左側
-          [-connectorX_2,  connectorPositionY + height/2 - 0.03, connectorZ_2],
-          [ connectorX_2,  connectorPositionY - height/2 + wedgeHeight + 0.03, connectorZ_2],  // 左側
-          [-connectorX_2,  connectorPositionY - height/2 + wedgeHeight + 0.03, connectorZ_2]
+          [ connectorX_2,  connectorPositionY, connectorZ_2],  // 前
+          [-connectorX_2,  connectorPositionY, connectorZ_2],  // 後
+          [ connectorX_2,  connectorPositionY + connectorYup - 0.01 , connectorZ_2],  // 右側上不貼合多這1cm
+          [-connectorX_2,  connectorPositionY + connectorYup - 0.01, connectorZ_2],   // 左側上
+          [ connectorX_2,  connectorPositionY -connectorYdown + 0.01, connectorZ_2],  // 右側下不貼合多這1cm
+          [-connectorX_2,  connectorPositionY -connectorYdown + 0.01 , connectorZ_2]  // 左側下
         ];
 
         // --- Geometry & Material（你也可以共用原本 material）---
@@ -702,7 +704,7 @@
         const yLow_2  = connectorPositionY - (topThickness + height + bottomThickness + wedgeHeight) / 2 + (slopeWidth / 2) * Math.sqrt(2);
         // 起點與終點(邏輯不變改呼叫變數就好)
         const slopestart = new THREE.Vector3(-offsetX, yHigh, slopez);
-        const slopeend   = new THREE.Vector3(offsetX + cantilever * (spacing / 1.2) / 3 + connectorThickness / 2, yLow, slopez);
+        const slopeend   = new THREE.Vector3(offsetX + cantilever * (spacing / 1.2) / 3 + connectorThickness / 2, yLow, slopez); // 必須壓過支撐柱又再往懸樑靠近所以這樣寫是對的
         const slopestart_2 = new THREE.Vector3(-offsetX, yHigh_2, slopez);
         const slopeend_2   = new THREE.Vector3(offsetX + cantilever * (spacing / 1.2) / 3 + connectorThickness / 2, yLow_2, slopez);
 
@@ -759,25 +761,25 @@
         // 中間的斜向連接柱
         // 寬度沿用變數slopeWidth
         // 深度沿用變數slopeDepth
-        const slopeHeight2 = height/2 - slopeWidth/2*Math.sqrt(2) - slopeWidth*1.5; // 高度調整為柱子高度的一半減去兩個1/2變數長
-        const slopeLength2 = Math.sqrt(Math.pow(spacing, 2) + Math.pow(slopeHeight2, 2));
+        const slopeHeight2 = height/2 - slopeWidth*1.5 - slopeWidth * Math.sqrt(2) /2 ; // 高度調整為柱子高度的一半減去3/2變數長，扣掉上板的0.01
+        const slopeLength2 = Math.sqrt(Math.pow(spacing-connectorThickness, 2) + Math.pow(slopeHeight2, 2));
         const slopeGeometry2 = new THREE.BoxGeometry(slopeDepth, slopeWidth, slopeLength2);
         const slopeMaterial2 = new THREE.MeshPhongMaterial({
           color: 0xe67e22,
           transparent: true,
           opacity: 0.9
         });
-        const slopeX3 = offsetX + thickness / 2 + connectorWidth / 2; // 中間的 x 軸位置為 0
+        const slopeX3 = offsetX + thickness / 2 + connectorWidth / 2; // x當突出的定位點，是正確的
         // Y 高低端點(不同邏輯)
-        const yHigh2 = connectorPositionY + height / 2 + slopeWidth / 2- (slopeWidth / 2) * Math.sqrt(2) -slopeWidth -0.02;
-        const yLow2  = connectorPositionY + slopeWidth / 2 + (slopeWidth / 2) * Math.sqrt(2) ;
-        const yHigh2_2 = connectorPositionY - height / 2 + slopeWidth / 2 + (slopeWidth / 2) * Math.sqrt(2) +slopeWidth   ;
+        const yHigh2 = connectorPositionY + idealtotalY / 2 - topThickness - slopeWidth - (slopeWidth / 2) * Math.sqrt(2) -0.02 ;
+        const yLow2  = connectorPositionY + slopeWidth / 2 + (slopeWidth / 2) * Math.sqrt(2) + 0.02;
+        const yHigh2_2 = connectorPositionY - idealtotalY / 2 + bottomThickness + wedgeHeight + slopeWidth + (slopeWidth / 2) * Math.sqrt(2) +0.02 ;
         const yLow2_2  = connectorPositionY - slopeWidth / 2 - (slopeWidth / 2) * Math.sqrt(2) -0.02 ;
         // 起點與終點(這裡改用3往後用4方便分辨象限)
-        const slopestart3 = new THREE.Vector3(slopeX3, yLow2, offsetZ + thickness / 2);
-        const slopeend3   = new THREE.Vector3(slopeX3, yHigh2, -offsetZ - thickness / 2);
-        const slopestart3_2 = new THREE.Vector3(slopeX3, yLow2_2, offsetZ + thickness / 2);
-        const slopeend3_2   = new THREE.Vector3(slopeX3, yHigh2_2, -offsetZ - thickness / 2);
+        const slopestart3 = new THREE.Vector3(slopeX3, yLow2, offsetZ  );
+        const slopeend3   = new THREE.Vector3(slopeX3, yHigh2, -offsetZ  );
+        const slopestart3_2 = new THREE.Vector3(slopeX3, yLow2_2, offsetZ );
+        const slopeend3_2   = new THREE.Vector3(slopeX3, yHigh2_2, -offsetZ );
         // 中點與旋轉
         const mid3 = new THREE.Vector3().addVectors(slopestart3, slopeend3).multiplyScalar(0.5);
         const direction3 = new THREE.Vector3().subVectors(slopeend3, slopestart3).normalize();
@@ -800,10 +802,10 @@
 
         // -----方便分隔線----- //
         const slopeX4 = -offsetX - thickness / 2 - connectorWidth / 2; // 中間的 x 軸位置為 0
-        const slopestart4 = new THREE.Vector3(slopeX4, yLow2, -offsetZ - thickness / 2);
-        const slopeend4   = new THREE.Vector3(slopeX4, yHigh2, offsetZ + thickness / 2);
-        const slopestart4_2 = new THREE.Vector3(slopeX4, yLow2_2, -offsetZ - thickness / 2);
-        const slopeend4_2   = new THREE.Vector3(slopeX4, yHigh2_2, offsetZ + thickness / 2);
+        const slopestart4 = new THREE.Vector3(slopeX4, yLow2, -offsetZ );
+        const slopeend4   = new THREE.Vector3(slopeX4, yHigh2, offsetZ );
+        const slopestart4_2 = new THREE.Vector3(slopeX4, yLow2_2, -offsetZ );
+        const slopeend4_2   = new THREE.Vector3(slopeX4, yHigh2_2, offsetZ );
         // 中點與旋轉（第二條）
         const mid4 = new THREE.Vector3().addVectors(slopestart4, slopeend4).multiplyScalar(0.5);
         const direction4 = new THREE.Vector3().subVectors(slopeend4, slopestart4).normalize();
@@ -822,17 +824,50 @@
         slope4_2.position.copy(mid4_2);
         scene.add(slope4_2);
 
+        // 夾板沿用變數height、沿用
+        const boardHeight = 0.3; // 夾板高度
+        const boardWidth = 0.02; // 夾板厚度0.02
+        const boardLength = 0.15; // 夾板長度
+        const boardGeometry = new THREE.BoxGeometry(boardLength, boardHeight, boardWidth);
+        const boardMaterial = new THREE.MeshPhongMaterial({
+          color: 0x8B4513, // 要跟前面顏色有對比的顏色
+          transparent: true,
+          opacity: 0.7,
+          side: THREE.DoubleSide
+        });
+        // 夾板位置計算
+        const boardOffsetY_up = connectorPositionY + idealtotalY / 2 - connectorThickness / 2 - topThickness - 0.01; // 上方夾板位置
+        const boardOffsetY_down = connectorPositionY - idealtotalY / 2 + bottomThickness  + connectorThickness / 2 + 0.01; // 下方夾板位置
+        const boardOffsetX = (boardLength - thickness) / 2; // X 軸偏移量
+        const boardPositions = [
+          [-offsetX + boardOffsetX + 0.01, boardOffsetY_up, offsetZ + thickness / 2], // 上方左側
+          [-offsetX + boardOffsetX + 0.01, boardOffsetY_down, offsetZ + thickness / 2], // 下方左側
+          [-offsetX + boardOffsetX + 0.01, boardOffsetY_up, offsetZ - thickness / 2], // 上方左側背面
+          [-offsetX + boardOffsetX + 0.01, boardOffsetY_down, offsetZ - thickness / 2], // 下方左側背面
+          [offsetX - boardOffsetX - 0.01, boardOffsetY_up, offsetZ - thickness / 2], // 上方右側背面
+          [offsetX - boardOffsetX - 0.01, boardOffsetY_down, offsetZ - thickness / 2], // 下方右側背面
+          [offsetX - boardOffsetX - 0.01, boardOffsetY_up, -offsetZ - thickness / 2], // 上方右側
+          [offsetX - boardOffsetX - 0.01, boardOffsetY_down, -offsetZ - thickness / 2],  // 下方右側
+          [offsetX - boardOffsetX - 0.01, boardOffsetY_up, -offsetZ + thickness / 2], // 上方右側背面
+          [offsetX - boardOffsetX - 0.01, boardOffsetY_down, -offsetZ + thickness / 2],  // 下方右側背面
+          [-offsetX + boardOffsetX + 0.01, boardOffsetY_up, -offsetZ + thickness / 2], // 上方右側背面
+          [-offsetX + boardOffsetX + 0.01, boardOffsetY_down, -offsetZ + thickness / 2],  // 下方右側背面
+        ];
 
+        // 建立夾板 Mesh
+        boardPositions.forEach(pos => {
+          const board = new THREE.Mesh(boardGeometry, boardMaterial);
+          board.position.set(...pos);
+          scene.add(board);
+        });
 
-
-
-
+        /*
         //之後可以刪除
         // 建立 XYZ 軸向輔助線（長度單位 = 公尺，可調整）
         //x,y,z:紅,綠,藍
         const axesHelper = new THREE.AxesHelper(1);  // 長度 1 公尺
         scene.add(axesHelper);
-
+        */
         
         // 相機位置
         const maxSize = Math.max(spacing, height, thickness);
@@ -908,7 +943,149 @@
               <div class="result-row"><div class="result-label">側邊連接柱</div><div class="result-value">現場量測 * 4</div></div>
             </div>
           </div>
+          <!-- ...existing code... -->
+          <div id="threejs-box-viewer" style="width:100%;height:350px;"></div>
+          <!-- ...existing code... -->
         `;
+
+
+
+        // 清除舊的 3D 畫布
+        const oldCanvas = document.getElementById("threejs-canvas");
+        if (oldCanvas) oldCanvas.remove();
+
+        // 建立 Three.js 場景
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(60, 400/350, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setSize(400, 350);
+        renderer.domElement.id = "threejs-canvas";
+        document.getElementById("threejs-box-viewer").appendChild(renderer.domElement);
+
+        // 加入光源
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(1, 2, 3);
+        scene.add(light);
+        const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambient);
+        // 以上為環境設置
+        // 宣告設定變數
+        const totalLength = parsedData["測量長度"] / 100; // m
+        const shoreLength = totalLength - parsedData["頂板厚度"] / 100 - (parsedData["底板厚度"] / Math.cos(rad)) / 100 ; // m
+        const shortshoreLength = totalLength - parsedData["頂板厚度"] / 100 - (parsedData["底板厚度"] / Math.cos(rad)) / 100 - ((parsedData["支撐柱間距"] - 10) * Math.tan(rad)) / 100; // m
+        const bottomLength = (parsedData["支撐柱間距"] / Math.cos(rad) + 30 + 30 + 45) / 100; // m
+        const topLength = 1.8; // 頂板長度，假設 1.8 m
+        const spacing = parsedData["支撐柱間距"] / 100; // m
+        const thickness = 0.1; // 10公分
+        const cantilever = 0.3; // 30公分懸樑
+        const topThickness = parsedData["頂板厚度"] / 100; // m
+        const bottomThickness = parsedData["底板厚度"] / 100; // m
+        const wedgeThickness = parsedData["楔型木厚度"] / 100; // m
+        const stopperWidth = parsedData["止檔寬度"] / 100; // m
+        const angle = parsedData["角度"] * Math.PI / 180; // 轉換為弧度
+        
+        const height = totalLength / 2; // 支撐柱高度，假設
+        // 設定柱子間距
+        const offsetX = bottomLength / 2 ;
+
+        // 柱子Z軸間距
+        const offsetZ = spacing / 2- (thickness / 2);
+
+        // 歸零Y軸
+        const offsetY = bottomThickness / 2 ;
+
+        //底板
+        const bottomWidth = 0.1; // 固定厚度 10cm
+        const bottomGeometry = new THREE.BoxGeometry(bottomLength, bottomThickness, bottomWidth);
+
+        const bottomMaterial = new THREE.MeshPhongMaterial({
+          color: 0xf1c40f, // 黃色
+          transparent: true,
+          opacity: 0.8,
+          side: THREE.DoubleSide
+        });
+        // 底板位置
+        const bottomPositions = [
+          [0, offsetY, offsetZ], // 前
+          [0, offsetY, -offsetZ] // 後
+        ];
+        
+
+        bottomPositions.forEach(position => {
+          const bottomMesh = new THREE.Mesh(bottomGeometry, bottomMaterial);
+          bottomMesh.position.set(...position);
+          scene.add(bottomMesh);
+        });
+        
+        //支撐柱short 
+        const shortpillarGeometry = new THREE.BoxGeometry(thickness, shortshoreLength, thickness);
+        const shortpillarMaterial = new THREE.MeshPhongMaterial({
+          color: 0x3498db, // 藍色
+          transparent: true,
+          opacity: 0.8,
+          side: THREE.DoubleSide
+        });
+        // 支撐柱
+        const pillarGeometry = new THREE.BoxGeometry(thickness, shoreLength, thickness);
+        const pillarMaterial = new THREE.MeshPhongMaterial({
+          color: 0x2ecc71, // 綠色
+          transparent: true,
+          opacity: 0.8,
+          side: THREE.DoubleSide
+        });
+        // 計算支撐柱位置
+        const shortPillarX = -offsetX + 0.3 + thickness / 2; // 短底板X軸位置
+        const PillarX = shortPillarX + spacing * Math.cos(angle); // 長底板x軸位置
+        const shortPillarY = offsetY + bottomThickness / 2 + (shortshoreLength / 2); // 短y軸位置
+        const PillarY = offsetY + bottomThickness / 2 + (shoreLength / 2); // 長y軸位置
+
+        // 計算支撐柱位置
+        const pillarPositions = [
+          [PillarX, PillarY, offsetZ], // 前右
+          [PillarX, PillarY, -offsetZ] // 後右
+        ];
+        // 建立支撐柱 Mesh
+        pillarPositions.forEach(pos => {
+          const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial.clone());
+          pillar.position.set(...pos);
+          scene.add(pillar);
+        });
+        // 建立短支撐柱 Mesh
+        const shortPillarPositions = [
+          [shortPillarX, shortPillarY, offsetZ], // 前左
+          [shortPillarX, shortPillarY, -offsetZ] // 後左
+        ];
+        shortPillarPositions.forEach(pos => {
+          const shortPillar = new THREE.Mesh(shortpillarGeometry, shortpillarMaterial.clone());
+          shortPillar.position.set(...pos);
+          scene.add(shortPillar);
+        });
+        //之後可以刪除
+        // 建立 XYZ 軸向輔助線（長度單位 = 公尺，可調整）
+        //x,y,z:紅,綠,藍
+        const axesHelper = new THREE.AxesHelper(1);  // 長度 1 公尺
+        scene.add(axesHelper);
+        
+        // 以下為環境設置
+        // 相機位置
+        const maxSize = Math.max(spacing, height, thickness);
+        camera.position.set(maxSize * 2, maxSize * 2, maxSize * 2);
+        camera.lookAt(0, 0, 0);
+
+        // 控制器
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.1;
+
+        // 渲染
+        function animate() {
+          requestAnimationFrame(animate);
+          controls.update();
+          renderer.render(scene, camera);
+        }
+        animate();
+
+
       } else {
         result.innerHTML = `<div class="result">缺少必要資料，無法計算！</div>`;
       }
