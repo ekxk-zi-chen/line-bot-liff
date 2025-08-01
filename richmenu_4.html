@@ -914,8 +914,8 @@
         const rad = parsedData["角度"] * Math.PI / 180;
 
         const temporaryshorelenth = (parsedData["測量長度"] + 5 - parsedData["頂板厚度"] - (parsedData["底板厚度"] / Math.cos(rad)) - 1).toFixed(1);
-        const shorelenth = (parsedData["測量長度"] - parsedData["頂板厚度"] - (parsedData["底板厚度"] / Math.cos(rad)) - 1).toFixed(1);
-        const shortshorelenth = (parsedData["測量長度"] - parsedData["頂板厚度"] - (parsedData["底板厚度"] / Math.cos(rad)) - ((parsedData["支撐柱間距"] - 10) * Math.tan(rad)) - 1).toFixed(1);
+        const shorelenth = (parsedData["測量長度"] - parsedData["頂板厚度"] - (parsedData["底板厚度"] / Math.cos(rad)) + 1).toFixed(1);
+        const shortshorelenth = (parsedData["測量長度"] - parsedData["頂板厚度"] - (parsedData["底板厚度"] / Math.cos(rad)) - ((parsedData["支撐柱間距"] - 10) * Math.tan(rad)) + 1).toFixed(1);
         const bottomlenth = (parsedData["支撐柱間距"] / Math.cos(rad) + 30 + 30 + 45).toFixed(1);
 
         result.innerHTML = `
@@ -970,14 +970,14 @@
         scene.add(ambient);
         // 以上為環境設置
         // 宣告設定變數
+        const spacing = parsedData["支撐柱間距"] / 100; // m
         const totalLength = parsedData["測量長度"] / 100; // m
         const shoreLength = totalLength - parsedData["頂板厚度"] / 100 - (parsedData["底板厚度"] / Math.cos(rad)) / 100 ; // m
-        const shortshoreLength = totalLength - parsedData["頂板厚度"] / 100 - (parsedData["底板厚度"] / Math.cos(rad)) / 100 - ((parsedData["支撐柱間距"] - 10) * Math.tan(rad)) / 100; // m
+        const shortshoreLength = (shoreLength / Math.tan(rad) - (spacing - 0.1)) * Math.tan(rad) ;// m
         const bottomLength = (parsedData["支撐柱間距"] / Math.cos(rad) + 30 + 30 + 45) / 100; // m
-        const topLength = 1.8; // 頂板長度，假設 1.8 m
-        const spacing = parsedData["支撐柱間距"] / 100; // m
+        const topLength = 1.8 * spacing /1.2; // 頂板長度，假設 1.8 m
         const thickness = 0.1; // 10公分
-        const cantilever = 0.3; // 30公分懸樑
+        const cantilever = 0.3 * spacing /1.2; // 30公分懸樑
         const topThickness = parsedData["頂板厚度"] / 100; // m
         const bottomThickness = parsedData["底板厚度"] / 100; // m
         const wedgeThickness = parsedData["楔型木厚度"] / 100; // m
@@ -994,15 +994,17 @@
         // 歸零Y軸
         const offsetY = bottomThickness / 2 ;
 
+
         //底板
         const bottomWidth = 0.1; // 固定厚度 10cm
         const bottomGeometry = new THREE.BoxGeometry(bottomLength, bottomThickness, bottomWidth);
 
         const bottomMaterial = new THREE.MeshPhongMaterial({
           color: 0xf1c40f, // 黃色
-          transparent: true,
-          opacity: 0.8,
-          side: THREE.DoubleSide
+          transparent: false, //不透明
+          opacity: 1,
+          side: THREE.DoubleSide,
+
         });
         // 底板位置
         const bottomPositions = [
@@ -1018,48 +1020,177 @@
         });
         
         //支撐柱short 
-        const shortpillarGeometry = new THREE.BoxGeometry(thickness, shortshoreLength, thickness);
+        const shortpillarGeometry = new THREE.BoxGeometry(thickness, shortshoreLength, thickness-0.0001); //  // 減少厚度以避免深度衝突
         const shortpillarMaterial = new THREE.MeshPhongMaterial({
           color: 0x3498db, // 藍色
           transparent: true,
           opacity: 0.8,
-          side: THREE.DoubleSide
+          side: THREE.DoubleSide,
+
         });
         // 支撐柱
-        const pillarGeometry = new THREE.BoxGeometry(thickness, shoreLength, thickness);
+        const pillarGeometry = new THREE.BoxGeometry(thickness, shoreLength, thickness - 0.0001); // 減少厚度以避免深度衝突
         const pillarMaterial = new THREE.MeshPhongMaterial({
           color: 0x2ecc71, // 綠色
           transparent: true,
           opacity: 0.8,
-          side: THREE.DoubleSide
+          side: THREE.DoubleSide,
+
         });
         // 計算支撐柱位置
-        const shortPillarX = -offsetX + 0.3 + thickness / 2; // 短底板X軸位置
-        const PillarX = shortPillarX + spacing * Math.cos(angle); // 長底板x軸位置
-        const shortPillarY = offsetY + bottomThickness / 2 + (shortshoreLength / 2); // 短y軸位置
-        const PillarY = offsetY + bottomThickness / 2 + (shoreLength / 2); // 長y軸位置
+        const shortPillarX = -offsetX + cantilever  + thickness * (1/Math.cos(angle) - Math.cos(angle)/2) ; // 短X軸底板位置
+        const shortPillarX_2 = shortPillarX - shortshoreLength * Math.sin(angle); // 短x軸頂板位置
+        const shortPillarY = offsetY + bottomThickness / 2 - thickness/2 * Math.sin(angle); // 短y軸位置
+        const shortPillarY_2 = shortPillarY + shortshoreLength * Math.cos(angle) ; // 短y軸頂板位置
+        const shortPillarstart = new THREE.Vector3(shortPillarX, shortPillarY, offsetZ);
+        const shortPillarend   = new THREE.Vector3(shortPillarX_2, shortPillarY_2, offsetZ);
+        const shortPillarXmid = (shortPillarX + shortPillarX_2) / 2; // 短支撐柱中點X
+        const shortPillarYmid = (shortPillarY + shortPillarY_2) / 2; // 短支撐柱中點Y
+        // 計算短支撐柱的中點和旋轉
+        const shortPillarmid = new THREE.Vector3(shortPillarXmid, shortPillarYmid, offsetZ);
+        const shortPillarxAxis = new THREE.Vector3(0, 0, 1); // 預設 z 軸
+        const shortPillarquaternion = new THREE.Quaternion().setFromAxisAngle(shortPillarxAxis, angle);
+        
+        const shortPillarPositions = [
+          [shortPillarXmid, shortPillarYmid, offsetZ], // 前右
+          [shortPillarXmid, shortPillarYmid, -offsetZ] // 後右
+        ];
+        // 建立短支撐柱 Mesh
+        shortPillarPositions.forEach(pos => {
+          const shortPillar = new THREE.Mesh(shortpillarGeometry, shortpillarMaterial.clone());
+          shortPillar.position.set(...pos);
+          shortPillar.setRotationFromQuaternion(shortPillarquaternion);
+          scene.add(shortPillar);
+        });
 
+
+        // 長軸
+        const PillarX = shortPillarX + (spacing-0.1) / Math.cos(angle); // 長底板x軸位置
+        const PillarX_2 = PillarX - shoreLength * Math.sin(angle); // 長頂板x軸位置
+        const PillarY = offsetY + bottomThickness / 2 - thickness/2 * Math.sin(angle); // 長y軸位置
+        const PillarY_2 = PillarY + shoreLength * Math.cos(angle); // 長y軸頂板位置
+        const Pillarstart = new THREE.Vector3(PillarX, PillarY, offsetZ);
+        const Pillarend   = new THREE.Vector3(PillarX_2, PillarY_2, offsetZ);
+        const PillarXmid = (PillarX + PillarX_2) / 2; // 長支撐柱中點X
+        const PillarYmid = (PillarY + PillarY_2) / 2; // 長支撐柱中點Y
+        // 計算長支撐柱的中點和旋轉
+        const Pillarmid = new THREE.Vector3(PillarXmid, PillarYmid, offsetZ);
+        const PillarxAxis = new THREE.Vector3(0, 0, 1); // 預設 z 軸
+        const Pillarquaternion = new THREE.Quaternion().setFromAxisAngle(PillarxAxis, angle);
         // 計算支撐柱位置
         const pillarPositions = [
-          [PillarX, PillarY, offsetZ], // 前右
-          [PillarX, PillarY, -offsetZ] // 後右
+          [PillarXmid, PillarYmid, offsetZ], // 前右
+          [PillarXmid, PillarYmid, -offsetZ] // 後右
         ];
         // 建立支撐柱 Mesh
         pillarPositions.forEach(pos => {
           const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial.clone());
           pillar.position.set(...pos);
+          pillar.setRotationFromQuaternion(Pillarquaternion);
           scene.add(pillar);
         });
-        // 建立短支撐柱 Mesh
-        const shortPillarPositions = [
-          [shortPillarX, shortPillarY, offsetZ], // 前左
-          [shortPillarX, shortPillarY, -offsetZ] // 後左
-        ];
-        shortPillarPositions.forEach(pos => {
-          const shortPillar = new THREE.Mesh(shortpillarGeometry, shortpillarMaterial.clone());
-          shortPillar.position.set(...pos);
-          scene.add(shortPillar);
+
+
+        // --- 頂板 geometry ---
+        const topGeometry = new THREE.BoxGeometry(topLength, topThickness, thickness);
+        const topMaterial = new THREE.MeshPhongMaterial({
+          color: 0xe74c3c, // 紅色
+          transparent: true,
+          opacity: 0.8,
+          side: THREE.DoubleSide
         });
+        // 頂板位置計算
+        const topX = (shortPillarX_2 + PillarX_2) / 2 -  topThickness / 2  * Math.sin(angle) ; // 頂板X軸位置
+        const topY = (shortPillarY_2 + PillarY_2) / 2 +  topThickness / 2 * Math.cos(angle);  // 頂板Y軸位置
+
+        const topPositions = [
+          [topX , topY, offsetZ], // 前右
+          [topX , topY, -offsetZ] // 後右
+        ];
+        // 建立頂板 Mesh
+        topPositions.forEach(pos => {
+          const topMesh = new THREE.Mesh(topGeometry, topMaterial.clone());
+          topMesh.position.set(...pos);
+          topMesh.setRotationFromQuaternion(Pillarquaternion);
+          scene.add(topMesh);
+        });
+
+        // 建立側邊連接柱
+        const connectorWidth = parsedData["連接柱寬度"] / 100; // m
+        const connectorThickness = 0.05; // 假設連接柱厚度 
+        const connectorLength = Math.sqrt(Math.pow((PillarX - shortPillarX_2 ),2)+Math.pow((shortPillarY_2),2)) + thickness * Math.sqrt(2) ; 
+        const connectorGeometry = new THREE.BoxGeometry(connectorLength, connectorWidth, connectorThickness);
+        const connectorMaterial = new THREE.MeshPhongMaterial({
+          color: 0x8e44ad, // 紫色
+          transparent: true,
+          opacity: 0.6,
+          side: THREE.DoubleSide
+        });
+        // 計算連接柱位置
+
+        const connectorPositionY = (PillarY + shortPillarY_2) / 2 ; // 連接柱Y軸位置
+        const connectorPositionX = (PillarX + shortPillarX_2) / 2 ; // 連接柱X軸位置
+        const connectorPositionZ = offsetZ + thickness/2 + connectorThickness / 2;
+
+        // 連接柱數值
+        const connectorStart = new THREE.Vector3(shortPillarX_2 - topThickness -0.01, shortPillarY_2 , connectorPositionZ );
+        const connectorEnd= new THREE.Vector3(PillarX + topThickness, PillarY +0.01, connectorPositionZ );
+        const connectorMid = new THREE.Vector3().addVectors(connectorStart, connectorEnd).multiplyScalar(0.5);
+        const connectorDirection = new THREE.Vector3().subVectors(connectorStart, connectorEnd).normalize();
+        const connectorAxis = new THREE.Vector3(1, 0, 0); // 預設 z 軸
+        const connectorquaternion = new THREE.Quaternion().setFromUnitVectors(connectorAxis, connectorDirection);
+        
+        //轉換角度範例
+        const connectorangle = connectorAxis.angleTo(connectorDirection) * (180 / Math.PI); // 回傳值為弧度
+        console.log(connectorangle)
+        
+        const connectorPositions = [
+          [connectorPositionX, connectorPositionY, connectorPositionZ], // 前右
+          [connectorPositionX, connectorPositionY, -connectorPositionZ] // 後右
+        ];
+        // 建立連接柱 Mesh
+        connectorPositions.forEach(pos => {
+          const connector = new THREE.Mesh(connectorGeometry, connectorMaterial.clone());
+          connector.position.set(...pos);
+          connector.setRotationFromQuaternion(connectorquaternion);
+          scene.add(connector);
+        });
+
+
+
+
+
+
+
+
+
+        
+        // 建立止檔
+        const stopperGeometry = new THREE.BoxGeometry(0.45, stopperWidth, thickness);
+        const stopperMaterial = new THREE.MeshPhongMaterial({
+          color: 0x95a5a6, // 灰色
+          transparent: false,
+          opacity: 1,
+          side: THREE.DoubleSide
+        });
+        // 止檔位置計算
+        const stopperY = offsetY + bottomThickness / 2 + stopperWidth / 2;
+        const stopperX = -offsetX + cantilever + thickness / Math.cos(angle) + 0.45 /2  - stopperWidth * Math.tan(angle); // 止檔X軸位置
+        const stopperX_2 = stopperX + (spacing-0.1) / Math.cos(angle);
+        const stopperPositions = [
+          [stopperX , stopperY, offsetZ], // 前左
+          [stopperX, stopperY, -offsetZ],// 前右
+          [stopperX_2, stopperY, offsetZ], // 後左
+          [stopperX_2, stopperY, -offsetZ] // 後右
+        ];
+        // 建立止檔 Mesh
+        stopperPositions.forEach(pos => {
+          const stopperMesh = new THREE.Mesh(stopperGeometry, stopperMaterial.clone());
+          stopperMesh.position.set(...pos);
+          scene.add(stopperMesh);
+        });
+
+
         //之後可以刪除
         // 建立 XYZ 軸向輔助線（長度單位 = 公尺，可調整）
         //x,y,z:紅,綠,藍
