@@ -1133,8 +1133,8 @@
         const connectorPositionZ = offsetZ + thickness/2 + connectorThickness / 2;
 
         // 連接柱數值
-        const connectorStart = new THREE.Vector3(shortPillarX_2 - topThickness -0.01, shortPillarY_2 , connectorPositionZ );
-        const connectorEnd= new THREE.Vector3(PillarX + topThickness, PillarY +0.01, connectorPositionZ );
+        const connectorStart = new THREE.Vector3(shortPillarX_2 - thickness -0.01, shortPillarY_2  , connectorPositionZ );
+        const connectorEnd= new THREE.Vector3(PillarX + thickness, PillarY +0.01  , connectorPositionZ );
         const connectorMid = new THREE.Vector3().addVectors(connectorStart, connectorEnd).multiplyScalar(0.5);
         const connectorDirection = new THREE.Vector3().subVectors(connectorStart, connectorEnd).normalize();
         const connectorAxis = new THREE.Vector3(1, 0, 0); // 預設 z 軸
@@ -1156,11 +1156,40 @@
           scene.add(connector);
         });
 
+        //另一方向側邊連接柱
+        const connectorPositionY_bk = (PillarY_2 + shortPillarY) / 2 ; // 連接柱Y軸位置
+        const connectorPositionX_bk = (PillarX_2 + shortPillarX) / 2 ; // 連接柱X軸位置
+        const connectorPositionZ_bk = offsetZ - thickness/2 - connectorThickness / 2;
+        const connectorLength_bk = Math.sqrt(Math.pow((PillarX_2 - shortPillarX), 2) + Math.pow((PillarY_2), 2)) + (connectorWidth - thickness) / 2 * Math.sqrt(2);
+        const connectorGeometry_bk = new THREE.BoxGeometry(connectorLength_bk, connectorWidth, connectorThickness);
+        const connectorMaterial_bk = new THREE.MeshPhongMaterial({
+          color: 0x8e44ad, // 紫色
+          transparent: true,
+          opacity: 0.6,
+          side: THREE.DoubleSide
+        });
+        // 後面連接柱數值
+        const connectorStart_bk = new THREE.Vector3(PillarX_2  + 0.01, PillarY_2 , connectorPositionZ_bk);
+        const connectorEnd_bk = new THREE.Vector3(shortPillarX , shortPillarY + 0.01 , connectorPositionZ_bk);
+        const connectorMid_bk = new THREE.Vector3().addVectors(connectorStart_bk, connectorEnd_bk).multiplyScalar(0.5);
+        const connectorDirection_bk = new THREE.Vector3().subVectors(connectorStart_bk, connectorEnd_bk).normalize();
+        const connectorAxis_bk = new THREE.Vector3(1, 0, 0); // 預設 z 軸
+        const connectorquaternion_bk = new THREE.Quaternion().setFromUnitVectors(connectorAxis_bk, connectorDirection_bk); 
+        // 轉換後面角度範例
+        const connectorangle_bk = connectorAxis_bk.angleTo(connectorDirection_bk) * (180 / Math.PI); // 回傳值為弧度
+        console.log(connectorangle_bk)  
+        const connectorPositions_bk = [
+          [connectorPositionX_bk, connectorPositionY_bk, connectorPositionZ_bk], // 前右
+          [connectorPositionX_bk, connectorPositionY_bk, -connectorPositionZ_bk] // 後右
+        ];
 
-
-
-
-
+        // 建立後面連接柱 Mesh
+        connectorPositions_bk.forEach(pos => {
+          const connector = new THREE.Mesh(connectorGeometry_bk, connectorMaterial_bk.clone());
+          connector.position.set(...pos);
+          connector.setRotationFromQuaternion(connectorquaternion_bk);
+          scene.add(connector);
+        });
 
 
 
@@ -1189,6 +1218,83 @@
           stopperMesh.position.set(...pos);
           scene.add(stopperMesh);
         });
+
+        // 建立中間的水平連接柱
+        const connectorMidGeometry = new THREE.BoxGeometry(connectorThickness, connectorWidth, spacing  );
+        const connectorMidMaterial = new THREE.MeshPhongMaterial({
+          color: 0xe67e22, // 橙色
+          transparent: true,
+          opacity: 0.6,
+          side: THREE.DoubleSide
+        });
+        // 中間連接柱位置計算
+        const connectormidY = PillarY + thickness/2 * Math.sin(angle) + connectorThickness/2 * Math.sin(angle) + (stopperWidth / Math.cos(angle) + 0.01) * Math.cos(angle); // 中間連接柱Y軸位置
+        const connectormidY_2 = connectormidY + connectorWidth* Math.cos(angle); // 中間連接柱Y軸頂板位置
+        const connectormidX = PillarX + thickness/2 * Math.cos(angle) + connectorThickness/2 * Math.cos(angle) - (stopperWidth / Math.cos(angle) + 0.01) * Math.sin(angle) ; // 連接柱X軸位置
+        const connectormidX_2 = connectormidX - connectorWidth * Math.sin(angle); // 連接柱X軸頂板位置
+        //PillarX + thickness/2 * Math.cos(angle) + connectorThickness/2 * Math.cos(angle) - (stopperWidth / Math.cos(angle)) 此為中間夾板與底板交界點
+        //(stopperWidth / Math.cos(angle))單位為長度
+        const connectmidXmid = (connectormidX + connectormidX_2) / 2; // 中間連接柱中點X軸位置
+        const connectormidYmid = (connectormidY + connectormidY_2) / 2; // 中間連接柱中點Y軸位置
+        //上面的中間連接柱位置
+        const connectormidY2 = PillarY + thickness/2 * Math.sin(angle) + connectorThickness/2 * Math.sin(angle) + (shoreLength - connectorWidth - 0.01) * Math.cos(angle); // 中間連接柱Z軸位置
+        const connectormidY2_2 = connectormidY2 + connectorWidth * Math.cos(angle); // 中間連接柱Z軸頂板位置
+        const connectormidX2 = PillarX + thickness/2 * Math.cos(angle) + connectorThickness/2 * Math.cos(angle) - (shoreLength - connectorWidth - 0.01) * Math.sin(angle); // 連接柱Z軸位置
+        const connectormidX2_2 = connectormidX2 - connectorWidth * Math.sin(angle); // 連接柱Z軸頂板位置
+        const connectmidXmid_2 = (connectormidX2 + connectormidX2_2) / 2; // 中間連接柱中點Z軸位置
+        const connectormidYmid_2 = (connectormidY2 + connectormidY2_2) / 2; // 中間連接柱中點Z軸位置
+        // 反面中間連接柱位置計算
+        const connectormidY_bk = shortPillarY + thickness/2 * Math.sin(angle) + connectorThickness/2 * Math.sin(angle) + (stopperWidth / Math.cos(angle) + 0.01) * Math.cos(angle); // 中間連接柱Y軸位置
+        const connectormidY_bk_2 = connectormidY_bk + connectorWidth * Math.cos(angle); // 中間連接柱Y軸頂板位置
+        const connectormidX_bk = connectormidX - spacing / Math.cos(angle) - connectorThickness / Math.cos(angle); // 連接柱X軸位置
+        const connectormidX_bk_2 = connectormidX_bk - connectorWidth * Math.sin(angle); // 連接柱X軸頂板位置
+        const connectmidXmid_bk = (connectormidX_bk + connectormidX_bk_2) / 2; // 中間連接柱中點X軸位置
+        const connectormidYmid_bk = (connectormidY_bk + connectormidY_bk_2) / 2; // 中間連接柱中點Y軸位置
+        // 反面上面中間連接柱位置計算
+        const connectormidY_bk2 = shortPillarY + thickness/2 * Math.sin(angle) + connectorThickness/2 * Math.sin(angle) + (shortshoreLength - connectorWidth - 0.01) * Math.cos(angle) - (thickness + connectorThickness) * Math.sin(angle) ; // 中間連接柱Z軸位置
+        const connectormidY_bk2_2 = connectormidY_bk2 + connectorWidth * Math.cos(angle); // 中間連接柱Z軸頂板位置
+        const connectormidX_bk2 = shortPillarX + thickness/2 * Math.cos(angle) + connectorThickness/2 * Math.cos(angle) - (shortshoreLength - connectorWidth - 0.01) * Math.sin(angle) - (thickness + connectorThickness) * Math.cos(angle); // 連接柱Z軸位置
+        const connectormidX_bk2_2 = connectormidX_bk2 - connectorWidth * Math.sin(angle); // 連接柱Z軸頂板位置
+        const connectmidXmid_bk_2 = (connectormidX_bk2 + connectormidX_bk2_2) / 2; // 中間連接柱中點Z軸位置
+        const connectormidYmid_bk_2 = (connectormidY_bk2  + connectormidY_bk2_2) / 2; // 中間連接柱中點Z軸位置
+       /*
+       
+        // 建立中間的對角連接柱
+        const connecotrMidslopeStart = new THREE.Vector3(connectmidXmid_2 + connectorWidth * Math.sin(angle), connectormidY - connectorWidth * Math.cos(angle), offsetZ);
+        const connecotrMidslopeEnd = new THREE.Vector3(connectmidXmid - connectorWidth * Math.sin(angle), connectormidY + connectorWidth * Math.cos(angle), -offsetZ);
+        const connecotrMidslopeDirection = new THREE.Vector3().subVectors(connecotrMidslopeStart, connecotrMidslopeEnd).normalize();
+        const connecotrMidslopeAxis = new THREE.Vector3(1, 0, 0); // 預設 z 軸
+        const connecotrMidslopeQuaternion = new THREE.Quaternion().setFromUnitVectors(connecotrMidslopeAxis, connecotrMidslopeDirection);
+        const connectorMidslopeGeometry = new THREE.BoxGeometry(connectorThickness, connectorWidth, spacing );
+        const connectorMidslopeMaterial = new THREE.MeshPhongMaterial({
+          color: 0x16a085, // 青色
+          transparent: true,
+          opacity: 0.6,
+          side: THREE.DoubleSide
+        });
+        const connecotrMidslopeXmid = (connectmidXmid_2 + connectorWidth * Math.sin(angle) + connectmidXmid - connectorWidth * Math.sin(angle)) / 2; // 中間連接柱中點X軸位置
+        const connecotrMidslopeYmid = (connectormidYmid_2 - connectorWidth * Math.cos(angle) + connectmidYmid + connectorWidth * Math.cos(angle)) / 2; // 中間連接柱中點Y軸位置
+        */
+        const connectorMidPositions = [
+          [connectmidXmid , connectormidYmid , 0],
+          [connectmidXmid_2 , connectormidYmid_2 , 0],
+          [connectmidXmid_bk , connectormidYmid_bk , 0],
+          [connectmidXmid_bk_2 , connectormidYmid_bk_2 , 0],
+  
+
+        ];
+        const connectorMidAxis = new THREE.Vector3(0, 0, 1); // 預設 z 軸
+        const connectorMidQuaternion = new THREE.Quaternion().setFromAxisAngle(connectorMidAxis, angle);
+        // 建立中間橋梁連接柱 Mesh
+        connectorMidPositions.forEach(pos => {
+          const connectorMid = new THREE.Mesh(connectorMidGeometry, connectorMidMaterial.clone());
+          connectorMid.position.set(...pos);
+          connectorMid.setRotationFromQuaternion(connectorMidQuaternion);
+          scene.add(connectorMid);
+        });
+
+
+
 
 
         //之後可以刪除
