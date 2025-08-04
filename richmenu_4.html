@@ -114,10 +114,22 @@
     }
 
     select, input {
-      margin: 10px 0;
-      padding: 8px;
+      margin: 2px 0;
+      padding: 2px 4px;
       font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background-color: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
     }
+
+    select:focus, input:focus {
+      border-color: #4a90e2;
+      box-shadow: 0 0 5px rgba(74, 144, 226, 0.5);
+    }
+
     button {
       margin: 10px 0;
       padding: 10px 20px;
@@ -306,8 +318,8 @@
             <input type="number" id="stopper" value="60" />
           </div>
           <div class="form-group">
-            <label for="angle">角度 (度)：</label>
-            <input type="number" id="angle" value="45" />
+            <label for="angle">角度 (這裡只計算45度)：</label>
+            <input type="number" id="angle" value="45" readonly />
           </div>
         `;
       } else if (type === "floor") {
@@ -326,10 +338,6 @@
             <input type="number" id="bottom" value="10" />
           </div>
           <div class="form-group">
-            <label for="wedge">楔型木厚度 (cm)：</label>
-            <input type="number" id="wedge" value="5" />
-          </div>
-          <div class="form-group">
             <label for="spacing">支撐柱間距 (cm)：</label>
             <input type="number" id="spacing" value="120" />
           </div>
@@ -342,8 +350,8 @@
             <input type="number" id="stopper" value="5" />
           </div>
           <div class="form-group">
-            <label for="angle">角度 (度)：</label>
-            <input type="number" id="angle" value="45" />
+            <label for="angle">角度 (最多45度)：</label>
+            <input type="number" id="angle" value="45" max="45"/>
           </div>
         `;
       } else {
@@ -700,7 +708,7 @@
           connector.position.set(...pos);
           scene.add(connector);
         });
-/////////////
+      /////////////
 
         // === 斜向連接柱尺寸 ===
         const slopeWidth = parsedData["連接柱寬度"]/100; // 柱子的厚度（沿 Y 軸）
@@ -922,7 +930,6 @@
         "測量長度": parseFloat(document.getElementById("length").value),
         "頂板厚度": parseFloat(document.getElementById("top").value),
         "底板厚度": parseFloat(document.getElementById("bottom").value),
-        "楔型木厚度": parseFloat(document.getElementById("wedge").value),
         "支撐柱間距": parseFloat(document.getElementById("spacing").value),
         "連接柱寬度": parseFloat(document.getElementById("connector").value),
         "止檔寬度": parseFloat(document.getElementById("stopper").value),
@@ -1002,7 +1009,6 @@
         const cantilever = 0.3 * spacing /1.2; // 30公分懸樑
         const topThickness = parsedData["頂板厚度"] / 100; // m
         const bottomThickness = parsedData["底板厚度"] / 100; // m
-        const wedgeThickness = parsedData["楔型木厚度"] / 100; // m
         const stopperWidth = parsedData["止檔寬度"] / 100; // m
         const angle = parsedData["角度"] * Math.PI / 180; // 轉換為弧度
         
