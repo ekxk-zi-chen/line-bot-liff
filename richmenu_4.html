@@ -1139,11 +1139,11 @@
         const connectorDirection = new THREE.Vector3().subVectors(connectorStart, connectorEnd).normalize();
         const connectorAxis = new THREE.Vector3(1, 0, 0); // 預設 z 軸
         const connectorquaternion = new THREE.Quaternion().setFromUnitVectors(connectorAxis, connectorDirection);
-        
+        /*
         //轉換角度範例
         const connectorangle = connectorAxis.angleTo(connectorDirection) * (180 / Math.PI); // 回傳值為弧度
         console.log(connectorangle)
-        
+        */
         const connectorPositions = [
           [connectorPositionX, connectorPositionY, connectorPositionZ], // 前右
           [connectorPositionX, connectorPositionY, -connectorPositionZ] // 後右
@@ -1175,9 +1175,7 @@
         const connectorDirection_bk = new THREE.Vector3().subVectors(connectorStart_bk, connectorEnd_bk).normalize();
         const connectorAxis_bk = new THREE.Vector3(1, 0, 0); // 預設 z 軸
         const connectorquaternion_bk = new THREE.Quaternion().setFromUnitVectors(connectorAxis_bk, connectorDirection_bk); 
-        // 轉換後面角度範例
-        const connectorangle_bk = connectorAxis_bk.angleTo(connectorDirection_bk) * (180 / Math.PI); // 回傳值為弧度
-        console.log(connectorangle_bk)  
+
         const connectorPositions_bk = [
           [connectorPositionX_bk, connectorPositionY_bk, connectorPositionZ_bk], // 前右
           [connectorPositionX_bk, connectorPositionY_bk, -connectorPositionZ_bk] // 後右
@@ -1257,31 +1255,13 @@
         const connectormidX_bk2_2 = connectormidX_bk2 - connectorWidth * Math.sin(angle); // 連接柱Z軸頂板位置
         const connectmidXmid_bk_2 = (connectormidX_bk2 + connectormidX_bk2_2) / 2; // 中間連接柱中點Z軸位置
         const connectormidYmid_bk_2 = (connectormidY_bk2  + connectormidY_bk2_2) / 2; // 中間連接柱中點Z軸位置
-       /*
-       
-        // 建立中間的對角連接柱
-        const connecotrMidslopeStart = new THREE.Vector3(connectmidXmid_2 + connectorWidth * Math.sin(angle), connectormidY - connectorWidth * Math.cos(angle), offsetZ);
-        const connecotrMidslopeEnd = new THREE.Vector3(connectmidXmid - connectorWidth * Math.sin(angle), connectormidY + connectorWidth * Math.cos(angle), -offsetZ);
-        const connecotrMidslopeDirection = new THREE.Vector3().subVectors(connecotrMidslopeStart, connecotrMidslopeEnd).normalize();
-        const connecotrMidslopeAxis = new THREE.Vector3(1, 0, 0); // 預設 z 軸
-        const connecotrMidslopeQuaternion = new THREE.Quaternion().setFromUnitVectors(connecotrMidslopeAxis, connecotrMidslopeDirection);
-        const connectorMidslopeGeometry = new THREE.BoxGeometry(connectorThickness, connectorWidth, spacing );
-        const connectorMidslopeMaterial = new THREE.MeshPhongMaterial({
-          color: 0x16a085, // 青色
-          transparent: true,
-          opacity: 0.6,
-          side: THREE.DoubleSide
-        });
-        const connecotrMidslopeXmid = (connectmidXmid_2 + connectorWidth * Math.sin(angle) + connectmidXmid - connectorWidth * Math.sin(angle)) / 2; // 中間連接柱中點X軸位置
-        const connecotrMidslopeYmid = (connectormidYmid_2 - connectorWidth * Math.cos(angle) + connectmidYmid + connectorWidth * Math.cos(angle)) / 2; // 中間連接柱中點Y軸位置
-        */
+
         const connectorMidPositions = [
           [connectmidXmid , connectormidYmid , 0],
           [connectmidXmid_2 , connectormidYmid_2 , 0],
           [connectmidXmid_bk , connectormidYmid_bk , 0],
           [connectmidXmid_bk_2 , connectormidYmid_bk_2 , 0],
   
-
         ];
         const connectorMidAxis = new THREE.Vector3(0, 0, 1); // 預設 z 軸
         const connectorMidQuaternion = new THREE.Quaternion().setFromAxisAngle(connectorMidAxis, angle);
@@ -1293,7 +1273,112 @@
           scene.add(connectorMid);
         });
 
+       
+       
+        // 建立中間的對角連接柱
+        const connecotrMidslopeStart = new THREE.Vector3(connectormidX2_2 + connectorWidth * Math.sin(angle)*(1+0.75), connectormidY2_2 - connectorWidth * Math.cos(angle)*(1+0.75), offsetZ);
+        const connecotrMidslopeEnd = new THREE.Vector3(connectormidX- connectorWidth * Math.sin(angle)*(1+0.75), connectormidY + connectorWidth * Math.cos(angle)*(1+0.75), -offsetZ);
+        const connecotrMidslopeLength = Math.sqrt(Math.pow((spacing-0.1), 2) + Math.pow((connecotrMidslopeStart.x - connecotrMidslopeEnd.x), 2) + Math.pow((connecotrMidslopeStart.y - connecotrMidslopeEnd.y ), 2)); // 計算對角連接柱的長度
+        // 計算對角連接柱旋轉
+        const connecotrMidslopeAxis = new THREE.Vector3(0, 0, 1); 
+        const connecotrMidslopeQuaternion = new THREE.Quaternion().setFromAxisAngle(connecotrMidslopeAxis,angle);
+        // 計算對角連接柱的方向
+        const connecotrMidslopeDirection = new THREE.Vector3().subVectors(connecotrMidslopeStart, connecotrMidslopeEnd).normalize();
+        const alignQuaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), connecotrMidslopeDirection);
+        // 將對角連接柱的旋轉與方向對齊
+        // 先方向再選轉
+        const finalQuaternion = alignQuaternion.multiply(connecotrMidslopeQuaternion); // 將對角連接柱的旋轉與方向對齊
 
+        const connectorMidslopeGeometry = new THREE.BoxGeometry(connectorThickness, connectorWidth, connecotrMidslopeLength );
+        const connectorMidslopeMaterial = new THREE.MeshPhongMaterial({
+          color: 0xff0000, // 紅色
+          transparent: true,
+          opacity: 0.6,
+          side: THREE.DoubleSide
+        });
+        const connecotrMidslopeMid = new THREE.Vector3().addVectors(connecotrMidslopeStart, connecotrMidslopeEnd).multiplyScalar(0.5);
+        const connector = new THREE.Mesh(connectorMidslopeGeometry, connectorMidslopeMaterial);
+        connector.position.copy(connecotrMidslopeMid);
+        connector.setRotationFromQuaternion(finalQuaternion);
+        scene.add(connector);
+
+
+
+        // 建立背面中間的對角連接柱
+        const connecotrMidslopeStart_bk = new THREE.Vector3(connectormidX_bk2_2 + connectorWidth * Math.sin(angle)*(1+0.75), connectormidY_bk2_2 - connectorWidth * Math.cos(angle)*(1+0.75), offsetZ);
+        const connecotrMidslopeEnd_bk = new THREE.Vector3(connectormidX_bk - connectorWidth * Math.sin(angle)*(1+0.75), connectormidY_bk + connectorWidth * Math.cos(angle)*(1+0.75), -offsetZ);
+        const connecotrMidslopeLength_bk = Math.sqrt(Math.pow((spacing-0.1), 2) + Math.pow((connecotrMidslopeStart_bk.x - connecotrMidslopeEnd_bk.x), 2) + Math.pow((connecotrMidslopeStart_bk.y - connecotrMidslopeEnd_bk.y ), 2)); // 計算對角連接柱的長度
+        // 計算對角連接柱旋轉
+        const connecotrMidslopeAxis_bk = new THREE.Vector3(0, 0, 1); 
+        const connecotrMidslopeQuaternion_bk = new THREE.Quaternion().setFromAxisAngle(connecotrMidslopeAxis_bk,angle);
+        // 計算對角連接柱的方向
+        const connecotrMidslopeDirection_bk = new THREE.Vector3().subVectors(connecotrMidslopeStart_bk, connecotrMidslopeEnd_bk).normalize();
+        const alignQuaternion_bk = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), connecotrMidslopeDirection_bk);
+        // 將對角連接柱的旋轉與方向對齊
+        // 先方向再選轉
+        const finalQuaternion_bk = alignQuaternion_bk.multiply(connecotrMidslopeQuaternion_bk); // 將對角連接柱的旋轉與方向對齊
+
+        const connectorMidslopeGeometry_bk = new THREE.BoxGeometry(connectorThickness, connectorWidth, connecotrMidslopeLength_bk );
+        const connectorMidslopeMaterial_bk = new THREE.MeshPhongMaterial({
+          color: 0xff0000, // 紅色
+          transparent: true,
+          opacity: 0.6,
+          side: THREE.DoubleSide
+        });
+        const connecotrMidslopeMid_bk = new THREE.Vector3().addVectors(connecotrMidslopeStart_bk, connecotrMidslopeEnd_bk).multiplyScalar(0.5);
+        const connector_bk = new THREE.Mesh(connectorMidslopeGeometry_bk, connectorMidslopeMaterial_bk);
+        connector_bk.position.copy(connecotrMidslopeMid_bk);
+        connector_bk.setRotationFromQuaternion(finalQuaternion_bk);
+        scene.add(connector_bk);
+
+
+        // 建立夾板
+        const plywoodGeometry = new THREE.BoxGeometry(0.15, 0.3, 0.02);
+        const plywoodMaterial = new THREE.MeshPhongMaterial({
+          color: 0xaaaaaa, // 淺灰
+          transparent: true,
+          opacity: 0.6,
+          side: THREE.DoubleSide
+        });
+        // Geometry x y z 對應 寬、高、深
+        // 調用的用法Geometry.parameters.width 、.height 、 .depth
+        // 夾板位置計算
+        const plywoodXfront = shortPillarX - plywoodGeometry.parameters.width /2 ; // 前夾板X軸位置
+        const plywoodYfront = offsetY + bottomWidth +0.01; // 前夾板Y軸位置
+        const plywoodXback = connectormidX_2 - connectorWidth/2 * Math.sin(angle) - plywoodGeometry.parameters.width/2 -0.01; // 後夾板X軸位置
+        const plywoodYback = offsetY + bottomWidth +0.01; // 後夾板Y軸位置
+        const plywoodXfront_2 = shortPillarX_2 + (0.3 - topThickness * 2 ) / 2 * Math.sin(angle) + (0.15 - thickness + 0.03) / 2 * Math.cos(angle); // 前夾板X軸頂板位置 
+        const plywoodYfront_2 = shortPillarY_2 - (0.3 - topThickness * 2 ) / 2 * Math.cos(angle) + (0.15 - thickness - 0.01) / 2 * Math.sin(angle); // 前夾板Y軸頂板位置
+        const plywoodXback_2 = PillarX_2 + (0.3 - topThickness * 2 ) / 2 * Math.sin(angle) - (0.15 - thickness + 0.01) / 2 * Math.cos(angle); // 後夾板X軸頂板位置
+        const plywoodYback_2 = PillarY_2 - (0.3 - topThickness * 2 ) / 2 * Math.cos(angle) - (0.15 - thickness + 0.03) / 2 * Math.sin(angle); // 後夾板Y軸頂板位置
+        const plywoodPositionsUp = [
+          [ plywoodXfront_2, plywoodYfront_2, + offsetZ - thickness / 2 - 0.02 / 2], // 前左上
+          [ plywoodXfront_2, plywoodYfront_2, -offsetZ + thickness / 2 + 0.02 / 2], // 後左上
+          [ plywoodXback_2, plywoodYback_2, + offsetZ + thickness / 2 + 0.02 / 2], // 前右上
+          [ plywoodXback_2, plywoodYback_2, -offsetZ - thickness / 2 - 0.02 / 2] // 後右上
+
+        ];
+        const plywoodAxis = new THREE.Vector3(0, 0, 1);
+        const plywoodQuaternion = new THREE.Quaternion().setFromAxisAngle(plywoodAxis, angle);
+        // 建立中間橋梁連接柱 Mesh
+        plywoodPositionsUp.forEach(pos => {
+          const plywood = new THREE.Mesh(plywoodGeometry, plywoodMaterial.clone());
+          plywood.position.set(...pos);
+          plywood.setRotationFromQuaternion(plywoodQuaternion);
+          scene.add(plywood);
+        });
+
+        const plywoodPositionsDown = [
+          [ plywoodXfront, plywoodYfront, offsetZ + thickness / 2 + 0.02 / 2], // 前左下
+          [ plywoodXfront, plywoodYfront, -offsetZ - thickness / 2 - 0.02 / 2], // 後左下
+          [ plywoodXback, plywoodYback, offsetZ - thickness / 2 - 0.02 / 2], // 前右下
+          [ plywoodXback, plywoodYback, -offsetZ + thickness / 2 + 0.02 / 2], // 後右下
+        ];
+        plywoodPositionsDown.forEach(pos => {
+          const plywood = new THREE.Mesh(plywoodGeometry, plywoodMaterial.clone());
+          plywood.position.set(...pos);
+          scene.add(plywood);
+        });
 
 
 
