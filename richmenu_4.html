@@ -113,10 +113,32 @@
       }
     }
 
-    select, input, button {
+    select, input {
       margin: 10px 0;
       padding: 8px;
       font-size: 16px;
+    }
+    button {
+      margin: 10px 0;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #4CAF50; /* 綠色 */
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    button:hover {
+      background-color: #45a049;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    button:active {
+      background-color: #3e8e41;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
     .result {
@@ -203,10 +225,10 @@
         <h2>支撐計算</h2>
         <label>選擇計算類型：
           <select id="calcType" onchange="renderCalcForm()">
-            <option value="">-- 選擇支撐類型 --</option>
-            <option value="box">箱型支撐</option>
-            <option value="wall">牆面支撐</option>
-            <option value="floor">斜樓板支撐</option>
+            <option value="">👉👉點我選擇支撐類型💡💡</option>
+            <option value="box">📦📦箱型支撐📦📦</option>
+            <option value="wall">🧱🧱牆面支撐🧱🧱</option>
+            <option value="floor">📐📐斜樓板支撐📐📐</option>
           </select>
         </label>
         <div id="dynamicForm"></div>
@@ -230,6 +252,7 @@
             <label for="length">測量長度 (cm)：</label>
             <input type="number" id="length" />
           </div>
+          <button onclick="calculateBox()">🧠計算箱型支撐📐</button>
           <div class="form-group">
             <label for="top">頂板厚度 (cm)：</label>
             <input type="number" id="top" value="10" />
@@ -250,7 +273,6 @@
             <label for="connector">連接柱寬度 (cm)：</label>
             <input type="number" id="connector" value="10" />
           </div>
-          <button onclick="calculateBox()">計算箱型支撐</button>
         `;
       } else if (type === "wall") {
         form.innerHTML = `
@@ -258,6 +280,7 @@
             <label for="length">測量長度 (cm)：</label>
             <input type="number" id="length" />
           </div>
+          <button onclick="calculateWall()">🧠計算牆面支撐📐</button>
           <div class="form-group">
             <label for="top">頂板厚度 (cm)：</label>
             <input type="number" id="top" value="10" />
@@ -286,7 +309,6 @@
             <label for="angle">角度 (度)：</label>
             <input type="number" id="angle" value="45" />
           </div>
-          <button onclick="calculateWall()">計算牆面支撐</button>
         `;
       } else if (type === "floor") {
         form.innerHTML = `
@@ -294,6 +316,7 @@
             <label for="length">測量長度 (cm)：</label>
             <input type="number" id="length" />
           </div>
+          <button onclick="calculateFloor()">🧠計算樓板支撐📐</button>
           <div class="form-group">
             <label for="top">頂板厚度 (cm)：</label>
             <input type="number" id="top" value="10" />
@@ -322,7 +345,6 @@
             <label for="angle">角度 (度)：</label>
             <input type="number" id="angle" value="45" />
           </div>
-          <button onclick="calculateFloor()">計算樓板支撐</button>
         `;
       } else {
         form.innerHTML = "";
@@ -1385,9 +1407,10 @@
         //之後可以刪除
         // 建立 XYZ 軸向輔助線（長度單位 = 公尺，可調整）
         //x,y,z:紅,綠,藍
+        /*
         const axesHelper = new THREE.AxesHelper(1);  // 長度 1 公尺
         scene.add(axesHelper);
-        
+        */
         // 以下為環境設置
         // 相機位置
         const maxSize = Math.max(spacing, height, thickness);
