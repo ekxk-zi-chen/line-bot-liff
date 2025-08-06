@@ -1972,11 +1972,11 @@
             <div class="item-details" id="${detailId}" style="display:none;">
               <div class="item-detail-content">
                 <div class="item-text">
-                  <div><strong>說明：</strong>${item.desc}</div>
+                  <div><strong>編號：</strong>${item.desc}</div>
                   <div><strong>型號：</strong>${item.model}</div>
-                  <div><strong>位置：</strong>${item.location}</div>
-                  <div><strong>狀態：</strong>${item.status}</div>
-                  <div><strong>最後更新：</strong>${item.lastUpdate}</div>
+                  <div><strong>除了74車上外位置：</strong>${item.location}</div>
+                  <div><strong>數量：</strong>${item.status}</div>
+                  <div><strong>說明書連結：</strong>${item.lastUpdate}</div>
                 </div>
                 <div class="item-img">
                   ${item.image ? `<img src="https://drive.google.com/thumbnail?id=${item.image.trim()}&sz=w1000" />` : ''}
@@ -2024,3 +2024,4 @@
   </script>
 </body>
 </html>
+
