@@ -1976,7 +1976,7 @@
                   <div><strong>型號：</strong>${item.model}</div>
                   <div><strong>除了74車上外位置：</strong>${item.location}</div>
                   <div><strong>數量：</strong>${item.status}</div>
-                  <div><strong>說明書連結：</strong>${item.lastUpdate}</div>
+                  <div><strong>說明書連結：</strong>${item.lastUpdate ? `<a href="${item.lastUpdate}" target="_blank" style="color:#2980b9;">查看</a>` : '無'}</div>
                 </div>
                 <div class="item-img">
                   ${item.image ? `<img src="https://drive.google.com/thumbnail?id=${item.image.trim()}&sz=w1000" />` : ''}
@@ -2024,4 +2024,5 @@
   </script>
 </body>
 </html>
+
 
