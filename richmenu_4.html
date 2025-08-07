@@ -1906,6 +1906,8 @@
     
     // ===== 全域變數 =====
     let cachedGroupedData = null;
+    let originalGroupedData = null;  // 👈 這行代表抓取原始資料全域變數
+    let cachedHeaders = null;
 
     // ===== 預抓資料（背景用）=====
     async function preloadEquipmentBoxData() {
@@ -1919,11 +1921,14 @@
         const response = await fetch(`https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec?userId=${encodeURIComponent(userId)}&slot=${encodeURIComponent(slotFromURL)}`);
         const data = await response.json();
         cachedGroupedData = data.equipmentData;
+        originalGroupedData = data.equipmentData;
+        cachedHeaders = data.headers;  // <=== 這邊新增
         console.log("✅ 裝備清單預先載入完成");
       } catch (error) {
         console.warn("⚠️ 裝備清單預抓失敗", error);
       }
     }
+
 
     // ===== 實際載入並渲染資料（使用者點功能時）=====
     async function loadEquipmentBoxList() {
@@ -1941,6 +1946,8 @@
         const response = await fetch(`https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec?userId=${encodeURIComponent(userId)}&slot=${encodeURIComponent(slotFromURL)}`);
         const data = await response.json();
         cachedGroupedData = data.equipmentData;
+        originalGroupedData = data.equipmentData;  // 👈 這行表示抓取原始資料
+        cachedHeaders = data.headers; // <=== 這邊新增
         renderEquipmentBoxList(cachedGroupedData);
       } catch (error) {
         console.error("取得裝備清單資料失敗", error);
@@ -1950,12 +1957,28 @@
 
     // ===== 渲染 HTML =====
     function renderEquipmentBoxList(grouped) {
-      let html = `<h2>裝備箱清單</h2>`;
+      if (!cachedHeaders) cachedHeaders = ['名稱', '群組', '圖片', '編號', '型號', '除74車上外平常位置', '數量', '說明書連結', '預留位置', '預留位置2']; // 預設標題防止出錯
+
+      if (!document.getElementById("searchInput")) {
+        document.getElementById("main-content").innerHTML = `
+          <h2>裝備箱清單</h2>
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="🔍🔍🔍輸入關鍵字查詢號數箱或裝備🔍🔍🔍"
+            style="width:100%; padding:8px 12px; font-size:16px; margin-bottom:12px; border:1px solid #ccc; border-radius:8px;"
+          >
+          <div id="equipment-result"></div>
+        `;
+
+        document.getElementById("searchInput").addEventListener("input", filterEquipmentList);
+      }
+
+      let html = '';
       let groupIndex = 0;
 
       for (const groupName in grouped) {
         const groupId = `group-${groupIndex++}`;
-
         html += `
           <div class="group-container">
             <h3 style="color:#2980b9; cursor:pointer;" onclick="toggleGroup('${groupId}')">${groupName} ▼</h3>
@@ -1972,11 +1995,13 @@
             <div class="item-details" id="${detailId}" style="display:none;">
               <div class="item-detail-content">
                 <div class="item-text">
-                  <div><strong>編號：</strong>${item.desc}</div>
-                  <div><strong>型號：</strong>${item.model}</div>
-                  <div><strong>除了74車上外位置：</strong>${item.location}</div>
-                  <div><strong>數量：</strong>${item.status}</div>
-                  <div><strong>說明書連結：</strong>${item.lastUpdate ? `<a href="${item.lastUpdate}" target="_blank" style="color:#2980b9;">查看</a>` : '無'}</div>
+                  <div><strong>${cachedHeaders[3] || '編號'}：</strong>${item.data1}</div>
+                  <div><strong>${cachedHeaders[4] || '型號'}：</strong>${item.data2}</div>
+                  <div><strong>${cachedHeaders[5] || '除74車上外平常位置'}：</strong>${item.data3}</div>
+                  <div><strong>${cachedHeaders[6] || '數量'}：</strong>${item.data4}</div>
+                  <div><strong>${cachedHeaders[7] || '說明書連結'}：</strong>${item.data5}</div>
+                  <div><strong>${cachedHeaders[8] || '預留位置'}：</strong>${item.data6}</div>
+                  <div><strong>${cachedHeaders[9] || '預留位置2'}：</strong>${item.data7}</div>
                 </div>
                 <div class="item-img">
                   ${item.image ? `<img src="https://drive.google.com/thumbnail?id=${item.image.trim()}&sz=w1000" />` : ''}
@@ -1989,8 +2014,10 @@
         html += `</div></div>`;
       }
 
-      document.getElementById("main-content").innerHTML = html;
+      document.getElementById("equipment-result").innerHTML = html;
     }
+
+
 
     // ===== 點開群組區塊 =====
     function toggleGroup(groupId) {
@@ -2014,7 +2041,47 @@
       preloadEquipmentBoxData();
     };
 
+    // ===== 關鍵字匹配 =====
+    function filterEquipmentList() {
+      const keyword = document.getElementById("searchInput").value.trim().toLowerCase();
+      if (!originalGroupedData) return;
 
+      if (!keyword) {
+        renderEquipmentBoxList(originalGroupedData);
+        return;
+      }
+
+      const filtered = {};
+
+      for (const groupName in originalGroupedData) {
+        const groupMatch = groupName.toLowerCase().includes(keyword);
+
+        const matchedItems = originalGroupedData[groupName].filter(item => {
+          return (
+            groupMatch ||  // 若群組名符合則整組保留
+            String(item.name || '').toLowerCase().includes(keyword) ||
+            String(item.data1 || '').toLowerCase().includes(keyword) ||
+            String(item.data2 || '').toLowerCase().includes(keyword) ||
+            String(item.data3 || '').toLowerCase().includes(keyword) ||
+            String(item.data4 || '').toLowerCase().includes(keyword) ||
+            String(item.data5 || '').toLowerCase().includes(keyword) ||
+            String(item.data6 || '').toLowerCase().includes(keyword) ||
+            String(item.data7 || '').toLowerCase().includes(keyword)
+          );
+        });
+
+        if (groupMatch || matchedItems.length > 0) {
+          filtered[groupName] = matchedItems;
+        }
+      }
+
+      renderEquipmentBoxList(filtered);
+    }
+
+
+    window.toggleGroup = toggleGroup;
+    window.toggleDetails = toggleDetails;
+    window.filterEquipmentList = filterEquipmentList;
 
 
 
@@ -2024,5 +2091,3 @@
   </script>
 </body>
 </html>
-
-
