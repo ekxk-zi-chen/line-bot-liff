@@ -208,6 +208,13 @@
       background-color: #3e8e41;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
+    button:disabled {
+      opacity: 0.6;           /* 透明度降低，看起來灰掉 */
+      cursor: not-allowed;    /* 滑鼠游標變成禁止符號 */
+      background-color: #ccc; /* 背景顏色改淡灰 */
+      color: #666;            /* 字體顏色改淡灰 */
+      pointer-events: none;   /* 禁止任何滑鼠事件 */
+    }
 
     .result {
       margin-top: 20px;
@@ -243,7 +250,7 @@
       font-weight: bold;
       color: #e67e22;
     }
-    /*以下放裝備清單新增手機介面*//
+    /*以下放裝備清單新增手機介面*/
     .toggle-btn {
       background-color: #3498db;
       color: white;
@@ -251,6 +258,17 @@
       padding: 5px 10px;
       border-radius: 4px;
       cursor: pointer;
+    }
+    /*說明書連結*/
+    .link-button {
+      display: inline-block;
+      padding: 4px 8px;
+      background-color: #3498db;
+      color: white;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 14px;
+      margin-left: 6px;
     }
   </style>
 
@@ -1908,10 +1926,14 @@
     let cachedGroupedData = null;
     let originalGroupedData = null;  // 👈 這行代表抓取原始資料全域變數
     let cachedHeaders = null;
+    
 
     // ===== 預抓資料（背景用）=====
     async function preloadEquipmentBoxData() {
-      if (cachedGroupedData) return;
+      if (cachedGroupedData) {
+        console.log("🟡 已經預抓過，不再重抓");
+        return;
+      }
 
       const urlParams = new URLSearchParams(window.location.search);
       const userId = urlParams.get('userId') || "";
@@ -1936,7 +1958,7 @@
         renderEquipmentBoxList(cachedGroupedData);
         return;
       }
-
+      console.log("這裡又重新抓取了")
       // fallback：萬一沒預抓成功就重新抓
       const urlParams = new URLSearchParams(window.location.search);
       const userId = urlParams.get('userId') || "";
@@ -1957,7 +1979,7 @@
 
     // ===== 渲染 HTML =====
     function renderEquipmentBoxList(grouped) {
-      if (!cachedHeaders) cachedHeaders = ['名稱', '群組', '圖片', '編號', '型號', '除74車上外平常位置', '數量', '說明書連結', '預留位置', '預留位置2']; // 預設標題防止出錯
+      if (!cachedHeaders) cachedHeaders = ['名稱', '群組', '圖片', '編號', '型號', '除74車上外平常位置', '數量', '說明書連結', '預留位置', '預留位置2'];
 
       if (!document.getElementById("searchInput")) {
         document.getElementById("main-content").innerHTML = `
@@ -1970,7 +1992,6 @@
           >
           <div id="equipment-result"></div>
         `;
-
         document.getElementById("searchInput").addEventListener("input", filterEquipmentList);
       }
 
@@ -1987,21 +2008,47 @@
 
         grouped[groupName].forEach((item, i) => {
           const detailId = `${groupId}-item-${i}`;
+          const isWarning = ['維修中', '借出'].includes(item.data6);
+          
           html += `
-            <div class="item-summary">
+            <div class="item-summary" style="border: ${isWarning ? '2px solid red' : 'none'}; padding: 5px; margin-bottom: 5px;">
               <span><strong>${item.name}</strong></span>
               <button class="toggle-btn" onclick="toggleDetails('${detailId}')">展開</button>
             </div>
-            <div class="item-details" id="${detailId}" style="display:none;">
+            <div class="item-details" id="${detailId}" style="display:none; border: ${isWarning ? '2px solid red' : 'none'}; padding: 8px; margin-bottom: 15px;">
               <div class="item-detail-content">
                 <div class="item-text">
-                  <div><strong>${cachedHeaders[3] || '編號'}：</strong>${item.data1}</div>
+                  <div><strong>${cachedHeaders[3] || '裝備編號'}：</strong>${item.data1}</div>
                   <div><strong>${cachedHeaders[4] || '型號'}：</strong>${item.data2}</div>
                   <div><strong>${cachedHeaders[5] || '除74車上外平常位置'}：</strong>${item.data3}</div>
                   <div><strong>${cachedHeaders[6] || '數量'}：</strong>${item.data4}</div>
-                  <div><strong>${cachedHeaders[7] || '說明書連結'}：</strong>${item.data5}</div>
-                  <div><strong>${cachedHeaders[8] || '預留位置'}：</strong>${item.data6}</div>
-                  <div><strong>${cachedHeaders[9] || '預留位置2'}：</strong>${item.data7}</div>
+                  <div>
+                    <strong>${cachedHeaders[7] || '說明書連結'}：</strong>
+                    ${item.data5 && item.data5.startsWith('http') 
+                      ? `<a href="${item.data5}" target="_blank" class="link-button">🔗 查看</a>` 
+                      : '（無說明書）'}
+                  </div>
+
+                  <div>
+                    <label><strong>${cachedHeaders[8] || '目前位置'}：</strong></label>
+                    <select id="select-data6-${detailId}">
+                      <option value="">--在隊--</option>
+                      <option value="維修中" ${item.data6 === '維修中' ? 'selected' : ''}>維修中</option>
+                      <option value="借出" ${item.data6 === '借出' ? 'selected' : ''}>借出</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label><strong>${cachedHeaders[9] || '填表人'}：</strong></label>
+                    <input type="text" value="${item.data7 || ''}" disabled style="background:#f9f9f9;" />
+                  </div>
+                  <div class="data8-log-section" style="margin-top:10px;">
+                    <details>
+                      <summary style="cursor:pointer; color:#2c3e50;">🕒 查看歷史記錄</summary>
+                      <pre style="white-space:pre-wrap; background:#f4f4f4; padding:8px; border-radius:6px; margin-top:4px;">${item.data8 || '無時序紀錄'}</pre>
+                    </details>
+                  </div>
+
+                  <button onclick="saveStatus('${groupName}', ${i}, '${detailId}')">儲存狀態</button>
                 </div>
                 <div class="item-img">
                   ${item.image ? `<img src="https://drive.google.com/thumbnail?id=${item.image.trim()}&sz=w1000" />` : ''}
@@ -2016,7 +2063,99 @@
 
       document.getElementById("equipment-result").innerHTML = html;
     }
+    // ===== 保存更新狀態 =====
+    async function saveStatus(groupName, itemIndex, detailId) {
+      const selectData6 = document.getElementById(`select-data6-${detailId}`);
+      const newData6 = selectData6.value;
+      // 取網址 userId，強制覆寫 data7
+      const urlParams = new URLSearchParams(window.location.search);
+      const userId = urlParams.get('userId') || "";
+      const newData7 = userId;
+      
+      // 找出該筆資料物件
+      const item = originalGroupedData[groupName][itemIndex];
+      const saveButton = document.querySelector(`#${detailId} button`);
+      // 👉 先暫時關閉按鈕防止誤觸
+      saveButton.disabled = true;
+      saveButton.textContent = '儲存中...';
 
+
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId') || "";
+        const slotFromURL = "B5";
+        const url = 'https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec';
+        const response = await fetch(`${url}?slot=${slotFromURL}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain',
+          },
+          body: JSON.stringify({
+            userId: userId,
+            name: item.name,
+            group: groupName,
+            data6: newData6,
+            data7: newData7
+          }),
+        });
+
+        const result = await response.json();
+        console.log(result)
+        if (result.success) {
+          // 後端有回傳正確的姓名
+          const realName = result.updatedName || newData7;
+          // 更新本地資料狀態
+          item.data6 = newData6;
+          item.data7 = realName;
+          // ✅ 更好的提示效果（建議加上 CSS）
+          showToast('✅ 更新成功！');
+
+          loadEquipmentBoxList();  // 重新渲染以更新紅框顯示
+        } else {
+          alert('更新失敗，請稍後再試');
+        }
+      } catch (err) {
+        alert('更新發生錯誤，請稍後再試');
+        console.error(err);
+      } finally {
+        // ✅ 無論成功或失敗都恢復按鈕
+        saveButton.disabled = false;
+        saveButton.textContent = '儲存狀態';
+      }
+    }
+    // Toast 提示函數(防止誤觸按鈕設定)
+    function showToast(message, isError = false) {
+      const toast = document.createElement('div');
+      toast.textContent = message;
+      toast.style.position = 'fixed';
+      toast.style.bottom = '30px';
+      toast.style.left = '50%';
+      toast.style.transform = 'translateX(-50%)';
+      toast.style.padding = '12px 24px';
+      toast.style.background = isError ? '#e74c3c' : '#2ecc71';
+      toast.style.color = '#fff';
+      toast.style.borderRadius = '8px';
+      toast.style.fontSize = '16px';
+      toast.style.zIndex = 9999;
+      toast.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+      toast.style.opacity = '0';
+      toast.style.transition = 'opacity 0.3s ease';
+
+      document.body.appendChild(toast);
+
+      // fade in
+      setTimeout(() => {
+        toast.style.opacity = '1';
+      }, 100);
+
+      // remove after 2.5s
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => {
+          toast.remove();
+        }, 300);
+      }, 2500);
+    }
 
 
     // ===== 點開群組區塊 =====
