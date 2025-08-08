@@ -2107,10 +2107,21 @@
           // 更新本地資料狀態
           item.data6 = newData6;
           item.data7 = realName;
+          // 更新時序紀錄 data8
+          if (result.updateHistory !== undefined) {
+            console.log("後端回傳更新歷史:", result.updateHistory);
+            item.data8 = result.updateHistory;
+            // 更新該筆歷史記錄區塊內容，避免整張列表重新渲染（提升 UX）
+            console.log("找到 <pre> 元素，準備更新歷史記錄");
+            const preElem = document.querySelector(`#${detailId} .data8-log-section pre`);
+            if (preElem) {
+              preElem.textContent = item.data8;
+            }
+          }
           // ✅ 更好的提示效果（建議加上 CSS）
           showToast('✅ 更新成功！');
 
-          loadEquipmentBoxList();  // 重新渲染以更新紅框顯示
+          updateItemBorder(groupName, itemIndex);  // 重新渲染以更新紅框顯示
         } else {
           alert('更新失敗，請稍後再試');
         }
@@ -2156,7 +2167,36 @@
         }, 300);
       }, 2500);
     }
+    // ===== 單品反紅框邏輯 =====
+    function getGroupIndex(groupName) {
+      // 取得 groupName 在 cachedGroupedData 中的索引
+      return Object.keys(originalGroupedData).indexOf(groupName);
+    }
+    // ===== 單品反紅框邏輯 =====
+    function updateItemBorder(groupName, itemIndex) {
+      const item = originalGroupedData[groupName][itemIndex];
+      const groupIndex = getGroupIndex(groupName);
+      if (groupIndex === -1) return; // 找不到組別就跳出
 
+      // 組成該筆 item 的 detailId 和 summary 元素選擇器
+      const detailId = `group-${groupIndex}-item-${itemIndex}`;
+
+      // 你原本展開詳細資料 div id 就是 detailId，summary 旁邊的兄弟節點是 .item-summary
+      // 用 DOM 選取方式取得這兩個元素
+      const detailElem = document.getElementById(detailId);
+      // item-summary 是 detailElem 之前的兄弟節點（根據你的HTML結構）
+      // 這邊用 detailElem.previousElementSibling 或改用 document.querySelector 也行
+
+      const summaryElem = detailElem ? detailElem.previousElementSibling : null;
+
+      // 判斷是否要紅框
+      const isWarning = ['維修中', '借出'].includes(item.data6);
+      const borderStyle = isWarning ? '2px solid red' : 'none';
+
+      // 更新紅框
+      if (summaryElem) summaryElem.style.border = borderStyle;
+      if (detailElem) detailElem.style.border = borderStyle;
+    }
 
     // ===== 點開群組區塊 =====
     function toggleGroup(groupId) {
