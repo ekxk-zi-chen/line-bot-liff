@@ -2107,6 +2107,11 @@
           // 更新本地資料狀態
           item.data6 = newData6;
           item.data7 = realName;
+          // 更新填表人 input 的 value
+            const inputElem = document.querySelector(`#${detailId} input[disabled]`);
+            if (inputElem) {
+              inputElem.value = realName;
+            }
           // 更新時序紀錄 data8
           if (result.updateHistory !== undefined) {
             console.log("後端回傳更新歷史:", result.updateHistory);
