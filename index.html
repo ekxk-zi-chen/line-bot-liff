@@ -105,12 +105,12 @@
         }
     </style>
 </head>
-<body>
+    <body>
     <div class="form-container">
         <h1>花搜點麵線app</h1>
         
         <div id="github-notice" class="github-info">
-            <strong>此系統由特搜顏面擔當獨家贊助</strong><br>
+            <strong>此系統由特搜顏值擔當獨家贊助</strong><br>
             為您提供良好的使用體感！
         </div>
         
@@ -141,7 +141,7 @@
             
             <div class="form-group">
                 <label for="name">真實姓名：(請填寫真實姓名以利資料庫匹配)</label>
-                <input type="text" id="name" name="name" required>
+                <input type="text" id="name" name="name" required placeholder="請輸入您的真實姓名">
             </div>
 
             <div class="form-group">
@@ -156,400 +156,281 @@
     </div>
 
     <script>
-        console.log('GitHub Pages LIFF 應用啟動...');
-        
-        // 設定區域 - 請修改這些設定
+        // ---------- 設定區域 ----------
         const CONFIG = {
-            LIFF_ID: "2007782293-RgkE5pPW", // 你的 LIFF ID
-            APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec", // 請替換為你的 Apps Script 網址
-            DEBUG_: false // 開發時設為 true，正式上線可設為 false
+        LIFF_ID: "2007782293-RgkE5pPW", // 這是測試版2007902018-KwZPL9kE//這是正式版2007782293-RgkE5pPW
+        APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec",
+        DEBUG_: true
         };
         
-        let loginAttempts = 0;
-        const MAX_LOGIN_ATTEMPTS = 3;
-        let isLiffReady = false;
-        let submitRetries = 0;
-        const MAX_SUBMIT_RETRIES = 3;
-        
-        function showStatus(msg, type = 'info') {
-            console.log(msg);
-            const statusEl = document.getElementById('status');
-            statusEl.textContent = msg;
-            statusEl.className = 'status';
-            if (type === 'error') {
-                statusEl.className += ' error';
-            } else if (type === 'success') {
-                statusEl.className += ' success';
-            }
+        let ID_TOKEN = null; // 改成用 idToken
+        let PROFILE = null;
+        const SLOT = new URLSearchParams(window.location.search).get('slot');
+
+        // ----- 便利函式（顯示狀態、除錯） -----
+        function showStatus(msg, type = 'info'){
+        const el = document.getElementById('status');
+        el.textContent = msg;
+        el.className = 'status';
+        if(type==='error') el.className += ' error';
+        if(type==='success') el.className += ' success';
         }
-        
-        function addDebugInfo(info) {
-            if (!CONFIG.DEBUG_) return;
-            
-            const debugEl = document.getElementById('debug-content');
-            const time = new Date().toLocaleTimeString();
-            debugEl.innerHTML += `<div>[${time}] ${info}</div>`;
-            document.getElementById('debug-info').style.display = 'block';
+        function addDebugInfo(info){
+        if(!CONFIG.DEBUG_) return;
+        const debugEl = document.getElementById('debug-content');
+        debugEl.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${info}</div>`;
+        document.getElementById('debug-info').style.display='block';
         }
 
-        // 改良的 LIFF 初始化函數
-        async function startLiff() {
+        function UrlSlotParam(slotValue) {
+            if  (["", null, undefined, "null", "undefined"].includes(slotValue)) {
+                alert("缺少參數無法查詢任何資料");
+            } else {
+                
+                window.location.href = url.toString();
+            }
+        }
+
+
+        async function startApp() {
+            showStatus('檢查本機 session...');
+            
+            const localSession = localStorage.getItem('sessionToken');
+            addDebugInfo('本機 sessionToken: ' + localSession);
+            if (localSession) {
+                addDebugInfo('找到本機 session，嘗試後端驗證...');
+                const result = await verifyTokenAtServer(null, localSession); // 傳 session 驗證
+                if (result && result.status === 'ok') {
+                    
+                    addDebugInfo('本機 session 驗證成功 ' + result.slot + ' 依照slot值切換子頁面' + result.message);
+                    addDebugInfo(JSON.stringify(result));
+                    setTimeout(() => {
+                        UrlSlotParam(verifyResult.slot);
+                    }, 1500);
+                                        
+                }
+                addDebugInfo('本機 session 無效或過期，重新登入 LINE');
+                localStorage.removeItem('sessionToken');  // 清除失效 token
+            }
+            // 沒 session 或驗證失敗 → 走原本的 LIFF 登入
+            startLiff();
+        }
+
+
+        // ----- LIFF 初始化 -----
+        async function startLiff(){
             showStatus('開始初始化 LIFF');
-            addDebugInfo('開始 LIFF 初始化 - GitHub Pages 環境');
-            
-            try {
-                // 確保 LIFF SDK 已載入
-                if (typeof liff === 'undefined') {
-                    throw new Error('LIFF SDK 未載入');
-                }
-                
-                // 初始化 LIFF
-                await liff.init({ liffId: CONFIG.LIFF_ID });
-                
-                isLiffReady = true;
-                showStatus('LIFF 初始化完成');
-                addDebugInfo('LIFF 初始化成功');
-                addDebugInfo('LIFF 版本: ' + (liff.getVersion ? liff.getVersion() : '未知'));
-                addDebugInfo('是否在 LINE 中: ' + liff.isInClient());
-                addDebugInfo('OS: ' + liff.getOS());
-                
-                // 檢查登入狀態
-                const isLoggedIn = liff.isLoggedIn();
-                addDebugInfo('登入狀態: ' + (isLoggedIn ? '已登入' : '未登入'));
-                
-                if (isLoggedIn) {
-                    showStatus('已登入，取得使用者資料中');
-                    const profile = await getUserProfile();
-                    if (profile) {
-                        await showUserInfo(profile);
-                    }
-                } else {
-                    showLoginOptions();
-                }
-                
-            } catch (error) {
-                showStatus('LIFF 初始化失敗: ' + error.message, 'error');
-                addDebugInfo('錯誤詳情: ' + JSON.stringify(error));
-                console.error('LIFF Error:', error);
-                
-                // 如果是在 LINE 內但初始化失敗，嘗試重新整理
-                if (window.location.href.includes('line')) {
-                    addDebugInfo('偵測到在 LINE 環境內，3 秒後嘗試重新載入');
-                    setTimeout(() => {
-                        location.reload();
-                    }, 3000);
-                }
-            }
-        }
-        
-        function showLoginOptions() {
-            loginAttempts++;
-            if (loginAttempts > MAX_LOGIN_ATTEMPTS) {
-                showStatus('登入嘗試次數過多，請重新載入頁面', 'error');
+            addDebugInfo('LIFF 初始化中...');
+            if(typeof liff === 'undefined'){
+                showStatus('LIFF SDK 未載入', 'error');
+                addDebugInfo('LIFF SDK 未載入');
                 return;
-            }
-            
-            showStatus('需要登入 LINE 帳號');
-            document.getElementById('login-section').style.display = 'block';
-            
-            // 登入按鈕
-            document.getElementById('manual-login-btn').onclick = function() {
-                addDebugInfo('使用者點擊登入按鈕');
-                this.disabled = true;
-                this.textContent = '登入中...';
-                
-                try {
-                    if (!isLiffReady) {
-                        throw new Error('LIFF 尚未初始化完成');
-                    }
+             }
+
+            try{
+                await liff.init({ liffId: CONFIG.LIFF_ID });
+                addDebugInfo('LIFF 初始化成功');
+                addDebugInfo('isInClient: ' + liff.isInClient());
+
+                if(!liff.isLoggedIn()){
+                    showLoginOptions();
+                    return;
+                }
+                // 測試時允許，看情況上架要不要打開return
+                if(!liff.isInClient()){
+                    addDebugInfo('目前非使用line打開');
+                    // alert('請使用 LINE App 開啟本頁面');
+                    // return;
+                }
+
+                // 取得 idToken (JWT)
+                ID_TOKEN = liff.getIDToken();
+                addDebugInfo('取得 idToken（JWT）長度: ' + (ID_TOKEN ? ID_TOKEN.length : 0));
+
+                showStatus('驗證中，請稍後...', 'info');
+
+                const verifyResult = await verifyTokenAtServer(ID_TOKEN);
+
+
+                if (!verifyResult || verifyResult.status === 'error') {
+                    // idToken 失效，強制重新登入
+                    liff.logout();
                     liff.login();
-                } catch (error) {
-                    showStatus('登入失敗: ' + error.message, 'error');
-                    addDebugInfo('登入錯誤: ' + error.message);
-                    this.disabled = false;
-                    this.textContent = '登入 LINE';
+                    return;
                 }
-            };
-            
-            // 重新載入按鈕
-            document.getElementById('refresh-btn').onclick = function() {
-                location.reload();
-            };
-        }
-        
-        async function getUserProfile() {
-            try {
-                const profile = await liff.getProfile();
-                addDebugInfo('成功取得使用者資料: ' + profile.displayName);
-                addDebugInfo('User ID: ' + profile.userId);
-                return profile;
-            } catch (error) {
-                showStatus('無法取得使用者資料: ' + error.message, 'error');
-                addDebugInfo('取得資料錯誤: ' + error.message);
-                throw error;
+                if(verifyResult && verifyResult.status === 'ok'){
+                    
+                    addDebugInfo(JSON.stringify(verifyResult));
+
+                    setTimeout(() => {
+                        UrlSlotParam(verifyResult.slot);
+                    }, 1500);
+                    return;
+                }
+
+                if(verifyResult && verifyResult.status === 'needsignup'){
+                    addDebugInfo('這裡跳轉報名的網頁!');
+                    setTimeout(() => {
+                        window.location.href = `signup.html`;
+                    }, 1500);
+                    return;
+                }
+
+                if(verifyResult && verifyResult.status === 'needformdata'){
+                    addDebugInfo('使用者需填寫申請表單');
+                    // 不用 await liff.getProfile()，直接用後端回傳的資料
+                    renderForm({
+                        userId: verifyResult.userId,
+                        displayName: verifyResult.displayName
+                    });
+                    return;
+                }
+
+            }catch(err){
+                console.error(err);
+                addDebugInfo('初始化或驗證錯誤: ' + err.message);
+                showStatus('系統發生錯誤，請稍後重試', 'error');
             }
         }
-        
-        async function showUserInfo(profile) {
-            showStatus('身分查核中請稍後...', 'success');
-            addDebugInfo('正在檢查是否已有對應連結...');
-        
-            // 基本顯示
-            document.getElementById('display-name').textContent = profile.displayName;
-            document.getElementById('user-id').textContent = profile.userId;
-            document.getElementById('lineUserId').value = profile.userId;
-        
+
+        // ----- 顯示登入選項 -----
+        function showLoginOptions(){
+        showStatus('需要登入 LINE');
+        document.getElementById('login-section').style.display='block';
+        // https://a1474eb2e9ae.ngrok-free.app/index-test.html
+        // 測試時這裡會改成這樣{ redirectUri: 'https://a1474eb2e9ae.ngrok-free.app/index-test.html' }
+        // 正式時要改成liff.login
+        document.getElementById('manual-login-btn').onclick = ()=> liff.login({ redirectUri: 'https://a1474eb2e9ae.ngrok-free.app/index-test.html' });
+        document.getElementById('refresh-btn').onclick = ()=> location.reload();
+        }
+
+        // ----- 呼叫後端驗證函式（把 idToken 送給 Apps Script） -----
+        async function verifyTokenAtServer(idToken, sessionToken) {
             try {
-                // 改良的 fetch 請求 - 增加更多重試機制
-                const url = `${CONFIG.APPS_SCRIPT_URL}?userId=${encodeURIComponent(profile.userId)}&slot=${encodeURIComponent(SLOT)}&t=${Date.now()}`;
-
-                addDebugInfo('查詢網址: ' + url);
-
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超時
-                
-                const response = await fetch(url, {
-                    method: 'GET',
-                    mode: 'cors',  // 明確啟用 CORS
-                    headers: {
-                        'Accept': 'application/json'
-                    }
+                const payload = JSON.stringify({
+                    idToken: idToken || null,
+                    sessionToken: sessionToken || null,
+                    slot: SLOT
                 });
-                  
-                clearTimeout(timeoutId);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                addDebugInfo('伺服器回應: ' + JSON.stringify(data));
-                
-                if (data.status === "ok" && data.redirectUrl && data.redirectUrl.trim() !== "") {
-                    addDebugInfo('找到 redirectUrl，準備跳轉：' + data.redirectUrl);
-                    window.location.href = data.redirectUrl;
-                    return;
-                } else if (data.status === "needsignup") {
-                    addDebugInfo('初次登入成功進入報名介面，直接跳轉 signup.html');
-                    window.location.href = `signup.html?userId=${encodeURIComponent(profile.userId)}`;
-                    return;
-                } else if (data.status === "special") {
-                    addDebugInfo('收到特殊資料，直接跳轉 Registration_form.html');
-                    window.location.href = `Registration_form.html?userId=${encodeURIComponent(profile.userId)}`;
-                    return;
-                } else if (data.status === "richmenu_3") {
-                    addDebugInfo('選單3，直接跳轉 richmenu_3.html');
-                    window.location.href = `richmenu_3.html?userId=${encodeURIComponent(profile.userId)}`;
-                    return;
-                } else if (data.status === "richmenu_4") {
-                    addDebugInfo('選單3，直接跳轉 richmenu_4.html');
-                    window.location.href = `richmenu_4.html?userId=${encodeURIComponent(profile.userId)}`;
-                    return;
-                } else {
-                    addDebugInfo('未找到資料或格式錯誤');
-                }
+                addDebugInfo('送出驗證請求 payload=' + payload.length);
 
-            } catch (error) {
-                addDebugInfo('查詢失敗：' + error.message);
-                if (error.name === 'AbortError') {
-                    addDebugInfo('請求超時');
-                }
-            }
-            
-            // 如果沒有跳轉，顯示表單
-            addDebugInfo('未找到 redirectUrl 或查詢失敗，顯示表單');
-            renderForm(profile);
-        }
-
-        // 重試機制的提交函數
-        async function submitFormWithRetry(formData, retryCount = 0) {
-            const btn = document.getElementById('submit-btn');
-            
-            if (retryCount === 0) {
-                btn.disabled = true;
-                btn.textContent = '送出中...';
-                submitRetries = 0;
-            }
-            
-            try {
-                addDebugInfo(`提交嘗試 ${retryCount + 1}/${MAX_SUBMIT_RETRIES + 1}`);
-                addDebugInfo('準備發送資料: ' + JSON.stringify(formData));
-                
-                // 使用更寬鬆的 fetch 設定和超時控制
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超時
-                
-                const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
+                const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // 改為 no-cors 模式來避免 CORS 問題
-                    cache: 'no-cache',
-                    headers: {
-                        'Content-Type': 'application/json', // 改為 text/plain 避免 preflight
-                    },
-                    body: JSON.stringify(formData),
-                    signal: controller.signal
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: payload
                 });
-                
-                clearTimeout(timeoutId);
-                
-                // 在 no-cors 模式下，我們無法讀取回應內容
-                // 但如果請求成功發送，就假設成功
-                addDebugInfo('請求已發送 (no-cors 模式)');
-                showStatus('送出成功！', 'success');
-                
-                // 重置表單
-                document.getElementById('myForm').reset();
-                document.getElementById('lineUserId').value = document.getElementById('user-id').textContent;
-                
-                // 如果在 LINE 內，2秒後關閉視窗
-                if (liff.isInClient()) {
-                    setTimeout(() => {
-                        addDebugInfo("取得目前網址#1" + window.location.search);
-                        showStatus("取得目前網址#2" + window.location.search);
 
-                        const userId = document.getElementById('user-id').textContent;
-                        window.location.href = 'signup.html?userId=' + encodeURIComponent(userId);
-                        addDebugInfo("跳轉目前網址#3" + window.location.href);
-                        showStatus("跳轉目前網址#4" + window.location.href);
-                        
-                    }, 2000);
-                }
-                
+                if (!res.ok) throw new Error('伺服器回應錯誤: ' + res.status);
+                const data = await res.json();
 
-                
-            } catch (error) {
-                addDebugInfo('發送錯誤: ' + error.message);
-                
-                // 如果還有重試機會，則重試
-                if (retryCount < MAX_SUBMIT_RETRIES) {
-                    submitRetries++;
-                    addDebugInfo(`將在 ${2 + retryCount} 秒後重試...`);
-                    
-                    // 顯示重試訊息
-                    showStatus(`發送失敗，${2 + retryCount} 秒後重試... (${retryCount + 1}/${MAX_SUBMIT_RETRIES})`, 'error');
-                    
-                    setTimeout(() => {
-                        submitFormWithRetry(formData, retryCount + 1);
-                    }, (2 + retryCount) * 1000);
-                    
-                    return;
+                // 如果後端給新的 sessionToken 就存起來
+                if (data.sessionToken) {
+                    localStorage.setItem('sessionToken', data.sessionToken);
                 }
-                
-                // 所有重試都失敗
-                showStatus('送出失敗：' + error.message + ' (已重試 ' + MAX_SUBMIT_RETRIES + ' 次)', 'error');
-                
-                // 顯示重試提示
-                const retryInfo = document.createElement('div');
-                retryInfo.className = 'retry-info';
-                retryInfo.innerHTML = `
-                    <strong>提交失敗可能原因：</strong><br>
-                    • 網路連線問題<br>
-                    • Google Apps Script 服務暫時無法存取<br>
-                    • CORS 政策限制<br><br>
-                    請稍後再試，或聯繫系統管理員。
-                `;
-                document.getElementById('myForm').appendChild(retryInfo);
-                
-            } finally {
-                btn.disabled = false;
-                btn.textContent = '送出表單';
+
+                return data;
+            } catch (err) {
+                addDebugInfo('verifyTokenAtServer 錯誤: ' + err.message);
+                return null;
             }
         }
 
-        // 表單提交事件
-        document.getElementById('myForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // 移除之前的重試訊息
-            const existingRetryInfo = document.querySelector('.retry-info');
-            if (existingRetryInfo) {
-                existingRetryInfo.remove();
-            }
-            
-            const formData = {
-                timestamp: new Date().toLocaleString('zh-TW'),
-                lineUserId: document.getElementById('lineUserId').value,
-                displayName: document.getElementById('display-name').textContent,
-                name: document.getElementById('name').value,
-                message: document.getElementById('message').value,
-                slot: SLOT,
-                source: 'github-pages-fixed-v2'
-            };
-            
-            submitFormWithRetry(formData);
-        });
-
-        // 負責顯示使用者資訊與表單
-        function renderForm(profile) {
-            document.getElementById('display-name').textContent = profile.displayName;
-            document.getElementById('user-id').textContent = profile.userId;
-            document.getElementById('lineUserId').value = profile.userId;
-        
+        // ----- 表單顯示 -----
+        function renderForm(profile){
+            document.getElementById('display-name').textContent = profile.displayName || '';
+            document.getElementById('user-id').textContent = '(已隱藏)';
             document.getElementById('user-info').style.display = 'block';
             document.getElementById('login-section').style.display = 'none';
             document.getElementById('myForm').style.display = 'block';
             document.getElementById('status').style.display = 'none';
             document.getElementById('github-notice').style.display = 'none';
+            document.getElementById('lineUserId').value = profile.userId || '';
+
         }
-        
-        // 檢查環境
-        function checkEnvironment() {
-            addDebugInfo('環境檢測 - GitHub Pages');
-            addDebugInfo('User Agent: ' + navigator.userAgent);
-            addDebugInfo('當前網址: ' + window.location.href);
-            addDebugInfo('主機名稱: ' + window.location.hostname);
-            addDebugInfo('是否 HTTPS: ' + (location.protocol === 'https:'));
-            
-            if (typeof liff === 'undefined') {
-                showStatus('LIFF SDK 載入失敗', 'error');
-                addDebugInfo('LIFF SDK 未載入');
-                return false;
+
+        // ----- 表單提交（只嘗試一次） -----
+        async function submitForm(formData){
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.textContent = '送出中...';
+            let lastSubmitSuccess = false;  // <-- 這裡新增旗標
+            try{
+                if(!ID_TOKEN && liff.isLoggedIn()){
+                ID_TOKEN = liff.getIDToken();
+                }
+
+                const payloadObj = Object.assign({}, formData, { idToken: ID_TOKEN, slot: SLOT, source: 'github-pages-fixed-v2' });
+                const payload = JSON.stringify(payloadObj);
+
+                addDebugInfo('提交 payload 長度: ' + payload.length);
+
+                const controller = new AbortController();
+                const timeout = setTimeout(()=>controller.abort(), 15000);
+
+                const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: payload,
+                signal: controller.signal
+                });
+
+                clearTimeout(timeout);
+                // 以下這句是伺服器回應
+                if(!res.ok) throw new Error('伺服器回應 ' + res.status);
+
+                const data = await res.json();
+                addDebugInfo('後端回應: ' + JSON.stringify(data));
+
+                if(data.status === 'needsighup'){
+                    lastSubmitSuccess = true;  // 送出成功才設成 true，避免 finally 把按鈕又啟用
+                    showStatus('送出成功！', 'success');
+                    document.getElementById('myForm').reset();
+                    // 之候補跳轉邏輯
+                    addDebugInfo('後端回應: ' + data.message + '，2秒後將跳轉');
+                    setTimeout(() => {
+                    window.location.href = `signup.html`;
+                    }, 1500);
+
+                } else {
+                    showStatus('送出失敗: ' + (data.message || '未知原因'), 'error');
+                    btn.disabled = false;  // 失敗才恢復可按
+                    btn.textContent = '送出表單';
+                }
+
+            }catch(err){
+                addDebugInfo('提交錯誤: ' + err.message);
+                showStatus('送出失敗，請稍後再試', 'error');
+            }finally{
+                if(lastSubmitSuccess !== true){
+                    btn.disabled = false;
+                    btn.textContent = '送出表單';
+                }
             }
-            
-            addDebugInfo('LIFF SDK 載入成功');
-            return true;
         }
 
-        function getQueryParam(param) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(param);
-        }
-        
-        const SLOT = getQueryParam('slot');
-        addDebugInfo('收到 slot 參數: ' + SLOT);
-
-
-        
-        // 頁面載入完成後初始化
-        window.addEventListener('load', function() {
-            console.log('GitHub Pages 頁面載入完成');
-            addDebugInfo('頁面載入完成 - GitHub Pages 環境');
-            
-            if (checkEnvironment()) {
-                // 延遲啟動，確保所有資源都已載入
-                setTimeout(() => {
-                    startLiff();
-                }, 1000);
-            } else {
-                // 如果環境檢查失敗，嘗試重新載入
-                setTimeout(() => {
-                    location.reload();
-                }, 3000);
-            }
+        // ----- 綁定表單提交 -----
+        document.getElementById('myForm').addEventListener('submit', function(e){
+            e.preventDefault();
+            const formData = {
+                timestamp: new Date().toLocaleString('zh-TW'),
+                displayName: document.getElementById('display-name').textContent,
+                lineUserId: document.getElementById('lineUserId').value,
+                name: document.getElementById('name').value,
+                message: document.getElementById('message').value
+            };
+            submitForm(formData);
         });
 
-        // 錯誤處理
-        window.addEventListener('error', function(e) {
-            addDebugInfo('頁面錯誤: ' + e.message + ' 於 ' + e.filename + ':' + e.lineno);
-            console.error('Page Error:', e);
-        });
-        
-        // 處理 Promise 錯誤
-        window.addEventListener('unhandledrejection', function(e) {
-            addDebugInfo('未處理的 Promise 錯誤: ' + e.reason);
-            console.error('Unhandled Promise Rejection:', e);
+        // ----- 初始化流程 -----
+        window.addEventListener('load', function(){
+        addDebugInfo('頁面載入');
+        if(typeof liff === 'undefined'){
+            showStatus('LIFF SDK 載入失敗', 'error');
+            return;
+        }
+        setTimeout(()=> startApp(), 800);
         });
     </script>
+
 </body>
 </html>
-
