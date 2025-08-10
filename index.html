@@ -186,7 +186,7 @@
         async function startApp() {
             try {
                 showStatus('檢查本機 session...');
-            
+        
                 const localSession = localStorage.getItem('sessionToken');
                 addDebugInfo('本機 sessionToken: ' + localSession);
                 if (localSession) {
@@ -197,29 +197,33 @@
                         addDebugInfo('本機 session 驗證成功 ' + result.slot + ' 依照slot值切換子頁面' + result.message);
                         addDebugInfo(JSON.stringify(result));
                         addDebugInfo('後端回傳 result: ' + (result ? JSON.stringify(result) : String(result)));
-                
+        
                         if (result.slot === "B5") {
+                            addDebugInfo('等待 5 秒後跳轉 richmenu_4.html');
                             setTimeout(() => {
-                              window.location.href = `richmenu_4.html?slot=${encodeURIComponent(result.url)}`;
-                            }, 5000); // 5000 毫秒 = 5 秒
-
-                            return;  // 跳轉後結束流程
+                                window.location.href = `richmenu_4.html?slot=${encodeURIComponent(result.url)}`;
+                            }, 5000);
+                            return;  // 這裡回傳結束 startApp，不執行下面 startLiff()
                         }
                     } else {
                         // 驗證失敗才刪除
                         addDebugInfo('本機 session 無效或過期，重新登入 LINE');
                         localStorage.removeItem('sessionToken');  // 清除失效 token
+                        startLiff(); // 驗證失敗時呼叫
+                        return;
                     }
+                } else {
+                    // 沒有 sessionToken 時呼叫
+                    startLiff();
+                    return;
                 }
-
-                // 沒 session 或驗證失敗 → 走原本的 LIFF 登入
-                startLiff();
             } catch (e) {
-
-            addDebugInfo('startApp 發生錯誤: ' + e.message);
-            showStatus('系統錯誤，請稍後重試', 'error');
+                addDebugInfo('startApp 發生錯誤: ' + e.message);
+                showStatus('系統錯誤，請稍後重試', 'error');
+                startLiff();
             }
         }
+
 
 
         // ----- LIFF 初始化 -----
@@ -441,6 +445,7 @@
 
 </body>
 </html>
+
 
 
 
