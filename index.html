@@ -211,9 +211,7 @@
         
                         if (result.slot === "B5") {
                             addDebugInfo('等待 5 秒後跳轉 richmenu_4.html');
-                            setTimeout(() => {
-                                window.location.href = `richmenu_4.html?slot=${encodeURIComponent(result.url)}`;
-                            }, 12000);
+                            window.location.href = `richmenu_4.html?slot=${encodeURIComponent(result.url)}`;
                             return;  // 這裡回傳結束 startApp，不執行下面 startLiff()
                         }
                     } else {
@@ -284,9 +282,7 @@
 
                     // 跳轉子頁面
                     if (verifyResult.slot === "B5"){
-                        setTimeout(() => {
-                            window.location.href = `richmenu_4.html?slot=${encodeURIComponent(result.url)}`;
-                        }, 12000);
+                        window.location.href = `richmenu_4.html?slot=${encodeURIComponent(result.url)}`;
                         return;  // 跳轉後結束流程
                     }
                     return;
@@ -458,6 +454,7 @@
 
 </body>
 </html>
+
 
 
 
