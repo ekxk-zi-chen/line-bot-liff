@@ -185,19 +185,6 @@
 
         async function startApp() {
             try {
-                showStatus('檢查本機 session...');
-                showStatus('開始初始化 LIFF');
-                addDebugInfo('LIFF 初始化中...');
-                
-                await liff.init({ liffId: CONFIG.LIFF_ID });
-                addDebugInfo('LIFF 初始化成功');
-                
-                // 初始化完成後，讀取 LIFF URL 參數
-                const urlParams = new URLSearchParams(window.location.search);
-                const slot = urlParams.get('slot');
-                addDebugInfo('從 LIFF URL 取得 slot: ' + slot);
-
-                
                 const localSession = localStorage.getItem('sessionToken');
                 addDebugInfo('本機 sessionToken: ' + localSession);
                 if (localSession) {
@@ -455,6 +442,7 @@
 
 </body>
 </html>
+
 
 
 
