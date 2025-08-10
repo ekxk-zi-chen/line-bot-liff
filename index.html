@@ -210,7 +210,6 @@
                         addDebugInfo('後端回傳 result: ' + (result ? JSON.stringify(result) : String(result)));
         
                         if (result.slot === "B5") {
-                            addDebugInfo('等待 5 秒後跳轉 richmenu_4.html');
                             window.location.href = `richmenu_4.html?slot=${encodeURIComponent(result.url)}`;
                             return;  // 這裡回傳結束 startApp，不執行下面 startLiff()
                         }
@@ -218,18 +217,20 @@
                         // 驗證失敗才刪除
                         addDebugInfo('本機 session 無效或過期，重新登入 LINE');
                         localStorage.removeItem('sessionToken');  // 清除失效 token
-                        startLiff(); // 驗證失敗時呼叫
+                        throw new Error('sessionToken 無效或過期');
+                        
                         return;
                     }
                 } else {
                     // 沒有 sessionToken 時呼叫
-                    startLiff();
-                    return;
+                    throw new Error('沒有本機 sessionToken');
                 }
             } catch (e) {
                 addDebugInfo('startApp 發生錯誤: ' + e.message);
                 showStatus('系統錯誤，請稍後重試', 'error');
-                startLiff();
+                setTimeout(() => {
+                    startLiff();
+                  }, 5000);
             }
         }
 
@@ -454,6 +455,7 @@
 
 </body>
 </html>
+
 
 
 
