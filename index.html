@@ -195,12 +195,14 @@
                     if (result && result.status === 'ok') {
                         addDebugInfo('本機 session 驗證成功 ' + result.slot + ' 依照slot值切換子頁面' + result.message);
                         addDebugInfo(JSON.stringify(result));
+                        addDebugInfo('後端回傳 result: ' + (result ? JSON.stringify(result) : String(result)));
+
                         if (result.slot === "B5"){
                             window.location.href = `richmenu_4.html?slot=${encodeURIComponent(result.url)}`;
                             return;  // 跳轉後結束流程
                         }
                         // 成功驗證且不跳轉，直接 return 或繼續流程，避免刪除 session
-                        return;
+                        //return;
                     } else {
                         // 驗證失敗才刪除
                         addDebugInfo('本機 session 無效或過期，重新登入 LINE');
@@ -437,6 +439,7 @@
 
 </body>
 </html>
+
 
 
 
