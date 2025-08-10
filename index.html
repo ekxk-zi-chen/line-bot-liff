@@ -201,15 +201,12 @@
                             window.location.href = `richmenu_4.html?slot=${encodeURIComponent(result.url)}`;
                             return;  // 跳轉後結束流程
                         }
-                        // 成功驗證且不跳轉，直接 return 或繼續流程，避免刪除 session
-                        //return;
-                    } else {
+                    }
                         // 驗證失敗才刪除
                         addDebugInfo('本機 session 無效或過期，重新登入 LINE');
                         localStorage.removeItem('sessionToken');  // 清除失效 token
-                    }
-                }
 
+                }
                 // 沒 session 或驗證失敗 → 走原本的 LIFF 登入
                 startLiff();
             } catch (e) {
@@ -439,6 +436,7 @@
 
 </body>
 </html>
+
 
 
 
