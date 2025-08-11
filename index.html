@@ -200,9 +200,9 @@
                     
                     addDebugInfo('sessionToken 前後對比：' + localSession + ' -> ' + (result.sessionToken || '無'));
                     if (result && result.status === 'ok') {
-                        addDebugInfo('本機 session 驗證成功 ' + result.slot + ' 依照slot值切換子頁面' + result.message);
+                        addDebugInfo('本機 session 驗證成功 ' + 'slot=  ' + result.slot + ' 依照slot值切換子頁面' + result.message);
                         addDebugInfo(JSON.stringify(result));
-                        addDebugInfo('後端回傳 result: ' + (result ? JSON.stringify(result) : String(result)));
+
         
                         if (result.slot === "B5") {
                             window.location.href = `richmenu_4.html?slot=${encodeURIComponent(result.url)}`;
@@ -449,4 +449,5 @@
 
 </body>
 </html>
+
 
