@@ -333,9 +333,10 @@
                     headers: { 'Content-Type': 'text/plain' },
                     body: payload
                 });
-
+                
                 if (!res.ok) throw new Error('伺服器回應錯誤: ' + res.status);
                 const data = await res.json();
+                addDebugInfo('verifyTokenAtServer 後端回傳全部資料：' + JSON.stringify(data));
                 addDebugInfo('後端回傳的臨時通行證 sessionToken: ' + (data.sessionToken || '無'));
                 // 如果後端給新的 sessionToken 就存起來
                 if (data.sessionToken) {
@@ -448,3 +449,4 @@
 
 </body>
 </html>
+
