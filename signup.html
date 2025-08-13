@@ -137,7 +137,6 @@
         </label>
       </div>
     
-      <input type="hidden" name="userId" id="userIdField" />
     
       <button type="submit">送出</button>
       <div id="status"></div>
@@ -145,86 +144,154 @@
   </div>
 
   <script>
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec";
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('userId');
-    const title_script = urlParams.get('script');
-    const SLOT = "signup";
-  
-    if (!userId) {
-      document.getElementById('form').style.display = 'none';
-      document.getElementById('status').innerText = '無法取得使用者資訊，請重新開啟頁面。';
-    } else {
-      document.getElementById('userIdField').value = userId;
+    // === 設定 ===
+    const CONFIG = {
+      APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec",
+      INDEX_PAGE: "index.html",     // 主頁（第一段程式碼所在頁）
+      Registration_PAGE: "Registration_form.html",
+      DEBUG: true
+    };
+
+    // === 工具 ===
+    const url = new URL(location.href);
+    const SLOT = url.searchParams.get('slot') || "B2"; // 預設此頁屬 B2（signup）
+    const sessionToken = localStorage.getItem('sessionToken');
+
+    function log(msg){
+      if(CONFIG.DEBUG) console.log("[signup]", msg);
     }
-  
-    if (title_script) {
-      document.getElementById('script').textContent = title_script;
+
+    function redirectToIndex(reason){
+      try { localStorage.removeItem('sessionToken'); } catch(e){}
+      const qs = new URLSearchParams({ slot: SLOT, reason: reason || 'expired' });
+      location.replace(`${CONFIG.INDEX_PAGE}?${qs.toString()}`);
     }
-  
-    const joinRadios = document.querySelectorAll('input[name="join"]');
-    const reasonInput = document.getElementById('reasonInput');
-    const reasonLabel = document.getElementById('reasonLabel');
-  
-    function toggleReasonField() {
-      let selected = null;
-      joinRadios.forEach(radio => {
-        if (radio.checked) selected = radio.value;
-      });
-      if (selected === "不參加") {
-        reasonInput.style.display = "block";
-        reasonLabel.style.display = "block";
-      } else {
-        reasonInput.style.display = "none";
-        reasonLabel.style.display = "none";
-        reasonInput.value = "";
+
+    async function verifySession(){
+      if(!sessionToken){
+        log("沒有 sessionToken，回主頁重認證");
+        redirectToIndex('nosession');
+        return;
       }
-    }
-  
-    joinRadios.forEach(radio => {
-      radio.addEventListener('change', toggleReasonField);
-    });
-    toggleReasonField(); // 頁面初始狀態
-  
-    document.getElementById('form').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const formData = new FormData(this);
-      const data = {};
-      formData.forEach((value, key) => {
-        data[key] = value;
-      });
-  
-      // 如果選擇參加，清空 reason
-      if (data.join === "參加") {
-        data.reason = "";
-      }
-  
-      fetch(`${APPS_SCRIPT_URL}?slot=${encodeURIComponent(SLOT)}&userId=${encodeURIComponent(userId)}`, {
-        method: "POST",
-        body: JSON.stringify(data),
-        mode: 'no-cors',
-        cache: 'no-cache',
-        headers: {
-          "Content-Type": "application/json"
+      try{
+        const payload = JSON.stringify({
+          sessionToken,
+          slot: SLOT
+        });
+
+        const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" }, // 與第一段相同，避免 CORS 預檢
+          body: payload
+        });
+        if(!res.ok) throw new Error("HTTP " + res.status);
+
+        const data = await res.json();
+        log(["後端驗證回應", data]);
+
+        // 過期/無效 → 回主頁重認證（帶回 slot）
+        if(!data || data.status === 'error' || data.status === 'expired'){
+          redirectToIndex('expired');
+          return;
         }
-      }).catch(err => {
-        console.warn('送出失敗，但不影響流程', err);
-      });
-  
-      if (window.liff && liff.isInClient()) {
-        this.querySelector('button[type="submit"]').disabled = true;
-        setTimeout(() => {
-          window.location.href = 'Registration_form.html?userId=' + userId;
-        }, 2000);
-      } else {
-        document.getElementById('status').innerText = '已送出，感謝填寫！';
-        this.querySelector('button[type="submit"]').disabled = true;
-        setTimeout(() => {
-          window.location.href = 'Registration_form.html?userId=' + userId;
-        }, 2000);
+
+
+        // === 驗證成功，準備顯示表單 ===
+        // 後端若有回 userId/script 就帶入（沒有也不影響，表單送出靠 session）
+        if (data.script) document.getElementById('script').textContent = data.script;
+
+        document.getElementById('form').style.display = 'block';
+
+      }catch(err){
+        log(err);
+        // 網路或解析錯誤，保守做法：回主頁重認證
+        log("網路錯誤")
+        redirectToIndex('network');
       }
+    }
+
+    // === UI：是否參加 -> 顯示/隱藏原因 ===
+    function wireReasonField(){
+      const joinRadios = document.querySelectorAll('input[name="join"]');
+      const reasonInput = document.getElementById('reasonInput');
+      const reasonLabel = document.getElementById('reasonLabel');
+
+      function toggle(){
+        const selected = [...joinRadios].find(r => r.checked)?.value;
+        if (selected === "不參加"){
+          reasonInput.style.display = "block";
+          reasonLabel.style.display = "block";
+        }else{
+          reasonInput.style.display = "none";
+          reasonLabel.style.display = "none";
+          reasonInput.value = "";
+        }
+      }
+      joinRadios.forEach(r => r.addEventListener('change', toggle));
+      toggle();
+    }
+
+    // === 表單送出 ===
+    async function wireSubmit(){
+      const form = document.getElementById('form');
+      const statusEl = document.getElementById('status');
+
+      form.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const btn = form.querySelector('button[type="submit"]');
+        btn.disabled = true;
+
+        const fd = new FormData(form);
+        const data = Object.fromEntries(fd.entries());
+        if (data.join === "參加") data.reason = "";
+
+        try{
+          const payload = JSON.stringify({
+            slot: SLOT,             // 讓後端知道是 signup 流程
+            sessionToken,           // 身分以 session 驗證
+            action: 'signup-submit',// 可選：讓後端辨識此次為送單
+            ...data
+          });
+
+          const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain" },
+            body: payload
+          });
+          if(!res.ok) throw new Error("HTTP " + res.status);
+
+          const resp = await res.json();
+          log(["送出回應", resp]);
+
+
+          statusEl.textContent = "已送出，感謝填寫！";
+          log("現在即將回主頁做分流")
+          setTimeout(()=>{
+            // 送出完成後回主頁，讓主頁依 slot 做後續分流
+            location.href = `${CONFIG.Registration_PAGE}?slot=${encodeURIComponent(SLOT)}`;
+          }, 600);
+
+        }catch(err){
+          log(err);
+          statusEl.textContent = "送出失敗，請稍後再試";
+          btn.disabled = false;
+        }
+      });
+    }
+
+
+    // === 啟動 ===
+    document.addEventListener('DOMContentLoaded', ()=>{
+      // 預防閃爍：先隱藏表單，驗證通過再顯示
+      document.getElementById('form').style.display = 'none';
+      wireReasonField();
+      wireSubmit();
+      verifySession();
     });
   </script>
+
+
+  
 
 </body>
 </html>
