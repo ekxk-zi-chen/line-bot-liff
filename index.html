@@ -207,6 +207,9 @@
                         if (result.slot === "B5") {
                             window.location.href = `richmenu_4.html?slot=${encodeURIComponent(result.url)}`;
                             return;  // 這裡回傳結束 startApp，不執行下面 startLiff()
+                        } else if ()(result.slot === "B2") {
+                            window.location.href = `signup.html?slot=${encodeURIComponent(result.url)}`;
+                            return;  // 這裡回傳結束 startApp，不執行下面 startLiff()
                         }
                     } else {
                         // 驗證失敗才刪除
@@ -276,9 +279,13 @@
 
                     // 跳轉子頁面
                     if (verifyResult.slot === "B5"){
-                        window.location.href = `richmenu_4.html?slot=${encodeURIComponent(verifyResult.url)}`;
+                        window.location.href = `richmenu_4.html?slot=${encodeURIComponent(verifyResult.slot)}`;
+                        return;  // 跳轉後結束流程
+                    } else if (verifyResult.slot === "B2"){
+                        window.location.href = `signup.html?slot=${encodeURIComponent(verifyResult.slot)}`;
                         return;  // 跳轉後結束流程
                     }
+
                     return;
                 }
 
@@ -449,5 +456,4 @@
 
 </body>
 </html>
-
 
