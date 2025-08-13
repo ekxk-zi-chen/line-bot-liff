@@ -176,7 +176,8 @@
       try{
         const payload = JSON.stringify({
           sessionToken,
-          slot: SLOT
+          slot: SLOT,
+          action: "signing",
         });
 
         const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
@@ -249,7 +250,7 @@
           const payload = JSON.stringify({
             slot: SLOT,             // 讓後端知道是 signup 流程
             sessionToken,           // 身分以 session 驗證
-            action: 'signup-submit',// 可選：讓後端辨識此次為送單
+            action: 'signed',// 可選：讓後端辨識此次為送單
             ...data  //join、reason、arrival
           });
 
@@ -294,4 +295,5 @@
 
 </body>
 </html>
+
 
