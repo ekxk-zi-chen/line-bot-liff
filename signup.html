@@ -250,7 +250,7 @@
             slot: SLOT,             // 讓後端知道是 signup 流程
             sessionToken,           // 身分以 session 驗證
             action: 'signup-submit',// 可選：讓後端辨識此次為送單
-            ...data
+            ...data  //join、reason、arrival
           });
 
           const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
@@ -269,7 +269,6 @@
           setTimeout(()=>{
             // 送出完成後回主頁，讓主頁依 slot 做後續分流
             location.href = `${CONFIG.Registration_PAGE}?slot=${encodeURIComponent(SLOT)}`;
-          }, 600);
 
         }catch(err){
           log(err);
@@ -295,3 +294,4 @@
 
 </body>
 </html>
+
