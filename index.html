@@ -285,7 +285,7 @@
                         window.location.href = `richmenu_4.html?slot=${encodeURIComponent(verifyResult.slot)}`;
                         return;  // 跳轉後結束流程
                     } else if (verifyResult.slot === "B2"){
-                        if ((verifyResult.action === "signed"){
+                        if (verifyResult.action === "signed"){
                             window.location.href = `signup.html?slot=${encodeURIComponent(verifyResult.slot)&action=${encodeURIComponent(verifyResult.action)}`;
                         }
                         window.location.href = `signup.html?slot=${encodeURIComponent(verifyResult.slot)}`;
@@ -460,6 +460,7 @@
 
 </body>
 </html>
+
 
 
 
