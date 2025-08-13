@@ -205,10 +205,10 @@
 
         
                         if (result.slot === "B5") {
-                            window.location.href = `richmenu_4.html?slot=${encodeURIComponent(result.url)}`;
+                            window.location.href = `richmenu_4.html?slot=${encodeURIComponent(result.slot)}`;
                             return;  // 這裡回傳結束 startApp，不執行下面 startLiff()
                         } else if (result.slot === "B2") {
-                            window.location.href = `signup.html?slot=${encodeURIComponent(result.url)}`;
+                            window.location.href = `signup.html?slot=${encodeURIComponent(result.slot)}`;
                             return;  // 這裡回傳結束 startApp，不執行下面 startLiff()
                         }
                     } else {
@@ -456,5 +456,6 @@
 
 </body>
 </html>
+
 
 
