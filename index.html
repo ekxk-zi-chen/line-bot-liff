@@ -158,7 +158,7 @@
     <script>
         // ---------- 設定區域 ----------
         const CONFIG = {
-        LIFF_ID: "2007782293-RgkE5pPW", // 這是測試時版2007902018-KwZPL9kE//這是正式版2007782293-RgkE5pPW
+        LIFF_ID: "2007902018-KwZPL9kE", // 這是測試時版2007902018-KwZPL9kE//這是正式版2007782293-RgkE5pPW
         APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec",
         DEBUG_: true
         };
@@ -207,7 +207,7 @@
                         if (result.slot === "B5") {
                             window.location.href = `richmenu_4.html?slot=${encodeURIComponent(result.url)}`;
                             return;  // 這裡回傳結束 startApp，不執行下面 startLiff()
-                        } else if ()(result.slot === "B2") {
+                        } else if (result.slot === "B2") {
                             window.location.href = `signup.html?slot=${encodeURIComponent(result.url)}`;
                             return;  // 這裡回傳結束 startApp，不執行下面 startLiff()
                         }
@@ -321,7 +321,7 @@
         // https://a1474eb2e9ae.ngrok-free.app/index-test.html
         // 測試時這裡會改成這樣{ redirectUri: 'https://a1474eb2e9ae.ngrok-free.app/index-test.html' }
         // 正式時要改成liff.login()
-        document.getElementById('manual-login-btn').onclick = ()=> liff.login();
+        document.getElementById('manual-login-btn').onclick = ()=> liff.login({ redirectUri: 'https://58d318c59ab7.ngrok-free.app/index.html' });
         document.getElementById('refresh-btn').onclick = ()=> location.reload();
         }
 
