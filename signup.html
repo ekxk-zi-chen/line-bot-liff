@@ -155,7 +155,7 @@
     // === 工具 ===
     const url = new URL(location.href);
     const SLOT = url.searchParams.get('slot') || "B2"; // 預設此頁屬 B2（signup）
-    const sessionToken = localStorage.getItem('sessionToken');
+    const sessionToken = localStorage.getItem('sessionToken') || "";
 
     function log(msg){
       if(CONFIG.DEBUG) console.log("[signup]", msg);
@@ -176,14 +176,14 @@
       }
       try{
         const payload = JSON.stringify({
-          sessionToken,
+          sessionToken: seesionToken,
           slot: SLOT,
           action: "signing",
         });
 
         const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
           method: "POST",
-          headers: { "Content-Type": "text/plain" }, // 與第一段相同，避免 CORS 預檢
+          headers: { "Content-Type": "text/plain" },   // 與第一段相同，避免 CORS 預檢
           body: payload
         });
         if(!res.ok) throw new Error("HTTP " + res.status);
@@ -302,6 +302,7 @@
 
 </body>
 </html>
+
 
 
 
