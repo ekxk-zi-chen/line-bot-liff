@@ -193,7 +193,7 @@
         // 過期/無效 → 回主頁重認證（帶回 slot）
         if(!data || data.status === 'error' || data.status === 'expired'){
           statusEl.textContent = "登入過期，請回主頁重新登入";
-          //redirectToIndex('expired');
+          redirectToIndex('expired');
           return;
         }
         if(data.action === "signed"){
@@ -214,7 +214,7 @@
         log(err);
         // 網路或解析錯誤，保守做法：回主頁重認證
         log("網路錯誤")
-        //redirectToIndex('network');
+        redirectToIndex('network');
       }
     }
 
@@ -301,6 +301,7 @@
 
 </body>
 </html>
+
 
 
 
