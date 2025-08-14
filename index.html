@@ -401,7 +401,7 @@
 
                 const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'text/plain' },
+                headers: { 'Content-Type': 'application/json' },//text/plain
                 body: payload,
                 signal: controller.signal
                 });
@@ -465,6 +465,7 @@
 
 </body>
 </html>
+
 
 
 
