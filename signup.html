@@ -179,6 +179,7 @@
           sessionToken: sessionToken,
           slot: SLOT,
           action: "signing",
+          dummy: "x"  // 保證 payload 字串不是空
         });
 
         const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
@@ -302,6 +303,7 @@
 
 </body>
 </html>
+
 
 
 
