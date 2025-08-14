@@ -171,7 +171,6 @@
     async function verifySession(){
       if(!sessionToken){
         log("沒有 sessionToken，回主頁重認證");
-        statusEl.textContent = "請先回主頁登入 LINE";
         // redirectToIndex('nosession');
         return;
       }
@@ -305,6 +304,7 @@
 
 </body>
 </html>
+
 
 
 
