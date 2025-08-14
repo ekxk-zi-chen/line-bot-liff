@@ -195,7 +195,13 @@
           redirectToIndex('expired');
           return;
         }
-
+        if(data.action === "signed"){
+          log("使用者已簽到，直接跳轉 Registration_PAGE");
+          document.getElementById('status').textContent = "您已完成報名，資料已送出";
+          // 直接跳轉，不再額外送 POST
+          location.href = `${CONFIG.Registration_PAGE}?slot=${encodeURIComponent(SLOT)}`;
+          return;
+        }
 
         // === 驗證成功，準備顯示表單 ===
         // 後端若有回 userId/script 就帶入（沒有也不影響，表單送出靠 session）
@@ -294,6 +300,7 @@
 
 </body>
 </html>
+
 
 
 
