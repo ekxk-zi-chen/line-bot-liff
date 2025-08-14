@@ -179,12 +179,11 @@
           sessionToken: sessionToken,
           slot: SLOT,
           action: "signing",
-          dummy: "x"  // 保證 payload 字串不是空
         });
 
         const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
           method: "POST",
-          headers: { "Content-Type": "text/plain" },
+          // headers: { "Content-Type": "text/plain" },
           body: payload
         });
         if(!res.ok) throw new Error("HTTP " + res.status);
@@ -303,6 +302,7 @@
 
 </body>
 </html>
+
 
 
 
