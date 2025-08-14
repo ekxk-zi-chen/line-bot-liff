@@ -185,6 +185,13 @@
 
         async function startApp() {
             try {
+                    // 嘗試請瀏覽器保留本地存儲
+                if (navigator.storage && navigator.storage.persist) {
+                    navigator.storage.persist().then(granted => {
+                        addDebugInfo('瀏覽器持久化存儲允許: ' + granted);
+                    });
+                }
+
                 const localSession = localStorage.getItem('sessionToken');
                 addDebugInfo('本機 sessionToken: ' + localSession);
                 await liff.init({ liffId: CONFIG.LIFF_ID });
@@ -465,6 +472,7 @@
 
 </body>
 </html>
+
 
 
 
