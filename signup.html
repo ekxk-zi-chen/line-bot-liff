@@ -178,12 +178,12 @@
         const payload = JSON.stringify({
           sessionToken: sessionToken,
           slot: SLOT,
-          action: "signing",
+          action: 'signing'
         });
         log("第一次發送請求");
         const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
-          method: "POST",
-          headers: { 'Content-Type': 'text/plain' }, // ← 加這行
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
           body: payload
         });
         if(!res.ok) throw new Error("HTTP " + res.status);
@@ -264,7 +264,7 @@
           });
           log("發送填寫請求")
           const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
-            method: "POST",
+            method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
             body: payload
           });
@@ -303,6 +303,7 @@
 
 </body>
 </html>
+
 
 
 
