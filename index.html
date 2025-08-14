@@ -303,7 +303,7 @@
 
                 if(verifyResult && verifyResult.status === 'needsignup'){
                     addDebugInfo('這裡跳轉報名的網頁!');
-                    window.location.href = `signup.html`;
+                    window.location.href = `signup.html?slot=${encodeURIComponent(verifyResult.slot)}`;
                     return;
                 }
 
@@ -418,10 +418,9 @@
                     showStatus('送出成功！', 'success');
                     document.getElementById('myForm').reset();
                     // 之候補跳轉邏輯
-                    addDebugInfo('後端回應: ' + data.message + '，2秒後將跳轉');
-                    setTimeout(() => {
+                    addDebugInfo('後端回應: ' + data.message );
                     window.location.href = `signup.html`;
-                    }, 1500);
+  
 
                 } else {
                     showStatus('送出失敗: ' + (data.message || '未知原因'), 'error');
@@ -466,6 +465,7 @@
 
 </body>
 </html>
+
 
 
 
