@@ -156,7 +156,7 @@
     const url = new URL(location.href);
     const SLOT = url.searchParams.get('slot') || "B2"; // 預設此頁屬 B2（signup）
     const sessionToken = localStorage.getItem('sessionToken') || "";
-
+    log("sessionToken");
     function log(msg){
       if(CONFIG.DEBUG) console.log("[signup]", msg);
     }
@@ -183,7 +183,7 @@
         log("第一次發送請求");
         const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
           method: "POST",
-          headers: { "Content-Type": "text/plain" }, // ← 加這行
+          headers: { 'Content-Type': 'text/plain' }, // ← 加這行
           body: payload
         });
         if(!res.ok) throw new Error("HTTP " + res.status);
@@ -265,7 +265,7 @@
           log("發送填寫請求")
           const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
             method: "POST",
-            // headers: { "Content-Type": "text/plain" },
+            headers: { 'Content-Type': 'text/plain' },
             body: payload
           });
           if(!res.ok) throw new Error("HTTP " + res.status);
@@ -303,6 +303,7 @@
 
 </body>
 </html>
+
 
 
 
