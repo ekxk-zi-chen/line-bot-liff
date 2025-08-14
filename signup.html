@@ -176,7 +176,7 @@
       }
       try{
         const myHeaders = new Headers();
-        myHeaders.append("Content-Type", "text/plain; charset=utf-8");
+        myHeaders.append("Content-Type", "text/plain");
         const payload = JSON.stringify({
           sessionToken: sessionToken,
           slot: SLOT,
@@ -306,5 +306,6 @@
 
 </body>
 </html>
+
 
 
