@@ -170,6 +170,7 @@
     async function verifySession(){
       if(!sessionToken){
         log("沒有 sessionToken，回主頁重認證");
+        statusEl.textContent = "請先回主頁登入 LINE";
         //redirectToIndex('nosession');
         return;
       }
@@ -192,6 +193,7 @@
 
         // 過期/無效 → 回主頁重認證（帶回 slot）
         if(!data || data.status === 'error' || data.status === 'expired'){
+          statusEl.textContent = "登入過期，請回主頁重新登入";
           //redirectToIndex('expired');
           return;
         }
@@ -273,7 +275,7 @@
 
           statusEl.textContent = "已送出，感謝填寫！";
           log("現在即將回主頁做分流")
-            // 送出完成後回主頁，讓主頁依 slot 做後續分流
+            // 送出完成後回後續子網頁，依 slot 做後續分流
           location.href = `${CONFIG.Registration_PAGE}?slot=${encodeURIComponent(SLOT)}`;
 
         }catch(err){
@@ -300,6 +302,7 @@
 
 </body>
 </html>
+
 
 
 
