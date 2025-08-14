@@ -183,6 +183,7 @@
         log("第一次發送請求");
         const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
           method: "POST",
+          headers: { "Content-Type": "text/plain" }, // ← 加這行
           body: payload
         });
         if(!res.ok) throw new Error("HTTP " + res.status);
@@ -302,6 +303,7 @@
 
 </body>
 </html>
+
 
 
 
