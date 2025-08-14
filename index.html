@@ -1,481 +1,263 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>花蓮特搜網頁</title>
-    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .form-container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #333;
-        }
-        input, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-        .submit-btn, .login-btn, .refresh-btn {
-            background-color: #00C300;
-            color: white;
-            padding: 15px 30px;
-            border: none;
-            border-radius: 5px;
-            font-size: 18px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
-        }
-        .refresh-btn {
-            background-color: #0084ff;
-        }
-        .submit-btn:disabled, .login-btn:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        .status {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-            background-color: #f0f8ff;
-        }
-        .error {
-            background-color: #ffe6e6;
-            color: #d8000c;
-            border: 1px solid #d8000c;
-        }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .user-info {
-            background-color: #e8f5e8;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            border-left: 4px solid #00C300;
-            display: none;
-        }
-        .debug-info {
-            background-color: #f9f9f9;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            font-size: 12px;
-            color: #666;
-            display: none;
-        }
-        .github-info {
-            background-color: #e6f3ff;
-            border: 1px solid #b3d9ff;
-            color: #004080;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-        .retry-info {
-            background-color: #fff3cd;
-            border: 1px solid #ffeaa7;
-            color: #856404;
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 10px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>特搜線上報名</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to bottom right, #f0f4f8, #dcefff);
+      padding: 30px;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #333;
+    }
+    .card {
+      max-width: 520px;
+      margin: auto;
+      background: white;
+      padding: 28px 32px;
+      border-radius: 12px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 12px;
+      font-size: 28px;
+      font-weight: 700;
+      color: #222;
+    }
+    #script {
+      font-size: 22px;
+      color: #666;
+      margin-bottom: 20px;
+      text-align: center;
+      font-style: italic;
+    }
+    label {
+      font-weight: 600;
+      display: block;
+      margin-top: 22px;
+      margin-bottom: 6px;
+      font-size: 17px;
+      color: #444;
+    }
+    input[type="text"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      margin-top: 2px;
+      border-radius: 8px;
+      border: 1.5px solid #bbb;
+      box-sizing: border-box;
+      font-size: 16px;
+      transition: border-color 0.3s ease;
+    }
+    input[type="text"]:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #4CAF50;
+      box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+    }
+    textarea::placeholder { color: #999; }
+    button {
+      margin-top: 28px;
+      width: 100%;
+      padding: 14px;
+      background-color: #4CAF50;
+      color: white;
+      font-size: 18px;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.25s ease;
+    }
+    button:hover:not(:disabled) { background-color: #45a049; }
+    button:disabled { background-color: #9ccc9c; cursor: not-allowed; }
+    #status {
+      margin-top: 16px;
+      text-align: center;
+      color: #d32f2f;
+      font-weight: 600;
+      font-size: 16px;
+    }
+    .hidden { display: none !important; height: 0; margin: 0 !important; padding: 0 !important; border: none !important; }
+  </style>
 </head>
-    <body>
-    <div class="form-container">
-        <h1>花搜點麵線app</h1>
-        
-        <div id="github-notice" class="github-info">
-            <strong>此系統由特搜顏值擔當獨家贊助</strong><br>
-            為您提供良好的使用體感！
-        </div>
-        
-        <div id="status" class="status">載入中...</div>
-        
-        <div id="debug-info" class="debug-info">
-            <strong>除錯資訊：</strong>
-            <div id="debug-content"></div>
-        </div>
-        
-        <div id="user-info" class="user-info">
-            <strong>初次登入請輸入您的真實姓名()：</strong>
-            <div>line稱號：<span id="display-name"></span></div>
-            <div style="display: none;">UserID：<span id="user-id"></span></div>
-        </div>
+<body>
+  <div class="card">
+    <h2>特搜線上報名</h2>
+    <div id="script"></div> <!-- 後端 script -->
 
-        <div id="login-section" style="display: none;">
-            <button type="button" class="login-btn" id="manual-login-btn">
-                登入 LINE
-            </button>
-            <button type="button" class="refresh-btn" id="refresh-btn">
-                重新載入頁面
-            </button>
-        </div>
+    <form id="form">
+      <label>1. 是否參加</label>
+      <div>
+        <label style="font-weight: normal; margin-right: 20px;">
+          <input type="radio" name="join" value="參加" /> 參加
+        </label>
+        <label style="font-weight: normal;">
+          <input type="radio" name="join" value="不參加" /> 不參加
+        </label>
+      </div>
 
-        <form id="myForm" style="display: none;">
-            <input type="hidden" id="lineUserId" name="lineUserId">
-            
-            <div class="form-group">
-                <label for="name">真實姓名：(請填寫真實姓名以利資料庫匹配)</label>
-                <input type="text" id="name" name="name" required placeholder="請輸入您的真實姓名">
-            </div>
+      <label id="reasonLabel" style="display:none; margin-top: 18px;">2. 不參加原因說明</label>
+      <input type="text" name="reason" id="reasonInput" placeholder="還敢不填寫原因，是沒被老大罵?" style="display:none; margin-top: 6px;" />
 
-            <div class="form-group">
-                <label for="message">是否補充您的申請原因說明：</label>
-                <textarea id="message" name="message" rows="1"></textarea>
-            </div>
+      <label style="margin-top: 22px;">3. 預計抵達時間</label>
+      <div>
+        <label style="font-weight: normal; margin-right: 20px;">
+          <input type="radio" name="arrival" value="30分鐘內抵達大隊" checked /> 30分鐘內抵達大隊
+        </label>
+        <label style="font-weight: normal;">
+          <input type="radio" name="arrival" value=">大於30分鐘" /> 大於30分鐘
+        </label>
+      </div>
 
-            <button type="submit" class="submit-btn" id="submit-btn">
-                送出表單
-            </button>
-        </form>
-    </div>
+      <button type="submit">送出</button>
+      <div id="status"></div>
+    </form>
+  </div>
 
-    <script>
-        // ---------- 設定區域 ----------
-        const CONFIG = {
-        LIFF_ID: "2007782293-RgkE5pPW", // 這是測試時版2007902018-KwZPL9kE//這是正式版2007782293-RgkE5pPW
-        APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec",
-        DEBUG_: true
-        };
-        
-        let ID_TOKEN = null; // 改成用 idToken
-        let PROFILE = null;
-        let SLOT = new URLSearchParams(window.location.search).get('slot');
+  <script>
+    const CONFIG = {
+      LIFF_ID: "2007782293-RgkE5pPW",
+      APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec",
+      INDEX_PAGE: "index.html",
+      Registration_PAGE: "Registration_form.html",
+      DEBUG: true
+    };
 
-        // ----- 便利函式（顯示狀態、除錯） -----
-        function showStatus(msg, type = 'info'){
-        const el = document.getElementById('status');
-        el.textContent = msg;
-        el.className = 'status';
-        if(type==='error') el.className += ' error';
-        if(type==='success') el.className += ' success';
+    const url = new URL(location.href);
+    const SLOT = url.searchParams.get('slot') || "B2"; 
+    let sessionToken = localStorage.getItem('sessionToken') || "";
+
+    function log(msg){ if(CONFIG.DEBUG) console.log("[signup]", msg); }
+
+    function redirectToIndex(reason){ 
+      localStorage.removeItem('sessionToken'); 
+      const qs = new URLSearchParams({ slot: SLOT, reason: reason || 'expired' }); 
+      // location.replace(`${CONFIG.INDEX_PAGE}?${qs.toString()}`);
+    }
+
+    // === 初始化 LIFF
+    async function initLiff() {
+      try {
+        if(typeof liff !== 'undefined') {
+          await liff.init({ liffId: CONFIG.LIFF_ID });
+          log("LIFF 初始化成功");
         }
-        function addDebugInfo(info){
-        if(!CONFIG.DEBUG_) return;
-        const debugEl = document.getElementById('debug-content');
-        debugEl.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${info}</div>`;
-        document.getElementById('debug-info').style.display='block';
-        }
+      } catch(e){ log("LIFF 初始化失敗: " + e.message); }
+    }
 
-
-        async function startApp() {
-            try {
-                const localSession = localStorage.getItem('sessionToken');
-                addDebugInfo('本機 sessionToken: ' + localSession);
-                await liff.init({ liffId: CONFIG.LIFF_ID });
-                addDebugInfo('LIFF 初始化成功');
-                addDebugInfo('isInClient: 這裡是走localsession' );
-                addDebugInfo('原本的SLOT= ' + SLOT );
-                SLOT = new URLSearchParams(window.location.search).get('slot');
-                addDebugInfo('重新抓取slot= ' + SLOT);
-
-                if (localSession) {
-                    addDebugInfo('找到本機 session，嘗試後端驗證...');
-                    const result = await verifyTokenAtServer(null, localSession);
-                    
-                    addDebugInfo('sessionToken 前後對比：' + localSession + ' -> ' + (result.sessionToken || '無'));
-                    if (result && result.status === 'ok') {
-                        addDebugInfo('本機 session 驗證成功 ' + 'slot=  ' + result.slot + ' 依照slot值切換子頁面' + result.message);
-                        addDebugInfo(JSON.stringify(result));
-
-        
-                        if (result.slot === "B5") {
-                            window.location.href = `richmenu_4.html?slot=${encodeURIComponent(result.slot)}`;
-                            return;  // 這裡回傳結束 startApp，不執行下面 startLiff()
-                        } else if (result.slot === "B2") {
-                            if (result.action === "signed"){
-                                window.location.href = `Registration_form.html?slot=${encodeURIComponent(result.slot)}&action=${encodeURIComponent(result.action)}`;
-                                return;  // 跳轉後結束流程
-                            } else if(result.action === "needsign"){
-                                addDebugInfo('後端返回未知 action，保守顯示 signup.html');
-                                window.location.href = `signup.html?slot=${encodeURIComponent(result.slot)}`;
-                                return;  // 這裡回傳結束 startApp，不執行下面 startLiff()
-                            }
-                        }
-                    } else {
-                        // 驗證失敗才刪除
-                        addDebugInfo('本機 session 無效或過期，刪除 session，並進入liff流程');
-                        localStorage.removeItem('sessionToken');  // 清除失效 token
-                        // 失敗後走 LIFF 登入
-                        await startLiff();
-                    }
-                } else {
-                    // 沒有 sessionToken 時呼叫走LIFF流程
-                    addDebugInfo('沒有本機 sessionToken 準備走LIFF流程');
-                    await startLiff();
-                    
-                }
-            } catch (e) {
-                addDebugInfo('startApp 發生錯誤: ' + e.message);
-                showStatus('系統錯誤，請稍後重試', 'error');
-            }
-        }
-
-
-
-        // ----- LIFF 初始化 -----
-        async function startLiff(){
-            showStatus('開始初始化 LIFF');
-            addDebugInfo('LIFF 初始化中...');
-            if(typeof liff === 'undefined'){
-                showStatus('LIFF SDK 未載入', 'error');
-                addDebugInfo('LIFF SDK 未載入');
-                return;
-            }
-
-            try{
-                await liff.init({ liffId: CONFIG.LIFF_ID });
-                addDebugInfo('LIFF 初始化成功');
-                addDebugInfo('isInClient: ' + liff.isInClient());
-
-                if(!liff.isLoggedIn()){
-                    showLoginOptions();
-                    return;
-                }
-                // 測時允許，看情況上架要不要打開return
-                if(!liff.isInClient()){
-                    addDebugInfo('目前非使用line打開');
-                    // alert('請使用 LINE App 開啟本頁面');
-                    // return;
-                }
-
-                // 取得 idToken (JWT)
-                ID_TOKEN = liff.getIDToken();
-                addDebugInfo('取得 idToken（JWT）長度: ' + (ID_TOKEN ? ID_TOKEN.length : 0));
-
-                showStatus('驗證中，請稍後...', 'info');
-
-                const verifyResult = await verifyTokenAtServer(ID_TOKEN);
-
-
-                if (!verifyResult || verifyResult.status === 'error') {
-                    // idToken 失效，強制重新登入
-                    liff.logout();
-                    liff.login();
-                    return;
-                }
-                if(verifyResult && verifyResult.status === 'ok'){
-                    
-                    addDebugInfo(JSON.stringify(verifyResult));
-
-                    // 跳轉子頁面
-                    if (verifyResult.slot === "B5"){
-                        window.location.href = `richmenu_4.html?slot=${encodeURIComponent(verifyResult.slot)}`;
-                        return;  // 跳轉後結束流程
-                    } else if (verifyResult.slot === "B2"){
-                        if (verifyResult.action === "signed"){
-                            window.location.href = `Registration_form.html?slot=${encodeURIComponent(verifyResult.slot)}&action=${encodeURIComponent(verifyResult.action)}`;
-                            return;  // 跳轉後結束流程
-                        } else {
-                            window.location.href = `signup.html?slot=${encodeURIComponent(verifyResult.slot)}`;
-                            return;  // 跳轉後結束流程
-                        }
-
-                    }
-
-                    return;
-                }
-
-                if(verifyResult && verifyResult.status === 'needsignup'){
-                    addDebugInfo('這裡跳轉報名的網頁!');
-                    window.location.href = `signup.html?slot=${encodeURIComponent(verifyResult.slot)}`;
-                    return;
-                }
-
-                if(verifyResult && verifyResult.status === 'needformdata'){
-                    addDebugInfo('使用者需填寫申請表單');
-                    // 不用 await liff.getProfile()，直接用後端回傳的資料
-                    renderForm({
-                        userId: verifyResult.userId,
-                        displayName: verifyResult.displayName
-                    });
-                    return;
-                }
-
-            }catch(err){
-                console.error(err);
-                addDebugInfo('初始化或驗證錯誤: ' + err.message);
-                showStatus('系統發生錯誤，請稍後重試', 'error');
-            }
-        }
-
-        // ----- 顯示登入選項 -----
-        function showLoginOptions(){
-        showStatus('需要登入 LINE');
-        document.getElementById('login-section').style.display='block';
-        // https://a1474eb2e9ae.ngrok-free.app/index-test.html
-        // 測試時這裡會改成這樣{ redirectUri: 'https://a1474eb2e9ae.ngrok-free.app/index-test.html' }
-        // 正式時要改成liff.login()
-        document.getElementById('manual-login-btn').onclick = ()=> liff.login();
-        document.getElementById('refresh-btn').onclick = ()=> location.reload();
-        }
-
-        // ----- 呼叫後端驗證函式（把 idToken 送給 Apps Script） -----
-        async function verifyTokenAtServer(idToken, sessionToken) {
-            try {
-                const payload = JSON.stringify({
-                    idToken: idToken || null,
-                    sessionToken: sessionToken || null,
-                    slot: SLOT
-                });
-                addDebugInfo('送出驗證請求 payload=' + payload.length);
-
-                const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },//text/plain、、application/json
-                    body: payload
-                });
-                
-                if (!res.ok) throw new Error('伺服器回應錯誤: ' + res.status);
-                const data = await res.json();
-                addDebugInfo('verifyTokenAtServer 後端回傳全部資料：' + JSON.stringify(data));
-                addDebugInfo('後端回傳的臨時通行證 sessionToken: ' + (data.sessionToken || '無'));
-                // 如果後端給新的 sessionToken 就存起來
-                if (data.sessionToken) {
-                    localStorage.setItem('sessionToken', data.sessionToken);
-                }
-
-                return data;
-            } catch (err) {
-                addDebugInfo('verifyTokenAtServer 錯誤: ' + err.message);
-                return null;
-            }
-        }
-
-        // ----- 表單顯示 -----
-        function renderForm(profile){
-            document.getElementById('display-name').textContent = profile.displayName || '';
-            document.getElementById('user-id').textContent = '(已隱藏)';
-            document.getElementById('user-info').style.display = 'block';
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('myForm').style.display = 'block';
-            document.getElementById('status').style.display = 'none';
-            document.getElementById('github-notice').style.display = 'none';
-            document.getElementById('lineUserId').value = profile.userId || '';
-
-        }
-
-        // ----- 表單提交（只嘗試一次） -----
-        async function submitForm(formData){
-            const btn = document.getElementById('submit-btn');
-            btn.disabled = true;
-            btn.textContent = '送出中...';
-            let lastSubmitSuccess = false;  // <-- 這裡新增旗標
-            try{
-                if(!ID_TOKEN && liff.isLoggedIn()){
-                ID_TOKEN = liff.getIDToken();
-                }
-
-                const payloadObj = Object.assign({}, formData, { idToken: ID_TOKEN, slot: SLOT, source: 'github-pages-fixed-v2' });
-                const payload = JSON.stringify(payloadObj);
-
-                addDebugInfo('提交 payload 長度: ' + payload.length);
-
-                const controller = new AbortController();
-                const timeout = setTimeout(()=>controller.abort(), 15000);
-
-                const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain' },//text/plain
-                body: payload,
-                signal: controller.signal
-                });
-
-                clearTimeout(timeout);
-                // 以下這句是伺服器回應
-                if(!res.ok) throw new Error('伺服器回應 ' + res.status);
-
-                const data = await res.json();
-                addDebugInfo('後端回應: ' + JSON.stringify(data));
-
-                if(data.status === 'needsignup'){
-                    lastSubmitSuccess = true;  // 送出成功才設成 true，避免 finally 把按鈕又啟用
-                    showStatus('送出成功！', 'success');
-                    document.getElementById('myForm').reset();
-                    // 之候補跳轉邏輯
-                    addDebugInfo('後端回應: ' + data.message );
-                    window.location.href = `signup.html`;
-  
-
-                } else {
-                    showStatus('送出失敗: ' + (data.message || '未知原因'), 'error');
-                    btn.disabled = false;  // 失敗才恢復可按
-                    btn.textContent = '送出表單';
-                }
-
-            }catch(err){
-                addDebugInfo('提交錯誤: ' + err.message);
-                showStatus('送出失敗，請稍後再試', 'error');
-            }finally{
-                if(lastSubmitSuccess !== true){
-                    btn.disabled = false;
-                    btn.textContent = '送出表單';
-                }
-            }
-        }
-
-        // ----- 綁定表單提交 -----
-        document.getElementById('myForm').addEventListener('submit', function(e){
-            e.preventDefault();
-            const formData = {
-                timestamp: new Date().toLocaleString('zh-TW'),
-                displayName: document.getElementById('display-name').textContent,
-                lineUserId: document.getElementById('lineUserId').value,
-                name: document.getElementById('name').value,
-                message: document.getElementById('message').value
-            };
-            submitForm(formData);
+    // === 驗證 sessionToken 或 idToken
+    async function verifySession(){
+      if(!sessionToken){
+        log("沒有 sessionToken，回主頁重認證");
+        document.getElementById('status').textContent = "請先回主頁登入 LINE";
+        return;
+      }
+      try{
+        const payload = JSON.stringify({ sessionToken, slot: SLOT, action:'signing' });
+        log("發送驗證請求: " + payload);
+        const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
+          method:'POST',
+          headers:{'Content-Type':'text/plain'},
+          body: payload
         });
+        log("fetch 狀態: " + res.status);
+        if(!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        log(["後端回應", data]);
 
-        // ----- 初始化流程 -----
-        window.addEventListener('load', function(){
-        addDebugInfo('頁面載入');
-        if(typeof liff === 'undefined'){
-            showStatus('LIFF SDK 載入失敗', 'error');
-            return;
+        if(!data || data.status === 'error' || data.status === 'expired'){
+          document.getElementById('status').textContent = "登入過期，請回主頁重新登入";
+          return;
         }
-        setTimeout(()=> startApp(), 800);
-        });
-    </script>
+        if(data.action === "signed"){
+          log("使用者已簽到，跳轉 Registration_PAGE");
+          document.getElementById('status').textContent = "您已完成報名，資料已送出";
+          location.href = `${CONFIG.Registration_PAGE}?slot=${encodeURIComponent(SLOT)}`;
+          return;
+        }
 
+        if(data.script) document.getElementById('script').textContent = data.script;
+        document.getElementById('form').style.display = 'block';
+      } catch(err){
+        log("verifySession 錯誤: " + err.message);
+        document.getElementById('status').textContent = "網路錯誤，請稍後再試";
+      }
+    }
+
+    // === 顯示/隱藏不參加原因
+    function wireReasonField(){
+      const joinRadios = document.querySelectorAll('input[name="join"]');
+      const reasonInput = document.getElementById('reasonInput');
+      const reasonLabel = document.getElementById('reasonLabel');
+
+      function toggle(){
+        const selected = [...joinRadios].find(r=>r.checked)?.value;
+        if(selected==="不參加"){
+          reasonInput.style.display="block";
+          reasonLabel.style.display="block";
+        } else {
+          reasonInput.style.display="none";
+          reasonLabel.style.display="none";
+          reasonInput.value="";
+        }
+      }
+      joinRadios.forEach(r=>r.addEventListener('change', toggle));
+      toggle();
+    }
+
+    // === 表單提交
+    async function wireSubmit(){
+      const form = document.getElementById('form');
+      const statusEl = document.getElementById('status');
+
+      form.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const btn = form.querySelector('button[type="submit"]');
+        btn.disabled=true; btn.textContent="送出中...";
+        const fd = new FormData(form);
+        const data = Object.fromEntries(fd.entries());
+        if(data.join==="參加") data.reason="";
+
+        try{
+          const payload = JSON.stringify({slot:SLOT, sessionToken, action:'signed', ...data});
+          log("提交 payload: " + payload);
+          const res = await fetch(CONFIG.APPS_SCRIPT_URL,{
+            method:'POST',
+            headers:{'Content-Type':'text/plain'},
+            body:payload
+          });
+          if(!res.ok) throw new Error("HTTP " + res.status);
+          const resp = await res.json();
+          log(["送出回應", resp]);
+          statusEl.textContent = "已送出，感謝填寫！";
+          setTimeout(()=>{ location.href=`${CONFIG.Registration_PAGE}?slot=${encodeURIComponent(SLOT)}`; }, 1000);
+        } catch(err){
+          log("表單提交錯誤: "+err.message);
+          statusEl.textContent="送出失敗，請稍後再試";
+          btn.disabled=false; btn.textContent="送出";
+        }
+      });
+    }
+
+    // === 啟動流程 ===
+    document.addEventListener('DOMContentLoaded', async ()=>{
+      log("頁面載入完成，初始化");
+      document.getElementById('form').style.display='none';
+      await initLiff();
+      wireReasonField();
+      wireSubmit();
+      setTimeout(()=>{ verifySession(); }, 500);
+    });
+  </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
