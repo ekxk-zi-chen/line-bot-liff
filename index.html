@@ -211,7 +211,7 @@
                             if (result.action === "signed"){
                                 window.location.href = `Registration_form.html?slot=${encodeURIComponent(result.slot)}&action=${encodeURIComponent(result.action)}`;
                                 return;  // 跳轉後結束流程
-                            } else {
+                            } else if(result.action === "needsign"){
                                 addDebugInfo('後端返回未知 action，保守顯示 signup.html');
                                 window.location.href = `signup.html?slot=${encodeURIComponent(result.slot)}`;
                                 return;  // 這裡回傳結束 startApp，不執行下面 startLiff()
@@ -465,6 +465,7 @@
 
 </body>
 </html>
+
 
 
 
