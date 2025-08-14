@@ -156,7 +156,7 @@
     const url = new URL(location.href);
     const SLOT = url.searchParams.get('slot') || "B2"; // 預設此頁屬 B2（signup）
     const sessionToken = localStorage.getItem('sessionToken') || "";
-    log("sessionToken");
+    log(sessionToken);
     function log(msg){
       if(CONFIG.DEBUG) console.log("[signup]", msg);
     }
@@ -265,6 +265,7 @@
           log("發送填寫請求")
           const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
             method: 'POST',
+            
             headers: { 'Content-Type': 'text/plain' },
             body: payload
           });
@@ -303,6 +304,7 @@
 
 </body>
 </html>
+
 
 
 
