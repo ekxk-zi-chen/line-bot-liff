@@ -1,11 +1,23 @@
-import { buffer } from 'micro';
-
 // 關掉自動解析，手動處理 text/plain
 export const config = {
   api: {
     bodyParser: false,
   },
 };
+
+// 手動讀取請求體的函數
+function getRawBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      resolve(body);
+    });
+    req.on('error', reject);
+  });
+}
 
 export default async function handler(req, res) {
   // 設置 CORS headers - 這是重點！
@@ -24,7 +36,7 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
       // 手動讀取 text/plain 請求體
-      const rawBody = (await buffer(req)).toString();
+      const rawBody = await getRawBody(req);
       console.log('收到的原始 body:', rawBody);
       
       if (!rawBody) {
