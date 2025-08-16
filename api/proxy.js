@@ -1,6 +1,8 @@
 export default async function handler(req, res) {
   try {
-    const body = await req.json() || {};
+    const bodyText = await req.text(); // <- 取純文字
+    const body = JSON.parse(bodyText); // <- JSON.parse 手動解析
+
     const url = body.url;
     if (!url) throw new Error("Missing target URL");
 
