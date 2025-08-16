@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <title>特搜線上報名</title>
-  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
@@ -150,7 +149,7 @@
       APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec",
       INDEX_PAGE: "index.html",     // 主頁（第一段程式碼所在頁）
       Registration_PAGE: "Registration_form.html",
-      API_PROXY: "https://line-bot-liff-478bh2i31-ekxk-zi-chens-projects.vercel.app/api/proxy",
+      API_PROXY: "https://line-bot-liff-hz4revrw8-ekxk-zi-chens-projects.vercel.app/api/proxy",
       DEBUG: true
     };
 
@@ -170,6 +169,7 @@
     }
 
     async function verifySession(){
+      const statusEl = document.getElementById('status');
       if(!sessionToken){
         log("沒有 sessionToken，回主頁重認證");
         // redirectToIndex('nosession');
@@ -309,6 +309,7 @@
 
 </body>
 </html>
+
 
 
 
