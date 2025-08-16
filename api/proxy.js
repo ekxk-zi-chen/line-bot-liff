@@ -1,12 +1,13 @@
 export default async function handler(req, res) {
   try {
-    const { url, payload } = await req.json() || {};
+    const body = await req.json() || {};
+    const url = body.url;
     if (!url) throw new Error("Missing target URL");
 
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: payload
+      body: JSON.stringify(body) // 原封不動送給 Apps Script
     });
 
     const text = await response.text();
