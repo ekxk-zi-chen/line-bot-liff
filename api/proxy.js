@@ -6,8 +6,7 @@ export default async function handler(req, res) {
     const targetUrl = body.url;
     if (!targetUrl) throw new Error("Missing target URL");
 
-    // 只送 Apps Script 所需的欄位
-    const appScriptPayload = JSON.stringify({
+    const payloadForAS = JSON.stringify({
       idToken: body.idToken,
       sessionToken: body.sessionToken,
       slot: body.slot
@@ -18,7 +17,7 @@ export default async function handler(req, res) {
       response = await fetch(targetUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: appScriptPayload
+        body: payloadForAS
       });
       text = await response.text();
     } catch (fetchErr) {
