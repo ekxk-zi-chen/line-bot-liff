@@ -1,25 +1,39 @@
 export default async function handler(req, res) {
   try {
-    const bodyText = await req.text(); // <- 取純文字
-    const body = JSON.parse(bodyText); // <- JSON.parse 手動解析
+    const bodyText = await req.text();
+    const body = JSON.parse(bodyText);
 
-    const url = body.url;
-    if (!url) throw new Error("Missing target URL");
+    const targetUrl = body.url;
+    if (!targetUrl) throw new Error("Missing target URL");
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(body) // 原封不動送給 Apps Script
+    // 只送 Apps Script 所需的欄位
+    const appScriptPayload = JSON.stringify({
+      idToken: body.idToken,
+      sessionToken: body.sessionToken,
+      slot: body.slot
     });
 
-    const text = await response.text();
+    let response, text;
+    try {
+      response = await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: appScriptPayload
+      });
+      text = await response.text();
+    } catch (fetchErr) {
+      console.error('Fetch to Apps Script failed:', fetchErr);
+      return res.status(502).json({ error: 'Fetch to Apps Script failed', detail: fetchErr.message });
+    }
 
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
     res.status(response.status).send(text);
+
   } catch (err) {
+    console.error('Proxy handler error:', err);
     res.status(500).json({ error: err.message });
   }
 }
