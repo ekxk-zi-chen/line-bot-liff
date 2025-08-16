@@ -1,6 +1,8 @@
 export default async function handler(req, res) {
+  console.log('=== Vercel Proxy 開始處理 ===');
   console.log('請求方法:', req.method);
   console.log('Content-Type:', req.headers['content-type']);
+  console.log('User-Agent:', req.headers['user-agent']);
 
   // 只在最後回應前端時才設置 CORS，不要在中間設置
   if (req.method === 'OPTIONS') {
@@ -21,19 +23,24 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('req.body:', req.body);
+    console.log('原始 req.body:', req.body);
     console.log('req.body type:', typeof req.body);
+    console.log('req.body 長度:', typeof req.body === 'string' ? req.body.length : 'N/A');
     
     // 前端發送的是完整的 JSON 字串（包含 url）
     let requestData;
     
     if (typeof req.body === 'string') {
+      console.log('解析字串格式的請求體...');
       requestData = JSON.parse(req.body);
     } else {
+      console.log('使用物件格式的請求體...');
       requestData = req.body;
     }
     
-    console.log('解析的請求資料:', requestData);
+    console.log('解析的請求資料:', JSON.stringify(requestData, null, 2));
+    console.log('idToken 長度:', requestData.idToken ? requestData.idToken.length : 'null');
+    console.log('idToken 開頭:', requestData.idToken ? requestData.idToken.substring(0, 50) : 'null');
     
     const targetUrl = requestData.url;
     if (!targetUrl) {
@@ -42,20 +49,23 @@ export default async function handler(req, res) {
     }
 
     // 重要：原封不動把整個請求體發送給 Apps Script
-    // Apps Script 自己會從中取出需要的資料（idToken, sessionToken, slot 等）
     const bodyToSend = JSON.stringify(requestData);
-    console.log('發送給 Apps Script 的完整資料:', bodyToSend);
+    console.log('準備發送給 Apps Script...');
+    console.log('發送的資料長度:', bodyToSend.length);
+    console.log('目標 URL:', targetUrl);
 
     // 呼叫 Apps Script，不設置任何 CORS
     const response = await fetch(targetUrl, {
       method: 'POST',
       headers: { 
-        'Content-Type': 'text/plain'
+        'Content-Type': 'text/plain',
+        'User-Agent': 'Vercel-Proxy/1.0'
       },
-      body: bodyToSend  // 完整的資料給 Apps Script
+      body: bodyToSend
     });
 
     console.log('Apps Script 回應狀態:', response.status);
+    console.log('Apps Script 回應 headers:', Object.fromEntries(response.headers.entries()));
     
     const responseText = await response.text();
     console.log('Apps Script 回應內容:', responseText);
@@ -70,6 +80,7 @@ export default async function handler(req, res) {
     
   } catch (error) {
     console.error('Proxy 錯誤:', error);
+    console.error('錯誤堆疊:', error.stack);
     
     // 錯誤時也要加 CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
