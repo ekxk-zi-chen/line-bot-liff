@@ -150,6 +150,7 @@
       APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec",
       INDEX_PAGE: "index.html",     // 主頁（第一段程式碼所在頁）
       Registration_PAGE: "Registration_form.html",
+      API_PROXY: "https://line-bot-liff-478bh2i31-ekxk-zi-chens-projects.vercel.app/api/proxy",
       DEBUG: true
     };
 
@@ -180,10 +181,11 @@
         const payload = JSON.stringify({
           sessionToken: sessionToken,
           slot: SLOT,
+          url: CONFIG.APPS_SCRIPT_URL,
           action: 'signing'
         });
         log("第一次發送請求");
-        const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
+        const res = await fetch(CONFIG.API_PROXY, {
           method: 'POST',
           headers: myHeaders,
           body: payload
@@ -261,11 +263,12 @@
           const payload = JSON.stringify({
             slot: SLOT,             // 讓後端知道是 signup 流程
             sessionToken,           // 身分以 session 驗證
+            url: CONFIG.APPS_SCRIPT_URL,
             action: 'signed',// 可選：讓後端辨識此次為送單
             ...data  //join、reason、arrival
           });
           log("發送填寫請求")
-          const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
+          const res = await fetch(CONFIG.API_PROXY, {
             method: 'POST',
             
             headers: { 'Content-Type': 'text/plain' },
@@ -306,6 +309,7 @@
 
 </body>
 </html>
+
 
 
 
