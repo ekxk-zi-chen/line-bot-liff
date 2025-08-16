@@ -283,8 +283,10 @@
 
                 if (!verifyResult || verifyResult.status === 'error') {
                     // idToken 失效，強制重新登入
+                    addDebugInfo('idToken 無效或過期，重新登入 LIFF');
                     showStatus('無法連線後端，請稍後再試', 'error');
-                    return; // 不要直接 login
+                    liff.logout();
+                    liff.login();
                 }
                 if(verifyResult && verifyResult.status === 'ok'){
                     
@@ -473,6 +475,7 @@
 
 </body>
 </html>
+
 
 
 
