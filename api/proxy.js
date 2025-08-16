@@ -1,14 +1,14 @@
-// 支援 text/plain 和 application/json
+import { buffer } from 'micro';
+
+// 關掉自動解析，手動處理 text/plain
 export const config = {
   api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
+    bodyParser: false,
   },
 };
 
 export default async function handler(req, res) {
-  // 設置 CORS
+  // 設置 CORS headers - 這是重點！
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -23,17 +23,16 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     try {
-      let body;
+      // 手動讀取 text/plain 請求體
+      const rawBody = (await buffer(req)).toString();
+      console.log('收到的原始 body:', rawBody);
       
-      // 處理不同的 Content-Type
-      if (typeof req.body === 'string') {
-        // PowerShell 用 text/plain 發送的 JSON 字串
-        body = JSON.parse(req.body);
-      } else {
-        // 正常的 application/json
-        body = req.body;
+      if (!rawBody) {
+        return res.status(400).json({ error: 'Request body is empty' });
       }
-      
+
+      // 解析 JSON
+      const body = JSON.parse(rawBody);
       console.log('解析後的 body:', body);
       
       const { url, ...data } = body;
@@ -49,16 +48,27 @@ export default async function handler(req, res) {
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: dataToSend,  // 只發送資料，不包含 url
+        body: dataToSend,
       });
 
       const text = await response.text();
       console.log('Apps Script 回應:', text);
       
+      // 重要！確保回應也有 CORS headers
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      
       return res.status(response.status).send(text);
       
     } catch (error) {
       console.error('Proxy 錯誤:', error);
+      
+      // 錯誤回應也要有 CORS headers
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      
       return res.status(500).json({ error: error.message });
     }
   }
