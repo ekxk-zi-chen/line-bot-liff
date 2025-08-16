@@ -160,7 +160,7 @@
         const CONFIG = {
         LIFF_ID: "2007782293-RgkE5pPW", // 這是測試時版2007902018-KwZPL9kE//這是正式版2007782293-RgkE5pPW
         APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec",
-        API_PROXY:"line-bot-liff-o4et20qm3-ekxk-zi-chens-projects.vercel.app",
+        API_PROXY: "line-bot-liff-o4et20qm3-ekxk-zi-chens-projects.vercel.app",
         DEBUG_: true
         };
         
@@ -352,7 +352,7 @@
                 });
                 addDebugInfo('送出驗證請求 payload=' + payload.length);
 
-                const res = await fetch(API_PROXY, {
+                const res = await fetch(CONFIG.API_PROXY, {
                     method: 'POST',
                     url: CONFIG.APPS_SCRIPT_URL,
                     headers: { 'Content-Type': 'text/plain' },
@@ -407,7 +407,7 @@
                 const controller = new AbortController();
                 const timeout = setTimeout(()=>controller.abort(), 15000);
 
-                const res = await fetch(API_PROXY, {
+                const res = await fetch(CONFIG.API_PROXY, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
                 url: CONFIG.APPS_SCRIPT_URL,
@@ -474,6 +474,7 @@
 
 </body>
 </html>
+
 
 
 
