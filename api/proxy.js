@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     return res.status(200).json({ 
       message: 'Proxy is working! Use POST method to forward requests.',
-      usage: 'POST with body: { "url": "your-apps-script-url", ...data }'
+      usage: 'POST with body: { "url": "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec", ...data }'
     });
   }
 
