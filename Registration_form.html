@@ -174,34 +174,55 @@
   </div>
 
   <script>
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec";
-    const SLOT = "special";
-
+    const SLOT = url.searchParams.get('slot') || "B2";
+    const CONFIG = {
+      APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec",
+      API_PROXY: "https://line-bot-liff-hz4revrw8-ekxk-zi-chens-projects.vercel.app/api/proxy",
+      DEBUG: true
+    };
+  
+    const sessionToken = localStorage.getItem("sessionToken") || "";
+  
+    function log(msg) {
+      if (CONFIG.DEBUG) console.log("[signed_status]", msg);
+    }
+  
     async function fetchData() {
       try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('userId') || "";
-        const response = await fetch(`${APPS_SCRIPT_URL}?slot=${encodeURIComponent(SLOT)}&userId=${encodeURIComponent(userId)}&t=${Date.now()}`, {
-          method: 'GET',
-          mode: 'cors',
-          headers: {
-            'Accept': 'application/json'
-          }
+        const statusEl = document.getElementById("error-msg");
+        statusEl.style.display = "none";
+        statusEl.textContent = "";
+  
+        // 這邊用 POST，不再透過 query string
+        const payload = JSON.stringify({
+          slot: SLOT,
+          sessionToken,
+          url: CONFIG.APPS_SCRIPT_URL,
+          action: "signed_status"   // 讓後端知道這是 signed_status 頁請求
         });
-
-        if (!response.ok) {
-          throw new Error(`HTTP 錯誤 ${response.status}: ${response.statusText}`);
+  
+        log("發送 POST 請求", payload);
+  
+        const res = await fetch(CONFIG.API_PROXY, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: payload
+        });
+  
+        if (!res.ok) throw new Error("HTTP " + res.status);
+  
+        const data = await res.json();
+        log(["後端回應", data]);
+  
+        if (!data || data.status !== "signed_status") {
+          throw new Error(`資料狀態非 'signed_status'，實際為 '${data?.status}'`);
         }
-
-        const data = await response.json();
-        if (data.status !== "special") {
-          throw new Error(`資料狀態非 'special'，實際為 '${data.status}'`);
-        }
-
+  
+        // === 套到頁面 ===
         document.getElementById("title").textContent = data.title || "無標題";
         document.getElementById("script").textContent = data.script || "";
         document.getElementById("description").textContent = data.description || "";
-
+  
         const noteContainer = document.getElementById("note");
         noteContainer.innerHTML = "";
         if (Array.isArray(data.note)) {
@@ -213,7 +234,7 @@
         } else {
           noteContainer.textContent = data.note || "";
         }
-
+  
         const ul = document.getElementById("items");
         ul.innerHTML = "";
         (data.items || []).forEach(item => {
@@ -221,21 +242,21 @@
           li.textContent = item;
           ul.appendChild(li);
         });
-
-        document.getElementById("error-msg").style.display = "none";
-        document.getElementById("error-msg").textContent = "";
-      } catch (error) {
+  
+      } catch (err) {
         document.getElementById("error-msg").style.display = "block";
-        document.getElementById("error-msg").textContent = "讀取資料失敗：" + error.message;
+        document.getElementById("error-msg").textContent = "讀取資料失敗：" + err.message;
         document.getElementById("title").textContent = "錯誤";
         document.getElementById("description").textContent = "";
         document.getElementById("items").innerHTML = "";
-        console.error(error);
+        console.error(err);
       }
     }
-
-    document.getElementById('refreshBtn').addEventListener('click', fetchData);
+  
+    document.getElementById("refreshBtn").addEventListener("click", fetchData);
     fetchData();
   </script>
+
 </body>
 </html>
+
