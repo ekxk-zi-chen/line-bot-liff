@@ -239,6 +239,7 @@
         const ul = document.getElementById("items");
         ul.innerHTML = "";
         (data.items || []).forEach(item => {
+          console.log("渲染項目:", item);
           const li = document.createElement("li");
           li.textContent = item;
           ul.appendChild(li);
@@ -260,5 +261,6 @@
 
 </body>
 </html>
+
 
 
