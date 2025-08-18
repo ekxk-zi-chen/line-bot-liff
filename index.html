@@ -186,45 +186,23 @@
 
         async function startApp() {
             try {
-                    // 嘗試請瀏覽器保留本地存儲
-                if (navigator.storage && navigator.storage.persist) {
-                    navigator.storage.persist().then(granted => {
-                        addDebugInfo('瀏覽器持久化存儲允許: ' + granted);
-                    });
-                }
 
                 const localSession = localStorage.getItem('sessionToken');
                 addDebugInfo('本機 sessionToken: ' + localSession);
                 await liff.init({ liffId: CONFIG.LIFF_ID });
                 addDebugInfo('LIFF 初始化成功');
                 addDebugInfo('isInClient: 這裡是走localsession' );
-                addDebugInfo('原本的SLOT= ' + SLOT );
                 SLOT = new URLSearchParams(window.location.search).get('slot');
-                addDebugInfo('重新抓取slot= ' + SLOT);
+                addDebugInfo('抓取slot= ' + SLOT);
 
                 if (localSession) {
                     addDebugInfo('找到本機 session，嘗試後端驗證...');
                     const result = await verifyTokenAtServer(null, localSession);
-                    
                     addDebugInfo('sessionToken 前後對比：' + localSession + ' -> ' + (result.sessionToken || '無'));
                     if (result && result.status === 'ok') {
                         addDebugInfo('本機 session 驗證成功 ' + 'slot=  ' + result.slot + ' 依照slot值切換子頁面' + result.message);
-                        addDebugInfo(JSON.stringify(result));
-
-        
-                        if (result.slot === "B5") {
-                            window.location.href = `richmenu_4.html?slot=${encodeURIComponent(result.slot)}`;
-                            return;  // 這裡回傳結束 startApp，不執行下面 startLiff()
-                        } else if (result.slot === "B2") {
-                            if (result.action === "signed"){
-                                window.location.href = `Registration_form.html?slot=${encodeURIComponent(result.slot)}&action=${encodeURIComponent(result.action)}`;
-                                return;  // 跳轉後結束流程
-                            } else if(result.action === "needsign"){
-                                addDebugInfo('後端返回未知 action，保守顯示 signup.html');
-                                window.location.href = `signup.html?slot=${encodeURIComponent(result.slot)}`;
-                                return;  // 這裡回傳結束 startApp，不執行下面 startLiff()
-                            }
-                        }
+                        await redirectSessionStorage(result);
+                        return; // 驗證成功就直接跳轉
                     } else {
                         // 驗證失敗才刪除
                         addDebugInfo('本機 session 無效或過期，刪除 session，並進入liff流程');
@@ -268,8 +246,6 @@
                 // 測時允許，看情況上架要不要打開return
                 if(!liff.isInClient()){
                     addDebugInfo('目前非使用line打開');
-                    // alert('請使用 LINE App 開啟本頁面');
-                    // return;
                 }
 
                 // 取得 idToken (JWT)
@@ -289,34 +265,19 @@
                     liff.login();
                     return;
                 }
-                if(verifyResult && verifyResult.status === 'ok'){
+                if(verifyResult.status === 'ok'){
                     
                     addDebugInfo(JSON.stringify(verifyResult));
-
-                    // 跳轉子頁面
-                    if (verifyResult.slot === "B5"){
-                        window.location.href = `richmenu_4.html?slot=${encodeURIComponent(verifyResult.slot)}`;
-                        return;  // 跳轉後結束流程
-                    } else if (verifyResult.slot === "B2"){
-                        if (verifyResult.action === "signed"){
-                            window.location.href = `Registration_form.html?slot=${encodeURIComponent(verifyResult.slot)}&action=${encodeURIComponent(verifyResult.action)}`;
-                            return;  // 跳轉後結束流程
-                        } else {
-                            window.location.href = `signup.html?slot=${encodeURIComponent(verifyResult.slot)}`;
-                            return;  // 跳轉後結束流程
-                        }
-
-                    }
-
-                    return;
+                    await redirectSessionStorage(verifyResult);
+                    return; // 結束流程
                 }
-
+                // 需要報名
                 if(verifyResult && verifyResult.status === 'needsignup'){
                     addDebugInfo('這裡跳轉報名的網頁!');
                     window.location.href = `signup.html?slot=${encodeURIComponent(verifyResult.slot)}`;
                     return;
                 }
-
+                // 需要填寫表單
                 if(verifyResult && verifyResult.status === 'needformdata'){
                     addDebugInfo('使用者需填寫申請表單');
                     // 不用 await liff.getProfile()，直接用後端回傳的資料
@@ -333,7 +294,22 @@
                 showStatus('系統發生錯誤，請稍後重試', 'error');
             }
         }
-
+        async function redirectSessionStorage(verifyResult) {
+            // 暫存到 sessionStorage
+            sessionStorage.setItem('verifyResult', JSON.stringify(verifyResult));
+            addDebugInfo('verifyResult 已存入 sessionStorage');
+        
+            // 跳轉頁面
+            if (verifyResult.slot === "B5") {
+                window.location.href = `richmenu_4.html?slot=${encodeURIComponent(verifyResult.slot)}`;
+            } else if (verifyResult.slot === "B2") {
+                if (verifyResult.action === "signed") {
+                    window.location.href = `Registration_form.html?slot=${encodeURIComponent(verifyResult.slot)}&action=${encodeURIComponent(verifyResult.action)}`;
+                } else {
+                    window.location.href = `signup.html?slot=${encodeURIComponent(verifyResult.slot)}`;
+                }
+            }
+        }
         // ----- 顯示登入選項 -----
         function showLoginOptions(){
         showStatus('需要登入 LINE');
@@ -476,6 +452,7 @@
 
 </body>
 </html>
+
 
 
 
