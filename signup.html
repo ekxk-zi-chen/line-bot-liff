@@ -232,7 +232,7 @@
           // ✅ 更新 sessionStorage，包含 signed_status 資料
           const updatedVerifyResult = {
             realName: resp.realName,
-            slot: resp.slot,
+            slot: SLOT,
             sessionToken: resp.sessionToken,
             action: resp.action,
             ...resp.signed_status
@@ -281,6 +281,7 @@
 
 </body>
 </html>
+
 
 
 
