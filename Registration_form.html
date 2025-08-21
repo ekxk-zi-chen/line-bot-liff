@@ -176,77 +176,92 @@
   </div>
 
   <script>
-    const url = new URL(location.href);
-    const SLOT = url.searchParams.get('slot') || "B2";
     const CONFIG = {
       APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec",
       API_PROXY: "https://line-bot-liff-hz4revrw8-ekxk-zi-chens-projects.vercel.app/api/proxy",
       DEBUG: true
     };
-  
-    const sessionToken = localStorage.getItem("sessionToken") || "";
-  
+
     function log(msg) {
-      if (CONFIG.DEBUG) console.log("[signed_status]", msg);
+      if (CONFIG.DEBUG) console.log("[已登記子頁面回報]", msg);
     }
-  
-    async function fetchData() {
+
+    // === 從 sessionStorage 抓 verifyResult ===
+    function getVerifyResult() {
+      const raw = sessionStorage.getItem("verifyResult");
+      if (!raw) return null;
       try {
-        const statusEl = document.getElementById("error-msg");
-        statusEl.style.display = "none";
-        statusEl.textContent = "";
-  
-        // 這邊用 POST，不再透過 query string
-        const payload = JSON.stringify({
-          slot: SLOT,
-          sessionToken,
-          url: CONFIG.APPS_SCRIPT_URL,
-          action: "signed_status"   // 讓後端知道這是 signed_status 頁請求
+        return JSON.parse(raw);
+      } catch (e) {
+        console.error("verifyResult 解析失敗", e);
+        return null;
+      }
+    }
+
+    // === 套用畫面 ===
+    function renderFromCache(data) {
+      if (!data) return;
+      document.getElementById("title").textContent = data.title || "無標題";
+      document.getElementById("script").textContent = data.script || "";
+      document.getElementById("description").textContent = data.description || "";
+
+      const noteContainer = document.getElementById("note");
+      noteContainer.innerHTML = "";
+      if (Array.isArray(data.note)) {
+        data.note.forEach(line => {
+          const p = document.createElement("p");
+          p.textContent = line;
+          noteContainer.appendChild(p);
         });
-  
+      } else {
+        noteContainer.textContent = data.note || "";
+      }
+
+      const ul = document.getElementById("items");
+      ul.innerHTML = "";
+      (data.items || []).forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        ul.appendChild(li);
+      });
+    }
+
+    // === 強制從後端抓最新 ===
+    async function fetchData() {
+      const verifyResult = getVerifyResult();
+      if (!verifyResult) {
+        console.warn("沒有 cache，直接嘗試抓取後端資料");
+      }
+
+      try {
+        const payload = JSON.stringify({
+          slot: verifyResult?.slot,
+          sessionToken: verifyResult?.sessionToken,
+          url: CONFIG.APPS_SCRIPT_URL,
+          action: "signed_status"
+        });
+
         log("發送 POST 請求", payload);
-  
+
         const res = await fetch(CONFIG.API_PROXY, {
           method: "POST",
           headers: { "Content-Type": "text/plain" },
           body: payload
         });
-  
+
         if (!res.ok) throw new Error("HTTP " + res.status);
-  
+
         const data = await res.json();
         log(["後端回應", data]);
-  
+
         if (!data || data.status !== "signed_status") {
           throw new Error(`資料狀態非 'signed_status'，實際為 '${data?.status}'`);
         }
-  
-        // === 套到頁面 ===
-        document.getElementById("title").textContent = data.title || "無標題";
-        document.getElementById("script").textContent = data.script || "";
-        document.getElementById("description").textContent = data.description || "";
-  
-        const noteContainer = document.getElementById("note");
-        noteContainer.innerHTML = "";
-        if (Array.isArray(data.note)) {
-          data.note.forEach(line => {
-            const p = document.createElement("p");
-            p.textContent = line;
-            noteContainer.appendChild(p);
-          });
-        } else {
-          noteContainer.textContent = data.note || "";
-        }
-  
-        const ul = document.getElementById("items");
-        ul.innerHTML = "";
-        (data.items || []).forEach(item => {
-          console.log("渲染項目:", item);
-          const li = document.createElement("li");
-          li.textContent = item;
-          ul.appendChild(li);
-        });
-  
+
+        // 把最新資料更新到 sessionStorage，之後重整時也能用
+        sessionStorage.setItem("verifyResult", JSON.stringify(data));
+        renderFromCache(data);
+
       } catch (err) {
         document.getElementById("error-msg").style.display = "block";
         document.getElementById("error-msg").textContent = "讀取資料失敗：" + err.message;
@@ -256,13 +271,23 @@
         console.error(err);
       }
     }
-  
-    document.getElementById("refreshBtn").addEventListener("click", fetchData);
-    fetchData();
+
+    // === 啟動 ===
+    document.addEventListener("DOMContentLoaded", () => {
+      // 第一次進來 → 直接渲染 sessionStorage 的 verifyResult（不 fetch）
+      const cached = getVerifyResult();
+      if (cached) {
+        renderFromCache(cached);
+      }
+
+      // 使用者按刷新 → 強制 fetch
+      document.getElementById("refreshBtn").addEventListener("click", fetchData);
+    });
   </script>
 
 </body>
 </html>
+
 
 
 
