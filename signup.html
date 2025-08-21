@@ -234,9 +234,8 @@
             realName: resp.realName,
             slot: resp.slot,
             sessionToken: resp.sessionToken,
-            signed_status: resp.signed_status,
             action: resp.action,
-            signed_status: resp.signed_status  // <- 新增
+            ...resp.signed_status
           };
           sessionStorage.setItem("verifyResult", JSON.stringify(updatedVerifyResult));
     
@@ -282,6 +281,7 @@
 
 </body>
 </html>
+
 
 
 
