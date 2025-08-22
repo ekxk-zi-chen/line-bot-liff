@@ -142,80 +142,76 @@
   </div>
 
   <script>
-    const slotCache = {};
-    let currentSlot = null;
-    const MOBILE_BREAKPOINT = 768;
+  const MOBILE_BREAKPOINT = 768;
+  const rm3_slotCache = {};
+  let rm3_currentSlot = null;
   
-    function toggleSidebar() {
-      document.getElementById("sidebar").classList.toggle("open");
+  // --- 讀取 verifyResult ---
+  function getVerifyResult() {
+    const raw = sessionStorage.getItem('verifyResult');
+    const result = JSON.parse(raw);
+    console.log("[richmenu_3] 取得 verifyResult:", result);
+  
+    // slotCache 快取
+    if (result.rm3_slotCache) {
+      Object.assign(rm3_slotCache, result.rm3_slotCache);
+      console.log("[richmenu_3] 回傳的結果快取完成:", rm3_slotCache);
+    } else {
+      console.warn("[richmenu_3] 回傳的結果中沒有 rm3_slotCache");
     }
   
-    function selectAndHide(slot) {
-      loadContent(slot);
-      const sidebar = document.getElementById("sidebar");
-      if (window.innerWidth <= MOBILE_BREAKPOINT) {
-        sidebar.classList.remove("open");
-      }
+    return result;
+  }
+  
+  // --- 側邊欄切換 ---
+  function toggleSidebar() {
+    document.getElementById("sidebar").classList.toggle("open");
+  }
+  
+  function selectAndHide(slot) {
+    loadContent(slot);
+    const sidebar = document.getElementById("sidebar");
+    if (window.innerWidth <= MOBILE_BREAKPOINT) sidebar.classList.remove("open");
+  }
+  
+  // --- 載入 iframe ---(這裡的slot是指iframe的部分)
+  function loadContent(slot) {
+    if (slot === rm3_currentSlot) return;
+    rm3_currentSlot = slot;
+    const viewer = document.getElementById("viewer");
+  
+    if (rm3_slotCache[slot]) {
+      viewer.src = rm3_slotCache[slot];  // ✅ 在這裡設定 iframe.src
+    } else {
+      alert(`找不到 ${slot} 對應的資料，請稍後再試。`);
+      console.warn(`[richmenu_3] rm3_slotCache 中沒有 ${slot}`);
     }
+  }
   
-    window.addEventListener("DOMContentLoaded", async () => {
-      const viewer = document.getElementById("viewer");
-      const urlParams = new URLSearchParams(window.location.search);
-      const userId = urlParams.get('userId') || "";
-      const slotFromURL = "B4";
+  // --- 初始化 ---
+  window.addEventListener("DOMContentLoaded", () => {
+    const verifyResult = getVerifyResult();
+    if (!verifyResult) return;
   
-      try {
-        const url = `https://script.google.com/macros/s/AKfycbwyzcire5j9gDVAcANdaIVaD6_4R6jOl-0MtllgzM3HdQTPeedvFThy7IHCG6yEZuSd9A/exec?userId=${encodeURIComponent(userId)}&slot=${encodeURIComponent(slotFromURL)}`;
-        const res = await fetch(url);
-        const data = await res.json();
+    const initialSlot = verifyResult.slot || "B4";
   
-        if (data.status === "richmenu_3") {
-          Object.keys(data).forEach(key => {
-            if (key !== "status") {
-              slotCache[key] = data[key];
-            }
-          });
-          console.log("快取完成：", slotCache);
+    // 直接載入 iframe
+    loadContent(initialSlot);
+  });
   
-          if (slotCache["B4"]) {
-            loadContent("B4");
-          }
-        } else {
-          alert("伺服器回傳錯誤，請稍後再試。");
-          console.error("Server returned error status:", data);
-        }
-      } catch (error) {
-        console.error("初始化時取得資料失敗：", error);
-        alert("初始化資料失敗，請稍後再試。");
-      }
-    });
-  
-    function loadContent(slot) {
-      if (slot === currentSlot) return;
-      currentSlot = slot;
-      const viewer = document.getElementById("viewer");
-  
-      if (slotCache[slot]) {
-        viewer.src = slotCache[slot];
-      } else {
-        alert(`找不到 ${slot} 對應的資料，請稍後再試。`);
-      }
+  // --- 點擊 main-content 空白關閉側邊欄 ---
+  document.getElementById("main-content").addEventListener("click", () => {
+    const sidebar = document.getElementById("sidebar");
+    if (window.innerWidth <= MOBILE_BREAKPOINT && sidebar.classList.contains("open")) {
+      sidebar.classList.remove("open");
     }
+  });
   
-    // 新增點擊 main-content 空白區域關閉側邊欄
-    document.getElementById("main-content").addEventListener("click", () => {
-      const sidebar = document.getElementById("sidebar");
-  
-      if (window.innerWidth <= MOBILE_BREAKPOINT && sidebar.classList.contains("open")) {
-        sidebar.classList.remove("open");
-      }
-    });
-  
-    // 阻止點擊 sidebar 本身時關閉側邊欄事件冒泡
-    document.getElementById("sidebar").addEventListener("click", (e) => {
-      e.stopPropagation();
-    });
+  // --- 阻止 sidebar 點擊冒泡 ---
+  document.getElementById("sidebar").addEventListener("click", e => e.stopPropagation());
   </script>
+
 
 </body>
 </html>
+
