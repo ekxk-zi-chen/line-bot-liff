@@ -1934,10 +1934,13 @@
     }
     // ===== 全域變數 =====
     // 一進頁面時取 sessionStorage
+    console.log("[richmenu_4] 查看一開始的儲存資料:", sessionStorage.getItem('verifyResult'));
     const verifyResult = JSON.parse(sessionStorage.getItem('verifyResult') || "{}");
+    console.log("[richmenu_4] 察看結果資料:", verifyResult);
     const userId = verifyResult.userId || "";
     const sessionToken = verifyResult.sessionToken || "";
     const slot = verifyResult.slot || ""; 
+    console.log("[richmenu_4] userId:", userId, "sessionToken:", sessionToken, "slot:", slot);
     let cachedGroupedData = null;
     let originalGroupedData = null;
     let cachedHeaders = null;
@@ -1962,6 +1965,8 @@
         });
 
         const data = await response.json();
+        console.log("[richmenu_4] API_PROXY 回傳:", data);
+        
         cachedGroupedData = data.equipmentData;
         originalGroupedData = data.equipmentData;
         cachedHeaders = data.headers;  // <=== 這邊新增
@@ -2104,6 +2109,14 @@
 
 
       try {
+        console.log("[richmenu_4][saveStatus] 準備送出資料:", {
+          sessionToken,
+          userId,
+          name: item.name,
+          group: groupName,
+          data6: newData6,
+          data7: newData7
+        });
         const response = await fetch(`${CONFIG.API_PROXY}?slot=${slot}`, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
@@ -2299,5 +2312,6 @@
   </script>
 </body>
 </html>
+
 
 
