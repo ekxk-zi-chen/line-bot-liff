@@ -1960,7 +1960,8 @@
             sessionToken,
             action: 'getEquipmentData',
             userId: userId,
-            slot: slot
+            slot: slot,
+            url: CONFIG.APPS_SCRIPT_URL,
           })
         });
 
@@ -1993,7 +1994,8 @@
             action: 'getEquipmentData',
             sessionToken,
             userId: userId,
-            slot: slot
+            slot: slot,
+            url: CONFIG.APPS_SCRIPT_URL,
           })
         });
 
@@ -2126,7 +2128,8 @@
             name: item.name,
             group: groupName,
             data6: newData6,
-            data7: newData7
+            data7: newData7,
+            url: CONFIG.APPS_SCRIPT_URL,
           }),
         });
 
@@ -2312,6 +2315,7 @@
   </script>
 </body>
 </html>
+
 
 
 
