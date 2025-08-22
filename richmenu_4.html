@@ -1936,6 +1936,7 @@
     // 一進頁面時取 sessionStorage
     const verifyResult = JSON.parse(sessionStorage.getItem('verifyResult') || "{}");
     const userId = verifyResult.userId || "";
+    const sessionToken = verifyResult.sessionToken || "";
     const slot = verifyResult.slot || ""; 
     let cachedGroupedData = null;
     let originalGroupedData = null;
@@ -1951,8 +1952,9 @@
       try {
         const response = await fetch(CONFIG.API_PROXY, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
+            sessionToken,
             action: 'getEquipmentData',
             userId: userId,
             slot: slot
@@ -1981,9 +1983,10 @@
       try {
         const response = await fetch(CONFIG.API_PROXY, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
             action: 'getEquipmentData',
+            sessionToken,
             userId: userId,
             slot: slot
           })
@@ -2105,6 +2108,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
+            sessionToken,
             userId: userId,
             name: item.name,
             group: groupName,
@@ -2295,4 +2299,5 @@
   </script>
 </body>
 </html>
+
 
