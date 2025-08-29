@@ -15,7 +15,7 @@
       word-break: break-word;
       border: 1px solid #ccc;
       vertical-align: top;
-    }
+  }
   td div, th div {
       width: 100%;
       height: 100%;
@@ -65,14 +65,14 @@ function startRecording(btn) {
     recordedChunks = [];
     navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
-            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/mp4' });
             mediaRecorder.start();
 
             mediaRecorder.ondataavailable = e => {
                 if (e.data.size > 0) recordedChunks.push(e.data);
             };
             mediaRecorder.onstop = () => {
-                latestBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+                latestBlob = new Blob(recordedChunks, { type: 'audio/mp4' });
                 audio.src = URL.createObjectURL(latestBlob);
                 audio.style.display = "block";
                 playBtn.disabled = false;
@@ -107,7 +107,6 @@ function playRecording(btn) {
     audio.play();
 }
 
-// 匯出 HTML
 document.getElementById("exportBtn").addEventListener("click", async () => {
     const container = document.querySelector(".table-container").cloneNode(true);
     container.querySelector("#exportBtn")?.remove();
