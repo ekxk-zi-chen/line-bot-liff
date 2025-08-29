@@ -1,0 +1,158 @@
+
+<div class="table-container">
+<style>
+  div.table-container {
+      overflow-x: auto;
+  }
+  table {
+      width: 100%;
+      max-width: 100%;
+      border-collapse: collapse;
+  }
+  th, td {
+      padding: 4px;
+      text-align: left;
+      word-break: break-word;
+      border: 1px solid #ccc;
+      vertical-align: top;
+    }
+  td div, th div {
+      width: 100%;
+      height: 100%;
+  }
+  .recorder-cell button {
+      margin-right: 4px;
+  }
+  #exportBtn {
+      margin: 10px 0;
+      padding: 6px 12px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+  }
+</style>
+
+<button id="exportBtn">💾 匯出 HTML</button>
+
+<table border="1" style="border-collapse:collapse; width:100%;"><thead><tr><th><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th><th><div data-gjs-editable="true">Unnamed: 1</div></th><th><div data-gjs-editable="true">Unnamed: 2</div></th><th><div data-gjs-editable="true">Unnamed: 3</div></th><th><div data-gjs-editable="true">Unnamed: 4</div></th><th><div data-gjs-editable="true">Unnamed: 5</div></th><th><div data-gjs-editable="true">Unnamed: 6</div></th><th><div data-gjs-editable="true">Unnamed: 7</div></th></tr></thead><tbody><tr><td><div data-gjs-editable="true">傷病患姓名</div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">年齡</div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">性別</div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">體重</div></td><td><div data-gjs-editable="true"></div></td></tr><tr><td><div data-gjs-editable="true">緊急聯絡人</div></td>
+                <td>
+                  <div class="recorder-cell">
+                    <button onclick="startRecording(this)">🎤 錄音</button>
+                    <button onclick="stopRecording(this)" disabled>⏹ 停止</button>
+                    <button onclick="playRecording(this)" disabled>▶ 播放</button>
+                    <audio controls style="display:none;"></audio>
+                  </div>
+                </td>
+                <td><div data-gjs-editable="true">傷病患</div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td></tr><tr><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">行程總天數</div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">123.0</div></td></tr></tbody></table>
+
+<script>
+let mediaRecorder;
+let recordedChunks = [];
+let latestBlob = null;
+
+function startRecording(btn) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("⚠️ 這個瀏覽器不支援錄音 (請使用 iOS14+ Safari 或 Android Chrome)");
+        return;
+    }
+
+    const cell = btn.closest(".recorder-cell");
+    const stopBtn = cell.querySelector("button[onclick^='stopRecording']");
+    const playBtn = cell.querySelector("button[onclick^='playRecording']");
+    const audio = cell.querySelector("audio");
+
+    recordedChunks = [];
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.start();
+
+            mediaRecorder.ondataavailable = e => {
+                if (e.data.size > 0) recordedChunks.push(e.data);
+            };
+            mediaRecorder.onstop = () => {
+                latestBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+                audio.src = URL.createObjectURL(latestBlob);
+                audio.style.display = "block";
+                playBtn.disabled = false;
+            };
+
+            btn.disabled = true;
+            stopBtn.disabled = false;
+            playBtn.disabled = true;
+        })
+        .catch(err => {
+            console.error("錄音失敗:", err);
+            alert("無法啟動錄音: " + err.message);
+        });
+}
+
+function stopRecording(btn) {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+    }
+    const cell = btn.closest(".recorder-cell");
+    const startBtn = cell.querySelector("button[onclick^='startRecording']");
+    const playBtn = cell.querySelector("button[onclick^='playRecording']");
+
+    startBtn.disabled = false;
+    btn.disabled = true;
+    playBtn.disabled = false;
+}
+
+function playRecording(btn) {
+    const cell = btn.closest(".recorder-cell");
+    const audio = cell.querySelector("audio");
+    audio.play();
+}
+
+// 匯出功能
+document.getElementById("exportBtn").addEventListener("click", async () => {
+    const container = document.querySelector(".table-container").cloneNode(true);
+    // 移除匯出按鈕
+    container.querySelector("#exportBtn")?.remove();
+
+    // 找所有錄音格子 → 建立 Promise 陣列
+    const tasks = Array.from(container.querySelectorAll(".recorder-cell")).map(cell => {
+        const audio = cell.querySelector("audio");
+        if (audio && audio.src.startsWith("blob:")) {
+            return fetch(audio.src).then(r => r.blob()).then(blob => new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onload = function() {
+                    const base64data = reader.result;
+                    cell.innerHTML = `<audio controls src="${base64data}"></audio>`;
+                    resolve();
+                };
+                reader.readAsDataURL(blob);
+            }));
+        } else {
+            cell.innerHTML = "<span>尚未錄音</span>";
+            return Promise.resolve();
+        }
+    });
+
+    // 等待全部錄音轉換完成
+    await Promise.all(tasks);
+
+    // 組合並下載
+    const exportHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>已匯出錄音表格</title>
+</head>
+<body>
+${container.outerHTML}
+</body>
+</html>
+    `;
+    const blob = new Blob([exportHTML], { type: "text/html" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "exported_table.html";
+    a.click();
+});
+</script>
+</div>
