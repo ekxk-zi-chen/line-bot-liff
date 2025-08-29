@@ -107,13 +107,11 @@ function playRecording(btn) {
     audio.play();
 }
 
-// 匯出功能
+// 匯出 HTML
 document.getElementById("exportBtn").addEventListener("click", async () => {
     const container = document.querySelector(".table-container").cloneNode(true);
-    // 移除匯出按鈕
     container.querySelector("#exportBtn")?.remove();
 
-    // 找所有錄音格子 → 建立 Promise 陣列
     const tasks = Array.from(container.querySelectorAll(".recorder-cell")).map(cell => {
         const audio = cell.querySelector("audio");
         if (audio && audio.src.startsWith("blob:")) {
@@ -132,10 +130,8 @@ document.getElementById("exportBtn").addEventListener("click", async () => {
         }
     });
 
-    // 等待全部錄音轉換完成
     await Promise.all(tasks);
 
-    // 組合並下載
     const exportHTML = `
 <!DOCTYPE html>
 <html>
