@@ -33,7 +33,7 @@
   }
 </style>
 
-<button id="exportBtn">💾 匯出 HTML</button>
+<button id="exportBtn">💾 匯出 ZIP</button>
 
 <table border="1" style="border-collapse:collapse; width:100%;"><thead><tr><th><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th><th><div data-gjs-editable="true">Unnamed: 1</div></th><th><div data-gjs-editable="true">Unnamed: 2</div></th><th><div data-gjs-editable="true">Unnamed: 3</div></th><th><div data-gjs-editable="true">Unnamed: 4</div></th><th><div data-gjs-editable="true">Unnamed: 5</div></th><th><div data-gjs-editable="true">Unnamed: 6</div></th><th><div data-gjs-editable="true">Unnamed: 7</div></th></tr></thead><tbody><tr><td><div data-gjs-editable="true">傷病患姓名</div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">年齡</div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">性別</div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">體重</div></td><td><div data-gjs-editable="true"></div></td></tr><tr><td><div data-gjs-editable="true">緊急聯絡人</div></td>
                 <td>
@@ -131,38 +131,22 @@ document.getElementById("exportBtn").addEventListener("click", async () => {
 
     await Promise.all(tasks);
 
-    const exportHTML = `
-<!DOCTYPE html>
+    const exportHTML = `<!DOCTYPE html>
 <html>
-<head>
-<meta charset="utf-8">
-<title>已匯出錄音表格</title>
-</head>
-<body>
-${container.outerHTML}
-</body>
-</html>
-    `;
-    const blob = new Blob([exportHTML], { type: "text/html" });
+<head><meta charset="utf-8"><title>已匯出錄音表格</title></head>
+<body>${container.outerHTML}</body>
+</html>`;
 
-    // iOS Web Share API 優先
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'exported_table.html', { type: 'text/html' })] })) {
-        try {
-            await navigator.share({
-                files: [new File([blob], 'exported_table.html', { type: 'text/html' })],
-                title: '匯出錄音表格',
-            });
-            return;
-        } catch(err) {
-            console.error("分享失敗:", err);
-        }
-    }
-
-    // fallback: 一般下載
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "exported_table.html";
-    a.click();
+    // 建立 ZIP
+    const zip = new JSZip();
+    zip.file("exported_table.html", exportHTML);
+    zip.generateAsync({type:"blob"}).then(function(content) {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(content);
+        a.download = "exported_table.zip";
+        a.click();
+    });
 });
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </div>
