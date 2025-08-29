@@ -144,6 +144,21 @@ ${container.outerHTML}
 </html>
     `;
     const blob = new Blob([exportHTML], { type: "text/html" });
+
+    // iOS Web Share API 優先
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'exported_table.html', { type: 'text/html' })] })) {
+        try {
+            await navigator.share({
+                files: [new File([blob], 'exported_table.html', { type: 'text/html' })],
+                title: '匯出錄音表格',
+            });
+            return;
+        } catch(err) {
+            console.error("分享失敗:", err);
+        }
+    }
+
+    // fallback: 一般下載
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "exported_table.html";
