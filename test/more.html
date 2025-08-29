@@ -46,6 +46,8 @@
                 </td>
                 <td><div data-gjs-editable="true">傷病患</div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td></tr><tr><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">行程總天數</div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">123.0</div></td></tr></tbody></table>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
 <script>
 let mediaRecorder;
 let recordedChunks = [];
@@ -56,7 +58,6 @@ function startRecording(btn) {
         alert("⚠️ 這個瀏覽器不支援錄音 (請使用 iOS14+ Safari 或 Android Chrome)");
         return;
     }
-
     const cell = btn.closest(".recorder-cell");
     const stopBtn = cell.querySelector("button[onclick^='stopRecording']");
     const playBtn = cell.querySelector("button[onclick^='playRecording']");
@@ -95,7 +96,6 @@ function stopRecording(btn) {
     const cell = btn.closest(".recorder-cell");
     const startBtn = cell.querySelector("button[onclick^='startRecording']");
     const playBtn = cell.querySelector("button[onclick^='playRecording']");
-
     startBtn.disabled = false;
     btn.disabled = true;
     playBtn.disabled = false;
@@ -137,10 +137,27 @@ document.getElementById("exportBtn").addEventListener("click", async () => {
 <body>${container.outerHTML}</body>
 </html>`;
 
-    // 建立 ZIP
     const zip = new JSZip();
     zip.file("exported_table.html", exportHTML);
-    zip.generateAsync({type:"blob"}).then(function(content) {
+
+    zip.generateAsync({type:"blob"}).then(async function(content) {
+        const file = new File([content], "exported_table.zip", {type:"application/zip"});
+        
+        // iOS Safari & Web Share API v2
+        if (navigator.canShare && navigator.canShare({files:[file]})) {
+            try {
+                await navigator.share({
+                    files: [file],
+                    title: "匯出錄音表格",
+                    text: "這是你匯出的錄音表格 ZIP 檔"
+                });
+                return;
+            } catch(err) {
+                console.error("分享失敗:", err);
+            }
+        }
+
+        // fallback: 傳統下載
         const a = document.createElement("a");
         a.href = URL.createObjectURL(content);
         a.download = "exported_table.zip";
@@ -148,5 +165,4 @@ document.getElementById("exportBtn").addEventListener("click", async () => {
     });
 });
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </div>
