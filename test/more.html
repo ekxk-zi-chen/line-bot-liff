@@ -75,8 +75,8 @@
 
 <button id="exportBtn">💾 匯出 ZIP</button>
 
-<table border="1" style="border-collapse:collapse; width:100%;"><thead><tr><th><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th></tr></thead><tbody><tr><td><div data-gjs-editable="true">傷病患姓名</div></td><td class='editable-cell' data-type='text' onclick="openModal(this,'text')">✏️ 輸入文字</td><td><div data-gjs-editable="true">年齡</div></td><td class='editable-cell' data-type='text' onclick="openModal(this,'text')">✏️ 輸入文字</td><td><div data-gjs-editable="true">性別</div></td><td class='editable-cell' data-type='radio' data-options='男生,女生' onclick="openModal(this,'radio')">📌 選擇答案</td><td><div data-gjs-editable="true">體重</div></td><td class='editable-cell' data-type='text' onclick="openModal(this,'text')">✏️ 輸入文字</td></tr><tr><td><div data-gjs-editable="true">緊急聯絡人</div></td>
-                <td class='editable-cell'>
+<table border="1" style="border-collapse:collapse; width:100%;"><thead><tr><th><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th></tr></thead><tbody><tr><td><div data-gjs-editable="true">傷病患姓名</div></td><td class='editable-cell' data-type='text' onclick="openModal(this,'text')">✏️ 輸入文字</td><td><div data-gjs-editable="true">年齡</div></td><td class='editable-cell' data-type='text' onclick="openModal(this,'text')">✏️ 輸入文字</td><td><div data-gjs-editable="true">性別</div></td><td class='editable-cell' data-type='radio' data-options='男生,女生' onclick="openModal(this,'radio')">📌 選擇答案</td><td><div data-gjs-editable="true">體重</div></td><td class='editable-cell' data-type='text' onclick="openModal(this,'text')">✏️ 輸入文字</td></tr><tr><td rowspan="2"><div data-gjs-editable="true">緊急聯絡人</div></td>
+                <td rowspan="2" class='editable-cell'>
                   <div class="recorder-cell">
                     <button onclick="startRecording(this)">🎤 錄音</button>
                     <button onclick="stopRecording(this)" disabled>⏹ 停止</button>
@@ -84,7 +84,7 @@
                     <audio controls style="display:none;"></audio>
                   </div>
                 </td>
-                <td rowspan="2"><div data-gjs-editable="true">傷病患行程總天數</div></td><td rowspan="2" colspan="5" class='editable-cell' data-type='radio' data-options='一日,二日,三日' onclick="openModal(this,'radio')">📌 選擇答案</td></tr><tr><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td></tr><tr><td rowspan="3"><div data-gjs-editable="true">主訴</div></td>
+                <td rowspan="2"><div data-gjs-editable="true">傷病患行程總天數</div></td><td rowspan="2" colspan="5" class='editable-cell' data-type='radio' data-options='一日,二日,三日' onclick="openModal(this,'radio')">📌 選擇答案</td></tr><tr></tr><tr><td rowspan="3"><div data-gjs-editable="true">主訴</div></td>
                 <td rowspan="3" colspan="3" class='editable-cell'>
                   <div class="recorder-cell">
                     <button onclick="startRecording(this)">🎤 錄音</button>
@@ -93,7 +93,7 @@
                     <audio controls style="display:none;"></audio>
                   </div>
                 </td>
-                <td colspan="2"><div data-gjs-editable="true">多選測試</div></td><td class='editable-cell' data-type='multi' data-options='你好,他好,我好,沒有人好,大家都好' onclick="openModal(this,'multi')">📌 選擇答案</td><td><div data-gjs-editable="true"></div></td></tr><tr><td rowspan="2" colspan="2"><div data-gjs-editable="true">輸入測試</div></td><td rowspan="2" class='editable-cell' data-type='text' onclick="openModal(this,'text')">✏️ 輸入文字</td><td rowspan="2"><div data-gjs-editable="true"></div></td></tr><tr></tr></tbody></table>
+                <td colspan="2"><div data-gjs-editable="true">多選測試</div></td><td colspan="2" class='editable-cell' data-type='multi' data-options='你好,他好,我好,沒有人好,大家都好' onclick="openModal(this,'multi')">📌 選擇答案</td></tr><tr><td rowspan="2" colspan="2"><div data-gjs-editable="true">輸入測試</div></td><td rowspan="2" colspan="2" class='editable-cell' data-type='text' onclick="openModal(this,'text')">✏️ 輸入文字</td></tr><tr></tr></tbody></table>
 
 <!-- Modal -->
 <div id="modal" class="modal">
@@ -142,20 +142,35 @@ function startRecording(btn){
     }).catch(err=>{alert("錄音失敗:"+err.message);});
 }
 
+// 停止錄音（更新按鈕與頁面狀態）
 function stopRecording(btn){
-    if(mediaRecorder && mediaRecorder.state!=='inactive') mediaRecorder.stop();
-    const cell = btn.closest(".recorder-cell");
-    const startBtn = cell.querySelector("button[onclick^='startRecording']");
-    const playBtn = cell.querySelector("button[onclick^='playRecording']");
-    startBtn.disabled = false; btn.disabled=true; playBtn.disabled=false;
+    stopRecordingAuto();
 }
 
+function stopRecordingAuto(){
+    if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+    const allCells = document.querySelectorAll('.recorder-cell');
+    allCells.forEach(cell => {
+        const startBtn = cell.querySelector("button[onclick^='startRecording']");
+        const stopBtn = cell.querySelector("button[onclick^='stopRecording']");
+        const playBtn = cell.querySelector("button[onclick^='playRecording']");
+        const audio = cell.querySelector("audio");
+        if(startBtn && stopBtn && playBtn){
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            playBtn.disabled = audio && audio.src ? false : true;
+        }
+    });
+}
+
+// 播放錄音
 function playRecording(btn){
     const cell = btn.closest(".recorder-cell");
     const audio = cell.querySelector("audio");
     audio.play();
 }
 
+// Modal
 function openModal(cell,type){
     currentCell = cell;
     currentType = type;
@@ -203,6 +218,7 @@ function confirmModal(){
     closeModal();
 }
 
+// 匯出 ZIP
 document.getElementById("exportBtn").addEventListener("click",async()=>{
     const container = document.querySelector(".table-container").cloneNode(true);
     container.querySelector("#exportBtn")?.remove();
@@ -256,6 +272,12 @@ document.getElementById("exportBtn").addEventListener("click",async()=>{
         a.click();
     });
 });
+
+// 自動停止錄音
+document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden){ stopRecordingAuto(); }
+});
+window.addEventListener('pagehide', ()=>{ stopRecordingAuto(); });
 
 </script>
 </div>
