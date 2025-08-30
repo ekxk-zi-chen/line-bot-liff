@@ -10,9 +10,8 @@
 
   /* Modal 手機優化 */
   .modal { display: none; position: fixed; z-index: 1000; left:0; top:0; width:100%; height:100%; background-color: rgba(0,0,0,0.6); }
-  .modal-content { position: absolute; bottom:0; left:0; width:100%; background-color:#fff; max-height:50%; display:flex; flex-direction:column; border-radius:12px 12px 0 0; overflow:hidden; }
-  #modalHeader { padding:10px; border-bottom:1px solid #ccc; }
-  #modalBodyWrapper { flex:1; overflow-y:auto; padding:10px; }
+  .modal-content { position: absolute; background-color:#fff; width:90%; max-width:500px; border-radius:8px; overflow:hidden; box-shadow:0 0 10px rgba(0,0,0,0.3); }
+  #modalBodyWrapper { padding:10px; max-height:60vh; overflow-y:auto; }
   #modalFooter { padding:10px; background:#f1f1f1; display:flex; justify-content:flex-end; gap:10px; }
   #modalFooter button { flex:none; padding:10px 20px; font-size:16px; }
   audio { width:100%; height:40px; }
@@ -22,7 +21,7 @@
 
 <button id="exportBtn">💾 匯出 ZIP</button>
 
-<table border="1" style="border-collapse:collapse; width:100%;"><thead><tr><th><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th></tr></thead><tbody><tr><td><div data-gjs-editable="true">傷病患姓名</div></td><td class="editable-cell" data-type="text" onclick="openModal(this,'text')">✏️ 輸入文字</td><td><div data-gjs-editable="true">年齡</div></td><td class="editable-cell" data-type="text" onclick="openModal(this,'text')">✏️ 輸入文字</td><td><div data-gjs-editable="true">性別</div></td><td class="editable-cell" data-type="radio" data-options="男生,女生" onclick="openModal(this,'radio')">📌 選擇答案</td><td><div data-gjs-editable="true">體重</div></td><td class="editable-cell" data-type="text" onclick="openModal(this,'text')">✏️ 輸入文字</td></tr><tr><td rowspan="2"><div data-gjs-editable="true">緊急聯絡人</div></td>
+<table border="1" style="border-collapse:collapse; width:100%;"><thead><tr><th><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th></tr></thead><tbody><tr><td><div data-gjs-editable="true">傷病患姓名</div></td><td class='editable-cell' data-type='text' onclick="openModal(this,'text')">✏️ 輸入文字</td><td><div data-gjs-editable="true">年齡</div></td><td class='editable-cell' data-type='text' onclick="openModal(this,'text')">✏️ 輸入文字</td><td><div data-gjs-editable="true">性別</div></td><td class='editable-cell' data-type='radio' data-options='男生,女生' onclick="openModal(this,'radio')">📌 選擇答案</td><td><div data-gjs-editable="true">體重</div></td><td class='editable-cell' data-type='text' onclick="openModal(this,'text')">✏️ 輸入文字</td></tr><tr><td rowspan="2"><div data-gjs-editable="true">緊急聯絡人</div></td>
                 <td rowspan="2" class='editable-cell'>
                   <div class="recorder-cell">
                     <button onclick="startRecording(this)">🎤 錄音</button>
@@ -31,7 +30,7 @@
                     <audio controls style="display:none;"></audio>
                   </div>
                 </td>
-                <td rowspan="2"><div data-gjs-editable="true">傷病患行程總天數</div></td><td rowspan="2" colspan="5" class="editable-cell" data-type="radio" data-options="一日,二日,三日" onclick="openModal(this,'radio')">📌 選擇答案</td></tr><tr></tr><tr><td rowspan="3"><div data-gjs-editable="true">主訴</div></td>
+                <td rowspan="2"><div data-gjs-editable="true">傷病患行程總天數</div></td><td rowspan="2" colspan="5" class='editable-cell' data-type='radio' data-options='一日,二日,三日' onclick="openModal(this,'radio')">📌 選擇答案</td></tr><tr></tr><tr><td rowspan="3"><div data-gjs-editable="true">主訴</div></td>
                 <td rowspan="3" colspan="3" class='editable-cell'>
                   <div class="recorder-cell">
                     <button onclick="startRecording(this)">🎤 錄音</button>
@@ -40,7 +39,7 @@
                     <audio controls style="display:none;"></audio>
                   </div>
                 </td>
-                <td colspan="2"><div data-gjs-editable="true">多選測試</div></td><td colspan="2" class="editable-cell" data-type="multi" data-options="你好,他好,我好,沒有人好,大家都好" onclick="openModal(this,'multi')">📌 選擇答案</td></tr><tr><td rowspan="2" colspan="2"><div data-gjs-editable="true">輸入測試</div></td><td rowspan="2" colspan="2" class="editable-cell" data-type="text" onclick="openModal(this,'text')">✏️ 輸入文字</td></tr><tr></tr></tbody></table>
+                <td colspan="2"><div data-gjs-editable="true">多選測試</div></td><td colspan="2" class='editable-cell' data-type='multi' data-options='你好,他好,我好,沒有人好,大家都好' onclick="openModal(this,'multi')">📌 選擇答案</td></tr><tr><td rowspan="2" colspan="2"><div data-gjs-editable="true">輸入測試</div></td><td rowspan="2" colspan="2" class='editable-cell' data-type='text' onclick="openModal(this,'text')">✏️ 輸入文字</td></tr><tr></tr></tbody></table>
 
 <div id="modal" class="modal">
   <div class="modal-content">
@@ -56,6 +55,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 let mediaRecorder, recordedChunks=[], latestBlob=null, currentCell=null, currentType='';
+
 const isMobile=/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 function startRecording(btn){
@@ -80,6 +80,7 @@ function startRecording(btn){
         btn.disabled=true; stopBtn.disabled=false; playBtn.disabled=true;
     }).catch(err=>alert("錄音失敗:"+err.message));
 }
+
 function stopRecording(btn){ if(mediaRecorder&&mediaRecorder.state!=='inactive') mediaRecorder.stop(); }
 function playRecording(btn){ const audio=btn.closest(".recorder-cell").querySelector("audio"); audio.play(); }
 
@@ -96,9 +97,18 @@ function openModal(cell,type){
         else{ body=options.map(o=>' <label style="font-size:18px;display:block;"><input type="checkbox" value="'+o+'" '+(value.split('、').includes(o)?'checked':'')+'> '+o+'</label>').join(''); }
     }
     document.getElementById('modalBody').innerHTML=body;
-    document.getElementById('modal').style.display='block';
+    const modal=document.querySelector('.modal');
+    modal.style.display='block';
 
-    if(isMobile && type==='text'){ setTimeout(()=>document.getElementById('modalInput').focus(),300); }
+    // 計算在點擊位置上方浮動
+    const rect=cell.getBoundingClientRect();
+    const modalContent=document.querySelector('.modal-content');
+    modalContent.style.top=(window.scrollY + rect.top)+'px';
+    modalContent.style.left='5%';
+    modalContent.style.width='90%';
+    modalContent.style.transform='none';
+
+    if(type==='text'){ setTimeout(()=>document.getElementById('modalInput').focus(),300); }
 }
 
 function closeModal(){ document.getElementById('modal').style.display='none'; }
