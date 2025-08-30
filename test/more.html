@@ -8,18 +8,15 @@
   .editable-cell:hover { background: #ffe69c; }
   #exportBtn { margin: 10px 0; padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 6px; font-size: 16px; }
 
-  /* Modal 手機原生風格 */
+  /* Modal 手機優化 */
   .modal { display: none; position: fixed; z-index: 1000; left:0; top:0; width:100%; height:100%; background-color: rgba(0,0,0,0.6); }
-  .modal-content { position: absolute; bottom:0; left:0; width:100%; max-height:80%; background-color:#fff; display:flex; flex-direction:column; border-top-left-radius:12px; border-top-right-radius:12px; overflow:hidden; }
-  #modalHeader { padding:10px; font-weight:bold; font-size:18px; border-bottom:1px solid #ddd; }
-  #modalBodyWrapper { flex:1; overflow-y:auto; padding:10px; }
-  #modalFooter { padding:10px; border-top:1px solid #ddd; display:flex; justify-content:flex-end; gap:10px; }
-  #modalFooter button { padding:10px 20px; font-size:16px; }
-  .option-btn { display:block; width:100%; font-size:18px; padding:12px; margin:5px 0; border-radius:8px; background:#f0f0f0; border:none; text-align:left; }
-  .option-btn.selected { background:#4CAF50; color:#fff; }
+  .modal-content { position: absolute; background-color:#fff; width:90%; max-width:500px; border-radius:8px; overflow:hidden; box-shadow:0 0 10px rgba(0,0,0,0.3); }
+  #modalBodyWrapper { padding:10px; max-height:60vh; overflow-y:auto; }
+  #modalFooter { padding:10px; background:#f1f1f1; display:flex; justify-content:flex-end; gap:10px; }
+  #modalFooter button { flex:none; padding:10px 20px; font-size:16px; }
+  audio { width:100%; height:40px; }
   textarea { width:100%; font-size:18px; padding:8px; }
   select[multiple] { width:100%; font-size:18px; }
-  audio { width:100%; height:40px; }
 </style>
 
 <button id="exportBtn">💾 匯出 ZIP</button>
@@ -58,6 +55,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 let mediaRecorder, recordedChunks=[], latestBlob=null, currentCell=null, currentType='';
+
 const isMobile=/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 function startRecording(btn){
@@ -92,25 +90,25 @@ function openModal(cell,type){
     const value=cell.dataset.value||'';
     document.getElementById('modalTitle').innerText=type==='text'?'請輸入文字':'請選擇答案';
     let body='';
-    if(type==='text'){
-        body='<textarea id="modalInput" rows="5">'+value+'</textarea>';
-    } else {
-        body=options.map(o=>{
-            const selected=value.split('、').includes(o)?' selected':'';
-            return '<button class="option-btn'+selected+'" onclick="selectOption(this)">'+o+'</button>';
-        }).join('');
+    if(type==='text'){ body='<textarea id="modalInput" rows="5">'+value+'</textarea>'; }
+    else if(type==='radio'){ body=options.map(o=>' <label style="font-size:18px;display:block;"><input type="radio" name="modalRadio" value="'+o+'" '+(o===value?'checked':'')+'> '+o+'</label>').join(''); }
+    else if(type==='multi'){
+        if(isMobile){ body='<select id="modalSelect" multiple>'+options.map(o=>'<option value="'+o+'" '+(value.split('、').includes(o)?'selected':'')+'>'+o+'</option>').join('')+'</select>'; }
+        else{ body=options.map(o=>' <label style="font-size:18px;display:block;"><input type="checkbox" value="'+o+'" '+(value.split('、').includes(o)?'checked':'')+'> '+o+'</label>').join(''); }
     }
     document.getElementById('modalBody').innerHTML=body;
-    document.getElementById('modal').style.display='block';
-}
+    const modal=document.querySelector('.modal');
+    modal.style.display='block';
 
-function selectOption(btn){
-    if(currentType==='radio'){
-        Array.from(document.querySelectorAll('.option-btn')).forEach(b=>b.classList.remove('selected'));
-        btn.classList.add('selected');
-    } else if(currentType==='multi'){
-        btn.classList.toggle('selected');
-    }
+    // 計算在點擊位置上方浮動
+    const rect=cell.getBoundingClientRect();
+    const modalContent=document.querySelector('.modal-content');
+    modalContent.style.top=(window.scrollY + rect.top)+'px';
+    modalContent.style.left='5%';
+    modalContent.style.width='90%';
+    modalContent.style.transform='none';
+
+    if(type==='text'){ setTimeout(()=>document.getElementById('modalInput').focus(),300); }
 }
 
 function closeModal(){ document.getElementById('modal').style.display='none'; }
@@ -119,9 +117,10 @@ function confirmModal(){
     if(!currentCell) return;
     let newValue='';
     if(currentType==='text'){ newValue=document.getElementById('modalInput').value.trim(); }
-    else {
-        const selected=document.querySelectorAll('.option-btn.selected');
-        newValue=Array.from(selected).map(b=>b.innerText).join('、');
+    else if(currentType==='radio'){ const sel=document.querySelector('input[name="modalRadio"]:checked'); newValue=sel?sel.value:''; }
+    else if(currentType==='multi'){
+        if(isMobile){ newValue=Array.from(document.getElementById('modalSelect').selectedOptions).map(i=>i.value).join('、'); }
+        else{ newValue=Array.from(document.querySelectorAll('#modalBody input[type=checkbox]:checked')).map(i=>i.value).join('、'); }
     }
     currentCell.dataset.value=newValue;
     currentCell.innerText=newValue||(currentType==='multi'?'未選擇':'尚未輸入');
