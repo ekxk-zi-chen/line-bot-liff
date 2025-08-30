@@ -14,19 +14,15 @@ th, td { padding:6px; text-align:left; word-break:break-word; border:1px solid #
 /* Modal 手機優化 */
 .modal {
     display: none;
-    position: fixed;
+    position: absolute; /* 🔹改成絕對定位，跟隨 cell */
     z-index: 1000;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
     background-color: rgba(0,0,0,0.6);
-    overflow-y: auto; /* 🔹允許滾動 */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .modal-content {
-    position: relative; /* 🔹改為 relative，不固定 top */
-    margin: 10% auto;   /* 🔹置中並留上方空間 */
+    position: relative;
     width: 90%;
     max-height: 60%;
     background: #fff;
@@ -37,6 +33,7 @@ th, td { padding:6px; text-align:left; word-break:break-word; border:1px solid #
     justify-content: space-between;
     border-radius: 8px;
 }
+
 
 #modalInput, #numberInput { width:100%; font-size:18px; padding:8px; flex:1; }
 #modalFooter { display:flex; justify-content:space-between; }
@@ -170,10 +167,19 @@ function selectInlineOption(btn,type){
 function openTextModal(cell){
     currentCell = cell;
     const value = cell.dataset.value||'';
-    document.getElementById('modalInput').value = value;
-    document.getElementById('modal').style.display='block';
-    // 🚫 不再強制 focus，避免手機頁面跳到左上角
-    // document.getElementById('modalInput').focus();
+    const modal = document.getElementById('modal');
+    const input = document.getElementById('modalInput');
+    input.value = value;
+
+    // 取得 cell 的可視位置
+    const rect = cell.getBoundingClientRect();
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+
+    // 放置在 cell 下方 5px
+    modal.style.top = (rect.bottom + scrollTop + 5) + 'px';
+    modal.style.left = (rect.left + scrollLeft) + 'px';
+    modal.style.display = 'block';
 }
 function closeModal(){ document.getElementById('modal').style.display='none'; }
 function confirmModal(){
@@ -188,10 +194,17 @@ function confirmModal(){
 function openNumberModal(cell){
     currentCell = cell;
     const value = cell.dataset.value||'';
-    document.getElementById('numberInput').value = value;
-    document.getElementById('numberModal').style.display='block';
-    // 🚫 不再強制 focus，避免手機頁面跳到左上角
-    // document.getElementById('numberInput').focus();
+    const modal = document.getElementById('numberModal');
+    const input = document.getElementById('numberInput');
+    input.value = value;
+
+    const rect = cell.getBoundingClientRect();
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+
+    modal.style.top = (rect.bottom + scrollTop + 5) + 'px';
+    modal.style.left = (rect.left + scrollLeft) + 'px';
+    modal.style.display = 'block';
 }
 function closeNumberModal(){ document.getElementById('numberModal').style.display='none'; }
 function confirmNumberModal(){
