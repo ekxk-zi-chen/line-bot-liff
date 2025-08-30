@@ -27,11 +27,12 @@
   }
   #exportBtn {
       margin: 10px 0;
-      padding: 6px 12px;
+      padding: 8px 16px;
       background: #4CAF50;
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 6px;
+      font-size: 16px;
   }
   /* Modal */
   .modal {
@@ -43,27 +44,34 @@
       width: 100%;
       height: 100%;
       overflow: auto;
-      background-color: rgba(0,0,0,0.4);
+      background-color: rgba(0,0,0,0.6);
   }
   .modal-content {
       background-color: #fefefe;
-      margin: 10% auto;
+      margin: 5% auto;
       padding: 20px;
       border: 1px solid #888;
       width: 80%;
-      max-width: 400px;
+      max-width: 600px;
+      max-height: 80%;
+      overflow-y: auto;
+      font-size: 18px;
   }
-  .modal-content h3 {
-      margin-top:0;
+  .modal-content textarea {
+      width: 100%;
+      font-size: 18px;
+      padding: 8px;
   }
   .modal-content button {
-      margin-top: 10px;
+      margin-top: 12px;
+      padding: 10px 20px;
+      font-size: 18px;
   }
 </style>
 
 <button id="exportBtn">💾 匯出 ZIP</button>
 
-<table border="1" style="border-collapse:collapse; width:100%;"><thead><tr><th><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th><th><div data-gjs-editable="true">Unnamed: 1</div></th><th><div data-gjs-editable="true">Unnamed: 2</div></th><th><div data-gjs-editable="true">Unnamed: 3</div></th><th><div data-gjs-editable="true">Unnamed: 4</div></th><th><div data-gjs-editable="true">Unnamed: 5</div></th><th><div data-gjs-editable="true">Unnamed: 6</div></th><th><div data-gjs-editable="true">Unnamed: 7</div></th></tr></thead><tbody><tr><td><div data-gjs-editable="true">傷病患姓名</div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">年齡</div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">性別</div></td><td class='editable-cell' data-type='radio' data-options='男生,女生' onclick="openModal(this,'radio')">📌 選擇答案</td><td><div data-gjs-editable="true">體重</div></td><td><div data-gjs-editable="true"></div></td></tr><tr><td><div data-gjs-editable="true">緊急聯絡人</div></td>
+<table border="1" style="border-collapse:collapse; width:100%;"><thead><tr><th><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th><th><div data-gjs-editable="true">Unnamed: 1</div></th><th><div data-gjs-editable="true">Unnamed: 2</div></th><th><div data-gjs-editable="true">Unnamed: 3</div></th><th><div data-gjs-editable="true">Unnamed: 4</div></th><th><div data-gjs-editable="true">Unnamed: 5</div></th><th><div data-gjs-editable="true">Unnamed: 6</div></th><th><div data-gjs-editable="true">Unnamed: 7</div></th></tr></thead><tbody><tr><td><div data-gjs-editable="true">傷病患姓名</div></td><td class='editable-cell' data-type='text' onclick="openModal(this,'text')">✏️ 輸入文字</td><td><div data-gjs-editable="true">年齡</div></td><td class='editable-cell' data-type='text' onclick="openModal(this,'text')">✏️ 輸入文字</td><td><div data-gjs-editable="true">性別</div></td><td class='editable-cell' data-type='radio' data-options='男生,女生' onclick="openModal(this,'radio')">📌 選擇答案</td><td><div data-gjs-editable="true">體重</div></td><td class='editable-cell' data-type='text' onclick="openModal(this,'text')">✏️ 輸入文字</td></tr><tr><td><div data-gjs-editable="true">緊急聯絡人</div></td>
                 <td class='editable-cell'>
                   <div class="recorder-cell">
                     <button onclick="startRecording(this)">🎤 錄音</button>
@@ -72,7 +80,7 @@
                     <audio controls style="display:none;"></audio>
                   </div>
                 </td>
-                <td><div data-gjs-editable="true">傷病患行程總天數</div></td><td class='editable-cell' data-type='radio' data-options='一日,二日,三日' onclick="openModal(this,'radio')">📌 選擇答案</td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td></tr><tr><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">123.0</div></td></tr><tr><td><div data-gjs-editable="true">主訴</div></td>
+                <td><div data-gjs-editable="true">傷病患行程總天數</div></td><td class='editable-cell' data-type='radio' data-options='一日,二日,三日' onclick="openModal(this,'radio')">📌 選擇答案</td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td></tr><tr><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td></tr><tr><td><div data-gjs-editable="true">主訴</div></td>
                 <td class='editable-cell'>
                   <div class="recorder-cell">
                     <button onclick="startRecording(this)">🎤 錄音</button>
@@ -101,9 +109,11 @@ let latestBlob = null;
 let currentCell = null;
 let currentType = '';
 
-function startRecording(btn) {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert("⚠️ 這個瀏覽器不支援錄音 (請使用 iOS14+ Safari 或 Android Chrome)");
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+function startRecording(btn){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+        alert("⚠️ 這個瀏覽器不支援錄音");
         return;
     }
     const cell = btn.closest(".recorder-cell");
@@ -112,132 +122,110 @@ function startRecording(btn) {
     const audio = cell.querySelector("audio");
 
     recordedChunks = [];
-    navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/mp4' });
-            mediaRecorder.start();
-
-            mediaRecorder.ondataavailable = e => {
-                if (e.data.size > 0) recordedChunks.push(e.data);
-            };
-            mediaRecorder.onstop = () => {
-                latestBlob = new Blob(recordedChunks, { type: 'audio/mp4' });
-                audio.src = URL.createObjectURL(latestBlob);
-                audio.style.display = "block";
-                playBtn.disabled = false;
-            };
-
-            btn.disabled = true;
-            stopBtn.disabled = false;
-            playBtn.disabled = true;
-        })
-        .catch(err => {
-            console.error("錄音失敗:", err);
-            alert("無法啟動錄音: " + err.message);
-        });
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/mp4' });
+        mediaRecorder.start();
+        mediaRecorder.ondataavailable = e => { if(e.data.size>0) recordedChunks.push(e.data); };
+        mediaRecorder.onstop = () => {
+            latestBlob = new Blob(recordedChunks, { type:'audio/mp4' });
+            audio.src = URL.createObjectURL(latestBlob);
+            audio.style.display = "block";
+            playBtn.disabled = false;
+        };
+        btn.disabled = true;
+        stopBtn.disabled = false;
+        playBtn.disabled = true;
+    }).catch(err=>{alert("錄音失敗:"+err.message);});
 }
 
-function stopRecording(btn) {
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        mediaRecorder.stop();
-    }
+function stopRecording(btn){
+    if(mediaRecorder && mediaRecorder.state!=='inactive') mediaRecorder.stop();
     const cell = btn.closest(".recorder-cell");
     const startBtn = cell.querySelector("button[onclick^='startRecording']");
     const playBtn = cell.querySelector("button[onclick^='playRecording']");
-    startBtn.disabled = false;
-    btn.disabled = true;
-    playBtn.disabled = false;
+    startBtn.disabled = false; btn.disabled=true; playBtn.disabled=false;
 }
 
-function playRecording(btn) {
+function playRecording(btn){
     const cell = btn.closest(".recorder-cell");
     const audio = cell.querySelector("audio");
     audio.play();
 }
 
-// Detect if mobile
-const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-// Modal functions
 function openModal(cell,type){
     currentCell = cell;
     currentType = type;
     const options = cell.dataset.options ? cell.dataset.options.split(',') : [];
     const value = cell.dataset.value || '';
 
-    // 如果是手機多選題，直接用 select multiple
-    if(isMobile && type==='multi'){
-        let selHtml = `<select id="modalSelect" multiple style="width:100%">`;
-        options.forEach(opt=>{
-            selHtml += `<option value="${opt}" ${value.split('、').includes(opt)?'selected':''}>${opt}</option>`;
-        });
-        selHtml += `</select>`;
-        cell.innerHTML = selHtml;
-        return;
-    }
-
     document.getElementById('modalTitle').innerText = type==='text' ? '請輸入文字' : '請選擇答案';
     let body = '';
     if(type==='text'){
-        body = `<textarea id="modalInput" style="width:100%" rows="4">${value}</textarea>`;
+        body = `<textarea id="modalInput" rows="5">${value}</textarea>`;
     } else if(type==='radio'){
-        body = options.map(opt=>`<label><input type="radio" name="modalRadio" value="${opt}" ${opt===value?'checked':''}> ${opt}</label><br>`).join('');
+        body = options.map(opt=>`<label style="font-size:18px;display:block;"><input type="radio" name="modalRadio" value="${opt}" ${opt===value?'checked':''}> ${opt}</label>`).join('');
     } else if(type==='multi'){
-        body = options.map(opt=>`<label><input type="checkbox" value="${opt}" ${value.split('、').includes(opt)?'checked':''}> ${opt}</label><br>`).join('');
+        if(isMobile){
+            body = `<select id="modalSelect" multiple style="width:100%;font-size:18px;">` + 
+                   options.map(opt=>`<option value="${opt}" ${value.split('、').includes(opt)?'selected':''}>${opt}</option>`).join('') + `</select>`;
+        } else {
+            body = options.map(opt=>`<label style="font-size:18px;display:block;"><input type="checkbox" value="${opt}" ${value.split('、').includes(opt)?'checked':''}> ${opt}</label>`).join('');
+        }
     }
     document.getElementById('modalBody').innerHTML = body;
     document.getElementById('modal').style.display = 'block';
 }
 
 function closeModal(){
-    document.getElementById('modal').style.display = 'none';
+    document.getElementById('modal').style.display='none';
 }
 
 function confirmModal(){
     if(!currentCell) return;
     let newValue = '';
-    if(currentType==='text'){
-        newValue = document.getElementById('modalInput').value.trim();
-    } else if(currentType==='radio'){
-        const sel = document.querySelector('input[name="modalRadio"]:checked');
-        newValue = sel ? sel.value : '';
+    if(currentType==='text') newValue=document.getElementById('modalInput').value.trim();
+    else if(currentType==='radio'){
+        const sel=document.querySelector('input[name="modalRadio"]:checked');
+        newValue=sel?sel.value:'';
     } else if(currentType==='multi'){
-        const sel = Array.from(document.querySelectorAll('#modalBody input[type=checkbox]:checked')).map(i=>i.value);
-        newValue = sel.join('、');
+        if(isMobile){
+            const sel = Array.from(document.getElementById('modalSelect').selectedOptions).map(i=>i.value);
+            newValue = sel.join('、');
+        } else {
+            const sel = Array.from(document.querySelectorAll('#modalBody input[type=checkbox]:checked')).map(i=>i.value);
+            newValue = sel.join('、');
+        }
     }
     currentCell.dataset.value = newValue;
-    currentCell.innerText = newValue || (currentType==='multi' ? '未選擇' : '尚未輸入');
+    currentCell.innerText = newValue || (currentType==='multi'?'未選擇':'尚未輸入');
     closeModal();
 }
 
-// Export ZIP
-document.getElementById("exportBtn").addEventListener("click", async () => {
+document.getElementById("exportBtn").addEventListener("click",async()=>{
     const container = document.querySelector(".table-container").cloneNode(true);
     container.querySelector("#exportBtn")?.remove();
 
-    const tasks = Array.from(container.querySelectorAll("td")).map(cell => {
-        // 可編輯格子
+    const tasks = Array.from(container.querySelectorAll("td")).map(cell=>{
         if(cell.classList.contains('editable-cell')) {
-            if(cell.dataset.type==='text' || cell.dataset.type==='radio' || cell.dataset.type==='multi'){
-                const val = cell.dataset.value || '';
-                cell.innerHTML = `<div>${val}</div>`;
+            if(cell.dataset.type==='text'||cell.dataset.type==='radio'||cell.dataset.type==='multi'){
+                const val = cell.dataset.value||'';
+                cell.innerHTML=`<div>${val}</div>`;
             }
             return Promise.resolve();
         }
-        // 錄音
-        if(cell.querySelector(".recorder-cell")) {
-            const audio = cell.querySelector("audio");
-            if(audio && audio.src.startsWith("blob:")) {
+        if(cell.querySelector(".recorder-cell")){
+            const audio=cell.querySelector("audio");
+            if(audio && audio.src.startsWith("blob:")){
                 return fetch(audio.src).then(r=>r.blob()).then(blob=>new Promise(resolve=>{
-                    const reader = new FileReader();
-                    reader.onload = function(){
-                        cell.innerHTML = `<audio controls src="${reader.result}"></audio>`;
+                    const reader=new FileReader();
+                    reader.onload=function(){
+                        cell.innerHTML=`<audio controls src="${reader.result}"></audio>`;
                         resolve();
                     };
                     reader.readAsDataURL(blob);
                 }));
             } else {
-                cell.innerHTML = "<span>尚未錄音</span>";
+                cell.innerHTML="<span>尚未錄音</span>";
                 return Promise.resolve();
             }
         }
@@ -246,28 +234,24 @@ document.getElementById("exportBtn").addEventListener("click", async () => {
 
     await Promise.all(tasks);
 
-    const exportHTML = `<!DOCTYPE html>
+    const exportHTML=`<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><title>已匯出表格</title></head>
 <body>${container.outerHTML}</body>
 </html>`;
 
     const zip = new JSZip();
-    zip.file("exported_table.html", exportHTML);
+    zip.file("exported_table.html",exportHTML);
 
     zip.generateAsync({type:"blob"}).then(async function(content){
-        const file = new File([content], "exported_table.zip", {type:"application/zip"});
+        const file = new File([content],"exported_table.zip",{type:"application/zip"});
         if(navigator.canShare && navigator.canShare({files:[file]})){
-            try {
-                await navigator.share({files:[file], title:"匯出表格", text:"這是你匯出的表格 ZIP 檔"});
-                return;
-            } catch(err){
-                console.error("分享失敗:",err);
-            }
+            try{ await navigator.share({files:[file],title:"匯出表格",text:"這是你匯出的表格 ZIP 檔"}); return; }
+            catch(err){console.error("分享失敗:",err);}
         }
         const a=document.createElement("a");
-        a.href = URL.createObjectURL(content);
-        a.download = "exported_table.zip";
+        a.href=URL.createObjectURL(content);
+        a.download="exported_table.zip";
         a.click();
     });
 });
