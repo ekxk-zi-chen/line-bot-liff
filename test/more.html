@@ -6,7 +6,22 @@ table { width:100%; max-width:100%; border-collapse:collapse; }
 th, td { padding:6px; text-align:left; word-break:break-word; border:1px solid #ccc; vertical-align:top; cursor:default; }
 .editable-cell { background:#fff8dc; font-weight:bold; }
 .editable-cell:hover { background:#ffe69c; }
-.option-button { margin:2px 0; padding:6px 10px; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; }
+/* 單選題 & 多選題按鈕容器自動換行 */
+.editable-cell[data-type="radio"],
+.editable-cell[data-type="multi"] {
+    display: flex;
+    flex-wrap: wrap;       /* 🔹超出自動換行 */
+    gap: 4px;              /* 🔹按鈕間距 */
+}
+.option-button {
+    margin: 2px 0;         /* 保留原本 margin */
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background: #fff;
+    cursor: pointer;
+    white-space: normal;   /* 🔹允許文字換行 */
+}
 .option-button.selected { background:#4CAF50; color:white; }
 
 #exportBtn { margin:10px 0; padding:8px 16px; background:#4CAF50; color:white; border:none; border-radius:6px; font-size:16px; }
