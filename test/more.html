@@ -33,6 +33,42 @@ th, td { padding:6px; text-align:left; word-break:break-word; border:1px solid #
     justify-content: space-between;
     border-radius: 8px;
 }
+/* 🔹只改倒數提醒的 modal */
+#reminder {
+    position: fixed;       /* 固定在螢幕，不受滾動影響 */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;   /* 垂直置中 */
+    justify-content: center; /* 水平置中 */
+    z-index: 1000;
+}
+
+#reminder .modal-content {
+    max-width: 80%;
+    text-align: center;
+    border-radius: 16px;
+    padding: 20px;
+    background: #fff;
+}
+
+#reminder .reminder-message {
+    font-size: 24px;
+    margin-bottom: 30px;
+}
+
+#reminder button {
+    padding: 20px 40px;      /* 🔹按鈕大 */
+    font-size: 32px;         /* 🔹文字大 */
+    border: none;
+    border-radius: 12px;
+    background: #4CAF50;
+    color: white;
+    cursor: pointer;
+}
 
 
 #modalInput, #numberInput { width:100%; font-size:18px; padding:8px; flex:1; }
@@ -114,11 +150,15 @@ th, td { padding:6px; text-align:left; word-break:break-word; border:1px solid #
 
 <!-- 倒數計時提醒 -->
 <div id="reminder" class="modal" style="display:none; align-items:center; justify-content:center;">
-  <div class="modal-content" style="max-width:80%; text-align:center;">
-    <div class="reminder-message" style="font-size:20px; margin-bottom:20px;">提醒</div>
-    <button onclick="closeReminder()" style="padding:10px 20px; font-size:18px;">OK</button>
+  <div class="modal-content" style="max-width:80%; text-align:center; border-radius:16px; padding:20px;">
+    <div class="reminder-message" style="font-size:24px; margin-bottom:30px;">提醒</div>
+    <button onclick="closeReminder()" 
+            style="padding:20px 40px; font-size:32px; border:none; border-radius:12px; background:#4CAF50; color:white; cursor:pointer;">
+      OK
+    </button>
   </div>
 </div>
+
 
 
 
@@ -271,10 +311,14 @@ function startCountdown(cell) {
             addCountdownHistory(cell);
 
             // 推入提醒佇列
+            // 取前一格的值作為藥物名稱
+            let prevCell = cell.previousElementSibling;
+            let medName = prevCell ? prevCell.innerText.trim() : "藥物";
             reminderQueue.push({
                 cell: cell,
-                msg: "⏳ [" + (cell.dataset.seconds || "") + " 秒] 時間到！請確認要給藥"
+                msg: medName + " 時間到，請給藥！"
             });
+
             processReminderQueue();
         }
     }, 1000);
