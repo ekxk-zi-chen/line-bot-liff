@@ -1,16 +1,66 @@
 
 <div class="table-container">
 <style>
+/* 容器 */
 div.table-container { overflow-x:auto; }
+
+/* 表格基礎 */
 table { width:100%; max-width:100%; border-collapse:collapse; }
 th, td { padding:6px; text-align:left; word-break:break-word; vertical-align:top; cursor:default; }
+
+/* 可編輯 cell 樣式（保留淺色背景）*/
 .editable-cell { background:#fff8dc; font-weight:bold; }
 .editable-cell:hover { background:#ffe69c; }
+
+/* 選項按鈕 */
 .option-button { margin:2px 0; padding:6px 10px; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; white-space:normal; }
 .option-button.selected { background:#4CAF50; color:white; }
+
+/* 匯出按鈕 */
 #exportBtn { margin:10px 0; padding:8px 16px; background:#4CAF50; color:white; border:none; border-radius:6px; font-size:16px; }
+
+/* 一般 modal（輸入框）*/
 .modal { display:none; position:absolute; z-index:1000; background-color:rgba(0,0,0,0.6); overflow-y:auto; -webkit-overflow-scrolling:touch; }
 .modal-content { position:relative; width:90%; max-height:60%; background:#fff; padding:10px; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between; border-radius:8px; }
+
+/* --- Reminder 專用（重要：放在最下面以避免被覆蓋） --- */
+/* 確保提醒視窗在最上層並可點擊 */
+#reminder {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 2147483647; /* 極大值，確保在最上層 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+/* 內容框 */
+#reminder .modal-content {
+  max-width: 90%;
+  width: 520px;
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  text-align: center;
+}
+
+/* 訊息與按鈕 */
+#reminder .reminder-message { font-size: 20px; margin-bottom: 16px; color:#222; }
+#reminder .reminder-actions { display:flex; gap:12px; justify-content:center; margin-top:8px; }
+#reminder .reminder-actions button { padding:12px 22px; font-size:18px; border-radius:10px; border:none; cursor:pointer; }
+
+/* 手動播放（自動被阻擋時顯示） */
+#reminder .play-sound-btn { background:#ff7043; color:#fff; display:none; }
+#reminder .ok-btn { background:#4CAF50; color:#fff; }
+
+/* 小提醒：若有 inline style 從 Python 注入 color/background，請確保不是黑底同色字 */
 </style>
 
 <button id="exportBtn">💾 匯出 ZIP</button>
@@ -87,15 +137,16 @@ th, td { padding:6px; text-align:left; word-break:break-word; vertical-align:top
 </div>
 
 <!-- 倒數計時提醒 -->
-<div id="reminder" class="modal" style="display:none; align-items:center; justify-content:center;">
-  <div class="modal-content" style="max-width:80%; text-align:center; border-radius:16px; padding:20px;">
-    <div class="reminder-message" style="font-size:24px; margin-bottom:30px;">提醒</div>
-    <button onclick="closeReminder()" 
-            style="padding:20px 40px; font-size:32px; border:none; border-radius:12px; background:#4CAF50; color:white; cursor:pointer;">
-      OK
-    </button>
+<div id="reminder" class="modal" style="display:none;">
+  <div class="modal-content">
+    <div class="reminder-message">提醒</div>
+    <div class="reminder-actions">
+      <button class="play-sound-btn">🔊 播放提示音</button>
+      <button class="ok-btn" onclick="closeReminder()">OK</button>
+    </div>
   </div>
 </div>
+
 
 
 
@@ -310,41 +361,96 @@ function addCountdownHistory(cell){
     historyCell.innerHTML += prefix + formatted + "<br>";
 }
 
-// 處理提醒佇列
+// ---------------------------
+// Reminder / Alarm helpers
+// ---------------------------
+function getAlarmAudio(){
+  if (!alarmAudio) {
+    alarmAudio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+    alarmAudio.loop = true;
+  }
+  return alarmAudio;
+}
+
+// 處理提醒佇列：嘗試自動播放；若被阻擋，顯示手動播放按鈕
 function processReminderQueue() {
-    if (showingReminder || reminderQueue.length === 0) return;
+  if (showingReminder || reminderQueue.length === 0) return;
 
-    showingReminder = true;
-    const obj = reminderQueue.shift();
-    const msg = obj.msg;
+  showingReminder = true;
+  const obj = reminderQueue.shift();
+  const msg = obj.msg;
 
-    const reminder = document.getElementById("reminder");
-    reminder.querySelector(".reminder-message").innerText = msg;
-    reminder.style.display = "flex";
+  const reminder = document.getElementById("reminder");
+  const playBtn = reminder.querySelector(".play-sound-btn");
+  reminder.querySelector(".reminder-message").innerText = msg;
+  reminder.style.display = "flex";
 
-    // 播放提示音
-    if (!alarmAudio) {
-        alarmAudio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
-        alarmAudio.loop = true;
-    }
-    alarmAudio.play().catch(err => console.error("無法自動播放音效:", err));
+  // 預設隱藏手動按鈕（若自動播放被阻擋會顯示）
+  if (playBtn) playBtn.style.display = "none";
+
+  // 嘗試自動播放
+  const audio = getAlarmAudio();
+  audio.play()
+    .then(() => {
+      // 自動播放成功 — nothing else
+      if (playBtn) playBtn.style.display = "none";
+    })
+    .catch(err => {
+      // 自動播放被阻擋 -> 顯示手動按鈕
+      console.warn("自動播放被阻擋或錯誤:", err);
+      if (playBtn) playBtn.style.display = "inline-block";
+    });
 }
 
-// 關閉提醒
+// 關閉提醒：停止音檔，隱藏 modal，啟動下一個提醒
 function closeReminder() {
-    const reminder = document.getElementById("reminder");
-    reminder.style.display = "none";
+  const reminder = document.getElementById("reminder");
+  reminder.style.display = "none";
 
-    if (alarmAudio) {
-        alarmAudio.pause();
-        alarmAudio.currentTime = 0;
+  if (alarmAudio) {
+    try {
+      alarmAudio.pause();
+      alarmAudio.currentTime = 0;
+    } catch (e) {
+      console.warn("停止音檔錯誤:", e);
     }
+  }
 
-    showingReminder = false;
+  // 隱藏 play 按鈕
+  const playBtn = reminder.querySelector(".play-sound-btn");
+  if (playBtn) playBtn.style.display = "none";
 
-    // ⚡ 關掉後立即檢查下一個
-    processReminderQueue();
+  showingReminder = false;
+  // 小延遲確保 UI 更新完畢
+  setTimeout(processReminderQueue, 100);
 }
+
+// showReminder（保留簡易介面呼叫）
+function showReminder(msg){
+  reminderQueue.push({ msg: msg });
+  // 立刻嘗試處理（若已有在處理則 processReminderQueue 會忽略）
+  processReminderQueue();
+}
+
+// Add event listener for manual play button once DOM ready
+document.addEventListener("DOMContentLoaded", function(){
+  const reminder = document.getElementById("reminder");
+  if (!reminder) return;
+  const playBtn = reminder.querySelector(".play-sound-btn");
+  if (!playBtn) return;
+
+  playBtn.addEventListener("click", async function(){
+    const audio = getAlarmAudio();
+    try {
+      await audio.play();
+      playBtn.style.display = "none";
+    } catch(err){
+      console.error("手動播放失敗:", err);
+      alert("播放失敗，請確認瀏覽器是否允許聲音或操作畫面後再試。");
+    }
+  });
+});
+
 
 
 
