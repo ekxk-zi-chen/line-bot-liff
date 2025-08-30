@@ -10,18 +10,20 @@
       border-collapse: collapse;
   }
   th, td {
-      padding: 4px;
+      padding: 6px;
       text-align: left;
       word-break: break-word;
       border: 1px solid #ccc;
       vertical-align: top;
+      cursor: default;
   }
-  td div, th div {
-      width: 100%;
-      height: 100%;
+  .editable-cell {
+      background: #fff8dc;
+      cursor: pointer;
+      font-weight: bold;
   }
-  .recorder-cell button {
-      margin-right: 4px;
+  .editable-cell:hover {
+      background: #ffe69c;
   }
   #exportBtn {
       margin: 10px 0;
@@ -31,12 +33,38 @@
       border: none;
       border-radius: 4px;
   }
+  /* Modal */
+  .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.4);
+  }
+  .modal-content {
+      background-color: #fefefe;
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 400px;
+  }
+  .modal-content h3 {
+      margin-top:0;
+  }
+  .modal-content button {
+      margin-top: 10px;
+  }
 </style>
 
 <button id="exportBtn">💾 匯出 ZIP</button>
 
-<table border="1" style="border-collapse:collapse; width:100%;"><thead><tr><th><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th><th><div data-gjs-editable="true">Unnamed: 1</div></th><th><div data-gjs-editable="true">Unnamed: 2</div></th><th><div data-gjs-editable="true">Unnamed: 3</div></th><th><div data-gjs-editable="true">Unnamed: 4</div></th><th><div data-gjs-editable="true">Unnamed: 5</div></th><th><div data-gjs-editable="true">Unnamed: 6</div></th><th><div data-gjs-editable="true">Unnamed: 7</div></th></tr></thead><tbody><tr><td><div data-gjs-editable="true">傷病患姓名</div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">年齡</div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">性別</div></td><td><div class='radio-question'><label><input type='radio' name='q0' value='男生'> 男生</label><br><label><input type='radio' name='q0' value='女生'> 女生</label><br></div></td><td><div data-gjs-editable="true">體重</div></td><td><div data-gjs-editable="true"></div></td></tr><tr><td><div data-gjs-editable="true">緊急聯絡人</div></td>
-                <td>
+<table border="1" style="border-collapse:collapse; width:100%;"><thead><tr><th><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th><th><div data-gjs-editable="true">Unnamed: 1</div></th><th><div data-gjs-editable="true">Unnamed: 2</div></th><th><div data-gjs-editable="true">Unnamed: 3</div></th><th><div data-gjs-editable="true">Unnamed: 4</div></th><th><div data-gjs-editable="true">Unnamed: 5</div></th><th><div data-gjs-editable="true">Unnamed: 6</div></th><th><div data-gjs-editable="true">Unnamed: 7</div></th></tr></thead><tbody><tr><td><div data-gjs-editable="true">傷病患姓名</div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">年齡</div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">性別</div></td><td class='editable-cell' data-type='radio' data-options='男生,女生' onclick="openModal(this,'radio')">📌 選擇答案</td><td><div data-gjs-editable="true">體重</div></td><td><div data-gjs-editable="true"></div></td></tr><tr><td><div data-gjs-editable="true">緊急聯絡人</div></td>
+                <td class='editable-cell'>
                   <div class="recorder-cell">
                     <button onclick="startRecording(this)">🎤 錄音</button>
                     <button onclick="stopRecording(this)" disabled>⏹ 停止</button>
@@ -44,8 +72,8 @@
                     <audio controls style="display:none;"></audio>
                   </div>
                 </td>
-                <td><div data-gjs-editable="true">傷病患行程總天數</div></td><td><div class='radio-question'><label><input type='radio' name='q1' value='一日'> 一日</label><br><label><input type='radio' name='q1' value='二日'> 二日</label><br><label><input type='radio' name='q1' value='三日'> 三日</label><br></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td></tr><tr><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">123.0</div></td></tr><tr><td><div data-gjs-editable="true">主訴</div></td>
-                <td>
+                <td><div data-gjs-editable="true">傷病患行程總天數</div></td><td class='editable-cell' data-type='radio' data-options='一日,二日,三日' onclick="openModal(this,'radio')">📌 選擇答案</td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td></tr><tr><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">123.0</div></td></tr><tr><td><div data-gjs-editable="true">主訴</div></td>
+                <td class='editable-cell'>
                   <div class="recorder-cell">
                     <button onclick="startRecording(this)">🎤 錄音</button>
                     <button onclick="stopRecording(this)" disabled>⏹ 停止</button>
@@ -53,22 +81,26 @@
                     <audio controls style="display:none;"></audio>
                   </div>
                 </td>
-                <td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">多選測試</div></td><td><div data-gjs-editable="true"></div></td><td><div class='multi-question' style='position:relative;'><button type='button' class='multi-toggle'>請選擇 ▼</button><div class='multi-dropdown' style='display:none; border:1px solid #ccc; padding:6px; background:#fff; position:absolute; z-index:999; max-height:200px; overflow:auto;'><label style='display:block;'><input type='checkbox' value='你好'> 你好</label><label style='display:block;'><input type='checkbox' value='他好'> 他好</label><label style='display:block;'><input type='checkbox' value='我好'> 我好</label><label style='display:block;'><input type='checkbox' value='沒有人好'> 沒有人好</label><label style='display:block;'><input type='checkbox' value='大家都好'> 大家都好</label><button type='button' class='multi-confirm'>確定</button></div><div class='multi-result' style='margin-top:4px; color:#333;'></div></div></td><td><div data-gjs-editable="true"></div></td></tr><tr><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">輸入測試</div></td><td><div data-gjs-editable="true"></div></td>
-                <td>
-                  <div class="text-input-cell">
-                    <textarea placeholder="請輸入文字..." rows="3" style="width:100%"></textarea>
-                  </div>
-                </td>
-                <td><div data-gjs-editable="true"></div></td></tr></tbody></table>
+                <td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">多選測試</div></td><td><div data-gjs-editable="true"></div></td><td class='editable-cell' data-type='multi' data-options='你好,他好,我好,沒有人好,大家都好' onclick="openModal(this,'multi')">📌 選擇答案</td><td><div data-gjs-editable="true"></div></td></tr><tr><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true">輸入測試</div></td><td><div data-gjs-editable="true"></div></td><td class='editable-cell' data-type='text' onclick="openModal(this,'text')">✏️ 輸入文字</td><td><div data-gjs-editable="true"></div></td></tr></tbody></table>
+
+<!-- Modal -->
+<div id="modal" class="modal">
+  <div class="modal-content" id="modalContent">
+    <h3 id="modalTitle"></h3>
+    <div id="modalBody"></div>
+    <button onclick="confirmModal()">確定</button>
+    <button onclick="closeModal()">取消</button>
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-
 <script>
 let mediaRecorder;
 let recordedChunks = [];
 let latestBlob = null;
+let currentCell = null;
+let currentType = '';
 
-// === 錄音功能 ===
 function startRecording(btn) {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         alert("⚠️ 這個瀏覽器不支援錄音 (請使用 iOS14+ Safari 或 Android Chrome)");
@@ -123,60 +155,83 @@ function playRecording(btn) {
     audio.play();
 }
 
-// === 多選題控制 ===
-document.addEventListener("click", function(e) {
-    // 展開/收合選單
-    if (e.target.classList.contains("multi-toggle")) {
-        const dropdown = e.target.nextElementSibling;
-        dropdown.style.display = (dropdown.style.display === "none" || dropdown.style.display === "") ? "block" : "none";
+// Detect if mobile
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+// Modal functions
+function openModal(cell,type){
+    currentCell = cell;
+    currentType = type;
+    const options = cell.dataset.options ? cell.dataset.options.split(',') : [];
+    const value = cell.dataset.value || '';
+
+    // 如果是手機多選題，直接用 select multiple
+    if(isMobile && type==='multi'){
+        let selHtml = `<select id="modalSelect" multiple style="width:100%">`;
+        options.forEach(opt=>{
+            selHtml += `<option value="${opt}" ${value.split('、').includes(opt)?'selected':''}>${opt}</option>`;
+        });
+        selHtml += `</select>`;
+        cell.innerHTML = selHtml;
+        return;
     }
 
-    // 確定選擇
-    if (e.target.classList.contains("multi-confirm")) {
-        const dropdown = e.target.parentElement;
-        const checkboxes = dropdown.querySelectorAll("input[type=checkbox]:checked");
-        const values = Array.from(checkboxes).map(cb => cb.value);
-        const resultDiv = dropdown.parentElement.querySelector(".multi-result");
-        resultDiv.textContent = values.length > 0 ? values.join("、") : "未選擇";
-        dropdown.style.display = "none";
+    document.getElementById('modalTitle').innerText = type==='text' ? '請輸入文字' : '請選擇答案';
+    let body = '';
+    if(type==='text'){
+        body = `<textarea id="modalInput" style="width:100%" rows="4">${value}</textarea>`;
+    } else if(type==='radio'){
+        body = options.map(opt=>`<label><input type="radio" name="modalRadio" value="${opt}" ${opt===value?'checked':''}> ${opt}</label><br>`).join('');
+    } else if(type==='multi'){
+        body = options.map(opt=>`<label><input type="checkbox" value="${opt}" ${value.split('、').includes(opt)?'checked':''}> ${opt}</label><br>`).join('');
     }
-});
+    document.getElementById('modalBody').innerHTML = body;
+    document.getElementById('modal').style.display = 'block';
+}
 
-// === 匯出 ===
+function closeModal(){
+    document.getElementById('modal').style.display = 'none';
+}
+
+function confirmModal(){
+    if(!currentCell) return;
+    let newValue = '';
+    if(currentType==='text'){
+        newValue = document.getElementById('modalInput').value.trim();
+    } else if(currentType==='radio'){
+        const sel = document.querySelector('input[name="modalRadio"]:checked');
+        newValue = sel ? sel.value : '';
+    } else if(currentType==='multi'){
+        const sel = Array.from(document.querySelectorAll('#modalBody input[type=checkbox]:checked')).map(i=>i.value);
+        newValue = sel.join('、');
+    }
+    currentCell.dataset.value = newValue;
+    currentCell.innerText = newValue || (currentType==='multi' ? '未選擇' : '尚未輸入');
+    closeModal();
+}
+
+// Export ZIP
 document.getElementById("exportBtn").addEventListener("click", async () => {
     const container = document.querySelector(".table-container").cloneNode(true);
     container.querySelector("#exportBtn")?.remove();
 
     const tasks = Array.from(container.querySelectorAll("td")).map(cell => {
-        // 單選題
-        if (cell.querySelector(".radio-question")) {
-            const selected = cell.querySelector("input[type=radio]:checked");
-            cell.innerHTML = selected ? `<span>${selected.value}</span>` : "<span>未選擇</span>";
-            return Promise.resolve();
-        }
-        // 多選題
-        if (cell.querySelector(".multi-question")) {
-            const resultDiv = cell.querySelector(".multi-result");
-            const text = resultDiv.textContent.trim();
-            cell.innerHTML = text ? `<span>${text}</span>` : "<span>未選擇</span>";
-            return Promise.resolve();
-        }
-        // 輸入文字
-        if (cell.querySelector(".text-input-cell")) {
-            const textarea = cell.querySelector("textarea");
-            const text = textarea.value.trim();
-            cell.innerHTML = text ? `<div>${text}</div>` : "<span>尚未輸入</span>";
+        // 可編輯格子
+        if(cell.classList.contains('editable-cell')) {
+            if(cell.dataset.type==='text' || cell.dataset.type==='radio' || cell.dataset.type==='multi'){
+                const val = cell.dataset.value || '';
+                cell.innerHTML = `<div>${val}</div>`;
+            }
             return Promise.resolve();
         }
         // 錄音
-        if (cell.querySelector(".recorder-cell")) {
+        if(cell.querySelector(".recorder-cell")) {
             const audio = cell.querySelector("audio");
-            if (audio && audio.src.startsWith("blob:")) {
-                return fetch(audio.src).then(r => r.blob()).then(blob => new Promise(resolve => {
+            if(audio && audio.src.startsWith("blob:")) {
+                return fetch(audio.src).then(r=>r.blob()).then(blob=>new Promise(resolve=>{
                     const reader = new FileReader();
-                    reader.onload = function() {
-                        const base64data = reader.result;
-                        cell.innerHTML = `<audio controls src="${base64data}"></audio>`;
+                    reader.onload = function(){
+                        cell.innerHTML = `<audio controls src="${reader.result}"></audio>`;
                         resolve();
                     };
                     reader.readAsDataURL(blob);
@@ -200,23 +255,17 @@ document.getElementById("exportBtn").addEventListener("click", async () => {
     const zip = new JSZip();
     zip.file("exported_table.html", exportHTML);
 
-    zip.generateAsync({type:"blob"}).then(async function(content) {
+    zip.generateAsync({type:"blob"}).then(async function(content){
         const file = new File([content], "exported_table.zip", {type:"application/zip"});
-        
-        if (navigator.canShare && navigator.canShare({files:[file]})) {
+        if(navigator.canShare && navigator.canShare({files:[file]})){
             try {
-                await navigator.share({
-                    files: [file],
-                    title: "匯出表格",
-                    text: "這是你匯出的表格 ZIP 檔"
-                });
+                await navigator.share({files:[file], title:"匯出表格", text:"這是你匯出的表格 ZIP 檔"});
                 return;
-            } catch(err) {
-                console.error("分享失敗:", err);
+            } catch(err){
+                console.error("分享失敗:",err);
             }
         }
-
-        const a = document.createElement("a");
+        const a=document.createElement("a");
         a.href = URL.createObjectURL(content);
         a.download = "exported_table.zip";
         a.click();
