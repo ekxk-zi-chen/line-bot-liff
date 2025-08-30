@@ -30,7 +30,37 @@ th, td { padding:6px; text-align:left; word-break:break-word; border:1px solid #
                     <audio controls style="display:none;"></audio>
                   </div>
                 </td>
-                <td rowspan="2"><div data-gjs-editable="true">傷病患行程總天數</div></td><td rowspan="2" colspan="5" class="editable-cell" data-type="radio" data-value="" data-options="一日,二日,三日"><button class="option-button" onclick="selectInlineOption(this,'radio')">一日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">二日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">三日</button></td></tr><tr></tr><tr><td rowspan="3"><div data-gjs-editable="true">主訴</div></td>
+                <td><div data-gjs-editable="true">傷病患行程總天數</div></td><td colspan="5" class="editable-cell" data-type="radio" data-value="" data-options="一日,二日,三日,四日,五日,六日,七日"><button class="option-button" onclick="selectInlineOption(this,'radio')">一日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">二日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">三日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">四日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">五日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">六日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">七日</button></td></tr><tr><td><div data-gjs-editable="true">總行程天數</div></td><td colspan="5" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td></tr><tr><td><div data-gjs-editable="true">發生日期</div></td><td class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td><div data-gjs-editable="true">發生時間</div></td><td colspan="2"><div data-gjs-editable="true"></div></td><td colspan="2"><div data-gjs-editable="true">第幾天發生</div></td><td><div data-gjs-editable="true"></div></td></tr><tr><td><div data-gjs-editable="true">發生地點</div></td><td colspan="3" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td colspan="2"><div data-gjs-editable="true">座標</div></td><td class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td>
+                <td class='editable-cell'>
+                  <div class="recorder-cell">
+                    <button onclick="startRecording(this)">🎤 錄音</button>
+                    <button onclick="stopRecording(this)" disabled>⏹ 停止</button>
+                    <button onclick="playRecording(this)" disabled>▶ 播放</button>
+                    <audio controls style="display:none;"></audio>
+                  </div>
+                </td>
+                </tr><tr><td><div data-gjs-editable="true">傷病機轉</div></td><td colspan="3" class="editable-cell" data-type="multi" data-value="" data-options="創傷,疾病,高處墜落,生物咬螫傷"><button class="option-button" onclick="selectInlineOption(this,'multi')">創傷</button><button class="option-button" onclick="selectInlineOption(this,'multi')">疾病</button><button class="option-button" onclick="selectInlineOption(this,'multi')">高處墜落</button><button class="option-button" onclick="selectInlineOption(this,'multi')">生物咬螫傷</button></td><td colspan="2"><div data-gjs-editable="true">其他補述</div></td><td class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td>
+                <td class='editable-cell'>
+                  <div class="recorder-cell">
+                    <button onclick="startRecording(this)">🎤 錄音</button>
+                    <button onclick="stopRecording(this)" disabled>⏹ 停止</button>
+                    <button onclick="playRecording(this)" disabled>▶ 播放</button>
+                    <audio controls style="display:none;"></audio>
+                  </div>
+                </td>
+                </tr><tr><td><div data-gjs-editable="true">救援人員
+現場描述
+(含氣候、氣溫、現場環境、所見事件):</div></td><td colspan="3" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td colspan="2"><div data-gjs-editable="true">現場其他補述</div></td><td class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td>
+                <td class='editable-cell'>
+                  <div class="recorder-cell">
+                    <button onclick="startRecording(this)">🎤 錄音</button>
+                    <button onclick="stopRecording(this)" disabled>⏹ 停止</button>
+                    <button onclick="playRecording(this)" disabled>▶ 播放</button>
+                    <audio controls style="display:none;"></audio>
+                  </div>
+                </td>
+                </tr><tr><td colspan="8"><div data-gjs-editable="true">SAMPLE/病史詢問</div></td></tr><tr><td><div data-gjs-editable="true">S/感:症狀</div></td><td colspan="3" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td colspan="2"><div data-gjs-editable="true">A/敏:過敏</div></td><td colspan="2" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td></tr><tr><td><div data-gjs-editable="true">M/藥:藥物</div></td><td colspan="3" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td colspan="2"><div data-gjs-editable="true">P/過:過去相關病史</div></td><td colspan="2" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td></tr><tr><td><div data-gjs-editable="true">L/吃:最後的進出</div></td><td colspan="3" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td colspan="2"><div data-gjs-editable="true">E/之前:發生意外之前的事
+件</div></td><td colspan="2" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td></tr><tr><td rowspan="3"><div data-gjs-editable="true">主訴</div></td>
                 <td rowspan="3" colspan="3" class='editable-cell'>
                   <div class="recorder-cell">
                     <button onclick="startRecording(this)">🎤 錄音</button>
@@ -39,7 +69,7 @@ th, td { padding:6px; text-align:left; word-break:break-word; border:1px solid #
                     <audio controls style="display:none;"></audio>
                   </div>
                 </td>
-                <td colspan="2"><div data-gjs-editable="true">多選測試</div></td><td colspan="2" class="editable-cell" data-type="multi" data-value="" data-options="你好,他好,我好,沒有人好,大家都好"><button class="option-button" onclick="selectInlineOption(this,'multi')">你好</button><button class="option-button" onclick="selectInlineOption(this,'multi')">他好</button><button class="option-button" onclick="selectInlineOption(this,'multi')">我好</button><button class="option-button" onclick="selectInlineOption(this,'multi')">沒有人好</button><button class="option-button" onclick="selectInlineOption(this,'multi')">大家都好</button></td></tr><tr><td rowspan="2" colspan="2"><div data-gjs-editable="true">輸入測試</div></td><td rowspan="2" colspan="2" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td></tr><tr></tr></tbody></table>
+                <td colspan="2"><div data-gjs-editable="true">多選測試</div></td><td colspan="2" class="editable-cell" data-type="multi" data-value="" data-options="你好,他好,我好,沒有人好,大家都好"><button class="option-button" onclick="selectInlineOption(this,'multi')">你好</button><button class="option-button" onclick="selectInlineOption(this,'multi')">他好</button><button class="option-button" onclick="selectInlineOption(this,'multi')">我好</button><button class="option-button" onclick="selectInlineOption(this,'multi')">沒有人好</button><button class="option-button" onclick="selectInlineOption(this,'multi')">大家都好</button></td></tr><tr><td rowspan="2" colspan="2"><div data-gjs-editable="true">輸入測試</div></td><td rowspan="2" colspan="2" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td></tr><tr></tr><tr><td><div data-gjs-editable="true">主訴補充</div></td><td colspan="3" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td></tr></tbody></table>
 
 <!-- 文字輸入 Modal -->
 <div id="modal" class="modal">
