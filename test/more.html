@@ -14,14 +14,14 @@ th, td { padding:6px; text-align:left; word-break:break-word; border:1px solid #
 /* 文字輸入 Modal 手機優化 */
 .modal { display:none; position:fixed; z-index:1000; top:0; left:0; width:100%; height:100%; background-color: rgba(0,0,0,0.6); }
 .modal-content { position:absolute; top:0; left:0; width:100%; max-height:60%; background:#fff; padding:10px; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between; }
-#modalInput { width:100%; font-size:18px; padding:8px; flex:1; }
+#modalInput, #numberInput { width:100%; font-size:18px; padding:8px; flex:1; }
 #modalFooter { display:flex; justify-content:space-between; }
 #modalFooter button { padding:10px 20px; font-size:16px; }
 </style>
 
 <button id="exportBtn">💾 匯出 ZIP</button>
 
-<table border="1" style="border-collapse:collapse; width:100%;"><thead><tr><th><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th></tr></thead><tbody><tr><td><div data-gjs-editable="true">傷病患姓名</div></td><td class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td><div data-gjs-editable="true">年齡</div></td><td class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td><div data-gjs-editable="true">性別</div></td><td class="editable-cell" data-type="radio" data-value="" data-options="男生,女生"><button class="option-button" onclick="selectInlineOption(this,'radio')">男生</button><button class="option-button" onclick="selectInlineOption(this,'radio')">女生</button></td><td><div data-gjs-editable="true">體重</div></td><td class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td></tr><tr><td rowspan="2"><div data-gjs-editable="true">緊急聯絡人</div></td>
+<table border="1" style="border-collapse:collapse; width:100%;"><thead><tr><th><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th><th><div data-gjs-editable="true">None</div></th></tr></thead><tbody><tr><td><div data-gjs-editable="true">傷病患姓名</div></td><td class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td><div data-gjs-editable="true">年齡</div></td><td class="editable-cell" data-type="number" onclick="openNumberModal(this)">🔢 輸入數字</td><td><div data-gjs-editable="true">性別</div></td><td class="editable-cell" data-type="radio" data-value="" data-options="男生,女生"><button class="option-button" onclick="selectInlineOption(this,'radio')">男生</button><button class="option-button" onclick="selectInlineOption(this,'radio')">女生</button></td><td><div data-gjs-editable="true">體重</div></td><td class="editable-cell" data-type="number" onclick="openNumberModal(this)">🔢 輸入數字</td></tr><tr><td rowspan="2"><div data-gjs-editable="true">緊急聯絡人</div></td>
                 <td rowspan="2" class='editable-cell'>
                   <div class="recorder-cell">
                     <button onclick="startRecording(this)">🎤 錄音</button>
@@ -30,7 +30,7 @@ th, td { padding:6px; text-align:left; word-break:break-word; border:1px solid #
                     <audio controls style="display:none;"></audio>
                   </div>
                 </td>
-                <td><div data-gjs-editable="true">傷病患行程總天數</div></td><td colspan="5" class="editable-cell" data-type="radio" data-value="" data-options="一日,二日,三日,四日,五日,六日,七日"><button class="option-button" onclick="selectInlineOption(this,'radio')">一日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">二日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">三日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">四日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">五日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">六日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">七日</button></td></tr><tr><td><div data-gjs-editable="true">總行程天數</div></td><td colspan="5" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td></tr><tr><td><div data-gjs-editable="true">發生日期</div></td><td class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td><div data-gjs-editable="true">發生時間</div></td><td colspan="2" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td colspan="2"><div data-gjs-editable="true">第幾天發生</div></td><td class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td></tr><tr><td><div data-gjs-editable="true">發生地點</div></td><td colspan="3" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td colspan="2"><div data-gjs-editable="true">座標</div></td><td class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td>
+                <td><div data-gjs-editable="true">傷病患行程總天數</div></td><td colspan="5" class="editable-cell" data-type="radio" data-value="" data-options="一日,二日,三日,四日,五日,六日,七日"><button class="option-button" onclick="selectInlineOption(this,'radio')">一日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">二日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">三日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">四日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">五日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">六日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">七日</button></td></tr><tr><td><div data-gjs-editable="true">總行程天數</div></td><td colspan="5" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td></tr><tr><td><div data-gjs-editable="true">發生日期</div></td><td class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td><div data-gjs-editable="true">發生時間</div></td><td colspan="2" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td colspan="2"><div data-gjs-editable="true">第幾天發生</div></td><td class="editable-cell" data-type="number" onclick="openNumberModal(this)">🔢 輸入數字</td></tr><tr><td><div data-gjs-editable="true">發生地點</div></td><td colspan="3" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td colspan="2"><div data-gjs-editable="true">座標</div></td><td class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td>
                 <td class='editable-cell'>
                   <div class="recorder-cell">
                     <button onclick="startRecording(this)">🎤 錄音</button>
@@ -69,7 +69,7 @@ th, td { padding:6px; text-align:left; word-break:break-word; border:1px solid #
                     <audio controls style="display:none;"></audio>
                   </div>
                 </td>
-                <td colspan="2"><div data-gjs-editable="true">多選測試</div></td><td colspan="2" class="editable-cell" data-type="multi" data-value="" data-options="你好,他好,我好,沒有人好,大家都好"><button class="option-button" onclick="selectInlineOption(this,'multi')">你好</button><button class="option-button" onclick="selectInlineOption(this,'multi')">他好</button><button class="option-button" onclick="selectInlineOption(this,'multi')">我好</button><button class="option-button" onclick="selectInlineOption(this,'multi')">沒有人好</button><button class="option-button" onclick="selectInlineOption(this,'multi')">大家都好</button></td></tr><tr><td rowspan="2" colspan="2"><div data-gjs-editable="true">輸入測試</div></td><td rowspan="2" colspan="2" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td></tr><tr></tr><tr><td><div data-gjs-editable="true">主訴補充</div></td><td colspan="3" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td></tr></tbody></table>
+                <td colspan="2"><div data-gjs-editable="true">多選測試</div></td><td colspan="2" class="editable-cell" data-type="multi" data-value="" data-options="你好,他好,我好,沒有人好,大家都好"><button class="option-button" onclick="selectInlineOption(this,'multi')">你好</button><button class="option-button" onclick="selectInlineOption(this,'multi')">他好</button><button class="option-button" onclick="selectInlineOption(this,'multi')">我好</button><button class="option-button" onclick="selectInlineOption(this,'multi')">沒有人好</button><button class="option-button" onclick="selectInlineOption(this,'multi')">大家都好</button></td></tr><tr><td rowspan="2" colspan="2"><div data-gjs-editable="true">輸入測試</div></td><td rowspan="2" colspan="2" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td></tr><tr></tr><tr><td><div data-gjs-editable="true">主訴補充</div></td><td colspan="3" class="editable-cell" data-type="text" onclick="openTextModal(this)">✏️ 輸入文字</td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td></tr><tr><td><div data-gjs-editable="true">時間測試</div></td><td class="editable-cell" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td><div data-gjs-editable="true">倒數測試</div></td><td colspan="2" class="editable-cell" data-type="countdown" data-seconds="20" onclick="startCountdown(this)">⏳ 倒數計時 20 秒</td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td><td><div data-gjs-editable="true"></div></td></tr></tbody></table>
 
 <!-- 文字輸入 Modal -->
 <div id="modal" class="modal">
@@ -81,6 +81,27 @@ th, td { padding:6px; text-align:left; word-break:break-word; border:1px solid #
     </div>
   </div>
 </div>
+
+<!-- 數字輸入 Modal -->
+<div id="numberModal" class="modal">
+  <div class="modal-content">
+    <input type="number" id="numberInput" />
+    <div id="modalFooter">
+      <button onclick="confirmNumberModal()">確定</button>
+      <button onclick="closeNumberModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 倒數計時提醒 -->
+<div id="reminder" class="modal" style="display:none; align-items:center; justify-content:center;">
+  <div class="modal-content" style="max-width:80%; text-align:center;">
+    <div class="reminder-message" style="font-size:20px; margin-bottom:20px;">提醒</div>
+    <button onclick="closeReminder()" style="padding:10px 20px; font-size:18px;">OK</button>
+  </div>
+</div>
+
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
@@ -129,7 +150,8 @@ function openTextModal(cell){
     const value = cell.dataset.value||'';
     document.getElementById('modalInput').value = value;
     document.getElementById('modal').style.display='block';
-    document.getElementById('modalInput').focus();
+    // 🚫 不再強制 focus，避免手機頁面跳到左上角
+    // document.getElementById('modalInput').focus();
 }
 function closeModal(){ document.getElementById('modal').style.display='none'; }
 function confirmModal(){
@@ -139,6 +161,88 @@ function confirmModal(){
     currentCell.innerText = newValue || '尚未輸入';
     closeModal();
 }
+
+// 數字輸入 Modal
+function openNumberModal(cell){
+    currentCell = cell;
+    const value = cell.dataset.value||'';
+    document.getElementById('numberInput').value = value;
+    document.getElementById('numberModal').style.display='block';
+    // 🚫 不再強制 focus，避免手機頁面跳到左上角
+    // document.getElementById('numberInput').focus();
+}
+function closeNumberModal(){ document.getElementById('numberModal').style.display='none'; }
+function confirmNumberModal(){
+    if(!currentCell) return;
+    const newValue = document.getElementById('numberInput').value.trim();
+    currentCell.dataset.value = newValue;
+    currentCell.innerText = newValue || '尚未輸入';
+    closeNumberModal();
+}
+
+// 現在時間
+function fillCurrentTime(cell){
+    const now = new Date();
+    const formatted = now.getFullYear() + "-" + 
+                      String(now.getMonth()+1).padStart(2,'0') + "-" +
+                      String(now.getDate()).padStart(2,'0') + " " +
+                      String(now.getHours()).padStart(2,'0') + ":" +
+                      String(now.getMinutes()).padStart(2,'0') + ":" +
+                      String(now.getSeconds()).padStart(2,'0');
+    cell.dataset.value = formatted;
+    cell.innerText = formatted;
+}
+
+// 倒數計時
+let countdownTimer = null;
+let countdownInterval = null;
+let alarmAudio = null;
+
+function startCountdown(cell){
+    let seconds = parseInt(cell.dataset.seconds)||0;
+    if(seconds<=0) return;
+
+    // 如果有舊的倒數 → 清掉
+    if(countdownTimer) { clearTimeout(countdownTimer); countdownTimer=null; }
+    if(countdownInterval) { clearInterval(countdownInterval); countdownInterval=null; }
+
+    // 更新 cell 顯示
+    cell.innerText = "⏳ 剩餘 " + seconds + " 秒";
+
+    countdownInterval = setInterval(()=>{
+        seconds--;
+        if(seconds > 0){
+            cell.innerText = "⏳ 剩餘 " + seconds + " 秒";
+        } else {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+            cell.innerText = "⏳ 時間到！";
+            showReminder("⏳ 時間到！請確認要給藥");
+        }
+    },1000);
+}
+
+
+// 顯示提醒視窗
+function showReminder(msg){
+    const reminder = document.getElementById("reminder");
+    reminder.querySelector(".reminder-message").innerText = msg;
+    reminder.style.display="flex";
+
+    // 播放提示聲
+    alarmAudio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+    alarmAudio.loop = true;
+    alarmAudio.play().catch(err=>console.error("無法自動播放音效:",err));
+}
+
+function closeReminder(){
+    document.getElementById("reminder").style.display="none";
+    if(alarmAudio){ alarmAudio.pause(); alarmAudio.currentTime=0; alarmAudio=null; }
+}
+
+
+
+
 
 // 匯出 ZIP
 document.getElementById("exportBtn").addEventListener("click",async()=>{
@@ -156,7 +260,7 @@ document.getElementById("exportBtn").addEventListener("click",async()=>{
             } else { cell.innerHTML=''; return Promise.resolve(); }
         }
         if(cell.classList.contains('editable-cell')){
-            if(['text','radio','multi'].includes(cell.dataset.type)){
+            if(['text','radio','multi','number','datetime'].includes(cell.dataset.type)){
                 cell.innerHTML='<div>'+ (cell.dataset.value||'')+'</div>';
             }
         }
