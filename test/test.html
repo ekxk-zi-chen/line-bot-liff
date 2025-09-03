@@ -660,7 +660,6 @@
 
 
         // 資料匯出完整版本
-        // 資料匯出
         document.addEventListener("DOMContentLoaded", () => {
             const exportBtn = document.getElementById("exportBtn");
             if (!exportBtn) return;
@@ -670,23 +669,57 @@
                 exportStatus.innerText = "正在準備匯出...";
 
                 try {
-                    // 直接抓原始 HTML
+                    // 1️⃣ 將錄音轉成 Base64
+                    const audioElements = document.querySelectorAll("audio");
+                    for (let audio of audioElements) {
+                        if (audio.src.startsWith("blob:") && audio._blob) {
+                            const base64 = await new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = e => resolve(e.target.result);
+                                reader.onerror = err => reject(err);
+                                reader.readAsDataURL(audio._blob);
+                            });
+                            audio.src = base64;
+                        }
+                    }
+
+                    // 2️⃣ 將互動資料同步到 DOM
+                    document.querySelectorAll('.text-cell, .number-cell').forEach(cell => {
+                        cell.innerText = cell.dataset.value || '尚未輸入';
+                    });
+
+                    // 3️⃣ 將選項狀態同步到 data-selected
+                    document.querySelectorAll('.option-button').forEach(btn => {
+                        if(btn.classList.contains('selected')) {
+                            btn.setAttribute('data-selected', 'true');
+                        } else {
+                            btn.removeAttribute('data-selected');
+                        }
+                    });
+
+                    // 4️⃣ 側邊欄 active 狀態
+                    document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+                    const activeItem = document.querySelector(`.sidebar-item[data-section="${currentSection}"]`);
+                    if(activeItem) activeItem.classList.add('active');
+
+                    // 5️⃣ 生成完整 HTML
                     const exportHTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
 
-                    // 生成 ZIP
+                    // 6️⃣ 生成 ZIP
                     const zip = new JSZip();
                     zip.file("form_data.html", exportHTML);
 
+                    // 7️⃣ 自動生成檔名
                     let fileName = "form_export.zip";
                     const nameCell = document.querySelector("table tbody tr:nth-child(1) td:nth-child(2)");
-                    if (nameCell && nameCell.innerText.trim()) {
+                    if(nameCell && nameCell.innerText.trim()) {
                         fileName = nameCell.innerText.trim() + "_表單資料.zip";
                     }
 
                     exportStatus.innerText = "正在生成 ZIP 檔案...";
                     const content = await zip.generateAsync({ type: "blob" });
 
-                    // 嘗試分享
+                    // 8️⃣ 嘗試分享
                     const file = new File([content], fileName, { type: "application/zip" });
                     if (navigator.canShare && navigator.canShare({ files: [file] })) {
                         try {
