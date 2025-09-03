@@ -702,35 +702,22 @@
                     // 等待所有錄音轉換完成
                     await Promise.all(audioPromises);
 
-                    // 2️⃣ 複製整個HTML並處理互動元素
-                    const cloneDoc = document.documentElement.cloneNode(true);
-                    
-                    // 移除匯出狀態元素
-                    const exportStatusClone = cloneDoc.getElementById("exportStatus");
-                    if (exportStatusClone) {
-                        exportStatusClone.remove();
-                    }
-                    
-                    // 處理互動元素
-                    processInteractiveElementsForExport(cloneDoc);
+                    // 2️⃣ 複製整個HTML
+                    const exportHTML = document.documentElement.outerHTML;
 
-                    // 3️⃣ 生成完整HTML
-                    const exportHTML = `<!DOCTYPE html>
-` + cloneDoc.outerHTML;
-
-                    // 4️⃣ 生成ZIP
+                    // 3️⃣ 生成ZIP
                     exportStatus.innerText = "正在生成檔案...";
                     const zip = new JSZip();
                     zip.file("form_data_export.html", exportHTML);
 
-                    // 5️⃣ 自動生成檔名
+                    // 4️⃣ 自動生成檔名
                     let fileName = "表單匯出_" + new Date().toISOString().slice(0, 10).replace(/-/g, '') + ".zip";
                     const nameCell = document.querySelector("table tbody tr:first-child td:nth-child(2)");
                     if (nameCell && nameCell.textContent.trim()) {
                         fileName = nameCell.textContent.trim().replace(/[^\w一-鿿]/g, '_') + "_表單資料.zip";
                     }
 
-                    // 6️⃣ 優先使用手機分享功能
+                    // 5️⃣ 優先使用手機分享功能
                     const content = await zip.generateAsync({ type: "blob" });
                     const file = new File([content], fileName, { type: "application/zip" });
 
@@ -748,7 +735,7 @@
                         }
                     }
 
-                    // 7️⃣ 傳統下載方式
+                    // 6️⃣ 傳統下載方式
                     const a = document.createElement("a");
                     a.href = URL.createObjectURL(content);
                     a.download = fileName;
@@ -764,62 +751,6 @@
                     exportStatus.innerText = "❌ 匯出失敗: " + e.message;
                 }
             });
-
-            // 處理互動元素轉靜態顯示
-            function processInteractiveElementsForExport(doc) {
-                // 處理選擇題 - 顯示已選擇的答案
-                doc.querySelectorAll('[data-type="radio"], [data-type="multi"]').forEach(cell => {
-                    const dataValue = cell.getAttribute('data-value') || '';
-                    if (dataValue) {
-                        cell.innerHTML = `<div style="padding:8px; background:#e8f5e9; border-radius:4px;">✅ ${dataValue}</div>`;
-                    } else {
-                        cell.innerHTML = '<div style="padding:8px; color:#999;">尚未選擇</div>';
-                    }
-                });
-
-                // 處理文字輸入
-                doc.querySelectorAll('[data-type="text"]').forEach(cell => {
-                    const dataValue = cell.getAttribute('data-value') || '';
-                    cell.innerHTML = dataValue ? 
-                        `<div style="padding:8px; background:#e3f2fd; border-radius:4px;">${dataValue}</div>` :
-                        '<div style="padding:8px; color:#999;">尚未輸入</div>';
-                });
-
-                // 處理數字輸入
-                doc.querySelectorAll('[data-type="number"]').forEach(cell => {
-                    const dataValue = cell.getAttribute('data-value') || '';
-                    cell.innerHTML = dataValue ? 
-                        `<div style="padding:8px; background:#fff3cd; border-radius:4px;">${dataValue}</div>` :
-                        '<div style="padding:8px; color:#999;">尚未輸入</div>';
-                });
-
-                // 處理時間
-                doc.querySelectorAll('[data-type="datetime"]').forEach(cell => {
-                    const dataValue = cell.getAttribute('data-value') || '';
-                    cell.innerHTML = dataValue ? 
-                        `<div style="padding:8px; background:#d4edda; border-radius:4px;">${dataValue}</div>` :
-                        '<div style="padding:8px; color:#999;">尚未填寫</div>';
-                });
-
-                // 處理錄音 - 確保base64音頻可以播放
-                doc.querySelectorAll('.recorder-cell').forEach(cell => {
-                    const audio = cell.querySelector('audio');
-                    if (audio && audio.src) {
-                        cell.innerHTML = `<audio controls src="${audio.src}" style="width:100%; max-width:300px;"></audio>`;
-                    } else {
-                        cell.innerHTML = '<div style="padding:8px; color:#999;">無錄音資料</div>';
-                    }
-                });
-
-                // 移除所有按鈕和互動屬性
-                doc.querySelectorAll('button, [onclick]').forEach(el => el.remove());
-                
-                // 移除匯出區的整個區塊
-                const exportSection = doc.getElementById('section-匯出');
-                if (exportSection) {
-                    exportSection.remove();
-                }
-            }
         });
 
     </script>
