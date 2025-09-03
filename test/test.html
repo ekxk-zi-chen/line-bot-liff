@@ -664,7 +664,7 @@
         
         
 
-        // 資料匯出完整版本
+        // 資料匯出完整版本（手機可用）
         document.addEventListener("DOMContentLoaded", () => {
             const exportBtn = document.getElementById("exportBtn");
             if (!exportBtn) return;
@@ -741,23 +741,61 @@
                     exportHTML += '</body></html>';
 
                     // 4️⃣ 生成ZIP
+                    exportStatus.innerText = "正在生成檔案...";
                     const zip = new JSZip();
                     zip.file("form_data_export.html", exportHTML);
 
-                    // 5️⃣ 下載
+                    // 5️⃣ 自動生成檔名
+                    let fileName = "表單匯出_" + new Date().toISOString().slice(0, 10).replace(/-/g, '') + ".zip";
+                    const nameCell = document.querySelector("table tbody tr:first-child td:nth-child(2)");
+                    if (nameCell && nameCell.textContent.trim()) {
+                        fileName = nameCell.textContent.trim().replace(/[^\w一-鿿]/g, '_') + "_表單資料.zip";
+                    }
+
+                    // 6️⃣ 優先使用手機分享功能
                     const content = await zip.generateAsync({ type: "blob" });
-                    const fileName = "表單資料匯出.zip";
-                    
+                    const file = new File([content], fileName, { type: "application/zip" });
+
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share({
+                                files: [file],
+                                title: "表單資料匯出",
+                                text: "這是我匯出的表單資料檔案"
+                            });
+                            exportStatus.innerText = "✅ 已分享成功";
+                            return;
+                        } catch (shareError) {
+                            console.log("分享失敗，改用下載:", shareError);
+                        }
+                    }
+
+                    // 7️⃣ 傳統下載方式
                     const a = document.createElement("a");
                     a.href = URL.createObjectURL(content);
                     a.download = fileName;
+                    a.style.display = "none";
+                    document.body.appendChild(a);
                     a.click();
+                    document.body.removeChild(a);
 
                     exportStatus.innerText = "✅ 匯出完成";
 
+                    // 8️⃣ 手機端提示
+                    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                        setTimeout(() => {
+                            alert("✅ 匯出完成！檔案已下載到您的裝置。");
+                        }, 1000);
+                    }
+
                 } catch (e) {
                     console.error("匯出失敗:", e);
-                    exportStatus.innerText = "❌ 匯出失敗";
+                    exportStatus.innerText = "❌ 匯出失敗: " + e.message;
+                    
+                    // 手機端錯誤提示
+                    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                        alert("❌ 匯出失敗: " + e.message);
+                    }
                 }
             });
         });
