@@ -129,17 +129,30 @@
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
+        /* 錄音元件：不要撐爆欄位，保留欄位寬度 */
         .recorder-cell {
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        gap: 6px;  /* 按鈕和 audio 之間的間距 */
+        gap: 6px;
+        white-space: nowrap;        /* 避免換行把其他文字壓縮 */
+        min-width: 0;               /* 讓 flex item 可以縮小 */
+        }
+
+        .recorder-cell button {
+        flex: 0 0 auto;
+        padding: 6px;
+        font-size: 14px;
+        line-height: 1;
         }
 
         .recorder-cell audio {
-        width: 180px;     /* 限制寬度 */
-        max-width: 90%;   /* 手機不要超出 */
-        height: 36px;     /* 統一高度 */
+        flex: 0 0 auto;            /* 不讓 audio 佔用整行 */
+        width: 160px;              /* 固定播放區寬度（可調） */
+        max-width: 40vw;           /* 手機上不超出視窗的百分比 */
+        height: 36px;
+        box-sizing: border-box;
         }
+
         /* 提醒視窗 */
         #reminder {
             display: none;
@@ -463,27 +476,41 @@
         function closeModal() {
             const modal = document.getElementById('modal');
             const input = document.getElementById('modalInput');
-            if (input) input.blur();
+
+            // 先 blur，解除 focus（比較可靠）
+            if (input) try { input.blur(); } catch(e){}
+
+            // 隱藏 modal
             modal.style.display = 'none';
 
-            // 恢復滾動位置
-            window.scrollTo(scrollPosition.left, scrollPosition.top);
+            // 等待短延遲後還原捲動位置（用儲存的 left,top）
+            setTimeout(() => {
+                window.scrollTo(scrollPosition.left, scrollPosition.top);
+            }, 50);
 
-            // ✅ iOS 強制恢復縮放
+            // 立刻鎖定 viewport 為 1，強制瀏覽器回復畫面縮放（對 iOS 有效）
             const viewport = document.querySelector("meta[name=viewport]");
             if (viewport) {
-                viewport.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1");
+                viewport.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no");
+                // 幾百毫秒後恢復允許縮放（避免永久鎖死）
                 setTimeout(() => {
-                    viewport.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=0.5");
-                }, 300);
+                    viewport.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=0.5, user-scalable=yes");
+                    // 再次小延遲，確保視窗位置不會跳掉
+                    setTimeout(() => window.scrollTo(scrollPosition.left, scrollPosition.top), 80);
+                }, 350);
             }
         }
+
         
         function confirmModal() {
             if(!currentCell) return;
             const newValue = document.getElementById('modalInput').value.trim();
             currentCell.dataset.value = newValue;
             currentCell.innerText = newValue || '尚未輸入';
+
+            // 先 blur 再 close
+            const input = document.getElementById('modalInput');
+            if (input) try { input.blur(); } catch(e){}
             closeModal();
         }
         
@@ -506,26 +533,29 @@
         function closeNumberModal() {
             const modal = document.getElementById('numberModal');
             const input = document.getElementById('numberInput');
-            if (input) input.blur();
+
+            if (input) try { input.blur(); } catch(e){}
+
             modal.style.display = 'none';
 
-            // 恢復滾動位置
-            window.scrollTo(scrollPosition.left, scrollPosition.top);
+            setTimeout(() => {
+                window.scrollTo(scrollPosition.left, scrollPosition.top);
+            }, 50);
 
-            // ✅ iOS 強制恢復縮放
             const viewport = document.querySelector("meta[name=viewport]");
             if (viewport) {
-                viewport.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1");
+                viewport.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no");
                 setTimeout(() => {
-                    viewport.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=0.5");
-                }, 300);
+                    viewport.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=0.5, user-scalable=yes");
+                    setTimeout(() => window.scrollTo(scrollPosition.left, scrollPosition.top), 80);
+                }, 350);
             }
         }
         
         function confirmNumberModal() {
             if(!currentCell) return;
             const newValue = document.getElementById('numberInput').value.trim();
-            
+
             if(currentCell.dataset.type === "countdown") {
                 const seconds = Math.floor(parseFloat(newValue)) || 0;
                 currentCell.dataset.seconds = seconds;
@@ -537,6 +567,9 @@
                 currentCell.dataset.value = newValue;
                 currentCell.innerText = newValue || '尚未輸入';
             }
+
+            const input = document.getElementById('numberInput');
+            if (input) try { input.blur(); } catch(e){}
             closeNumberModal();
         }
         
