@@ -584,9 +584,6 @@
             reminder.querySelector(".reminder-message").innerText = msg;
             reminder.style.display = "flex";
             
-            // 嘗試使用語音合成
-            speakText(msg);
-            
             // 嘗試播放提示音
             const audio = getAlarmAudio();
             audio.play()
@@ -617,18 +614,6 @@
             
             showingReminder = false;
             setTimeout(processReminderQueue, 100);
-        }
-        
-        // 語音合成功能
-        function speakText(text) {
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'zh-TW'; // 設置為中文
-                utterance.rate = 1.0; // 語速
-                utterance.pitch = 1.0; // 音調
-                
-                window.speechSynthesis.speak(utterance);
-            }
         }
         
         function playReminderSound() {
@@ -681,45 +666,71 @@
                 try {
                     const zip = new JSZip();
 
-                    // 處理所有 audio 元素
+                    // 創建 HTML
+                    let exportHTML = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="utf-8">
+                        <title>匯出的表單數據</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; padding: 20px; }
+                            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                            th { background-color: #f2f2f2; }
+                            .section-title { background-color: #e0e0e0; padding: 10px; margin-top: 20px; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>表單數據匯出</h1>
+                        <p>匯出時間: ${new Date().toLocaleString()}</p>
+                    `;
+
+                    // 抓取頁面上所有 section
+                    const sections = document.querySelectorAll("[id^='section-']");
+                    sections.forEach(section => {
+                        const title = section.querySelector(".section-title")?.innerText || section.id;
+                        exportHTML += `<div class="section-title">${title}</div>`;
+                        const table = section.querySelector(".table-container table");
+                        if (table) exportHTML += table.outerHTML;
+                    });
+
+                    exportHTML += `</body></html>`;
+
+                    // 將 HTML 加入 ZIP
+                    zip.file("form_data.html", exportHTML);
+
+                    // 處理音頻
                     const audioElements = document.querySelectorAll("audio");
-                    for (const audio of audioElements) {
+                    for (let i = 0; i < audioElements.length; i++) {
+                        const audio = audioElements[i];
                         if (audio.src && audio.src.startsWith("blob:")) {
                             try {
-                                // 取得 blob
                                 const response = await fetch(audio.src);
                                 const blob = await response.blob();
-
-                                // 轉 base64
+                                
+                                // 轉 Base64
                                 const reader = new FileReader();
-                                const base64 = await new Promise((resolve, reject) => {
-                                    reader.onload = () => resolve(reader.result);
-                                    reader.onerror = reject;
-                                    reader.readAsDataURL(blob);
-                                });
-
-                                audio.src = base64;
+                                reader.onload = function(e) {
+                                    const base64Data = e.target.result; // data:audio/mp3;base64,...
+                                    audio.src = base64Data; // 直接替換 audio src
+                                };
+                                reader.readAsDataURL(blob);
                             } catch (err) {
-                                console.warn("音訊轉 base64 失敗:", err);
+                                console.error("音訊處理失敗:", err);
                             }
                         }
                     }
 
-                    exportStatus.innerText = "生成 ZIP 檔案中...";
-
-                    // 生成 HTML
-                    const exportHTML = document.documentElement.outerHTML;
-                    zip.file("exported_form.html", exportHTML);
-
-                    // ZIP 生成
-                    const content = await zip.generateAsync({ type: "blob" });
-
                     // 取得檔名
-                    let fileName = "exported_form.zip";
-                    const b2 = document.querySelector("table tbody tr:nth-child(1) td:nth-child(2)");
-                    if (b2 && b2.innerText.trim()) {
-                        fileName = b2.innerText.trim() + "的資料.zip";
+                    let fileName = "form_export.zip";
+                    const nameCell = document.querySelector("table tbody tr:nth-child(1) td:nth-child(2)");
+                    if (nameCell && nameCell.innerText.trim()) {
+                        fileName = nameCell.innerText.trim() + "_表單資料.zip";
                     }
+
+                    exportStatus.innerText = "正在生成 ZIP 檔案...";
+                    const content = await zip.generateAsync({ type: "blob" });
 
                     // 下載
                     const a = document.createElement("a");
