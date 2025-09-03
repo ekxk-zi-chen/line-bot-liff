@@ -658,7 +658,11 @@
             );
         }
 
-
+        ////////////////////////////////////////////////////////////
+        
+        
+        
+        
         // 資料匯出完整版本
         document.addEventListener("DOMContentLoaded", () => {
             const exportBtn = document.getElementById("exportBtn");
@@ -671,67 +675,118 @@
                 try {
                     // 1️⃣ 將錄音轉成 Base64
                     const audioElements = document.querySelectorAll("audio");
-                    for (let audio of audioElements) {
-                        if (audio.src.startsWith("blob:") && audio._blob) {
-                            const base64 = await new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = e => resolve(e.target.result);
-                                reader.onerror = err => reject(err);
-                                reader.readAsDataURL(audio._blob);
-                            });
-                            audio.src = base64;
-                        }
-                    }
-
-                    // 2️⃣ 將互動資料同步到 DOM
-                    document.querySelectorAll('.text-cell, .number-cell').forEach(cell => {
-                        cell.innerText = cell.dataset.value || '尚未輸入';
-                    });
-
-                    // 3️⃣ 將選項狀態同步到 data-selected
-                    document.querySelectorAll('.option-button').forEach(btn => {
-                        if(btn.classList.contains('selected')) {
-                            btn.setAttribute('data-selected', 'true');
-                        } else {
-                            btn.removeAttribute('data-selected');
+                    const audioPromises = [];
+                    
+                    audioElements.forEach(audio => {
+                        if (audio.src && audio.src.startsWith("blob:")) {
+                            const promise = fetch(audio.src)
+                                .then(response => response.blob())
+                                .then(blob => {
+                                    return new Promise((resolve) => {
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => {
+                                            audio.src = reader.result; // 转换为base64
+                                            resolve();
+                                        };
+                                        reader.readAsDataURL(blob);
+                                    });
+                                })
+                                .catch(err => {
+                                    console.warn("转换录音失败:", err);
+                                });
+                            audioPromises.push(promise);
                         }
                     });
+                    
+                    // 等待所有录音转换完成
+                    await Promise.all(audioPromises);
 
-                    // 4️⃣ 側邊欄 active 狀態
-                    document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
-                    const activeItem = document.querySelector(`.sidebar-item[data-section="${currentSection}"]`);
-                    if(activeItem) activeItem.classList.add('active');
+                    // 2️⃣ 创建静态HTML内容，移除所有交互功能
+                    let exportHTML = `<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>表單資料匯出 - ${new Date().toLocaleDateString()}</title>
+            <style>
+                * { box-sizing: border-box; }
+                body, html { margin: 0; padding: 0; font-family: Arial, sans-serif; background: #f5f5f5; }
+                
+                /* 表格基礎 */
+                table { width: 100%; max-width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                th, td { padding: 8px; text-align: left; word-break: break-word; vertical-align: top; border: 1px solid #ddd; }
+                th { background-color: #f2f2f2; font-weight: bold; }
+                
+                /* 分頁標題 */
+                .section-title { 
+                    background: #2c3e50; 
+                    color: white; 
+                    padding: 10px 15px; 
+                    margin: 20px 0 10px 0; 
+                    border-radius: 5px; 
+                    font-size: 18px; 
+                }
+                
+                /* 錄音顯示 */
+                .audio-container { margin: 5px 0; }
+                audio { width: 100%; max-width: 300px; }
+                
+                /* 選項顯示 */
+                .option-display { 
+                    background: #e8f5e9; 
+                    padding: 5px 10px; 
+                    border-radius: 4px; 
+                    margin: 2px; 
+                    display: inline-block; 
+                }
+                
+                /* 匯出時間 */
+                .export-time { 
+                    text-align: center; 
+                    color: #666; 
+                    margin: 20px 0; 
+                    font-style: italic; 
+                }
+            </style>
+        </head>
+        <body>
+            <div class="export-time">匯出時間: ${new Date().toLocaleString()}</div>`;
 
-                    // 5️⃣ 生成完整 HTML
-                    const exportHTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
-
-                    // 6️⃣ 生成 ZIP
-                    const zip = new JSZip();
-                    zip.file("form_data.html", exportHTML);
-
-                    // 7️⃣ 自動生成檔名
-                    let fileName = "form_export.zip";
-                    const nameCell = document.querySelector("table tbody tr:nth-child(1) td:nth-child(2)");
-                    if(nameCell && nameCell.innerText.trim()) {
-                        fileName = nameCell.innerText.trim() + "_表單資料.zip";
+                    // 3️⃣ 處理主表單內容
+                    const mainTable = document.querySelector('#section-表單填寫 table');
+                    if (mainTable) {
+                        exportHTML += `<div class="section-title">📝 表單填寫</div>`;
+                        exportHTML += processTableForExport(mainTable);
                     }
 
+                    // 4️⃣ 處理所有側邊欄分區
+                    document.querySelectorAll('.content-section:not(#section-表單填寫):not(#section-匯出)').forEach(section => {
+                        const sectionId = section.id;
+                        const sectionName = sectionId.replace('section-', '');
+                        const sectionTable = section.querySelector('table');
+                        
+                        if (sectionTable) {
+                            exportHTML += `<div class="section-title">${sectionName}</div>`;
+                            exportHTML += processTableForExport(sectionTable);
+                        }
+                    });
+
+                    exportHTML += `</body></html>`;
+
+                    // 5️⃣ 生成ZIP檔案
                     exportStatus.innerText = "正在生成 ZIP 檔案...";
-                    const content = await zip.generateAsync({ type: "blob" });
+                    const zip = new JSZip();
+                    zip.file("form_data_export.html", exportHTML);
 
-                    // 8️⃣ 嘗試分享
-                    const file = new File([content], fileName, { type: "application/zip" });
-                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        try {
-                            await navigator.share({ files: [file], title: "匯出表單", text: "這是你匯出的表單 ZIP 檔" });
-                            exportStatus.innerText = "✅ 匯出完成 (已分享)";
-                            return;
-                        } catch (err) {
-                            console.warn("分享失敗, 改用下載:", err);
-                        }
+                    // 6️⃣ 自動生成檔名
+                    let fileName = "form_export_" + new Date().toISOString().slice(0, 10) + ".zip";
+                    const nameCell = document.querySelector("table tbody tr:nth-child(1) td:nth-child(2)");
+                    if (nameCell && nameCell.textContent.trim()) {
+                        fileName = nameCell.textContent.trim() + "_表單資料.zip";
                     }
 
-                    // fallback 下載
+                    // 7️⃣ 下載檔案
+                    const content = await zip.generateAsync({ type: "blob" });
                     const a = document.createElement("a");
                     a.href = URL.createObjectURL(content);
                     a.download = fileName;
@@ -740,9 +795,86 @@
                     exportStatus.innerText = "✅ 匯出完成";
                 } catch (e) {
                     console.error("匯出失敗:", e);
-                    exportStatus.innerText = "❌ 匯出失敗";
+                    exportStatus.innerText = "❌ 匯出失敗: " + e.message;
                 }
             });
+
+            // 處理表格轉換為靜態內容的函數
+            function processTableForExport(table) {
+                let html = '<table border="1" style="border-collapse:collapse; width:100%;">';
+                
+                // 複製所有行
+                table.querySelectorAll('tr').forEach(row => {
+                    html += '<tr>';
+                    
+                    // 複製所有單元格
+                    row.querySelectorAll('th, td').forEach(cell => {
+                        const tag = cell.tagName.toLowerCase();
+                        const rowspan = cell.rowspan || 1;
+                        const colspan = cell.colspan || 1;
+                        
+                        let cellContent = '';
+                        
+                        // 處理特殊類型的單元格
+                        if (cell.classList.contains('editable-cell')) {
+                            const dataType = cell.dataset.type;
+                            const dataValue = cell.dataset.value || '';
+                            
+                            switch(dataType) {
+                                case 'radio':
+                                case 'multi':
+                                    // 顯示選擇的選項
+                                    cellContent = dataValue ? `<span class="option-display">${dataValue}</span>` : '未選擇';
+                                    break;
+                                    
+                                case 'text':
+                                case 'number':
+                                    // 顯示輸入的文字或數字
+                                    cellContent = dataValue || '未輸入';
+                                    break;
+                                    
+                                case 'datetime':
+                                    // 顯示日期時間
+                                    cellContent = dataValue || '未填寫';
+                                    break;
+                                    
+                                case 'countdown':
+                                    // 顯示倒數計時狀態
+                                    cellContent = dataValue ? `倒數完成於: ${dataValue}` : '未設定';
+                                    break;
+                                    
+                                case 'location':
+                                    // 顯示座標
+                                    cellContent = dataValue || '未取得';
+                                    break;
+                                    
+                                default:
+                                    // 錄音單元格
+                                    if (cell.querySelector('.recorder-cell')) {
+                                        const audio = cell.querySelector('audio');
+                                        if (audio && audio.src) {
+                                            cellContent = `<div class="audio-container"><audio controls src="${audio.src}"></audio></div>`;
+                                        } else {
+                                            cellContent = '無錄音資料';
+                                        }
+                                    } else {
+                                        cellContent = cell.innerHTML;
+                                    }
+                            }
+                        } else {
+                            // 普通單元格
+                            cellContent = cell.innerHTML;
+                        }
+                        
+                        html += `<${tag} rowspan="${rowspan}" colspan="${colspan}" style="${cell.style.cssText}">${cellContent}</${tag}>`;
+                    });
+                    
+                    html += '</tr>';
+                });
+                
+                html += '</table>';
+                return html;
+            }
         });
 
 
