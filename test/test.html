@@ -664,7 +664,7 @@
         
         
 
-        // 資料匯出完整版本（手機可用）
+        // 資料匯出完整版本
         document.addEventListener("DOMContentLoaded", () => {
             const exportBtn = document.getElementById("exportBtn");
             if (!exportBtn) return;
@@ -702,53 +702,62 @@
                     // 等待所有錄音轉換完成
                     await Promise.all(audioPromises);
 
-                    // 2️⃣ 複製整個HTML
-                    const exportHTML = document.documentElement.outerHTML;
+                    // 2️⃣ 創建靜態HTML，包含所有資料
+                    let exportHTML = `<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>表單資料匯出 - ${new Date().toLocaleDateString()}</title>
+            <style>
+                body { font-family: Arial; padding: 20px; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+                th, td { border: 1px solid #ddd; padding: 8px; }
+                th { background: #f2f2f2; }
+                .audio-container audio { width: 250px; }
+                .selected-option { background: #e8f5e9; padding: 4px 8px; border-radius: 4px; }
+            </style>
+        </head>
+        <body>
+            <h1>表單資料匯出</h1>
+            <p>匯出時間: ${new Date().toLocaleString('zh-TW')}</p>`;
 
-                    // 3️⃣ 生成ZIP
-                    exportStatus.innerText = "正在生成檔案...";
+                    // 3️⃣ 加入所有分區內容
+                    const sections = document.querySelectorAll('.content-section');
+                    sections.forEach(section => {
+                        if (section.id !== 'section-匯出') {
+                            const sectionName = section.id.replace('section-', '');
+                            exportHTML += `<h2>${sectionName}</h2>`;
+                            
+                            // 處理表格
+                            const tables = section.querySelectorAll('table');
+                            tables.forEach(table => {
+                                exportHTML += '<table>';
+                                exportHTML += table.innerHTML;
+                                exportHTML += '</table>';
+                            });
+                        }
+                    });
+
+                    exportHTML += '</body></html>';
+
+                    // 4️⃣ 生成ZIP
                     const zip = new JSZip();
                     zip.file("form_data_export.html", exportHTML);
 
-                    // 4️⃣ 自動生成檔名
-                    let fileName = "表單匯出_" + new Date().toISOString().slice(0, 10).replace(/-/g, '') + ".zip";
-                    const nameCell = document.querySelector("table tbody tr:first-child td:nth-child(2)");
-                    if (nameCell && nameCell.textContent.trim()) {
-                        fileName = nameCell.textContent.trim().replace(/[^\w一-鿿]/g, '_') + "_表單資料.zip";
-                    }
-
-                    // 5️⃣ 優先使用手機分享功能
+                    // 5️⃣ 下載
                     const content = await zip.generateAsync({ type: "blob" });
-                    const file = new File([content], fileName, { type: "application/zip" });
-
-                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                        try {
-                            await navigator.share({
-                                files: [file],
-                                title: "表單資料匯出",
-                                text: "這是我匯出的表單資料檔案"
-                            });
-                            exportStatus.innerText = "✅ 已分享成功";
-                            return;
-                        } catch (shareError) {
-                            console.log("分享失敗，改用下載:", shareError);
-                        }
-                    }
-
-                    // 6️⃣ 傳統下載方式
+                    const fileName = "表單資料匯出.zip";
+                    
                     const a = document.createElement("a");
                     a.href = URL.createObjectURL(content);
                     a.download = fileName;
-                    a.style.display = "none";
-                    document.body.appendChild(a);
                     a.click();
-                    document.body.removeChild(a);
 
                     exportStatus.innerText = "✅ 匯出完成";
 
                 } catch (e) {
                     console.error("匯出失敗:", e);
-                    exportStatus.innerText = "❌ 匯出失敗: " + e.message;
+                    exportStatus.innerText = "❌ 匯出失敗";
                 }
             });
         });
