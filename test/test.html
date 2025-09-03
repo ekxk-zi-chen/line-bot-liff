@@ -425,11 +425,19 @@
         }
         
         function closeModal() {
-            document.getElementById('modal').style.display = 'none';
-            
+            const modal = document.getElementById('modal');
+            const input = document.getElementById('modalInput');
+            if (input) input.blur();   // ✅ 強制失焦，避免縮放卡住
+            modal.style.display = 'none';
+
             // 恢復滾動位置
             window.scrollTo(scrollPosition.left, scrollPosition.top);
-            document.body.style.zoom = "100%";   // ✅ 強制回到 100%
+
+            // ✅ 讓手機自動回復 100% 縮放
+            setTimeout(() => {
+                document.body.style.transform = "scale(1)";
+                document.body.style.transformOrigin = "0 0";
+            }, 100);
         }
         
         function confirmModal() {
@@ -457,11 +465,19 @@
         }
         
         function closeNumberModal() {
-            document.getElementById('numberModal').style.display = 'none';
-            
+            const modal = document.getElementById('numberModal');
+            const input = document.getElementById('numberInput');
+            if (input) input.blur();   // ✅ 強制失焦
+            modal.style.display = 'none';
+
             // 恢復滾動位置
             window.scrollTo(scrollPosition.left, scrollPosition.top);
-            document.body.style.zoom = "100%";   // ✅ 強制回到 100%
+
+            // ✅ 讓手機自動回復 100% 縮放
+            setTimeout(() => {
+                document.body.style.transform = "scale(1)";
+                document.body.style.transformOrigin = "0 0";
+            }, 100);
         }
         
         function confirmNumberModal() {
