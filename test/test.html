@@ -659,8 +659,6 @@
         }
 
         ////////////////////////////////////////////////////////////
-
-        // 資料匯出完整版本（手機可用）
         
         
         
@@ -677,7 +675,13 @@
                     if (section.id !== 'section-匯出') {
                         const sectionName = section.id.replace('section-', '');
                         const sectionContent = section.querySelector('.table-container').cloneNode(true);
+
+                        // 移除 table-container 內的 h2 標題，避免重複
+                        const innerH2 = sectionContent.querySelector('h2');
+                        if(innerH2) innerH2.remove();
+
                         allContent += `<h2>${sectionName}</h2>${sectionContent.outerHTML}`;
+
                     }
                 });
 
@@ -761,6 +765,16 @@
                 }
 
                 const content = await zip.generateAsync({ type: "blob" });
+                const file = new File([content], fileName, { type: "application/zip" });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: "匯出表格",
+                        text: "這是你匯出的表格 ZIP 檔"
+                    });
+                    return; // 已分享就不再執行下載
+                }
+
                 
                 // 傳統下載方式
                 const a = document.createElement("a");
