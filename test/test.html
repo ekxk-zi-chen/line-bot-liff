@@ -660,6 +660,7 @@
 
 
         // 資料匯出完整版本
+        // 資料匯出
         document.addEventListener("DOMContentLoaded", () => {
             const exportBtn = document.getElementById("exportBtn");
             if (!exportBtn) return;
@@ -669,56 +670,10 @@
                 exportStatus.innerText = "正在準備匯出...";
 
                 try {
-                    // 1️⃣ 複製 body（不 clone <html> 避免手機卡住）
-                    const cloneBody = document.body.cloneNode(true);
+                    // 直接抓原始 HTML
+                    const exportHTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
 
-                    // 2️⃣ 替換表格或輸入控件 → 靜態文字
-                    cloneBody.querySelectorAll("input, textarea").forEach(el => {
-                        const div = document.createElement("div");
-                        div.textContent = el.value || "";
-                        el.replaceWith(div);
-                    });
-
-                    // 單選/多選
-                    cloneBody.querySelectorAll("[data-type='radio'], [data-type='multi']").forEach(el => {
-                        el.textContent = el.dataset.value || "";
-                    });
-
-                    // 3️⃣ 音訊處理
-                    const audioElements = cloneBody.querySelectorAll("audio");
-                    for (let audio of audioElements) {
-                        if (audio.src.startsWith("blob:")) {
-                            try {
-                                const resp = await fetch(audio.src);
-                                const blob = await resp.blob();
-                                const reader = new FileReader();
-                                await new Promise(resolve => {
-                                    reader.onload = () => {
-                                        audio.src = reader.result;
-                                        resolve();
-                                    };
-                                    reader.readAsDataURL(blob);
-                                });
-                            } catch (e) {
-                                console.error("音訊處理失敗:", e);
-                            }
-                        }
-                        audio.setAttribute("controls", "");
-                    }
-
-                    // 4️⃣ 保留側邊欄 toggle
-                    cloneBody.querySelectorAll("script").forEach(s => s.remove());
-                    const sideScript = document.createElement("script");
-                    sideScript.textContent = `
-                        function toggleSidebar() {
-                            const sidebar = document.getElementById('sidebar');
-                            sidebar.classList.toggle('open');
-                        }
-                    `;
-                    cloneBody.appendChild(sideScript);
-
-                    // 5️⃣ 匯出 HTML → ZIP
-                    const exportHTML = "<!DOCTYPE html>\n<html>\n<head>\n<meta charset='UTF-8'>\n<title>表單資料</title>\n</head>\n<body>\n" + cloneBody.outerHTML + "\n</body>\n</html>";
+                    // 生成 ZIP
                     const zip = new JSZip();
                     zip.file("form_data.html", exportHTML);
 
@@ -731,6 +686,7 @@
                     exportStatus.innerText = "正在生成 ZIP 檔案...";
                     const content = await zip.generateAsync({ type: "blob" });
 
+                    // 嘗試分享
                     const file = new File([content], fileName, { type: "application/zip" });
                     if (navigator.canShare && navigator.canShare({ files: [file] })) {
                         try {
@@ -742,16 +698,16 @@
                         }
                     }
 
-                    // Fallback: 下載
+                    // fallback 下載
                     const a = document.createElement("a");
                     a.href = URL.createObjectURL(content);
                     a.download = fileName;
                     a.click();
 
                     exportStatus.innerText = "✅ 匯出完成";
-                } catch (err) {
-                    console.error("匯出失敗:", err);
-                    exportStatus.innerText = "❌ 匯出失敗，請稍後重試";
+                } catch (e) {
+                    console.error("匯出失敗:", e);
+                    exportStatus.innerText = "❌ 匯出失敗";
                 }
             });
         });
