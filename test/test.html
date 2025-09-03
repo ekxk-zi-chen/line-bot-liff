@@ -648,16 +648,14 @@
             reminder.querySelector(".reminder-message").innerText = msg;
             reminder.style.display = "flex";
             
-            // 嘗試播放提示音
+            // 嘗試播放提示音（不再顯示播放按鈕）
             const audio = getAlarmAudio();
-            audio.play()
-                .then(() => {
-                    if (playBtn) playBtn.style.display = "none";
-                })
-                .catch(err => {
-                    console.warn("自動播放被阻擋:", err);
-                    if (playBtn) playBtn.style.display = "inline-block";
-                });
+            audio.play().catch(err => {
+                console.warn("自動播放被阻擋:", err);
+                // ✅ 自動播放失敗時，仍顯示提醒，不提供額外的按鈕
+            });
+            if (playBtn) playBtn.style.display = "none";
+
         }
         
         function closeReminder() {
