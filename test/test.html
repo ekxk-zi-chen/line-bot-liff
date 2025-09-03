@@ -269,29 +269,30 @@
     
     <!-- 文字輸入 Modal -->
     <div id="modal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5);">
-        <div class="modal-content" style="position:relative; background:white; width:400px; max-width:90%; margin:100px auto; padding:20px; border-radius:8px;">
+        <div class="modal-content" style="position:relative; background:white; width:400px; max-width:90%; margin:80px auto 40px auto; padding:20px 20px 60px 20px; border-radius:8px;">
             <h3>文字輸入</h3>
             <textarea id="modalInput" rows="5" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;"></textarea>
             <!-- 左下角按鈕 -->
             <div style="position:absolute; bottom:20px; left:20px;">
-                <button onclick="closeModal()" style="margin-right:10px; padding:8px 16px; background:#ccc; border:none; border-radius:4px; cursor:pointer;">取消</button>
-                <button onclick="confirmModal()" style="padding:8px 16px; background:#4CAF50; color:white; border:none; border-radius:4px; cursor:pointer;">確定</button>
+                <button onclick="confirmModal()" style="margin-right:10px; padding:8px 16px; background:#4CAF50; color:white; border:none; border-radius:4px; cursor:pointer;">確定</button>
+                <button onclick="closeModal()" style="padding:8px 16px; background:#ccc; border:none; border-radius:4px; cursor:pointer;">取消</button>
             </div>
         </div>
     </div>
 
     <!-- 數字輸入 Modal -->
     <div id="numberModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5);">
-        <div class="modal-content" style="position:relative; background:white; width:400px; max-width:90%; margin:100px auto; padding:20px; border-radius:8px;">
+        <div class="modal-content" style="position:relative; background:white; width:400px; max-width:90%; margin:80px auto 40px auto; padding:20px 20px 60px 20px; border-radius:8px;">
             <h3>數字輸入</h3>
             <input type="number" id="numberInput" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" />
             <!-- 左下角按鈕 -->
             <div style="position:absolute; bottom:20px; left:20px;">
-                <button onclick="closeNumberModal()" style="margin-right:10px; padding:8px 16px; background:#ccc; border:none; border-radius:4px; cursor:pointer;">取消</button>
-                <button onclick="confirmNumberModal()" style="padding:8px 16px; background:#4CAF50; color:white; border:none; border-radius:4px; cursor:pointer;">確定</button>
+                <button onclick="confirmNumberModal()" style="margin-right:10px; padding:8px 16px; background:#4CAF50; color:white; border:none; border-radius:4px; cursor:pointer;">確定</button>
+                <button onclick="closeNumberModal()" style="padding:8px 16px; background:#ccc; border:none; border-radius:4px; cursor:pointer;">取消</button>
             </div>
         </div>
     </div>
+
 
     
     <!-- 倒數計時提醒 -->
@@ -657,115 +658,226 @@
             );
         }
         
-        // 完整匯出功能（手機友好 + 側邊欄 + 子頁 + 音訊 Base64）
-        document.addEventListener("DOMContentLoaded", function() {
-            const exportBtn = document.getElementById("exportBtn");
-            if (!exportBtn) return;
 
-            exportBtn.addEventListener("click", async () => {
-                const exportStatus = document.getElementById("exportStatus");
-                exportStatus.innerText = "正在準備匯出...";
+        // 完整匯出：單一HTML（含側邊欄/子頁/音訊Base64） + 手機分享 + 下載fallback
+        document.addEventListener("DOMContentLoaded", () => {
+        const exportBtn = document.getElementById("exportBtn");
+        if (!exportBtn) return;
 
-                try {
-                    const zip = new JSZip();
+        exportBtn.addEventListener("click", async () => {
+            const exportStatus = document.getElementById("exportStatus");
+            if (exportStatus) exportStatus.innerText = "正在準備匯出...";
 
-                    // 1️⃣ 複製整個互動表單 container
-                    const container = document.querySelector(".main-container").cloneNode(true);
-                    container.querySelector("#exportBtn")?.remove();
+            // 🔧 你頁面的最外層容器（含側邊欄/主畫面/子頁）
+            const root =
+            document.querySelector(".main-container") ||
+            document.querySelector(".app") ||
+            document.querySelector("#app") ||
+            document.body;
 
-                    // 2️⃣ 處理所有 td (editable-cell + audio)
-                    const tasks = Array.from(container.querySelectorAll("td")).map(cell => {
-                        // 處理錄音欄位
-                        const audio = cell.querySelector("audio");
-                        if (audio && audio.src.startsWith("blob:")) {
-                            return fetch(audio.src)
-                                .then(r => r.blob())
-                                .then(blob => new Promise(resolve => {
-                                    const reader = new FileReader();
-                                    reader.onload = function () {
-                                        cell.innerHTML = `<audio controls src="${reader.result}"></audio>`;
-                                        resolve();
-                                    };
-                                    reader.readAsDataURL(blob);
-                                }));
-                        }
+            try {
+            const container = root.cloneNode(true);
 
-                        // 處理可編輯欄位
-                        if (cell.classList.contains('editable-cell')) {
-                            if (['text','radio','multi','number','datetime'].includes(cell.dataset.type)) {
-                                cell.innerHTML = '<div>' + (cell.dataset.value || '') + '</div>';
-                            }
-                        }
+            // 移除在匯出中不需要的按鈕/區塊
+            container.querySelectorAll("#exportBtn,[data-export-remove],.no-export").forEach(el => el.remove());
+            // 移除腳本避免開啟匯出檔時再次執行
+            container.querySelectorAll("script").forEach(el => el.remove());
 
-                        return Promise.resolve();
-                    });
+            // 1) 先把表單控件/可編輯欄位轉為靜態文字
+            flattenEditableCells(container);
+            flattenFormControls(container);
 
-                    await Promise.all(tasks);
+            // 2) 轉換所有 audio（任何位置）為 Base64
+            await embedAllAudios(container);
 
-                    // 3️⃣ 生成 HTML
-                    const exportHTML = `
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <meta charset="utf-8">
-                            <title>已匯出表格</title>
-                            <style>
-                                body { font-family: Arial, sans-serif; padding: 20px; }
-                                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                                th { background-color: #f2f2f2; }
-                                audio { display: block; margin-bottom: 10px; }
-                                .section-title { background-color: #e0e0e0; padding: 10px; margin-top: 20px; }
-                                /* 保留側邊欄樣式，可自行增加更多 CSS */
-                            </style>
-                        </head>
-                        <body>
-                            <h1>表單數據匯出</h1>
-                            <p>匯出時間: ${new Date().toLocaleString()}</p>
-                            ${container.outerHTML}
-                        </body>
-                        </html>
-                    `;
+            // 3) 內嵌目前頁面所有 <style>（若你樣式大多寫在 <style>）
+            const inlineStyles = Array.from(document.querySelectorAll("style"))
+                .map(s => s.innerHTML || "")
+                .join("\n");
 
-                    zip.file("form_data.html", exportHTML);
+            // 4) 基礎保底樣式（避免匯出後太醜）
+            const baseCSS = `
+                body { font-family: Arial, sans-serif; padding: 20px; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+                th { background-color: #f2f2f2; }
+                audio { display: block; margin: 8px 0; max-width: 100%; }
+                .section-title { background-color: #e0e0e0; padding: 10px; margin: 20px 0 10px; font-weight: bold; }
+                .form-value { white-space: pre-wrap; }
+                .sidebar { max-width: 320px; }
+            `;
 
-                    // 4️⃣ 取得檔名 (B2)
-                    let fileName = "form_export.zip";
-                    const nameCell = document.querySelector("table tbody tr:nth-child(1) td:nth-child(2)");
-                    if (nameCell && nameCell.innerText.trim()) {
-                        fileName = nameCell.innerText.trim() + "_表單資料.zip";
-                    }
+            const exportHTML = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                <meta charset="utf-8">
+                <title>匯出的表單資料</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>${baseCSS}
+${inlineStyles}</style>
+                </head>
+                <body>
+                <h1>表單數據匯出</h1>
+                <p>匯出時間：${new Date().toLocaleString()}</p>
+                ${container.outerHTML}
+                </body>
+                </html>
+            `;
 
-                    exportStatus.innerText = "正在生成 ZIP 檔案...";
-
-                    // 5️⃣ 生成 ZIP 並分享 / 下載
-                    const content = await zip.generateAsync({ type: "blob" });
-                    const file = new File([content], fileName, { type: "application/zip" });
-
-                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        try {
-                            await navigator.share({ files: [file], title: "匯出表格", text: "這是你匯出的表格 ZIP 檔" });
-                            exportStatus.innerText = "✅ 匯出完成！";
-                            return;
-                        } catch (err) {
-                            console.error(err);
-                        }
-                    }
-
-                    // fallback 下載
-                    const a = document.createElement("a");
-                    a.href = URL.createObjectURL(content);
-                    a.download = fileName;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-
-                    exportStatus.innerText = "✅ 匯出完成！";
-                } catch (error) {
-                    console.error("匯出失敗:", error);
-                    exportStatus.innerText = "❌ 匯出失敗，請重試";
-                }
+            // 5) 產生 ZIP（壓縮）
+            if (exportStatus) exportStatus.innerText = "正在生成 ZIP 檔案...";
+            const zip = new JSZip();
+            zip.file("form_data.html", exportHTML);
+            const zipBlob = await zip.generateAsync({
+                type: "blob",
+                compression: "DEFLATE",
+                compressionOptions: { level: 6 }
             });
+
+            // 6) 檔名：取原頁 B2，抓不到就用預設
+            let fileName = "form_export.zip";
+            const b2 = document.querySelector("table tbody tr:nth-child(1) td:nth-child(2)");
+            if (b2 && b2.innerText.trim()) fileName = `${b2.innerText.trim()}_表單資料.zip`;
+
+            // 7) 手機分享優先，失敗改下載
+            const file = new File([zipBlob], fileName, { type: "application/zip" });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                await navigator.share({ files: [file], title: "匯出表格", text: "表單資料（單一HTML、含音訊）" });
+                if (exportStatus) exportStatus.innerText = "✅ 匯出完成（已分享）";
+                return;
+                } catch (e) {
+                console.warn("分享失敗，改為下載。", e);
+                }
+            }
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(zipBlob);
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                URL.revokeObjectURL(a.href);
+                a.remove();
+            }, 0);
+            if (exportStatus) exportStatus.innerText = "✅ 匯出完成！";
+            } catch (err) {
+            console.error(err);
+            if (exportStatus) exportStatus.innerText = "❌ 匯出失敗：" + (err?.message || "未知錯誤");
+            }
+        });
+
+        // ===== Helpers =====
+        function flattenEditableCells(rootEl) {
+            // 保留你原本 editable-cell 規格
+            rootEl.querySelectorAll("td.editable-cell").forEach(cell => {
+            const t = cell.dataset.type;
+            const v = (cell.dataset.value || "").toString();
+            if (["text", "radio", "multi", "number", "datetime"].includes(t)) {
+                cell.innerHTML = `<div class="form-value">${escapeHTML(v)}</div>`;
+            }
+            });
+        }
+
+        function flattenFormControls(rootEl) {
+            // 將 input/textarea/select 轉為靜態文字（避免匯出後需要互動）
+            // input[type=text|number|date|datetime-local|time|email|tel|url]
+            rootEl.querySelectorAll("input").forEach(inp => {
+            const type = (inp.type || "").toLowerCase();
+            const val = inp.value || (inp.checked ? "是" : "");
+            const showTypes = ["text","number","date","datetime-local","time","email","tel","url","search"];
+            if (showTypes.includes(type)) {
+                replaceNodeWithValue(inp, val);
+            } else if (type === "checkbox") {
+                replaceNodeWithValue(inp, inp.checked ? "☑" : "☐");
+            } else if (type === "radio") {
+                // 只顯示已勾選者
+                if (inp.checked) replaceNodeWithValue(inp, `● ${inp.value || ""}`);
+                else inp.remove();
+            } else {
+                // 其他型別直接移除或保留外層 label
+                if (!inp.value) inp.remove();
+                else replaceNodeWithValue(inp, inp.value);
+            }
+            });
+
+            rootEl.querySelectorAll("textarea").forEach(el => {
+            replaceNodeWithValue(el, el.value || "");
+            });
+
+            rootEl.querySelectorAll("select").forEach(sel => {
+            const txt = sel.selectedOptions && sel.selectedOptions.length
+                ? Array.from(sel.selectedOptions).map(o => o.textContent.trim()).join(", ")
+                : (sel.value || "");
+            replaceNodeWithValue(sel, txt);
+            });
+
+            // contenteditable
+            rootEl.querySelectorAll("[contenteditable='true']").forEach(ed => {
+            ed.outerHTML = `<div class="form-value">${escapeHTML(ed.innerText || "")}</div>`;
+            });
+
+            function replaceNodeWithValue(node, value) {
+            const span = document.createElement("div");
+            span.className = "form-value";
+            span.textContent = value || "";
+            node.replaceWith(span);
+            }
+        }
+
+        async function embedAllAudios(rootEl) {
+            const toDataUrl = async (src) => {
+            if (!src || src.startsWith("data:")) return src;
+            const res = await fetch(src);
+            const blob = await res.blob();
+            const dataUrl = await new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+            });
+            return dataUrl;
+            };
+
+            const tasks = [];
+
+            // <audio src="...">
+            rootEl.querySelectorAll("audio").forEach(audio => {
+            const src = audio.getAttribute("src") || audio.src || "";
+            tasks.push((async () => {
+                // 若以 <source> 供應，先清掉，改用單一 src
+                audio.querySelectorAll("source").forEach(s => s.remove());
+                if (!src) return;
+                const dataUrl = await toDataUrl(src);
+                if (dataUrl) {
+                audio.removeAttribute("srcObject");
+                audio.setAttribute("controls", "");
+                audio.src = dataUrl;
+                }
+            })());
+            });
+
+            // <source src="...">（以防萬一）
+            rootEl.querySelectorAll("audio source").forEach(source => {
+            const src = source.getAttribute("src") || source.src || "";
+            tasks.push((async () => {
+                const audio = source.closest("audio");
+                if (!audio || !src) return;
+                const dataUrl = await toDataUrl(src);
+                if (dataUrl) {
+                // 轉為 audio[src] 單一來源
+                audio.querySelectorAll("source").forEach(s => s.remove());
+                audio.setAttribute("controls", "");
+                audio.src = dataUrl;
+                }
+            })());
+            });
+
+            await Promise.all(tasks);
+        }
+
+        function escapeHTML(s) {
+            return (s || "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+        }
         });
 
 
