@@ -657,7 +657,9 @@
                 { enableHighAccuracy: true, timeout: 10000 }
             );
         }
-        // 資料匯出
+
+
+        // 資料匯出完整版本
         document.addEventListener("DOMContentLoaded", () => {
             const exportBtn = document.getElementById("exportBtn");
             if (!exportBtn) return;
@@ -667,27 +669,45 @@
                 exportStatus.innerText = "正在準備匯出...";
 
                 try {
-                    // clone body 避免整頁 DOM 太大
-                    const cloneDoc = document.body.cloneNode(true);
+                    // 1️⃣ 複製 body（不 clone <html> 避免手機卡住）
+                    const cloneBody = document.body.cloneNode(true);
 
-                    // 替換 input/textarea → div
-                    cloneDoc.querySelectorAll("input, textarea").forEach(el => {
+                    // 2️⃣ 替換表格或輸入控件 → 靜態文字
+                    cloneBody.querySelectorAll("input, textarea").forEach(el => {
                         const div = document.createElement("div");
                         div.textContent = el.value || "";
                         el.replaceWith(div);
                     });
 
-                    // 替換 radio/multi → 顯示選中值
-                    cloneDoc.querySelectorAll("[data-type='radio'], [data-type='multi']").forEach(el => {
+                    // 單選/多選
+                    cloneBody.querySelectorAll("[data-type='radio'], [data-type='multi']").forEach(el => {
                         el.textContent = el.dataset.value || "";
                     });
 
-                    // 保留音訊控制，不轉 Base64
-                    cloneDoc.querySelectorAll("audio").forEach(audio => {
+                    // 3️⃣ 音訊處理
+                    const audioElements = cloneBody.querySelectorAll("audio");
+                    for (let audio of audioElements) {
+                        if (audio.src.startsWith("blob:")) {
+                            try {
+                                const resp = await fetch(audio.src);
+                                const blob = await resp.blob();
+                                const reader = new FileReader();
+                                await new Promise(resolve => {
+                                    reader.onload = () => {
+                                        audio.src = reader.result;
+                                        resolve();
+                                    };
+                                    reader.readAsDataURL(blob);
+                                });
+                            } catch (e) {
+                                console.error("音訊處理失敗:", e);
+                            }
+                        }
                         audio.setAttribute("controls", "");
-                    });
+                    }
 
-                    // 保留側邊欄 toggle 功能
+                    // 4️⃣ 保留側邊欄 toggle
+                    cloneBody.querySelectorAll("script").forEach(s => s.remove());
                     const sideScript = document.createElement("script");
                     sideScript.textContent = `
                         function toggleSidebar() {
@@ -695,13 +715,10 @@
                             sidebar.classList.toggle('open');
                         }
                     `;
-                    cloneDoc.appendChild(sideScript);
+                    cloneBody.appendChild(sideScript);
 
-                    // 生成 HTML
-                    const exportHTML = "<!DOCTYPE html>\n<html><head><meta charset='utf-8'><title>表單匯出</title></head><body>" 
-                                    + cloneDoc.outerHTML + "</body></html>";
-
-                    // 生成 ZIP
+                    // 5️⃣ 匯出 HTML → ZIP
+                    const exportHTML = "<!DOCTYPE html>\n<html>\n<head>\n<meta charset='UTF-8'>\n<title>表單資料</title>\n</head>\n<body>\n" + cloneBody.outerHTML + "\n</body>\n</html>";
                     const zip = new JSZip();
                     zip.file("form_data.html", exportHTML);
 
@@ -713,9 +730,8 @@
 
                     exportStatus.innerText = "正在生成 ZIP 檔案...";
                     const content = await zip.generateAsync({ type: "blob" });
-                    const file = new File([content], fileName, { type: "application/zip" });
 
-                    // 嘗試分享
+                    const file = new File([content], fileName, { type: "application/zip" });
                     if (navigator.canShare && navigator.canShare({ files: [file] })) {
                         try {
                             await navigator.share({ files: [file], title: "匯出表單", text: "這是你匯出的表單 ZIP 檔" });
@@ -726,19 +742,20 @@
                         }
                     }
 
-                    // 下載 fallback
+                    // Fallback: 下載
                     const a = document.createElement("a");
                     a.href = URL.createObjectURL(content);
                     a.download = fileName;
                     a.click();
 
                     exportStatus.innerText = "✅ 匯出完成";
-                } catch (e) {
-                    console.error("匯出失敗:", e);
-                    exportStatus.innerText = "❌ 匯出失敗，請重試";
+                } catch (err) {
+                    console.error("匯出失敗:", err);
+                    exportStatus.innerText = "❌ 匯出失敗，請稍後重試";
                 }
             });
         });
+
 
 
     </script>
