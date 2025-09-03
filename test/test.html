@@ -672,90 +672,71 @@
         // 匯出功能
         document.addEventListener("DOMContentLoaded", function() {
             const exportBtn = document.getElementById("exportBtn");
-            if (exportBtn) {
-                exportBtn.addEventListener("click", async () => {
-                    const exportStatus = document.getElementById("exportStatus");
-                    exportStatus.innerText = "正在準備匯出...";
-                    
-                    try {
-                        // 收集所有表格內容
-                        const allTables = document.querySelectorAll(".table-container");
-                        const zip = new JSZip();
-                        
-                        // 複製整個HTML結構，保留側邊欄和所有樣式
-                        const exportHTML = document.documentElement.outerHTML;
-                        zip.file("exported_form.html", exportHTML);
-                        
-                        // 處理音頻文件
-                        const audioTasks = [];
-                        const audioElements = document.querySelectorAll("audio");
-                        
-                        audioElements.forEach((audio, index) => {
-                            if (audio.src && audio.src.startsWith("blob:")) {
-                                audioTasks.push(
-                                    fetch(audio.src)
-                                        .then(response => response.blob())
-                                        .then(blob => {
-                                            return new Promise((resolve) => {
-                                                const reader = new FileReader();
-                                                reader.onload = function() {
-                                                    // 將音頻轉為base64並替換src
-                                                    audio.src = reader.result;
-                                                    resolve();
-                                                };
-                                                reader.readAsDataURL(blob);
-                                            });
-                                        })
-                                );
-                            }
-                        });
-                        
-                        // 等待所有音頻處理完成
-                        await Promise.all(audioTasks);
-                        
-                        // 更新HTML文件中的音頻為base64格式
-                        const updatedHTML = document.documentElement.outerHTML;
-                        zip.file("exported_form_with_audio.html", updatedHTML);
-                        
-                        // 取得檔名
-                        let fileName = "exported_form.zip";
-                        const b2 = document.querySelector("table tbody tr:nth-child(1) td:nth-child(2)");
-                        if(b2 && b2.innerText.trim()) {
-                            fileName = b2.innerText.trim() + "的資料.zip";
-                        }
-                        
-                        exportStatus.innerText = "正在生成ZIP檔案...";
-                        const content = await zip.generateAsync({type: "blob"});
-                        
-                        // 嘗試使用Web Share API
-                        if(navigator.canShare && navigator.canShare({files: [content]})) {
+            if (!exportBtn) return;
+
+            exportBtn.addEventListener("click", async () => {
+                const exportStatus = document.getElementById("exportStatus");
+                exportStatus.innerText = "正在準備匯出...";
+
+                try {
+                    const zip = new JSZip();
+
+                    // 處理所有 audio 元素
+                    const audioElements = document.querySelectorAll("audio");
+                    for (const audio of audioElements) {
+                        if (audio.src && audio.src.startsWith("blob:")) {
                             try {
-                                await navigator.share({
-                                    files: [content],
-                                    title: "匯出表格",
-                                    text: "這是你匯出的表格 ZIP 檔"
+                                // 取得 blob
+                                const response = await fetch(audio.src);
+                                const blob = await response.blob();
+
+                                // 轉 base64
+                                const reader = new FileReader();
+                                const base64 = await new Promise((resolve, reject) => {
+                                    reader.onload = () => resolve(reader.result);
+                                    reader.onerror = reject;
+                                    reader.readAsDataURL(blob);
                                 });
-                                exportStatus.innerText = "✅ 匯出完成！";
-                                return;
-                            } catch(err) {
-                                console.error(err);
+
+                                audio.src = base64;
+                            } catch (err) {
+                                console.warn("音訊轉 base64 失敗:", err);
                             }
                         }
-                        
-                        // 使用下載方式
-                        const a = document.createElement("a");
-                        a.href = URL.createObjectURL(content);
-                        a.download = fileName;
-                        a.click();
-                        
-                        exportStatus.innerText = "✅ 匯出完成！";
-                    } catch (error) {
-                        console.error("匯出失敗:", error);
-                        exportStatus.innerText = "❌ 匯出失敗，請重試";
                     }
-                });
-            }
+
+                    exportStatus.innerText = "生成 ZIP 檔案中...";
+
+                    // 生成 HTML
+                    const exportHTML = document.documentElement.outerHTML;
+                    zip.file("exported_form.html", exportHTML);
+
+                    // ZIP 生成
+                    const content = await zip.generateAsync({ type: "blob" });
+
+                    // 取得檔名
+                    let fileName = "exported_form.zip";
+                    const b2 = document.querySelector("table tbody tr:nth-child(1) td:nth-child(2)");
+                    if (b2 && b2.innerText.trim()) {
+                        fileName = b2.innerText.trim() + "的資料.zip";
+                    }
+
+                    // 下載
+                    const a = document.createElement("a");
+                    a.href = URL.createObjectURL(content);
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+
+                    exportStatus.innerText = "✅ 匯出完成！";
+                } catch (error) {
+                    console.error("匯出失敗:", error);
+                    exportStatus.innerText = "❌ 匯出失敗，請重試";
+                }
+            });
         });
+
     </script>
 </body>
 </html>
