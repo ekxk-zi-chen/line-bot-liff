@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -17,7 +16,7 @@
   position:fixed;
   top:0;
   left:0;
-  width:260px;
+  width:280px;
   height:100%;
   background:#f7f7f7;
   box-shadow:2px 0 8px rgba(0,0,0,0.15);
@@ -30,46 +29,50 @@
 #sidebarPanel.open { transform: translateX(0); }
 
 /* menu 列表 */
-#sidebarPanel h3 { margin:0 0 8px 16px; }
+#sidebarPanel h3 { margin:0 0 8px 16px; font-size:16px; }
 #sidebarPanel ul { list-style:none; padding:0; margin:0; }
 #sidebarPanel li.menu-item { padding:10px 16px; border-bottom:1px solid #eee; cursor:pointer; }
 #sidebarPanel li.menu-item:hover { background:#eee; }
 #sidebarPanel li.menu-item.active { background:#4CAF50; color:#fff; }
 #sidebarPanel li#sidebarExport { padding:12px 16px; cursor:pointer; background:#fff; border-top:1px solid #ddd; }
 
-/* 讓 table-section 預設不留左邊空白（避免視覺像側邊欄開啟） */
-.table-section { transition:opacity 0.15s; padding:10px; }
+/* main content spacing (no forced left margin so sidebar doesn't push layout) */
+.main-content { padding:8px; }
+
+/* ensure table-sections don't occupy width beyond container */
+.table-section { transition:opacity 0.15s; padding:10px; box-sizing:border-box; max-width:100%; }
+
 </style>
 </head>
 <body>
-
 <button id="menuBtn">選單</button>
 <div id="sidebarPanel">
   <h3 style="padding-left:16px">表單選單</h3>
   <ul id="sidebarList">
 <li class="menu-item" data-index="0">表單填寫</li>
 <li class="menu-item" data-index="1">評估，處置與撤退計畫</li>
-<li id="sidebarExport" style="margin-top:8px; font-weight:700; cursor:pointer;">💾 匯出</li>
+<li id="sidebarExport" class="menu-item">💾 匯出（ZIP）</li>
+
   </ul>
 </div>
 <div id="sidebarOverlay"></div>
 
-<!-- sections -->
-<div class="table-section table-container" id="section_0" style="display:block; padding:10px;"><table border="0" style="border-collapse:collapse; width:100%;"><thead><tr><th colspan="8" style="font-weight:bold;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th></tr></thead><tbody><tr><td style="font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">傷病患姓名</div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td style="font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">年齡</div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">性別</div></td><td class="editable-cell" style="font-weight:bold;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="男生,女生"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">男生</button><button class="option-button" onclick="selectInlineOption(this,'radio')">女生</button></div></td><td style="font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">體重</div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td></tr><tr><td rowspan="2" style="font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">緊急聯絡人</div></td>
+<div class="main-content app-root">
+<div class="table-section" data-section-index="0" style="display:block; padding:10px;"><div class="table-wrapper" style="overflow-x:auto;"><table border="0" style="border-collapse:collapse; width:100%;"><thead><tr><th colspan="8" style="font-weight:bold;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th></tr></thead><tbody><tr><td style="font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">傷病患姓名</div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td style="font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">年齡</div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">性別</div></td><td class="editable-cell" style="font-weight:bold;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="男生,女生"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">男生</button><button class="option-button" onclick="selectInlineOption(this,'radio')">女生</button></div></td><td style="font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">體重</div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td></tr><tr><td rowspan="2" style="font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">緊急聯絡人</div></td>
                 <td rowspan="2" class='editable-cell' style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;">
                   <div class="recorder-cell">
-                    <button onclick="startRecording(this)">🎤 錄音</button>
-                    <button onclick="stopRecording(this)" disabled>⏹ 停止</button>
-                    <button onclick="playRecording(this)" disabled>▶ 播放</button>
+                    <button class="rec-start" onclick="startRecording(this)">🎤 錄音</button>
+                    <button class="rec-stop" onclick="stopRecording(this)" disabled>⏹ 停止</button>
+                    <button class="rec-play" onclick="playRecording(this)" disabled>▶ 播放</button>
                     <audio controls style="display:none;"></audio>
                   </div>
                 </td>
                 <td style="font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">傷病患行程總天數</div></td><td colspan="5" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="一日,二日,三日,四日,五日,六日,七日"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">一日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">二日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">三日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">四日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">五日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">六日</button><button class="option-button" onclick="selectInlineOption(this,'radio')">七日</button></div></td></tr><tr><td style="font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">總行程天數</div></td><td colspan="5" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">可以填寫預計的天數等等計畫</td></tr><tr><td style="font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">發生日期</div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td style="font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">發生時間</div></td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td colspan="2" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">第幾天發生</div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td></tr><tr><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">發生地點</div></td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">詳細地點</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">座標</div></td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">手動填寫座標</td><td style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">直接採用目前的座標</div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="location" onclick="fillCurrentLocation(this)">📍 點擊取得座標</td></tr><tr><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">傷病機轉</div></td><td colspan="3" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="multi" data-value="" data-options="創傷,疾病,高處墜落,生物咬螫傷"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'multi')">創傷</button><button class="option-button" onclick="selectInlineOption(this,'multi')">疾病</button><button class="option-button" onclick="selectInlineOption(this,'multi')">高處墜落</button><button class="option-button" onclick="selectInlineOption(this,'multi')">生物咬螫傷</button></div></td><td colspan="2" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">其他補述</div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">✏️ 輸入文字</td>
                 <td class='editable-cell' style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;">
                   <div class="recorder-cell">
-                    <button onclick="startRecording(this)">🎤 錄音</button>
-                    <button onclick="stopRecording(this)" disabled>⏹ 停止</button>
-                    <button onclick="playRecording(this)" disabled>▶ 播放</button>
+                    <button class="rec-start" onclick="startRecording(this)">🎤 錄音</button>
+                    <button class="rec-stop" onclick="stopRecording(this)" disabled>⏹ 停止</button>
+                    <button class="rec-play" onclick="playRecording(this)" disabled>▶ 播放</button>
                     <audio controls style="display:none;"></audio>
                   </div>
                 </td>
@@ -77,104 +80,73 @@
 現場描述</div></td><td colspan="3" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">(含氣候、氣溫、現場環境、所見事件)</td><td colspan="2" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">現場其他補述</div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">✏️ 輸入文字</td>
                 <td class='editable-cell' style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;">
                   <div class="recorder-cell">
-                    <button onclick="startRecording(this)">🎤 錄音</button>
-                    <button onclick="stopRecording(this)" disabled>⏹ 停止</button>
-                    <button onclick="playRecording(this)" disabled>▶ 播放</button>
+                    <button class="rec-start" onclick="startRecording(this)">🎤 錄音</button>
+                    <button class="rec-stop" onclick="stopRecording(this)" disabled>⏹ 停止</button>
+                    <button class="rec-play" onclick="playRecording(this)" disabled>▶ 播放</button>
                     <audio controls style="display:none;"></audio>
                   </div>
                 </td>
                 </tr><tr><td colspan="8" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">SAMPLE/病史詢問</div></td></tr><tr><td style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">S/感:症狀</div></td><td colspan="3" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td colspan="2" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">A/敏:過敏</div></td><td colspan="2" class="editable-cell" style="text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">M/藥:藥物</div></td><td colspan="3" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td colspan="2" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">P/過:過去相關病史</div></td><td colspan="2" class="editable-cell" style="text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">L/吃:最後的進出</div></td><td colspan="3" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td colspan="2" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">E/之前:發生意外之前的事件</div></td><td colspan="2" class="editable-cell" style="text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td rowspan="3" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">主訴</div></td><td rowspan="3" colspan="3" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">可填寫簡單就好</td><td colspan="2" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">主訴簡易多選</div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="multi" data-value="" data-options="正面,頭痛,頸椎,胸痛,腹痛,背痛,骨盆,左上肢,左下肢,右上肢,右下肢"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'multi')">正面</button><button class="option-button" onclick="selectInlineOption(this,'multi')">頭痛</button><button class="option-button" onclick="selectInlineOption(this,'multi')">頸椎</button><button class="option-button" onclick="selectInlineOption(this,'multi')">胸痛</button><button class="option-button" onclick="selectInlineOption(this,'multi')">腹痛</button><button class="option-button" onclick="selectInlineOption(this,'multi')">背痛</button><button class="option-button" onclick="selectInlineOption(this,'multi')">骨盆</button><button class="option-button" onclick="selectInlineOption(this,'multi')">左上肢</button><button class="option-button" onclick="selectInlineOption(this,'multi')">左下肢</button><button class="option-button" onclick="selectInlineOption(this,'multi')">右上肢</button><button class="option-button" onclick="selectInlineOption(this,'multi')">右下肢</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="multi" data-value="" data-options="背面,頭痛,頸椎,胸痛,腹痛,背痛,骨盆,左上肢,左下肢,右上肢,右下肢"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'multi')">背面</button><button class="option-button" onclick="selectInlineOption(this,'multi')">頭痛</button><button class="option-button" onclick="selectInlineOption(this,'multi')">頸椎</button><button class="option-button" onclick="selectInlineOption(this,'multi')">胸痛</button><button class="option-button" onclick="selectInlineOption(this,'multi')">腹痛</button><button class="option-button" onclick="selectInlineOption(this,'multi')">背痛</button><button class="option-button" onclick="selectInlineOption(this,'multi')">骨盆</button><button class="option-button" onclick="selectInlineOption(this,'multi')">左上肢</button><button class="option-button" onclick="selectInlineOption(this,'multi')">左下肢</button><button class="option-button" onclick="selectInlineOption(this,'multi')">右上肢</button><button class="option-button" onclick="selectInlineOption(this,'multi')">右下肢</button></div></td></tr><tr><td rowspan="2" colspan="2" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">主訴錄音</div></td>
                 <td rowspan="2" colspan="2" class='editable-cell' style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;">
                   <div class="recorder-cell">
-                    <button onclick="startRecording(this)">🎤 錄音</button>
-                    <button onclick="stopRecording(this)" disabled>⏹ 停止</button>
-                    <button onclick="playRecording(this)" disabled>▶ 播放</button>
+                    <button class="rec-start" onclick="startRecording(this)">🎤 錄音</button>
+                    <button class="rec-stop" onclick="stopRecording(this)" disabled>⏹ 停止</button>
+                    <button class="rec-play" onclick="playRecording(this)" disabled>▶ 播放</button>
                     <audio controls style="display:none;"></audio>
                   </div>
                 </td>
                 </tr><tr></tr><tr><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">主訴補充</div></td><td colspan="3" class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">✏️ 輸入文字</td>
                 <td colspan="2" class='editable-cell' style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;">
                   <div class="recorder-cell">
-                    <button onclick="startRecording(this)">🎤 錄音</button>
-                    <button onclick="stopRecording(this)" disabled>⏹ 停止</button>
-                    <button onclick="playRecording(this)" disabled>▶ 播放</button>
+                    <button class="rec-start" onclick="startRecording(this)">🎤 錄音</button>
+                    <button class="rec-stop" onclick="stopRecording(this)" disabled>⏹ 停止</button>
+                    <button class="rec-play" onclick="playRecording(this)" disabled>▶ 播放</button>
                     <audio controls style="display:none;"></audio>
                   </div>
                 </td>
-                <td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">目前人員座標</div></td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="location" onclick="fillCurrentLocation(this)">📍 點擊取得座標</td></tr><tr><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">時間</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">意識</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">呼吸</div></td><td colspan="2" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">脈搏</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">體溫</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">膚色</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">其他</div></td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="清,聲,痛,否"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="正常,蒼白,發紅,發紺,黃疸,異常"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">正常</button><button class="option-button" onclick="selectInlineOption(this,'radio')">蒼白</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紅</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紺</button><button class="option-button" onclick="selectInlineOption(this,'radio')">黃疸</button><button class="option-button" onclick="selectInlineOption(this,'radio')">異常</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="清,聲,痛,否"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="正常,蒼白,發紅,發紺,黃疸,異常"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">正常</button><button class="option-button" onclick="selectInlineOption(this,'radio')">蒼白</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紅</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紺</button><button class="option-button" onclick="selectInlineOption(this,'radio')">黃疸</button><button class="option-button" onclick="selectInlineOption(this,'radio')">異常</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="清,聲,痛,否"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="正常,蒼白,發紅,發紺,黃疸,異常"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">正常</button><button class="option-button" onclick="selectInlineOption(this,'radio')">蒼白</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紅</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紺</button><button class="option-button" onclick="selectInlineOption(this,'radio')">黃疸</button><button class="option-button" onclick="selectInlineOption(this,'radio')">異常</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="清,聲,痛,否"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="正常,蒼白,發紅,發紺,黃疸,異常"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">正常</button><button class="option-button" onclick="selectInlineOption(this,'radio')">蒼白</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紅</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紺</button><button class="option-button" onclick="selectInlineOption(this,'radio')">黃疸</button><button class="option-button" onclick="selectInlineOption(this,'radio')">異常</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="清,聲,痛,否"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="正常,蒼白,發紅,發紺,黃疸,異常"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">正常</button><button class="option-button" onclick="selectInlineOption(this,'radio')">蒼白</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紅</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紺</button><button class="option-button" onclick="selectInlineOption(this,'radio')">黃疸</button><button class="option-button" onclick="selectInlineOption(this,'radio')">異常</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="清,聲,痛,否"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="正常,蒼白,發紅,發紺,黃疸,異常"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">正常</button><button class="option-button" onclick="selectInlineOption(this,'radio')">蒼白</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紅</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紺</button><button class="option-button" onclick="selectInlineOption(this,'radio')">黃疸</button><button class="option-button" onclick="selectInlineOption(this,'radio')">異常</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="清,聲,痛,否"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="正常,蒼白,發紅,發紺,黃疸,異常"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">正常</button><button class="option-button" onclick="selectInlineOption(this,'radio')">蒼白</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紅</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紺</button><button class="option-button" onclick="selectInlineOption(this,'radio')">黃疸</button><button class="option-button" onclick="selectInlineOption(this,'radio')">異常</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="清,聲,痛,否"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="正常,蒼白,發紅,發紺,黃疸,異常"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">正常</button><button class="option-button" onclick="selectInlineOption(this,'radio')">蒼白</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紅</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紺</button><button class="option-button" onclick="selectInlineOption(this,'radio')">黃疸</button><button class="option-button" onclick="selectInlineOption(this,'radio')">異常</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr></tbody></table></div>
-<div class="table-section" id="section_1" style="display:none; padding:10px;"><table border="0" style="border-collapse:collapse; width:100%;"><thead><tr><th colspan="8" style="font-weight:bold;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th></tr></thead><tbody><tr><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">時間</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">主要問題(當下)</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">預期問題(惡化)</div></td><td colspan="2" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">給藥</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">給藥的歷史紀錄</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">處置計畫</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">撤退計畫</div></td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">請藥物名稱</td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="countdown" data-seconds="0" onclick="promptCountdown(this)">⏳倒數計時</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true"></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">請藥物名稱</td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="countdown" data-seconds="0" onclick="promptCountdown(this)">⏳倒數計時</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true"></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">請藥物名稱</td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="countdown" data-seconds="0" onclick="promptCountdown(this)">⏳倒數計時</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true"></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">請藥物名稱</td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="countdown" data-seconds="0" onclick="promptCountdown(this)">⏳倒數計時</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true"></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">請藥物名稱</td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="countdown" data-seconds="0" onclick="promptCountdown(this)">⏳倒數計時</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true"></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">請藥物名稱</td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="countdown" data-seconds="0" onclick="promptCountdown(this)">⏳倒數計時</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true"></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">請藥物名稱</td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="countdown" data-seconds="0" onclick="promptCountdown(this)">⏳倒數計時</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true"></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">請藥物名稱</td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="countdown" data-seconds="0" onclick="promptCountdown(this)">⏳倒數計時</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true"></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr></tbody></table></div>
+                <td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">目前人員座標</div></td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="location" onclick="fillCurrentLocation(this)">📍 點擊取得座標</td></tr><tr><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">時間</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">意識</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">呼吸</div></td><td colspan="2" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">脈搏</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">體溫</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">膚色</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">其他</div></td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="清,聲,痛,否"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="正常,蒼白,發紅,發紺,黃疸,異常"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">正常</button><button class="option-button" onclick="selectInlineOption(this,'radio')">蒼白</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紅</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紺</button><button class="option-button" onclick="selectInlineOption(this,'radio')">黃疸</button><button class="option-button" onclick="selectInlineOption(this,'radio')">異常</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="清,聲,痛,否"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="正常,蒼白,發紅,發紺,黃疸,異常"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">正常</button><button class="option-button" onclick="selectInlineOption(this,'radio')">蒼白</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紅</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紺</button><button class="option-button" onclick="selectInlineOption(this,'radio')">黃疸</button><button class="option-button" onclick="selectInlineOption(this,'radio')">異常</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="清,聲,痛,否"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="正常,蒼白,發紅,發紺,黃疸,異常"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">正常</button><button class="option-button" onclick="selectInlineOption(this,'radio')">蒼白</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紅</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紺</button><button class="option-button" onclick="selectInlineOption(this,'radio')">黃疸</button><button class="option-button" onclick="selectInlineOption(this,'radio')">異常</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="清,聲,痛,否"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="正常,蒼白,發紅,發紺,黃疸,異常"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">正常</button><button class="option-button" onclick="selectInlineOption(this,'radio')">蒼白</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紅</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紺</button><button class="option-button" onclick="selectInlineOption(this,'radio')">黃疸</button><button class="option-button" onclick="selectInlineOption(this,'radio')">異常</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="清,聲,痛,否"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="正常,蒼白,發紅,發紺,黃疸,異常"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">正常</button><button class="option-button" onclick="selectInlineOption(this,'radio')">蒼白</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紅</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紺</button><button class="option-button" onclick="selectInlineOption(this,'radio')">黃疸</button><button class="option-button" onclick="selectInlineOption(this,'radio')">異常</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="清,聲,痛,否"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="正常,蒼白,發紅,發紺,黃疸,異常"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">正常</button><button class="option-button" onclick="selectInlineOption(this,'radio')">蒼白</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紅</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紺</button><button class="option-button" onclick="selectInlineOption(this,'radio')">黃疸</button><button class="option-button" onclick="selectInlineOption(this,'radio')">異常</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="清,聲,痛,否"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="正常,蒼白,發紅,發紺,黃疸,異常"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">正常</button><button class="option-button" onclick="selectInlineOption(this,'radio')">蒼白</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紅</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紺</button><button class="option-button" onclick="selectInlineOption(this,'radio')">黃疸</button><button class="option-button" onclick="selectInlineOption(this,'radio')">異常</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="清,聲,痛,否"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td colspan="2" class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="次/分" onclick="openNumberModal(this)">次/分</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="正常,蒼白,發紅,發紺,黃疸,異常"><div style="display:flex; flex-wrap:wrap; gap:4px; width:100%; box-sizing:border-box;"><button class="option-button" onclick="selectInlineOption(this,'radio')">正常</button><button class="option-button" onclick="selectInlineOption(this,'radio')">蒼白</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紅</button><button class="option-button" onclick="selectInlineOption(this,'radio')">發紺</button><button class="option-button" onclick="selectInlineOption(this,'radio')">黃疸</button><button class="option-button" onclick="selectInlineOption(this,'radio')">異常</button></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr></tbody></table></div></div><div class="table-section" data-section-index="1" style="display:none; padding:10px;"><div class="table-wrapper" style="overflow-x:auto;"><table border="0" style="border-collapse:collapse; width:100%;"><thead><tr><th colspan="8" style="font-weight:bold;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th></tr></thead><tbody><tr><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">時間</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">主要問題(當下)</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">預期問題(惡化)</div></td><td colspan="2" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">給藥</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">給藥的歷史紀錄</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">處置計畫</div></td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">撤退計畫</div></td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">請藥物名稱</td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="countdown" data-seconds="0" onclick="promptCountdown(this)">⏳倒數計時</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true"></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">請藥物名稱</td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="countdown" data-seconds="0" onclick="promptCountdown(this)">⏳倒數計時</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true"></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">請藥物名稱</td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="countdown" data-seconds="0" onclick="promptCountdown(this)">⏳倒數計時</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true"></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">請藥物名稱</td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="countdown" data-seconds="0" onclick="promptCountdown(this)">⏳倒數計時</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true"></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">請藥物名稱</td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="countdown" data-seconds="0" onclick="promptCountdown(this)">⏳倒數計時</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true"></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">請藥物名稱</td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="countdown" data-seconds="0" onclick="promptCountdown(this)">⏳倒數計時</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true"></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">請藥物名稱</td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="countdown" data-seconds="0" onclick="promptCountdown(this)">⏳倒數計時</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true"></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">請藥物名稱</td><td class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="countdown" data-seconds="0" onclick="promptCountdown(this)">⏳倒數計時</td><td style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true"></div></td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td class="editable-cell" style="vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr></tbody></table></div></div>
+</div>
 
+<!-- 原始互動內容（modal / js）-->
 
-<!-- 原始內容和 JS -->
-
+<!-- 以下為你的互動 UI：輸入 Modal / 數字 Modal / 提醒 / scripts -->
 <style>
-/* 容器 */
-div.table-container { overflow-x:auto; }
+/* 小調整：避免覆蓋 inline Excel 樣式 */
+.editable-cell { background: transparent; font-weight: inherit; }
+.editable-cell:hover { background:#fff8e0; }
+.editable-cell[data-has-bg="true"]:hover { background: unset; }
 
-/* 表格基礎 */
-table { width:100%; max-width:100%; border-collapse:collapse; }
-th, td { padding:6px; text-align:left; word-break:break-word; vertical-align:top; cursor:default; }
+/* table container */
+.table-wrapper { width:100%; overflow-x:auto; }
 
-/* 可編輯 cell 樣式（保留淺色背景）*/
-.editable-cell { background:#fff8dc; font-weight:bold; }
-.editable-cell:hover { background:#ffe69c; }
+/* recorder cell: 防止寬度撐開表格 */
+.recorder-cell { display:inline-flex; gap:6px; align-items:center; flex-wrap:wrap; max-width:100%; box-sizing:border-box; }
+.recorder-cell button { padding:6px 8px; border-radius:6px; border:1px solid #bbb; background:#fff; cursor:pointer; }
+.recorder-cell audio { max-width:220px; width:100%; }
 
-/* 選項按鈕 */
+/* option button */
 .option-button { margin:2px 0; padding:6px 10px; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; white-space:normal; }
 .option-button.selected { background:#4CAF50; color:white; }
 
-/* 匯出按鈕 */
-#exportBtn { margin:10px 0; padding:8px 16px; background:#4CAF50; color:white; border:none; border-radius:6px; font-size:16px; }
+/* modal */
+.modal { display:none; position:absolute; z-index:2147483600; background-color:transparent; }
+.modal .modal-content { position:relative; background:#fff; padding:10px; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.3); }
 
-/* 一般 modal（輸入框）*/
-.modal { display:none; position:absolute; z-index:1000; background-color:rgba(0,0,0,0.6); overflow-y:auto; -webkit-overflow-scrolling:touch; }
-.modal-content { position:relative; width:90%; max-height:60%; background:#fff; padding:10px; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between; border-radius:8px; }
+/* reminder */
+#reminder { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); align-items:center; justify-content:center; z-index:2147483646; }
+#reminder .modal-content { max-width:520px; width:90%; text-align:center; padding:20px; }
+#reminder .play-sound-btn { display:none; }
 
-/* --- Reminder 專用（重要：放在最下面以避免被覆蓋） --- */
-/* 確保提醒視窗在最上層並可點擊 */
-#reminder {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.5);
-  z-index: 2147483647; /* 極大值，確保在最上層 */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: auto;
-}
-
-/* 內容框 */
-#reminder .modal-content {
-  max-width: 90%;
-  width: 520px;
-  background: #fff;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-  text-align: center;
-}
-
-/* 訊息與按鈕 */
-#reminder .reminder-message { font-size: 20px; margin-bottom: 16px; color:#222; }
-#reminder .reminder-actions { display:flex; gap:12px; justify-content:center; margin-top:8px; }
-#reminder .reminder-actions button { padding:12px 22px; font-size:18px; border-radius:10px; border:none; cursor:pointer; }
-
-/* 手動播放（自動被阻擋時顯示） */
-#reminder .play-sound-btn { background:#ff7043; color:#fff; display:none; }
-#reminder .ok-btn { background:#4CAF50; color:#fff; }
+/* sidebar styles are defined in final wrapper; keep small safety here */
 </style>
 
-<button id="exportBtn">💾 匯出 ZIP</button>
+<button id="exportBtn" style="display:none;">💾 匯出 ZIP</button>
 
 <!-- 文字輸入 Modal -->
 <div id="modal" class="modal">
   <div class="modal-content">
-    <textarea id="modalInput" rows="5"></textarea>
-    <div id="modalFooter">
+    <textarea id="modalInput" rows="5" style="width:100%;"></textarea>
+    <div id="modalFooter" style="margin-top:8px; text-align:right;">
       <button onclick="confirmModal()">確定</button>
       <button onclick="closeModal()">取消</button>
     </div>
@@ -184,8 +156,8 @@ th, td { padding:6px; text-align:left; word-break:break-word; vertical-align:top
 <!-- 數字輸入 Modal -->
 <div id="numberModal" class="modal">
   <div class="modal-content">
-    <input type="number" id="numberInput" />
-    <div id="modalFooter">
+    <input type="number" id="numberInput" style="width:100%;" />
+    <div id="modalFooter" style="margin-top:8px; text-align:right;">
       <button onclick="confirmNumberModal()">確定</button>
       <button onclick="closeNumberModal()">取消</button>
     </div>
@@ -193,10 +165,10 @@ th, td { padding:6px; text-align:left; word-break:break-word; vertical-align:top
 </div>
 
 <!-- 倒數計時提醒 -->
-<div id="reminder" class="modal" style="display:none;">
+<div id="reminder">
   <div class="modal-content">
     <div class="reminder-message">提醒</div>
-    <div class="reminder-actions">
+    <div class="reminder-actions" style="margin-top:12px;">
       <button class="play-sound-btn">🔊 播放提示音</button>
       <button class="ok-btn" onclick="closeReminder()">OK</button>
     </div>
@@ -205,65 +177,88 @@ th, td { padding:6px; text-align:left; word-break:break-word; vertical-align:top
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
-/* === 下面是你原本貼給我的整段 JS（我完全保留不動） === */
-let mediaRecorder, recordedChunks=[], latestBlob=null, currentCell=null;
+/* 全域狀態 */
+let mediaRecorder = null;
+let currentCell = null;
+let recordedChunks = [];
+let latestBlob = null;
+let lastScroll = {x:0,y:0};
 
-// 錄音
-function startRecording(btn){ 
-    const cell=btn.closest(".recorder-cell");
-    const stopBtn=cell.querySelector("button[onclick^='stopRecording']");
-    const playBtn=cell.querySelector("button[onclick^='playRecording']");
-    const audio=cell.querySelector("audio");
-    recordedChunks=[];
+function startRecording(btn){
+    const cell = btn.closest('.recorder-cell');
+    const stopBtn = cell.querySelector('.rec-stop');
+    const playBtn = cell.querySelector('.rec-play');
+    const audio = cell.querySelector('audio');
+    recordedChunks = [];
     navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
-        mediaRecorder=new MediaRecorder(stream,{mimeType:'audio/mp4'});
-        mediaRecorder.start();
-        mediaRecorder.ondataavailable=e=>{if(e.data.size>0) recordedChunks.push(e.data);}
-        mediaRecorder.onstop=()=>{
-            latestBlob=new Blob(recordedChunks,{type:'audio/mp4'});
-            audio.src=URL.createObjectURL(latestBlob);
-            audio.style.display="block";
-            playBtn.disabled=false; stopBtn.disabled=true; btn.disabled=false;
-            stream.getTracks().forEach(track=>track.stop());
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        mediaRecorder.ondataavailable = e => { if(e.data && e.data.size>0) recordedChunks.push(e.data); };
+        mediaRecorder.onstop = () => {
+            latestBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+            audio.src = URL.createObjectURL(latestBlob);
+            audio.style.display = 'block';
+            playBtn.disabled = false;
+            stopBtn.disabled = true;
+            btn.disabled = false;
+            stream.getTracks().forEach(t=>t.stop());
         };
-        btn.disabled=true; stopBtn.disabled=false; playBtn.disabled=true;
-    }).catch(err=>alert("錄音失敗:"+err.message));
+        mediaRecorder.start();
+        btn.disabled = true;
+        stopBtn.disabled = false;
+        playBtn.disabled = true;
+    }).catch(err=>{
+        alert('錄音失敗: ' + err.message);
+    });
 }
-function stopRecording(btn){ if(mediaRecorder&&mediaRecorder.state!=='inactive') mediaRecorder.stop(); }
-function playRecording(btn){ const audio=btn.closest(".recorder-cell").querySelector("audio"); audio.play(); }
+function stopRecording(btn){
+    if(mediaRecorder && mediaRecorder.state !== 'inactive'){
+        mediaRecorder.stop();
+    }
+}
+function playRecording(btn){
+    const audio = btn.closest('.recorder-cell').querySelector('audio');
+    if(audio && audio.src){
+        audio.play();
+    }
+}
 
-// 內嵌選擇題
-function selectInlineOption(btn,type){
-    if(type==='radio'){
-        const siblings = btn.parentNode.querySelectorAll('.option-button');
-        siblings.forEach(b=>b.classList.remove('selected'));
+/* option selection */
+function selectInlineOption(btn, type){
+    const parent = btn.parentNode;
+    if(type === 'radio'){
+        parent.querySelectorAll('.option-button').forEach(b=>b.classList.remove('selected'));
         btn.classList.add('selected');
-    } else if(type==='multi'){
+    } else {
         btn.classList.toggle('selected');
     }
-    const values = Array.from(btn.parentNode.querySelectorAll('.option-button.selected')).map(b=>b.innerText);
-    btn.parentNode.dataset.value = type==='radio'?values[0]||'':values.join('、');
+    const values = Array.from(parent.querySelectorAll('.option-button.selected')).map(b=>b.innerText);
+    parent.dataset.value = (type === 'radio') ? (values[0]||'') : values.join('、');
 }
 
-// 文字輸入 Modal
+/* modal open/close helpers - store scroll and restore after close */
 function openTextModal(cell){
     currentCell = cell;
-    const value = cell.dataset.value||'';
+    const value = cell.dataset.value || '';
     const modal = document.getElementById('modal');
     const input = document.getElementById('modalInput');
     input.value = value;
 
-    // 取得 cell 的可視位置
-    const rect = cell.getBoundingClientRect();
-    const scrollTop = window.scrollY || document.documentElement.scrollTop;
-    const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+    lastScroll.x = window.scrollX || window.pageXOffset;
+    lastScroll.y = window.scrollY || window.pageYOffset;
 
-    // 放置在 cell 下方 5px
-    modal.style.top = (rect.bottom + scrollTop + 5) + 'px';
-    modal.style.left = (rect.left + scrollLeft) + 'px';
+    const rect = cell.getBoundingClientRect();
+    modal.style.top = (rect.bottom + lastScroll.y + 5) + 'px';
+    modal.style.left = (Math.max(8, rect.left + lastScroll.x)) + 'px';
     modal.style.display = 'block';
+    input.focus();
 }
-function closeModal(){ document.getElementById('modal').style.display='none'; }
+function closeModal(){
+    document.getElementById('modal').style.display = 'none';
+    // restore scroll
+    window.scrollTo(lastScroll.x, lastScroll.y);
+    // blur active element to avoid lingering zoom on mobile
+    try { document.activeElement.blur(); } catch(e){}
+}
 function confirmModal(){
     if(!currentCell) return;
     const newValue = document.getElementById('modalInput').value.trim();
@@ -272,47 +267,45 @@ function confirmModal(){
     closeModal();
 }
 
-// 數字輸入 Modal
 function openNumberModal(cell){
     currentCell = cell;
-    const value = cell.dataset.value||'';
+    const value = cell.dataset.value || '';
     const modal = document.getElementById('numberModal');
     const input = document.getElementById('numberInput');
     input.value = value;
 
-    const rect = cell.getBoundingClientRect();
-    const scrollTop = window.scrollY || document.documentElement.scrollTop;
-    const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+    lastScroll.x = window.scrollX || window.pageXOffset;
+    lastScroll.y = window.scrollY || window.pageYOffset;
 
-    modal.style.top = (rect.bottom + scrollTop + 5) + 'px';
-    modal.style.left = (rect.left + scrollLeft) + 'px';
+    const rect = cell.getBoundingClientRect();
+    modal.style.top = (rect.bottom + lastScroll.y + 5) + 'px';
+    modal.style.left = (Math.max(8, rect.left + lastScroll.x)) + 'px';
     modal.style.display = 'block';
+    input.focus();
 }
-function closeNumberModal(){ document.getElementById('numberModal').style.display='none'; }
+function closeNumberModal(){
+    document.getElementById('numberModal').style.display = 'none';
+    window.scrollTo(lastScroll.x, lastScroll.y);
+    try { document.activeElement.blur(); } catch(e){}
+}
 function confirmNumberModal(){
     if(!currentCell) return;
     const newValue = document.getElementById('numberInput').value.trim();
-
     if(currentCell.dataset.type === "countdown"){
-        // 倒數計時自動取整數
         const seconds = Math.floor(parseFloat(newValue)) || 0;
         currentCell.dataset.seconds = seconds;
-        currentCell.innerText = "⏳倒數計時";  // 顯示預設文字
-        // 🔹立刻開始倒數
+        currentCell.innerText = "⏳倒數計時";
         if(seconds > 0){
             startCountdown(currentCell);
         }
     } else {
-        // 普通數字題保留原值（可小數）
         currentCell.dataset.value = newValue;
         currentCell.innerText = newValue || '尚未輸入';
     }
-
     closeNumberModal();
 }
 
-
-// 現在時間
+/* 現在時間 */
 function fillCurrentTime(cell){
     const now = new Date();
     const formatted = now.getFullYear() + "-" + 
@@ -325,79 +318,95 @@ function fillCurrentTime(cell){
     cell.innerText = formatted;
 }
 
-// 🔔 倒數計時佇列模式
+/* 倒數計時（保留你的 queue 機制） */
 let reminderQueue = [];
 let showingReminder = false;
 let alarmAudio = null;
 
-// 每個 cell 的倒數
-function startCountdown(cell) {
-    // 已經有倒數在跑就不重新開始
+function getAlarmAudio(){
+    if(!alarmAudio){
+        alarmAudio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+        alarmAudio.loop = true;
+    }
+    return alarmAudio;
+}
+
+function processReminderQueue(){
+    if(showingReminder || reminderQueue.length === 0) return;
+    showingReminder = true;
+    const obj = reminderQueue.shift();
+    const msg = obj.msg;
+    const reminder = document.getElementById('reminder');
+    reminder.querySelector('.reminder-message').innerText = msg;
+    reminder.style.display = 'flex';
+    const playBtn = reminder.querySelector('.play-sound-btn');
+    if(playBtn) playBtn.style.display = 'none';
+    const audio = getAlarmAudio();
+    audio.play().then(()=> {
+        if(playBtn) playBtn.style.display = 'none';
+    }).catch(err=>{
+        if(playBtn) playBtn.style.display = 'inline-block';
+    });
+}
+function closeReminder(){
+    const reminder = document.getElementById('reminder');
+    reminder.style.display = 'none';
+    if(alarmAudio){
+        try { alarmAudio.pause(); alarmAudio.currentTime = 0; } catch(e){}
+    }
+    showingReminder = false;
+    setTimeout(processReminderQueue, 100);
+}
+function showReminder(msg){
+    reminderQueue.push({ msg: msg });
+    processReminderQueue();
+}
+
+/* countdown per-cell */
+function startCountdown(cell){
     if(cell._countdownInterval) return;
-
     let seconds = parseInt(cell.dataset.seconds) || 0;
-    if (seconds <= 0) return;
-
+    if(seconds <= 0) return;
     cell.innerText = "⏳剩" + seconds + "秒";
-
-    let interval = setInterval(() => {
+    let interval = setInterval(()=>{
         seconds--;
-        if (seconds > 0) {
+        if(seconds > 0){
             cell.innerText = "⏳剩" + seconds + "秒";
         } else {
             clearInterval(interval);
             cell._countdownInterval = null;
             cell.innerText = "⏳時間到！";
-
-            // 🔹記錄歷史
             addCountdownHistory(cell);
-
-            // 推入提醒佇列
-            // 取前一格的值作為藥物名稱
             let prevCell = cell.previousElementSibling;
-            let medName = prevCell ? prevCell.innerText.trim() : "藥物";
-            reminderQueue.push({
-                cell: cell,
-                msg: medName + " 時間到，請給藥！"
-            });
-
+            let medName = prevCell ? prevCell.innerText.trim() : "項目";
+            reminderQueue.push({ cell: cell, msg: medName + " 時間到，請處理！" });
             processReminderQueue();
         }
     }, 1000);
-
     cell._countdownInterval = interval;
 }
-
-// 顯示倒數輸入視窗
 function promptCountdown(cell){
     currentCell = cell;
-    let lastSeconds = cell.dataset.seconds || ''; // 讀取上次填入的值
+    let lastSeconds = cell.dataset.seconds || '';
     const modal = document.getElementById('numberModal');
     const input = document.getElementById('numberInput');
-    input.value = lastSeconds;  // 帶入上次值
-
+    input.value = lastSeconds;
     const rect = cell.getBoundingClientRect();
-    const scrollTop = window.scrollY || document.documentElement.scrollTop;
-    const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
-
-    modal.style.top = (rect.bottom + scrollTop + 5) + 'px';
-    modal.style.left = (rect.left + scrollLeft) + 'px';
+    lastScroll.x = window.scrollX || window.pageXOffset;
+    lastScroll.y = window.scrollY || window.pageYOffset;
+    modal.style.top = (rect.bottom + lastScroll.y + 5) + 'px';
+    modal.style.left = (Math.max(8, rect.left + lastScroll.x)) + 'px';
     modal.style.display = 'block';
 }
 
-
-// 🔹新增歷史紀錄功能
 function addCountdownHistory(cell){
     let row = cell.parentNode;
     let idx = Array.from(row.children).indexOf(cell);
-
-    // 找下一個欄位，如果不存在就新增一個 td
     let historyCell = row.children[idx+1];
     if(!historyCell){
-        historyCell = document.createElement("td");
+        historyCell = document.createElement('td');
         row.appendChild(historyCell);
     }
-
     const now = new Date();
     const formatted = now.getFullYear() + "-" + 
                       String(now.getMonth()+1).padStart(2,'0') + "-" +
@@ -405,186 +414,93 @@ function addCountdownHistory(cell){
                       String(now.getHours()).padStart(2,'0') + ":" +
                       String(now.getMinutes()).padStart(2,'0') + ":" +
                       String(now.getSeconds()).padStart(2,'0');
-
-    // 計數第幾次給藥
-    let count = historyCell.dataset.count ? parseInt(historyCell.dataset.count) + 1 : 1;
+    let count = historyCell.dataset.count ? parseInt(historyCell.dataset.count)+1 : 1;
     historyCell.dataset.count = count;
-
-    const prefix = count === 1 ? "第一次給藥時間:" : `第${count}次給藥時間:`;
+    const prefix = count === 1 ? "第一次時間:" : `第${count}次時間:`;
     historyCell.innerHTML += prefix + formatted + "<br>";
 }
 
-// ---------------------------
-// Reminder / Alarm helpers
-// ---------------------------
-function getAlarmAudio(){
-  if (!alarmAudio) {
-    alarmAudio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
-    alarmAudio.loop = true;
-  }
-  return alarmAudio;
-}
-
-// 處理提醒佇列：嘗試自動播放；若被阻擋，顯示手動播放按鈕
-function processReminderQueue() {
-  if (showingReminder || reminderQueue.length === 0) return;
-
-  showingReminder = true;
-  const obj = reminderQueue.shift();
-  const msg = obj.msg;
-
-  const reminder = document.getElementById("reminder");
-  const playBtn = reminder.querySelector(".play-sound-btn");
-  reminder.querySelector(".reminder-message").innerText = msg;
-  reminder.style.display = "flex";
-
-  // 預設隱藏手動按鈕（若自動播放被阻擋會顯示）
-  if (playBtn) playBtn.style.display = "none";
-
-  // 嘗試自動播放
-  const audio = getAlarmAudio();
-  audio.play()
-    .then(() => {
-      // 自動播放成功 — nothing else
-      if (playBtn) playBtn.style.display = "none";
-    })
-    .catch(err => {
-      // 自動播放被阻擋 -> 顯示手動按鈕
-      console.warn("自動播放被阻擋或錯誤:", err);
-      if (playBtn) playBtn.style.display = "inline-block";
-    });
-}
-
-// 關閉提醒：停止音檔，隱藏 modal，啟動下一個提醒
-function closeReminder() {
-  const reminder = document.getElementById("reminder");
-  reminder.style.display = "none";
-
-  if (alarmAudio) {
-    try {
-      alarmAudio.pause();
-      alarmAudio.currentTime = 0;
-    } catch (e) {
-      console.warn("停止音檔錯誤:", e);
-    }
-  }
-
-  // 隱藏 play 按鈕
-  const playBtn = reminder.querySelector(".play-sound-btn");
-  if (playBtn) playBtn.style.display = "none";
-
-  showingReminder = false;
-  // 小延遲確保 UI 更新完畢
-  setTimeout(processReminderQueue, 100);
-}
-
-// showReminder（保留簡易介面呼叫）
-function showReminder(msg){
-  reminderQueue.push({ msg: msg });
-  // 立刻嘗試處理（若已有在處理則 processReminderQueue 會忽略）
-  processReminderQueue();
-}
-
-// Add event listener for manual play button once DOM ready
-document.addEventListener("DOMContentLoaded", function(){
-  const reminder = document.getElementById("reminder");
-  if (!reminder) return;
-  const playBtn = reminder.querySelector(".play-sound-btn");
-  if (!playBtn) return;
-
-  playBtn.addEventListener("click", async function(){
-    const audio = getAlarmAudio();
-    try {
-      await audio.play();
-      playBtn.style.display = "none";
-    } catch(err){
-      console.error("手動播放失敗:", err);
-      alert("播放失敗，請確認瀏覽器是否允許聲音或操作畫面後再試。");
-    }
-  });
-});
-
-// 目前座標
+/* 取得目前座標 */
 function fillCurrentLocation(cell){
     if(!navigator.geolocation){
-        alert("❌ 此瀏覽器不支援定位功能");
+        alert("此瀏覽器不支援定位");
         return;
     }
     cell.innerText = "📍 取得中...";
-    navigator.geolocation.getCurrentPosition(
-        pos=>{
-            const lat = pos.coords.latitude.toFixed(6);
-            const lng = pos.coords.longitude.toFixed(6);
-            const coords = lng + "," + lat;  // 經度,緯度
-            cell.dataset.value = coords;
-            cell.innerText = coords;
-        },
-        err=>{
-            cell.innerText = "📍 點擊取得座標";
-            alert("定位失敗: " + err.message);
-        },
-        { enableHighAccuracy:true, timeout:10000 }
-    );
+    navigator.geolocation.getCurrentPosition(pos=>{
+        const lat = pos.coords.latitude.toFixed(6);
+        const lng = pos.coords.longitude.toFixed(6);
+        const coords = lng + "," + lat;
+        cell.dataset.value = coords;
+        cell.innerText = coords;
+    }, err=>{
+        cell.innerText = "📍 點擊取得座標";
+        alert("定位失敗: " + err.message);
+    }, { enableHighAccuracy:true, timeout:10000 });
 }
 
-// 顯示提醒視窗
-function showReminder(msg){
-    const reminder = document.getElementById("reminder");
-    reminder.querySelector(".reminder-message").innerText = msg;
-    reminder.style.display="flex";
+/* 匯出 ZIP：把整個 .app-root clone，並把 blob audio 轉成 dataURL embed。 */
+async function exportAppZip(){
+    const appRoot = document.querySelector('body'); // we included everything into body
+    if(!appRoot) { alert('找不到 app root'); return; }
 
-    // 播放提示聲
-    alarmAudio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
-    alarmAudio.loop = true;
-    alarmAudio.play().catch(err=>console.error("無法自動播放音效:",err));
-}
+    // clone the node and clean interactive-only elements if needed
+    const clone = appRoot.cloneNode(true);
 
-// 匯出 ZIP
-document.getElementById("exportBtn").addEventListener("click",async()=>{
-    const container=document.querySelector(".table-container").cloneNode(true);
-    container.querySelector("#exportBtn")?.remove();
+    // find blob audio tags in original and turn them into data URLs in clone
+    const origAudios = document.querySelectorAll('audio');
+    const cloneAudios = clone.querySelectorAll('audio');
 
-    const tasks=Array.from(container.querySelectorAll("td")).map(cell=>{
-        if(cell.querySelector(".recorder-cell")){
-            const audio=cell.querySelector("audio");
-            if(audio && audio.src.startsWith("blob:")){
-                return fetch(audio.src).then(r=>r.blob()).then(blob=>new Promise(resolve=>{
-                    const reader=new FileReader();
-                    reader.onload=function(){ cell.innerHTML='<audio controls src="'+reader.result+'"></audio>'; resolve(); };
+    for(let i=0;i<origAudios.length;i++){
+        const a = origAudios[i];
+        const ca = cloneAudios[i];
+        if(a && a.src && a.src.startsWith('blob:')){
+            try {
+                const resp = await fetch(a.src);
+                const blob = await resp.blob();
+                const reader = new FileReader();
+                await new Promise((res, rej) => {
+                    reader.onload = ()=> { 
+                        if(ca) ca.src = reader.result;
+                        res();
+                    };
+                    reader.onerror = ()=> rej();
                     reader.readAsDataURL(blob);
-                }));
-            } else { cell.innerHTML=''; return Promise.resolve(); }
-        }
-        if(cell.classList.contains('editable-cell')){
-            if(['text','radio','multi','number','datetime'].includes(cell.dataset.type)){
-                cell.innerHTML='<div>'+ (cell.dataset.value||'')+'</div>';
+                });
+            } catch(e){
+                // fallback: remove audio src
+                if(ca) ca.removeAttribute('src');
             }
         }
-        return Promise.resolve();
-    });
-    await Promise.all(tasks);
-    const exportHTML='<!DOCTYPE html><html><head><meta charset="utf-8"><title>已匯出表格</title></head><body>'+container.outerHTML+'</body></html>';
-    const zip=new JSZip(); 
-    zip.file("exported_table.html",exportHTML);
+    }
 
-    // 🔹取得 B2 的值作為檔名
-    let fileName="exported_table.zip";
+    // prepare export HTML
+    const exportHTML = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>已匯出表格</title></head><body>' + clone.innerHTML + '</body></html>';
+    const zip = new JSZip();
+    zip.file("exported_table.html", exportHTML);
+
+    // filename attempt from B2
+    let fileName = "exported_table.zip";
     const b2 = document.querySelector("table tbody tr:nth-child(1) td:nth-child(2)");
     if(b2 && b2.innerText.trim()) fileName = b2.innerText.trim() + "的資料.zip";
 
-    zip.generateAsync({type:"blob"}).then(async content=>{
-        const file=new File([content], fileName,{type:"application/zip"});
-        if(navigator.canShare && navigator.canShare({files:[file]})){
-            try{ await navigator.share({files:[file],title:"匯出表格",text:"這是你匯出的表格 ZIP 檔"}); return; }catch(err){console.error(err);}
-        }
-        const a=document.createElement("a"); a.href=URL.createObjectURL(content); a.download=fileName; a.click();
-    });
-});
-</script>
+    const content = await zip.generateAsync({type:"blob"});
+    const file = new File([content], fileName, { type: "application/zip" });
+    if(navigator.canShare && navigator.canShare({ files: [file] })){
+        try{
+            await navigator.share({ files: [file], title: fileName });
+            return;
+        } catch(e){}
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content);
+    a.download = fileName;
+    a.click();
+}
 
-<script>
-/* 側邊欄互動（class-based / overlay） */
+/* DOMContent loaded: wire sidebar and export */
 document.addEventListener('DOMContentLoaded', function(){
+    // sidebar menu behaviour (menuBtn and overlay are created in final wrapper)
     const menuBtn = document.getElementById('menuBtn');
     const sidebarPanel = document.getElementById('sidebarPanel');
     const overlay = document.getElementById('sidebarOverlay');
@@ -597,28 +513,28 @@ document.addEventListener('DOMContentLoaded', function(){
         sidebarPanel.classList.remove('open');
         if(overlay) overlay.style.display = 'none';
     }
-
-    menuBtn.addEventListener('click', ()=> {
-        if(sidebarPanel.classList.contains('open')) closeSidebar();
-        else openSidebar();
-    });
-
+    if(menuBtn){
+        menuBtn.addEventListener('click', ()=> {
+            if(sidebarPanel.classList.contains('open')) closeSidebar();
+            else openSidebar();
+        });
+    }
     if(overlay){
         overlay.addEventListener('click', closeSidebar);
         overlay.style.display = 'none';
     }
 
-    // menu items 行為：選 tab 並關閉側欄
+    // menu item clicks
     const menuItems = document.querySelectorAll('#sidebarList li.menu-item');
-    menuItems.forEach(mi => {
-        mi.addEventListener('click', ()=> {
+    menuItems.forEach(mi=>{
+        mi.addEventListener('click', ()=>{
             menuItems.forEach(m=>m.classList.remove('active'));
             mi.classList.add('active');
             const idx = mi.dataset.index;
             document.querySelectorAll('.table-section').forEach((sec, i)=>{
                 if(String(i) === String(idx)){
                     sec.style.display = 'block';
-                    sec.classList.add('table-container'); // 讓 export 找到
+                    sec.classList.add('table-container');
                 } else {
                     sec.style.display = 'none';
                     sec.classList.remove('table-container');
@@ -627,19 +543,26 @@ document.addEventListener('DOMContentLoaded', function(){
             closeSidebar();
         });
     });
-    if(menuItems.length>0) menuItems[0].classList.add('active');
+    if(menuItems.length>0){
+        menuItems[0].classList.add('active');
+    }
 
-    // 匯出按鈕放在側邊欄：直接觸發原始 exportBtn
+    // sidebar export
     const sidebarExport = document.getElementById('sidebarExport');
     if(sidebarExport){
         sidebarExport.addEventListener('click', ()=> {
-            const origExportBtn = document.getElementById('exportBtn');
-            if(origExportBtn) origExportBtn.click();
-            else alert('匯出按鈕不存在（fallback）');
+            exportAppZip();
             closeSidebar();
         });
     }
+
+    // connect hidden exportBtn (for compatibility)
+    const exportBtn = document.getElementById('exportBtn');
+    if(exportBtn){
+        exportBtn.addEventListener('click', exportAppZip);
+    }
 });
 </script>
+
 </body>
 </html>
