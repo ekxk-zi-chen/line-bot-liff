@@ -429,6 +429,7 @@
             
             // 恢復滾動位置
             window.scrollTo(scrollPosition.left, scrollPosition.top);
+            document.body.style.zoom = "100%";   // ✅ 強制回到 100%
         }
         
         function confirmModal() {
@@ -460,6 +461,7 @@
             
             // 恢復滾動位置
             window.scrollTo(scrollPosition.left, scrollPosition.top);
+            document.body.style.zoom = "100%";   // ✅ 強制回到 100%
         }
         
         function confirmNumberModal() {
