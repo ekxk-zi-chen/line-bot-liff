@@ -144,12 +144,13 @@
         }
         /* 錄音元件：不要撐爆欄位，保留欄位寬度 */
         .recorder-cell {
-        display: inline-flex; 
-        align-items: center;
-        gap: 4px;
-        white-space: nowrap;   /* 不允許自動換行 */
-        max-width: 100%;       /* 限制在欄位寬度內 */
-        overflow: hidden;      /* 超出就隱藏 */
+            display: flex;           /* inline-flex → flex */
+            flex-direction: column;  /* 垂直排列 */
+            align-items: flex-start; /* 左對齊 */
+            gap: 4px;                /* 按鈕間距 */
+            max-width: 100%;
+            overflow: hidden;
+            white-space: normal;      /* 允許換行 */
         }
 
         .recorder-cell button {
