@@ -705,6 +705,12 @@
                     // 2️⃣ 複製整個HTML並處理互動元素
                     const cloneDoc = document.documentElement.cloneNode(true);
                     
+                    // 移除匯出狀態元素
+                    const exportStatusClone = cloneDoc.getElementById("exportStatus");
+                    if (exportStatusClone) {
+                        exportStatusClone.remove();
+                    }
+                    
                     // 處理互動元素
                     processInteractiveElementsForExport(cloneDoc);
 
@@ -807,6 +813,12 @@
 
                 // 移除所有按鈕和互動屬性
                 doc.querySelectorAll('button, [onclick]').forEach(el => el.remove());
+                
+                // 移除匯出區的整個區塊
+                const exportSection = doc.getElementById('section-匯出');
+                if (exportSection) {
+                    exportSection.remove();
+                }
             }
         });
 
