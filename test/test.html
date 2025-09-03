@@ -2,12 +2,19 @@
 <html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=3.0, minimum-scale=0.5">
 <title>動態表單系統</title>
 <style>
 /* 基礎樣式 */
 * { box-sizing: border-box; }
-body, html { margin: 0; padding: 0; font-family: Arial, sans-serif; background: #f5f5f5; }
+body, html { 
+  margin: 0; 
+  padding: 0; 
+  font-family: Arial, sans-serif; 
+  background: #f5f5f5; 
+  font-size: 16px;
+  line-height: 1.4;
+}
 
 /* 選單按鈕 */
 .menu-button {
@@ -18,11 +25,12 @@ body, html { margin: 0; padding: 0; font-family: Arial, sans-serif; background: 
   background: #2c3e50;
   color: white;
   border: none;
-  padding: 10px 15px;
+  padding: 12px 16px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  touch-action: manipulation;
 }
 
 .menu-button:hover {
@@ -33,8 +41,8 @@ body, html { margin: 0; padding: 0; font-family: Arial, sans-serif; background: 
 .sidebar {
   position: fixed;
   top: 0;
-  left: -300px;
-  width: 300px;
+  left: -320px;
+  width: 320px;
   height: 100vh;
   background: #2c3e50;
   color: white;
@@ -56,10 +64,11 @@ body, html { margin: 0; padding: 0; font-family: Arial, sans-serif; background: 
 }
 
 .sidebar-item {
-  padding: 15px 20px;
+  padding: 16px 20px;
   cursor: pointer;
   border-bottom: 1px solid #34495e;
   transition: background 0.2s;
+  font-size: 16px;
 }
 
 .sidebar-item:hover {
@@ -72,41 +81,62 @@ body, html { margin: 0; padding: 0; font-family: Arial, sans-serif; background: 
 
 /* 主要內容區域 */
 .main-content {
-  padding: 70px 20px 20px 20px;
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 80px 20px 40px 20px;
+  max-width: none;
+  width: 100%;
 }
 
-/* 容器 */
-div.table-container { 
-  overflow-x: auto; 
+/* 容器 - 改善響應式設計 */
+.table-container { 
+  overflow-x: hidden; /* 關閉橫向滾動 */
+  overflow-y: auto;   /* 允許垂直滾動 */
+  width: 100%;        /* 滿版寬度 */
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   padding: 20px;
 }
 
-/* 表格基礎 */
-table { width: 100%; max-width: 100%; border-collapse: collapse; }
-th, td { padding: 8px; text-align: left; word-break: break-word; vertical-align: top; }
+/* 表格基礎 - 改善響應式 */
+table {
+  width: 100%;
+  table-layout: fixed; /* 固定欄位寬度，避免超出容器 */
+}
+
+th, td {
+  word-break: break-word; /* 強制換行，避免溢出 */
+  white-space: normal;    /* 允許換行 */
+}
+
+
+/* 長文字欄位允許換行 */
+th.long-text, td.long-text {
+  white-space: normal;
+  word-break: break-word;
+  max-width: 100%; /* 限制在容器內 */
+}
+
 
 /* 可編輯 cell 樣式 */
 .editable-cell { 
   background: #fff8dc; 
   font-weight: bold; 
   cursor: pointer;
+  white-space: normal; /* 編輯格允許換行 */
 }
 .editable-cell:hover { background: #ffe69c; }
 
 /* 選項按鈕 */
 .option-button { 
   margin: 2px; 
-  padding: 6px 12px; 
+  padding: 8px 12px; 
   border-radius: 6px; 
   border: 1px solid #ccc; 
   background: #fff; 
   cursor: pointer; 
-  white-space: normal; 
+  white-space: normal;
+  font-size: 14px;
+  touch-action: manipulation;
 }
 .option-button.selected { background: #4CAF50; color: white; }
 
@@ -117,7 +147,7 @@ th, td { padding: 8px; text-align: left; word-break: break-word; vertical-align:
 }
 
 #exportBtn { 
-  padding: 15px 30px; 
+  padding: 16px 32px; 
   background: #4CAF50; 
   color: white; 
   border: none; 
@@ -125,28 +155,58 @@ th, td { padding: 8px; text-align: left; word-break: break-word; vertical-align:
   font-size: 18px; 
   cursor: pointer;
   box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  touch-action: manipulation;
 }
 
 #exportBtn:hover {
   background: #45a049;
 }
 
-/* Modal 樣式 */
+/* Modal 樣式 - 改善觸控體驗 */
 .modal { 
   display: none; 
-  position: absolute; 
-  z-index: 1000; 
-  background-color: rgba(0,0,0,0.6); 
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2000; 
+  background-color: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
 .modal-content { 
   position: relative; 
   width: 90%; 
-  max-height: 60%; 
+  max-width: 500px;
+  max-height: 80vh;
   background: #fff; 
-  padding: 15px; 
+  padding: 20px; 
   box-sizing: border-box; 
-  border-radius: 8px; 
+  border-radius: 12px; 
   box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  overflow-y: auto;
+}
+
+.modal textarea, .modal input {
+  font-size: 16px; /* 防止iOS放大 */
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.modal button {
+  padding: 12px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  touch-action: manipulation;
+  margin: 5px;
 }
 
 /* 提醒視窗 */
@@ -177,16 +237,76 @@ th, td { padding: 8px; text-align: left; word-break: break-word; vertical-align:
 
 #reminder .reminder-message { font-size: 20px; margin-bottom: 16px; color: #222; }
 #reminder .reminder-actions { display: flex; gap: 12px; justify-content: center; margin-top: 8px; }
-#reminder .reminder-actions button { padding: 12px 22px; font-size: 18px; border-radius: 10px; border: none; cursor: pointer; }
+#reminder .reminder-actions button { 
+  padding: 12px 22px; 
+  font-size: 18px; 
+  border-radius: 10px; 
+  border: none; 
+  cursor: pointer; 
+  touch-action: manipulation;
+}
 #reminder .play-sound-btn { background: #ff7043; color: #fff; display: none; }
 #reminder .ok-btn { background: #4CAF50; color: #fff; }
 
+/* 錄音控制按鈕 */
+.recorder-cell button {
+  padding: 8px 12px;
+  margin: 2px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  touch-action: manipulation;
+}
+
+.recorder-cell button:first-child { background: #e74c3c; color: white; }
+.recorder-cell button:nth-child(2) { background: #95a5a6; color: white; }
+.recorder-cell button:nth-child(3) { background: #27ae60; color: white; }
+
 /* 響應式設計 */
 @media (max-width: 768px) {
-  .main-content { padding: 70px 10px 20px 10px; }
+  .sidebar {
+    position: fixed;
+    width: 100%;
+    left: 0;
+    top: 0;
+    height: auto;
+    max-height: 300px; /* 可視高度 */
+    overflow-y: auto;
+    transition: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .menu-button { padding: 10px 12px; font-size: 14px; }
   .sidebar { width: 280px; left: -280px; }
-  div.table-container { padding: 10px; }
-  th, td { padding: 6px 4px; font-size: 14px; }
+  .table-container { padding: 10px; }
+  th, td { padding: 8px 4px; font-size: 13px; min-width: 60px; }
+  table { min-width: 500px; }
+  .modal-content { width: 95%; padding: 15px; }
+}
+
+/* 防止iOS Safari縮放問題 */
+input[type="text"], input[type="number"], textarea {
+  font-size: 16px !important;
+}
+
+/* 橫向滾動指示器 */
+.table-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 100%;
+  background: linear-gradient(to left, rgba(0,0,0,0.1), transparent);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.table-container:hover::after {
+  opacity: 1;
 }
 </style>
 </head>
@@ -277,25 +397,25 @@ th, td { padding: 8px; text-align: left; word-break: break-word; vertical-align:
 </div>
 
 <!-- 文字輸入 Modal -->
-<div id="modal" class="modal">
+<div id="modal" class="modal" style="display:none;">
   <div class="modal-content">
     <h3>文字輸入</h3>
-    <textarea id="modalInput" rows="5" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;"></textarea>
-    <div style="margin-top:10px; text-align:right;">
-      <button onclick="closeModal()" style="margin-right:10px; padding:8px 16px; background:#ccc; border:none; border-radius:4px; cursor:pointer;">取消</button>
-      <button onclick="confirmModal()" style="padding:8px 16px; background:#4CAF50; color:white; border:none; border-radius:4px; cursor:pointer;">確定</button>
+    <textarea id="modalInput" rows="5" placeholder="請輸入內容..."></textarea>
+    <div style="margin-top:15px; text-align:right;">
+      <button onclick="closeModal()" style="background:#6c757d; color:white;">取消</button>
+      <button onclick="confirmModal()" style="background:#28a745; color:white;">確定</button>
     </div>
   </div>
 </div>
 
 <!-- 數字輸入 Modal -->
-<div id="numberModal" class="modal">
+<div id="numberModal" class="modal" style="display:none;">
   <div class="modal-content">
     <h3>數字輸入</h3>
-    <input type="number" id="numberInput" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" />
-    <div style="margin-top:10px; text-align:right;">
-      <button onclick="closeNumberModal()" style="margin-right:10px; padding:8px 16px; background:#ccc; border:none; border-radius:4px; cursor:pointer;">取消</button>
-      <button onclick="confirmNumberModal()" style="padding:8px 16px; background:#4CAF50; color:white; border:none; border-radius:4px; cursor:pointer;">確定</button>
+    <input type="number" id="numberInput" placeholder="請輸入數字..." />
+    <div style="margin-top:15px; text-align:right;">
+      <button onclick="closeNumberModal()" style="background:#6c757d; color:white;">取消</button>
+      <button onclick="confirmNumberModal()" style="background:#28a745; color:white;">確定</button>
     </div>
   </div>
 </div>
@@ -319,6 +439,27 @@ let reminderQueue = [];
 let showingReminder = false;
 let alarmAudio = null;
 let currentSection = '表單填寫';
+
+// 防止iOS縮放的函數
+function preventZoom() {
+    document.addEventListener('gesturestart', function (e) {
+        e.preventDefault();
+    });
+}
+
+// 自動恢復縮放的函數
+function autoResetZoom() {
+    // 檢測是否為移動設備
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        setTimeout(function() {
+            const viewport = document.querySelector('meta[name="viewport"]');
+            if (viewport) {
+                viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=3.0, minimum-scale=0.5');
+            }
+            window.scrollTo(0, 0);
+        }, 300);
+    }
+}
 
 // 側邊欄控制
 function toggleSidebar() {
@@ -400,6 +541,8 @@ function playRecording(btn) {
 
 // 內嵌選擇題
 function selectInlineOption(btn, type) {
+    const container = btn.closest('.editable-cell');
+    
     if(type === 'radio') {
         const siblings = btn.parentNode.querySelectorAll('.option-button');
         siblings.forEach(b => b.classList.remove('selected'));
@@ -407,8 +550,9 @@ function selectInlineOption(btn, type) {
     } else if(type === 'multi') {
         btn.classList.toggle('selected');
     }
+    
     const values = Array.from(btn.parentNode.querySelectorAll('.option-button.selected')).map(b => b.innerText);
-    btn.parentNode.dataset.value = type === 'radio' ? values[0] || '' : values.join('、');
+    container.dataset.value = type === 'radio' ? (values[0] || '') : values.join('、');
 }
 
 // 文字輸入 Modal
@@ -418,18 +562,17 @@ function openTextModal(cell) {
     const modal = document.getElementById('modal');
     const input = document.getElementById('modalInput');
     input.value = value;
-
-    const rect = cell.getBoundingClientRect();
-    const scrollTop = window.scrollY || document.documentElement.scrollTop;
-    const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
-
-    modal.style.top = (rect.bottom + scrollTop + 5) + 'px';
-    modal.style.left = (rect.left + scrollLeft) + 'px';
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
+    
+    // 延遲聚焦避免縮放問題
+    setTimeout(() => {
+        input.focus();
+    }, 100);
 }
 
 function closeModal() { 
-    document.getElementById('modal').style.display = 'none'; 
+    document.getElementById('modal').style.display = 'none';
+    autoResetZoom(); // 自動恢復縮放
 }
 
 function confirmModal() {
@@ -447,18 +590,17 @@ function openNumberModal(cell) {
     const modal = document.getElementById('numberModal');
     const input = document.getElementById('numberInput');
     input.value = value;
-
-    const rect = cell.getBoundingClientRect();
-    const scrollTop = window.scrollY || document.documentElement.scrollTop;
-    const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
-
-    modal.style.top = (rect.bottom + scrollTop + 5) + 'px';
-    modal.style.left = (rect.left + scrollLeft) + 'px';
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
+    
+    // 延遲聚焦避免縮放問題
+    setTimeout(() => {
+        input.focus();
+    }, 100);
 }
 
 function closeNumberModal() { 
-    document.getElementById('numberModal').style.display = 'none'; 
+    document.getElementById('numberModal').style.display = 'none';
+    autoResetZoom(); // 自動恢復縮放
 }
 
 function confirmNumberModal() {
@@ -517,7 +659,7 @@ function startCountdown(cell) {
             let medName = prevCell ? prevCell.innerText.trim() : "項目";
             reminderQueue.push({
                 cell: cell,
-                msg: medName + " 時間到，請注意！"
+                msg: medName + " 時間到！請注意！"
             });
 
             processReminderQueue();
@@ -530,17 +672,7 @@ function startCountdown(cell) {
 function promptCountdown(cell) {
     currentCell = cell;
     let lastSeconds = cell.dataset.seconds || '';
-    const modal = document.getElementById('numberModal');
-    const input = document.getElementById('numberInput');
-    input.value = lastSeconds;
-
-    const rect = cell.getBoundingClientRect();
-    const scrollTop = window.scrollY || document.documentElement.scrollTop;
-    const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
-
-    modal.style.top = (rect.bottom + scrollTop + 5) + 'px';
-    modal.style.left = (rect.left + scrollLeft) + 'px';
-    modal.style.display = 'block';
+    openNumberModal(cell);
 }
 
 // 倒數計時歷史記錄
@@ -646,6 +778,73 @@ function fillCurrentLocation(cell) {
     );
 }
 
+// 改進的匯出功能
+function getAllFormData() {
+    const formData = {};
+    
+    // 收集所有分區的數據
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach((section, sectionIndex) => {
+        const sectionName = section.id.replace('section-', '');
+        if (sectionName === '匯出') return; // 跳過匯出頁面
+        
+        formData[sectionName] = {};
+        
+        // 收集該分區的所有可編輯元素
+        const editableCells = section.querySelectorAll('.editable-cell');
+        editableCells.forEach((cell, cellIndex) => {
+            const cellKey = `cell_${cellIndex}`;
+            const dataType = cell.dataset.type;
+            let value = '';
+            
+            switch(dataType) {
+                case 'text':
+                case 'number':
+                case 'datetime':
+                case 'location':
+                case 'countdown':
+                    value = cell.dataset.value || '';
+                    break;
+                case 'radio':
+                case 'multi':
+                    const selectedOptions = cell.querySelectorAll('.option-button.selected');
+                    value = Array.from(selectedOptions).map(btn => btn.innerText).join('、');
+                    break;
+                default:
+                    value = cell.innerText || '';
+            }
+            
+            if (value) {
+                formData[sectionName][cellKey] = {
+                    type: dataType || 'text',
+                    value: value,
+                    position: {
+                        section: sectionName,
+                        index: cellIndex
+                    }
+                };
+            }
+        });
+        
+        // 收集錄音數據
+        const audioElements = section.querySelectorAll('.recorder-cell audio');
+        audioElements.forEach((audio, audioIndex) => {
+            if (audio.src && audio.src.startsWith('blob:')) {
+                formData[sectionName][`audio_${audioIndex}`] = {
+                    type: 'audio',
+                    src: audio.src,
+                    position: {
+                        section: sectionName,
+                        index: audioIndex
+                    }
+                };
+            }
+        });
+    });
+    
+    return formData;
+}
+
 // 匯出功能
 document.addEventListener("DOMContentLoaded", function() {
     const exportBtn = document.getElementById("exportBtn");
@@ -655,55 +854,42 @@ document.addEventListener("DOMContentLoaded", function() {
             exportStatus.innerText = "正在準備匯出...";
             
             try {
-                // 收集所有表格內容
-                const allTables = document.querySelectorAll(".table-container table");
-                let exportHTML = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>已匯出表格</title></head><body>';
+                // 收集表單數據
+                const formData = getAllFormData();
                 
-                allTables.forEach((table, index) => {
-                    const container = table.closest('.table-container').cloneNode(true);
-                    
-                    // 處理錄音內容
-                    const tasks = Array.from(container.querySelectorAll("td, th")).map(cell => {
-                        if(cell.querySelector(".recorder-cell")) {
-                            const audio = cell.querySelector("audio");
-                            if(audio && audio.src.startsWith("blob:")) {
-                                return fetch(audio.src).then(r => r.blob()).then(blob => new Promise(resolve => {
-                                    const reader = new FileReader();
-                                    reader.onload = function() { 
-                                        cell.innerHTML = '<audio controls src="' + reader.result + '"></audio>'; 
-                                        resolve(); 
-                                    };
-                                    reader.readAsDataURL(blob);
-                                }));
-                            } else { 
-                                cell.innerHTML = ''; 
-                                return Promise.resolve(); 
-                            }
+                // 創建匯出HTML（包含側邊欄但隱藏匯出功能）
+                let exportHTML = createExportHTML(formData);
+                
+                const zip = new JSZip();
+                zip.file("exported_form.html", exportHTML);
+                
+                // 添加JSON數據文件
+                zip.file("form_data.json", JSON.stringify(formData, null, 2));
+
+                // 處理錄音文件
+                const audioPromises = [];
+                Object.keys(formData).forEach(sectionName => {
+                    Object.keys(formData[sectionName]).forEach(key => {
+                        const item = formData[sectionName][key];
+                        if (item.type === 'audio' && item.src) {
+                            audioPromises.push(
+                                fetch(item.src)
+                                    .then(response => response.blob())
+                                    .then(blob => {
+                                        zip.file(`audio/${sectionName}_${key}.mp4`, blob);
+                                    })
+                            );
                         }
-                        if(cell.classList.contains('editable-cell')) {
-                            if(['text','radio','multi','number','datetime'].includes(cell.dataset.type)) {
-                                cell.innerHTML = '<div>' + (cell.dataset.value || '') + '</div>';
-                            }
-                        }
-                        return Promise.resolve();
-                    });
-                    
-                    return Promise.all(tasks).then(() => {
-                        exportHTML += '<h2>分區 ' + (index + 1) + '</h2>' + container.outerHTML;
                     });
                 });
-                
-                await Promise.all(allTables);
-                exportHTML += '</body></html>';
-                
-                const zip = new JSZip(); 
-                zip.file("exported_table.html", exportHTML);
+
+                await Promise.all(audioPromises);
 
                 // 取得檔名
-                let fileName = "exported_table.zip";
-                const b2 = document.querySelector("table tbody tr:nth-child(1) td:nth-child(2)");
-                if(b2 && b2.innerText.trim()) {
-                    fileName = b2.innerText.trim() + "的資料.zip";
+                let fileName = "exported_form.zip";
+                const nameCell = document.querySelector(".editable-cell[data-type='text']");
+                if(nameCell && nameCell.dataset.value) {
+                    fileName = nameCell.dataset.value.trim() + "的資料.zip";
                 }
 
                 exportStatus.innerText = "正在生成ZIP檔案...";
@@ -754,7 +940,55 @@ document.addEventListener("DOMContentLoaded", function() {
             });
         }
     }
+    
+    // 初始化防縮放
+    preventZoom();
 });
+
+// 創建匯出HTML的函數
+function createExportHTML(formData) {
+    const currentHTML = document.documentElement.outerHTML;
+    
+    // 移除匯出按鈕和相關功能
+    let exportHTML = currentHTML
+        .replace(/<div class="sidebar-item"[^>]*onclick="showSection\('匯出'\)"[^>]*>.*?<\/div>/g, '')
+        .replace(/<div id="section-匯出".*?<\/div>\s*(?=<\/div>)/s, '')
+        .replace(/document\.getElementById\("exportBtn"\)[\s\S]*?}\);/g, '')
+        .replace(/#exportBtn[\s\S]*?}/g, '')
+        .replace(/\.export-section[\s\S]*?}/g, '');
+    
+    // 將所有填寫的數據嵌入到HTML中
+    Object.keys(formData).forEach(sectionName => {
+        Object.keys(formData[sectionName]).forEach(key => {
+            const item = formData[sectionName][key];
+            // 這裡可以添加將數據寫回HTML的邏輯
+        });
+    });
+    
+    // 添加 "僅供查看" 的標識
+    exportHTML = exportHTML.replace(
+        '<title>動態表單系統</title>', 
+        '<title>已匯出表單 (僅供查看)</title>'
+    );
+    
+    // 添加只讀模式的樣式
+    const readOnlyStyles = `
+    <style>
+    .editable-cell { 
+        background: #f8f9fa !important; 
+        cursor: default !important;
+        pointer-events: none;
+    }
+    .editable-cell:hover { background: #f8f9fa !important; }
+    .option-button { pointer-events: none; }
+    .recorder-cell button { pointer-events: none; opacity: 0.6; }
+    </style>
+    `;
+    
+    exportHTML = exportHTML.replace('</head>', readOnlyStyles + '</head>');
+    
+    return exportHTML;
+}
 
 </script>
 </body>
