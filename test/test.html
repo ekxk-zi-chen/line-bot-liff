@@ -257,6 +257,92 @@
             border-radius: 4px;
             margin: 0 5px;
         }
+        /* 時間選項按鈕 */
+        /* 時間選項菜單樣式（手機優化） */
+        .time-options {
+            position: fixed;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 150px;
+        }
+
+        .time-options button {
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #f8f9fa;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .time-options button:hover {
+            background: #e9ecef;
+        }
+
+        /* 時間編輯器樣式（手機優化） */
+        .time-editor-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .time-editor-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .time-editor-content input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .time-editor-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            gap: 10px;
+        }
+
+        .time-editor-buttons button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .time-editor-confirm {
+            background: #007bff;
+            color: white;
+        }
+
+        .time-editor-cancel {
+            background: #6c757d;
+            color: white;
+        }
         /* 提醒視窗 */
         #reminder {
             display: none;
@@ -655,19 +741,287 @@
             closeNumberModal();
         }
         
-        // 現在時間
+        // 現在時間功能
         function fillCurrentTime(cell) {
-            const now = new Date();
-            const formatted = now.getFullYear() + "-" + 
-                String(now.getMonth() + 1).padStart(2, '0') + "-" + 
-                String(now.getDate()).padStart(2, '0') + " " + 
-                String(now.getHours()).padStart(2, '0') + ":" + 
-                String(now.getMinutes()).padStart(2, '0') + ":" + 
-                String(now.getSeconds()).padStart(2, '0');
-            cell.dataset.value = formatted;
-            cell.innerText = formatted;
+            // 檢查是否已經顯示過選項菜單
+            if (cell.querySelector('.time-options')) {
+                return; // 如果已經顯示，不再重複顯示
+            }
+            
+            // 檢查是否已經有時間值
+            if (cell.dataset.value) {
+                // 已經有時間值，顯示選項菜單
+                showTimeOptions(cell);
+            } else {
+                // 第一次點擊，填充當前時間
+                const now = new Date();
+                const formatted = formatDateTime(now);
+                cell.dataset.value = formatted;
+                cell.innerText = formatted;
+            }
         }
-        
+
+        // 為手機添加觸摸事件處理
+        document.addEventListener('DOMContentLoaded', function() {
+            // 為所有"現在時間"單元格添加觸摸事件
+            document.querySelectorAll('[data-type="datetime"]').forEach(cell => {
+                cell.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    fillCurrentTime(this);
+                });
+            });
+        });
+
+        // 顯示時間選項菜單（修改版本）
+        function showTimeOptions(cell) {
+            // 移除現有的選項菜單（如果存在）
+            document.querySelectorAll('.time-options').forEach(el => el.remove());
+            
+            // 創建選項菜單
+            const optionsDiv = document.createElement('div');
+            optionsDiv.className = 'time-options';
+            optionsDiv.style.cssText = `
+                position: fixed;
+                background: white;
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                padding: 10px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                min-width: 150px;
+            `;
+            
+            // 獲取單元格位置（針對手機優化）
+            const rect = cell.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
+            
+            // 決定菜單顯示位置（避免超出屏幕）
+            if (rect.bottom + 120 > viewportHeight) {
+                // 如果下方空間不足，顯示在上方
+                optionsDiv.style.bottom = (viewportHeight - rect.top + 10) + 'px';
+            } else {
+                optionsDiv.style.top = (rect.bottom + 5) + 'px';
+            }
+            
+            // 水平居中對齊
+            optionsDiv.style.left = '50%';
+            optionsDiv.style.transform = 'translateX(-50%)';
+            
+            // 創建按鈕（針對手機優化）
+            const createButton = (text, onClick) => {
+                const button = document.createElement('button');
+                button.textContent = text;
+                button.style.cssText = `
+                    padding: 12px 16px;
+                    border: 1px solid #ddd;
+                    border-radius: 6px;
+                    background: #f8f9fa;
+                    font-size: 16px;
+                    cursor: pointer;
+                    text-align: center;
+                `;
+                button.onclick = onClick;
+                button.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    onClick();
+                });
+                return button;
+            };
+            
+            // 更新時間按鈕
+            const updateBtn = createButton('🔄 更新時間', () => {
+                const now = new Date();
+                const formatted = formatDateTime(now);
+                cell.dataset.value = formatted;
+                cell.innerText = formatted;
+                optionsDiv.remove();
+            });
+            
+            // 修改時間按鈕
+            const editBtn = createButton('✏️ 修改時間', () => {
+                openTimeEditor(cell);
+                optionsDiv.remove();
+            });
+            
+            // 取消按鈕
+            const cancelBtn = createButton('❌ 取消', () => {
+                optionsDiv.remove();
+            });
+            
+            // 添加按鈕到選項菜單
+            optionsDiv.appendChild(updateBtn);
+            optionsDiv.appendChild(editBtn);
+            optionsDiv.appendChild(cancelBtn);
+            
+            // 添加到文檔
+            document.body.appendChild(optionsDiv);
+            
+            // 點擊頁面其他地方關閉菜單
+            const clickHandler = (e) => {
+                if (!optionsDiv.contains(e.target) && e.target !== cell) {
+                    optionsDiv.remove();
+                    document.removeEventListener('click', clickHandler);
+                    document.removeEventListener('touchstart', clickHandler);
+                }
+            };
+            
+            // 添加觸摸和點擊事件監聽
+            setTimeout(() => {
+                document.addEventListener('click', clickHandler);
+                document.addEventListener('touchstart', clickHandler);
+            }, 0);
+        }
+
+        // 打開時間編輯器（手機優化版本）
+        function openTimeEditor(cell) {
+            // 移除現有的編輯器（如果存在）
+            document.querySelectorAll('.time-editor-modal').forEach(el => el.remove());
+            
+            // 創建模態框
+            const modal = document.createElement('div');
+            modal.className = 'time-editor-modal';
+            
+            // 創建內容區域
+            const content = document.createElement('div');
+            content.className = 'time-editor-content';
+            
+            // 創建標題
+            const title = document.createElement('h3');
+            title.textContent = '修改時間';
+            title.style.marginTop = '0';
+            content.appendChild(title);
+            
+            // 創建日期輸入
+            const dateLabel = document.createElement('label');
+            dateLabel.textContent = '日期: ';
+            dateLabel.style.display = 'block';
+            dateLabel.style.marginTop = '10px';
+            dateLabel.style.fontWeight = 'bold';
+            
+            const dateInput = document.createElement('input');
+            dateInput.type = 'date';
+            
+            // 設置默認值為當前單元格的日期部分
+            if (cell.dataset.value) {
+                const datePart = cell.dataset.value.split(' ')[0];
+                dateInput.value = datePart;
+            } else {
+                // 如果沒有值，使用當前日期
+                const now = new Date();
+                dateInput.value = now.toISOString().split('T')[0];
+            }
+            
+            dateLabel.appendChild(dateInput);
+            content.appendChild(dateLabel);
+            
+            // 創建時間輸入
+            const timeLabel = document.createElement('label');
+            timeLabel.textContent = '時間: ';
+            timeLabel.style.display = 'block';
+            timeLabel.style.marginTop = '15px';
+            timeLabel.style.fontWeight = 'bold';
+            
+            const timeInput = document.createElement('input');
+            timeInput.type = 'time';
+            timeInput.step = 1; // 允許秒級精度
+            
+            // 設置默認值為當前單元格的時間部分
+            if (cell.dataset.value) {
+                const timePart = cell.dataset.value.split(' ')[1];
+                timeInput.value = timePart;
+            } else {
+                // 如果沒有值，使用當前時間
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                timeInput.value = `${hours}:${minutes}:${seconds}`;
+            }
+            
+            timeLabel.appendChild(timeInput);
+            content.appendChild(timeLabel);
+            
+            // 創建按鈕區域
+            const buttonDiv = document.createElement('div');
+            buttonDiv.className = 'time-editor-buttons';
+            
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = 'time-editor-confirm';
+            confirmBtn.textContent = '確定';
+            confirmBtn.onclick = () => {
+                const date = dateInput.value;
+                const time = timeInput.value;
+                
+                if (date && time) {
+                    cell.dataset.value = `${date} ${time}`;
+                    cell.innerText = `${date} ${time}`;
+                }
+                
+                modal.remove();
+            };
+            
+            // 添加觸摸事件
+            confirmBtn.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                const date = dateInput.value;
+                const time = timeInput.value;
+                
+                if (date && time) {
+                    cell.dataset.value = `${date} ${time}`;
+                    cell.innerText = `${date} ${time}`;
+                }
+                
+                modal.remove();
+            });
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'time-editor-cancel';
+            cancelBtn.textContent = '取消';
+            cancelBtn.onclick = () => {
+                modal.remove();
+            };
+            
+            // 添加觸摸事件
+            cancelBtn.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                modal.remove();
+            });
+            
+            buttonDiv.appendChild(confirmBtn);
+            buttonDiv.appendChild(cancelBtn);
+            content.appendChild(buttonDiv);
+            
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            
+            // 點擊模態框背景關閉
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+            
+            // 添加觸摸事件
+            modal.addEventListener('touchend', (e) => {
+                if (e.target === modal) {
+                    e.preventDefault();
+                    modal.remove();
+                }
+            });
+        }
+        // 格式化日期時間函數
+        function formatDateTime(date) {
+            return date.getFullYear() + "-" + 
+                String(date.getMonth() + 1).padStart(2, '0') + "-" + 
+                String(date.getDate()).padStart(2, '0') + " " + 
+                String(date.getHours()).padStart(2, '0') + ":" + 
+                String(date.getMinutes()).padStart(2, '0') + ":" + 
+                String(date.getSeconds()).padStart(2, '0');
+        }
         // 倒數計時
         // 修改 startCountdown 函數以顯示時分秒格式
         function startCountdown(cell) {
