@@ -484,7 +484,7 @@
             }
             .camera-controls { bottom: 20px; }
             .camera-actions { bottom: 80px; }
-            .image-index { bottom: 100px; }
+            .image-index { bottom: 140px; }
         }
     </style>
 </head>
@@ -2287,7 +2287,113 @@
             }
         });
 
+        (function(){
+            // 1) 在 exportBtn 旁新增一個按鈕（不改原本 exportBtn）
+            const origExportBtn = document.getElementById('exportBtn');
+            if (origExportBtn && !document.getElementById('exportSingleBtn')) {
+                const btn = document.createElement('button');
+                btn.id = 'exportSingleBtn';
+                btn.type = 'button';
+                btn.style.marginLeft = '8px';
+                btn.textContent = '匯出（iOS 單檔）';
+                // 小樣式方便辨識
+                btn.style.padding = '12px 14px';
+                btn.style.background = '#ff7a59';
+                btn.style.color = '#fff';
+                btn.style.border = 'none';
+                btn.style.borderRadius = '6px';
+                btn.style.cursor = 'pointer';
+                // 插到 exportBtn 之後
+                origExportBtn.parentNode && origExportBtn.parentNode.insertBefore(btn, origExportBtn.nextSibling);
 
+                // 2) 新按鈕事件：產生 single-file html（非破壞性）
+                btn.addEventListener('click', function exportSingleFileForIOS(){
+                    const statusEl = document.getElementById('exportStatus');
+                    if (statusEl) statusEl.innerText = '正在產生 single-file HTML，請稍候...';
+
+                    try {
+                        // 取得原始待匯出 HTML（優先用 exportHTML 變數，否則用當前 DOM）
+                        let sourceHTML = (typeof exportHTML !== 'undefined') ? exportHTML : document.documentElement.outerHTML;
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(sourceHTML, 'text/html');
+
+                        // 處理所有帶 data-images 屬性的節點（安全地把 base64 / data: 內嵌成 <img>）
+                        const nodes = doc.querySelectorAll('[data-images]');
+                        nodes.forEach(node => {
+                            try {
+                                const raw = node.getAttribute('data-images') || '[]';
+                                const arr = JSON.parse(raw);
+                                // create gallery wrapper
+                                const gallery = doc.createElement('div');
+                                gallery.className = 'exported-gallery';
+                                arr.forEach((item, idx) => {
+                                    if (!item) return;
+                                    const wrap = doc.createElement('div');
+                                    wrap.className = 'exported-thumb';
+
+                                    const img = doc.createElement('img');
+                                    img.alt = `img_${idx+1}`;
+                                    img.loading = 'lazy';
+                                    // 直接塞來源（支援 data:URI 或相對路徑）
+                                    img.src = item;
+
+                                    const badge = doc.createElement('div');
+                                    badge.className = 'exported-badge';
+                                    badge.textContent = `${idx+1}/${arr.length}`;
+
+                                    wrap.appendChild(img);
+                                    wrap.appendChild(badge);
+                                    gallery.appendChild(wrap);
+                                });
+                                // append gallery but KEEP original attributes (non-destructive)
+                                // 清空原內容再放入 gallery（但保留屬性值）
+                                node.innerHTML = '';
+                                node.appendChild(gallery);
+                            } catch (e) {
+                                console.warn('exportSingleFile: 處理 data-images 失敗', e);
+                            }
+                        });
+
+                        // 注入強力的 CSS（解決 index/按鈕擋住問題）
+                        const style = doc.createElement('style');
+                        style.textContent = `
+                            .exported-gallery { display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; }
+                            .exported-thumb { position:relative; width:calc(50% - 8px); }
+                            .exported-thumb img { width:100%; height:auto; display:block; border-radius:6px; object-fit:contain; }
+                            .exported-badge { position:absolute; right:6px; top:6px; background:rgba(0,0,0,0.6); color:#fff; padding:3px 7px; border-radius:12px; font-size:12px; }
+                            /* 把相機控制按鈕抬高，圖片索引再往上，手機強制覆寫 */
+                            .camera-actions { bottom: 200px !important; z-index:160 !important; }
+                            .image-index    { bottom: 260px !important; z-index:150 !important; }
+                            .camera-controls { bottom: 20px !important; z-index:80 !important; }
+                            @media (max-width:768px) {
+                                .exported-thumb { width:100% !important; }
+                                .camera-actions { bottom: 200px !important; }
+                                .image-index    { bottom: 280px !important; }
+                            }
+                        `;
+                        doc.head.appendChild(style);
+
+                        // 產生及下載 single HTML
+                        const finalHTML = new XMLSerializer().serializeToString(doc);
+                        const blob = new Blob([finalHTML], { type: 'text/html;charset=utf-8' });
+                        // 使用 FileSaver 的 saveAs（你原檔已引入）
+                        saveAs(blob, 'exported_table.html');
+
+                        if (statusEl) statusEl.innerText = '✅ 已產生 exported_table.html（請在 iOS 直接開啟此檔案）';
+                    } catch (err) {
+                        console.error('exportSingleFile 錯誤', err);
+                        if (statusEl) statusEl.innerText = '匯出 single-file 失敗: ' + (err && err.message ? err.message : err);
+                    }
+                });
+            }
+
+            // 3) 也提供一個小函式：可手動呼叫 exportSingleFileForIOS()（如果你要在其他地方觸發）
+            window.exportSingleFileForIOS = function(){ 
+                const b = document.getElementById('exportSingleBtn'); 
+                if (b) b.click(); 
+            };
+
+        })();
 
 
 
