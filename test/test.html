@@ -358,6 +358,25 @@
             border-radius: 5px;
             border: 1px solid #ddd;
         }
+        /* 相机轮播样式 */
+        .camera-carousel {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            height: 70vh;
+            align-items: center;
+            scroll-behavior: smooth;
+        }
+
+        .camera-carousel img {
+            scroll-snap-align: center;
+            flex: none;
+            width: 100%;
+            height: auto;
+            max-height: 70vh;
+            object-fit: contain;
+        }
+
         /* 提醒視窗 */
         #reminder {
             display: none;
@@ -405,11 +424,29 @@
         
         /* 響應式設計 */
         @media (max-width: 768px) {
-            .main-content { padding: 70px 10px 20px 10px; }
-            .sidebar { width: 280px; left: -280px; }
-            div.table-container { padding: 10px; }
-            th, td { padding: 6px 4px; font-size: 14px; }
+            .main-content { 
+                padding: 70px 10px 20px 10px; 
+            }
+            .sidebar { 
+                width: 280px; 
+                left: -280px; 
+            }
+            div.table-container { 
+                padding: 10px; 
+            }
+            th, td { 
+                padding: 6px 4px; 
+                font-size: 14px; 
+            }
+
+            .camera-carousel {
+                height: 60vh;
+            }
+            .camera-carousel img {
+                max-height: 60vh;
+            }
         }
+
     </style>
 </head>
 <body>
@@ -561,14 +598,26 @@
         </div>
     </div>
     <!-- 相機 Modal -->
+    <!-- 替换原有的相机模态框 -->
     <div id="cameraModal" class="modal" style="display:none;">
-        <div class="modal-content" style="max-width:95%; width:500px;">
-            <h3>拍照/上傳圖片</h3>
-            <div id="cameraPreviewContainer" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px;"></div>
-            <div style="display:flex; justify-content:space-between;">
+        <div class="modal-content" style="max-width:95%; width:100%; height:100%; padding:0; background:rgba(0,0,0,0.9);">
+            <div style="position:absolute; top:15px; right:15px; z-index:100;">
+                <button onclick="closeCameraModal()" style="background:rgba(0,0,0,0.5); color:white; border:none; padding:10px; border-radius:50%; font-size:18px;">✕</button>
+            </div>
+            
+            <div id="cameraCarousel" class="camera-carousel">
+                <!-- 图片轮播将在这里动态生成 -->
+            </div>
+            
+            <div class="camera-controls" style="position:absolute; bottom:20px; left:0; right:0; display:flex; justify-content:center; gap:15px;">
+                <button onclick="changeCameraImage(-1)" style="background:rgba(0,0,0,0.5); color:white; border:none; padding:12px 20px; border-radius:50%; font-size:20px;">◀</button>
+                <button onclick="changeCameraImage(1)" style="background:rgba(0,0,0,0.5); color:white; border:none; padding:12px 20px; border-radius:50%; font-size:20px;">▶</button>
+            </div>
+            
+            <div class="camera-actions" style="position:absolute; bottom:80px; left:0; right:0; display:flex; justify-content:center; gap:10px;">
                 <input type="file" id="cameraInput" accept="image/*" multiple style="display:none;" onchange="handleCameraUpload(this)">
-                <button onclick="document.getElementById('cameraInput').click()">選擇圖片</button>
-                <button onclick="closeCameraModal()">完成</button>
+                <button onclick="document.getElementById('cameraInput').click()" style="background:#4CAF50; color:white; border:none; padding:10px 15px; border-radius:20px;">添加图片</button>
+                <button onclick="deleteCurrentImage()" style="background:#f44336; color:white; border:none; padding:10px 15px; border-radius:20px;">删除当前图片</button>
             </div>
         </div>
     </div>
@@ -587,6 +636,10 @@
         let scrollPosition = { top: 0, left: 0 };
         // 收合選擇功能
         let currentCollapseCell = null;
+        // 相机功能 - 全局变量
+        let currentImageIndex = 0;
+        let currentCameraImages = [];
+
         // 側邊欄控制
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
@@ -630,44 +683,117 @@
         // 相機功能
         function openCameraModal(cell) {
             currentCell = cell;
-            const images = JSON.parse(cell.dataset.images || '[]');
-            const previewContainer = document.getElementById('cameraPreviewContainer');
-            previewContainer.innerHTML = '';
+            currentCameraImages = JSON.parse(cell.dataset.images || '[]');
+            currentImageIndex = 0;
             
-            images.forEach((imgData, index) => {
-                const imgDiv = document.createElement('div');
-                imgDiv.innerHTML = `<img src="${imgData}" style="width:100px; height:100px; object-fit:cover;">
-                                    <button onclick="removeCameraImage(${index})">刪除</button>`;
-                previewContainer.appendChild(imgDiv);
-            });
-            
+            updateCameraCarousel();
             document.getElementById('cameraModal').style.display = 'flex';
         }
-
+        function updateCameraCarousel() {
+            const carousel = document.getElementById('cameraCarousel');
+            carousel.innerHTML = '';
+            
+            currentCameraImages.forEach((imgData, index) => {
+                const imgDiv = document.createElement('div');
+                imgDiv.innerHTML = `<img src="${imgData}" data-index="${index}" style="width:100%; height:auto;">`;
+                carousel.appendChild(imgDiv);
+            });
+            
+            // 滚动到当前图片
+            if (currentCameraImages.length > 0) {
+                const images = carousel.querySelectorAll('img');
+                if (images[currentImageIndex]) {
+                    images[currentImageIndex].scrollIntoView();
+                }
+            }
+        }
+        function changeCameraImage(direction) {
+            if (currentCameraImages.length === 0) return;
+            
+            currentImageIndex += direction;
+            
+            // 循环处理
+            if (currentImageIndex < 0) {
+                currentImageIndex = currentCameraImages.length - 1;
+            } else if (currentImageIndex >= currentCameraImages.length) {
+                currentImageIndex = 0;
+            }
+            
+            const carousel = document.getElementById('cameraCarousel');
+            const images = carousel.querySelectorAll('img');
+            if (images[currentImageIndex]) {
+                images[currentImageIndex].scrollIntoView({behavior: 'smooth'});
+            }
+        }
+        function changeCameraImage(direction) {
+            if (currentCameraImages.length === 0) return;
+            
+            currentImageIndex += direction;
+            
+            // 循环处理
+            if (currentImageIndex < 0) {
+                currentImageIndex = currentCameraImages.length - 1;
+            } else if (currentImageIndex >= currentCameraImages.length) {
+                currentImageIndex = 0;
+            }
+            
+            const carousel = document.getElementById('cameraCarousel');
+            const images = carousel.querySelectorAll('img');
+            if (images[currentImageIndex]) {
+                images[currentImageIndex].scrollIntoView({behavior: 'smooth'});
+            }
+        }
+        function deleteCurrentImage() {
+            if (currentCameraImages.length === 0) return;
+            
+            currentCameraImages.splice(currentImageIndex, 1);
+            
+            // 调整当前索引
+            if (currentImageIndex >= currentCameraImages.length) {
+                currentImageIndex = Math.max(0, currentCameraImages.length - 1);
+            }
+            
+            // 更新单元格数据和显示
+            currentCell.dataset.images = JSON.stringify(currentCameraImages);
+            updateCameraCellDisplay(currentCell);
+            updateCameraCarousel();
+            
+            // 如果没有图片了，关闭模态框
+            if (currentCameraImages.length === 0) {
+                closeCameraModal();
+            }
+        }
         function handleCameraUpload(input) {
             if (!currentCell) return;
             const files = input.files;
-            const images = JSON.parse(currentCell.dataset.images || '[]');
             
             for (let i = 0; i < files.length; i++) {
-                if (images.length >= 5) {
-                    alert('最多只能上傳5張圖片');
+                if (currentCameraImages.length >= 5) {
+                    alert('最多只能上传5张图片');
                     break;
                 }
                 
                 const file = files[i];
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    images.push(e.target.result);
-                    currentCell.dataset.images = JSON.stringify(images);
+                    currentCameraImages.push(e.target.result);
+                    currentCell.dataset.images = JSON.stringify(currentCameraImages);
                     updateCameraCellDisplay(currentCell);
-                    openCameraModal(currentCell); // 更新預覽
+                    updateCameraCarousel();
+                    
+                    // 滚动到最后一张图片
+                    currentImageIndex = currentCameraImages.length - 1;
+                    const carousel = document.getElementById('cameraCarousel');
+                    const images = carousel.querySelectorAll('img');
+                    if (images[currentImageIndex]) {
+                        images[currentImageIndex].scrollIntoView({behavior: 'smooth'});
+                    }
                 };
                 reader.readAsDataURL(file);
             }
-            input.value = ''; // 重置input，允許再次選擇相同文件
+            input.value = ''; // 重置input，允许再次选择相同文件
         }
-
+        // 多於未用到函數??
         function removeCameraImage(index) {
             if (!currentCell) return;
             const images = JSON.parse(currentCell.dataset.images || '[]');
@@ -680,9 +806,9 @@
         function updateCameraCellDisplay(cell) {
             const images = JSON.parse(cell.dataset.images || '[]');
             if (images.length > 0) {
-                cell.innerHTML = `<div style="text-align:center;">
-                    <img src="${images[0]}" style="width:50px; height:50px; object-fit:cover;"><br>
-                    <span>${images.length}張圖片</span>
+                cell.innerHTML = `<div style="text-align:center; padding:5px;">
+                    <img src="${images[0]}" style="width:40px; height:40px; object-fit:cover; border-radius:5px;"><br>
+                    <span style="font-size:12px;">查看图片 (${images.length})</span>
                 </div>`;
             } else {
                 cell.innerHTML = '📷 拍照';
@@ -1818,17 +1944,13 @@
                                         } else if (type === "camera") {
                                             // 相機圖片處理
                                             const images = JSON.parse(originalCell.dataset.images || '[]');
-                                            let imagesHTML = '';
                                             if (images.length > 0) {
-                                                imagesHTML = '<div style="display:flex; overflow-x:auto;">';
-                                                images.forEach(imgData => {
-                                                    imagesHTML += `<img src="${imgData}" style="width:100px; height:100px; object-fit:cover; margin-right:5px;">`;
-                                                });
-                                                imagesHTML += '</div>';
+                                                cell.innerHTML = `<button onclick="showExportedImages(this)" style="background:#4CAF50; color:white; border:none; padding:8px 12px; border-radius:4px; cursor:pointer;">查看图片 (${images.length})</button>`;
+                                                // 将图片数据存储在按钮上
+                                                cell.querySelector('button').dataset.images = originalCell.dataset.images;
                                             } else {
-                                                imagesHTML = '無圖片';
+                                                cell.innerHTML = '无图片';
                                             }
-                                            cell.innerHTML = imagesHTML;
                                         }
                                     }
 
