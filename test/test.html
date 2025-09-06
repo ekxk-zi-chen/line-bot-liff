@@ -2243,26 +2243,32 @@
                 }
 
                 // 在匯出功能中，添加表格寬度設定
+                // 在匯出功能中，添加表格寬度設定
                 const exportHTML = `<!DOCTYPE html>
                 <html>
                 <head>
                 <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>野蠻的驕傲醫療卡</title>
                 <style>
                 body { 
                     font-family: Arial, sans-serif; 
-                    padding:20px; 
+                    padding:15px; 
                     background:#f5f5f5; 
+                    max-width: 100%;
+                    overflow-x: hidden;
                 }
                 table { 
                     border-collapse: collapse; 
                     table-layout: fixed; 
                     margin-bottom:20px; 
+                    width: 100% !important;
                 }
                 td, th { 
                     border:1px solid #ccc; 
                     padding: 6px 8px; 
                     word-wrap: break-word; 
+                    max-width: 100%;
                 }
                 .audio-cell audio { 
                     display:block; 
@@ -2275,7 +2281,7 @@
                     border-radius:8px; 
                 }
 
-                /* 圖片查看模態框樣式 */
+                /* 簡單圖片查看模態框 */
                 .image-modal {
                     display: none;
                     position: fixed;
@@ -2285,79 +2291,65 @@
                     height: 100%;
                     background: rgba(0,0,0,0.95);
                     z-index: 10000;
-                    align-items: center;
-                    justify-content: center;
                 }
 
-                .image-modal-content {
-                    position: relative;
-                    width: 100%;
-                    height: 100%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .image-modal-close {
+                .image-container {
                     position: absolute;
-                    top: 20px;
-                    right: 20px;
-                    background: rgba(255,255,255,0.2);
-                    color: white;
-                    border: none;
-                    padding: 15px;
-                    border-radius: 50%;
-                    font-size: 28px;
-                    cursor: pointer;
-                    backdrop-filter: blur(5px);
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-                    z-index: 10001;
-                }
-
-                .image-carousel {
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 90%;
+                    height: 70%;
                     display: flex;
-                    overflow-x: auto;
-                    scroll-snap-type: x mandatory;
-                    width: 100%;
-                    height: 100%;
+                    justify-content: center;
                     align-items: center;
-                    scroll-behavior: smooth;
                 }
 
-                .image-carousel img {
-                    scroll-snap-align: center;
-                    flex: none;
-                    width: 100%;
-                    height: auto;
-                    max-height: 90vh;
+                .image-container img {
+                    max-width: 100%;
+                    max-height: 100%;
                     object-fit: contain;
                 }
 
-                .image-controls {
+                .close-btn {
                     position: absolute;
-                    bottom: 30px;
-                    left: 0;
-                    right: 0;
-                    display: flex;
-                    justify-content: center;
-                    gap: 15px;
-                    z-index: 100;
-                }
-
-                .image-controls button {
-                    background: rgba(255,255,255,0.2);
+                    top: 20px;
+                    right: 20px;
+                    background: rgba(255,255,255,0.3);
                     color: white;
                     border: none;
-                    padding: 12px 20px;
+                    padding: 12px 16px;
+                    border-radius: 50%;
+                    font-size: 24px;
+                    cursor: pointer;
+                    z-index: 10001;
+                }
+
+                .nav-btn {
+                    position: absolute;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    background: rgba(255,255,255,0.3);
+                    color: white;
+                    border: none;
+                    padding: 15px 20px;
                     border-radius: 50%;
                     font-size: 20px;
                     cursor: pointer;
-                    backdrop-filter: blur(5px);
+                    z-index: 10001;
+                }
+
+                .prev-btn {
+                    left: 15px;
+                }
+
+                .next-btn {
+                    right: 15px;
                 }
 
                 .image-index {
                     position: absolute;
-                    bottom: 100px;
+                    bottom: 20px;
                     left: 0;
                     right: 0;
                     text-align: center;
@@ -2365,98 +2357,117 @@
                     font-size: 18px;
                     text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
                 }
+
+                .view-images-btn {
+                    background: #4CAF50;
+                    color: white;
+                    border: none;
+                    padding: 8px 12px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    margin: 5px 0;
+                    display: inline-block;
+                }
                 </style>
                 </head>
                 <body>
                 ${allContent}
                 <script>
-                // 圖片查看功能
-                let currentExportImageIndex = 0;
-                let currentExportImages = [];
-
+                // 簡單圖片查看功能
                 function showExportedImages(button) {
-                    currentExportImages = JSON.parse(button.dataset.images || '[]');
-                    if (currentExportImages.length === 0) return;
-                    
-                    currentExportImageIndex = 0;
-                    
-                    // 創建模態框
-                    const modal = document.createElement('div');
-                    modal.className = 'image-modal';
-                    modal.innerHTML = '<div class="image-modal-content">' +
-                        '<button class="image-modal-close" onclick="closeExportImageModal()">✕</button>' +
-                        '<div class="image-carousel" id="exportImageCarousel"></div>' +
-                        '<div class="image-controls">' +
-                            '<button onclick="changeExportImage(-1)">◀</button>' +
-                            '<button onclick="changeExportImage(1)">▶</button>' +
-                        '</div>' +
-                        '<div class="image-index" id="exportImageIndex"></div>' +
-                    '</div>';
-                    
-                    document.body.appendChild(modal);
-                    updateExportCarousel();
-                    modal.style.display = 'flex';
-                    
-                    // 添加鍵盤事件監聽
-                    document.addEventListener('keydown', handleExportKeydown);
-                }
-
-                function handleExportKeydown(e) {
-                    if (e.key === 'Escape') {
-                        closeExportImageModal();
-                    } else if (e.key === 'ArrowLeft') {
-                        changeExportImage(-1);
-                    } else if (e.key === 'ArrowRight') {
-                        changeExportImage(1);
+                    try {
+                        var images = JSON.parse(button.getAttribute('data-images') || '[]');
+                        if (images.length === 0) {
+                            alert('沒有圖片可顯示');
+                            return;
+                        }
+                        
+                        // 創建模態框
+                        var modal = document.createElement('div');
+                        modal.className = 'image-modal';
+                        modal.innerHTML = '<button class="close-btn" onclick="closeImageModal()">✕</button>' +
+                                        '<div class="image-container"><img id="modalImage" src=""></div>' +
+                                        '<button class="nav-btn prev-btn" onclick="changeImage(-1)">◀</button>' +
+                                        '<button class="nav-btn next-btn" onclick="changeImage(1)">▶</button>' +
+                                        '<div class="image-index" id="imageIndex">1 / ' + images.length + '</div>';
+                        
+                        document.body.appendChild(modal);
+                        modal.style.display = 'block';
+                        
+                        // 初始化變量
+                        window.currentImageIndex = 0;
+                        window.currentImages = images;
+                        
+                        // 顯示第一張圖片
+                        updateModalImage();
+                        
+                        // 添加點擊背景關閉功能
+                        modal.addEventListener('click', function(e) {
+                            if (e.target === modal) {
+                                closeImageModal();
+                            }
+                        });
+                        
+                        // 添加鍵盤事件
+                        document.addEventListener('keydown', handleKeydown);
+                    } catch (e) {
+                        console.error('顯示圖片錯誤:', e);
+                        alert('無法顯示圖片: ' + e.message);
                     }
                 }
 
-                function closeExportImageModal() {
-                    const modal = document.querySelector('.image-modal');
+                function closeImageModal() {
+                    var modal = document.querySelector('.image-modal');
                     if (modal) {
-                        document.removeEventListener('keydown', handleExportKeydown);
+                        document.removeEventListener('keydown', handleKeydown);
                         document.body.removeChild(modal);
                     }
                 }
 
-                function updateExportCarousel() {
-                    const carousel = document.getElementById('exportImageCarousel');
-                    const indexDisplay = document.getElementById('exportImageIndex');
-                    
-                    if (!carousel) return;
-                    
-                    carousel.innerHTML = '';
-                    
-                    currentExportImages.forEach((imgData, index) => {
-                        const imgDiv = document.createElement('div');
-                        imgDiv.style.cssText = 'scroll-snap-align:center; flex:none; width:100%; height:100%; display:flex; align-items:center; justify-content:center;';
-                        imgDiv.innerHTML = '<img src="' + imgData + '" style="max-width:100%; max-height:90vh; object-fit:contain;">';
-                        carousel.appendChild(imgDiv);
-                    });
-                    
-                    if (indexDisplay) {
-                        indexDisplay.innerHTML = (currentExportImageIndex + 1) + ' / ' + currentExportImages.length;
-                    }
-                    
-                    // 滾動到當前圖片
-                    if (carousel.children[currentExportImageIndex]) {
-                        carousel.children[currentExportImageIndex].scrollIntoView({behavior: 'smooth'});
+                function handleKeydown(e) {
+                    if (e.key === 'Escape') {
+                        closeImageModal();
+                    } else if (e.key === 'ArrowLeft') {
+                        changeImage(-1);
+                    } else if (e.key === 'ArrowRight') {
+                        changeImage(1);
                     }
                 }
 
-                function changeExportImage(direction) {
-                    if (currentExportImages.length <= 1) return;
+                function changeImage(direction) {
+                    window.currentImageIndex += direction;
                     
-                    currentExportImageIndex += direction;
-                    
-                    if (currentExportImageIndex < 0) {
-                        currentExportImageIndex = currentExportImages.length - 1;
-                    } else if (currentExportImageIndex >= currentExportImages.length) {
-                        currentExportImageIndex = 0;
+                    if (window.currentImageIndex < 0) {
+                        window.currentImageIndex = window.currentImages.length - 1;
+                    } else if (window.currentImageIndex >= window.currentImages.length) {
+                        window.currentImageIndex = 0;
                     }
                     
-                    updateExportCarousel();
+                    updateModalImage();
                 }
+
+                function updateModalImage() {
+                    var img = document.getElementById('modalImage');
+                    var indexDisplay = document.getElementById('imageIndex');
+                    
+                    if (img && indexDisplay && window.currentImages && window.currentImages.length > 0) {
+                        img.src = window.currentImages[window.currentImageIndex];
+                        indexDisplay.textContent = (window.currentImageIndex + 1) + ' / ' + window.currentImages.length;
+                    }
+                }
+
+                // 添加觸摸事件支持
+                document.addEventListener('DOMContentLoaded', function() {
+                    // 為所有查看圖片按鈕添加觸摸事件
+                    var buttons = document.querySelectorAll('.view-images-btn');
+                    buttons.forEach(function(btn) {
+                        btn.addEventListener('touchstart', function(e) {
+                            e.preventDefault();
+                            showExportedImages(this);
+                        }, {passive: false});
+                    });
+                });
                 <\/script>
                 </body>
                 </html>`;
