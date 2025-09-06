@@ -374,7 +374,19 @@
             z-index: 10;
         }
 
-        /* 响应式箭头按钮 */
+        /* camera controls (左右箭頭) */
+        .camera-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            z-index: 50; /* 箭頭不需太高的 z-index */
+        }
+
+        /* 保持按鈕可點與大小 */
         .camera-controls button {
             width: 50px;
             height: 50px;
@@ -382,18 +394,32 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 100;
+            z-index: 50;
         }
-        /* 图片索引指示器 */
+
+        /* 新增/刪除按鈕（抬高，放在箭頭上方） */
+        .camera-actions {
+            position: absolute;
+            bottom: 120px; /* 往上移，避免與箭頭重疊 */
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            z-index: 120; /* 高於箭頭，確保點擊可用 */
+        }
+
+        /* 圖片索引顯示 */
         .image-index {
             position: absolute;
-            bottom: 80px;
+            bottom: 160px; /* 與 camera-actions 保持距離 */
             left: 0;
             right: 0;
             text-align: center;
             color: white;
             font-size: 18px;
             text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+            z-index: 110;
         }
         /* 提醒視窗 */
         #reminder {
@@ -456,18 +482,9 @@
                 padding: 6px 4px; 
                 font-size: 14px; 
             }
-
-            .camera-carousel {
-                height: 60vh;
-            }
-            .camera-carousel img {
-                max-height: 60vh;
-            }
-            .camera-controls button {
-                width: 60px;
-                height: 60px;
-                font-size: 28px;
-            }
+            .camera-controls { bottom: 20px; }
+            .camera-actions { bottom: 80px; }
+            .image-index { bottom: 140px; }
         }
     </style>
 </head>
@@ -674,21 +691,25 @@
             // 隱藏所有內容區域
             const sections = document.querySelectorAll('.content-section');
             sections.forEach(section => section.style.display = 'none');
-            
+
             // 顯示選中的區域
             const targetSection = document.getElementById('section-' + sectionName);
             if (targetSection) {
                 targetSection.style.display = 'block';
             }
-            
-            // 更新側邊欄選中狀態
+
+            // 更新側邊欄選中狀態（不靠 event）
             const sidebarItems = document.querySelectorAll('.sidebar-item');
             sidebarItems.forEach(item => item.classList.remove('active'));
-            event.target.classList.add('active');
-            
+            // 找到內文包含該名稱的側欄項（可處理 emoji 前綴）
+            const clickedItem = Array.from(sidebarItems).find(it => {
+                return it.textContent && it.textContent.includes(sectionName);
+            });
+            if (clickedItem) clickedItem.classList.add('active');
+
             // 記錄當前分區
             currentSection = sectionName;
-            
+
             // 關閉側邊欄（手機版）
             if (window.innerWidth <= 768) {
                 toggleSidebar();
@@ -706,13 +727,12 @@
         // 相機功能
         function openCameraModal(cell) {
             currentCameraCell = cell;
+            // 每個 cell 獨立的圖片陣列
             currentCameraImages = JSON.parse(cell.dataset.images || '[]');
             currentImageIndex = currentCameraImages.length > 0 ? 0 : -1;
-            
+
             updateCameraCarousel();
             document.getElementById('cameraModal').style.display = 'flex';
-            
-            // 添加触摸事件支持
             initTouchEvents();
         }
 
@@ -884,42 +904,50 @@
         function handleCameraUpload(input) {
             if (!currentCameraCell) return;
             const files = input.files;
-            
+
             for (let i = 0; i < files.length; i++) {
-                if (currentCameraImages.length >= 10) {
-                    alert('最多只能上传10张图片');
+                if (currentCameraImages.length >= 5) {
+                    alert('每個儲存格最多只能上傳 5 張圖片');
                     break;
                 }
-                
+
                 const file = files[i];
-                
-                // 显示压缩指示器
+
+                // 顯示壓縮指示器
                 const compressionIndicator = document.createElement('div');
                 compressionIndicator.className = 'compression-indicator';
-                compressionIndicator.innerText = '压缩中...';
-                document.getElementById('cameraModal').querySelector('.modal-content').appendChild(compressionIndicator);
-                
-                // 压缩图片
+                compressionIndicator.innerText = '壓縮中...';
+                const modalContent = document.getElementById('cameraModal').querySelector('.modal-content');
+                if (modalContent) modalContent.appendChild(compressionIndicator);
+
+                // 壓縮後加入陣列並更新 cell.dataset
                 compressImage(file, function(compressedDataUrl) {
+                    // 防止 race condition：再次確認上限
+                    if (currentCameraImages.length >= 5) {
+                        if (compressionIndicator.parentNode) compressionIndicator.parentNode.removeChild(compressionIndicator);
+                        alert('每個儲存格最多只能上傳 5 張圖片');
+                        return;
+                    }
+
                     currentCameraImages.push(compressedDataUrl);
+                    // 每個 cell 獨立儲存於 dataset.images
                     currentCameraCell.dataset.images = JSON.stringify(currentCameraImages);
                     updateCameraCellDisplay(currentCameraCell);
                     updateCameraCarousel();
-                    
-                    // 移除压缩指示器
+
+                    // 移除壓縮指示器
                     if (compressionIndicator.parentNode) {
                         compressionIndicator.parentNode.removeChild(compressionIndicator);
                     }
-                    
-                    // 滚动到最后一张图片
+
+                    // 滾動到最後一張圖片
                     currentImageIndex = currentCameraImages.length - 1;
                     scrollToImage(currentImageIndex);
                     updateImageIndex();
                 });
             }
-            input.value = ''; // 重置input，允许再次选择相同文件
+            input.value = ''; // 重置 input，允許再次選同一檔
         }
-
 
         function updateCameraCellDisplay(cell) {
             const images = JSON.parse(cell.dataset.images || '[]');
@@ -1095,13 +1123,9 @@
         }
 
         // 為手機添加觸摸事件處理
-        document.addEventListener('DOMContentLoaded', function() {
-            // 為所有"現在時間"單元格添加觸摸事件
-            document.querySelectorAll('[data-type="datetime"]').forEach(cell => {
-                cell.addEventListener('touchend', function(e) {
-                    e.preventDefault();
-                    fillCurrentTime(this);
-                });
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('td[data-type="camera"], td[data-type="camera"]').forEach(td => {
+                try { updateCameraCellDisplay(td); } catch (e) { /* 忽略 */ }
             });
         });
 
@@ -2038,7 +2062,22 @@
         }
 
         ////////////////////////////////////////////////////////////
-        
+        async function blobUrlToDataURL(blobUrl) {
+            // fetch blob: 或 object URL，回傳 data:image/...;base64,...
+            try {
+                const resp = await fetch(blobUrl);
+                const blob = await resp.blob();
+                return await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onerror = () => reject(new Error('FileReader error'));
+                    reader.onload = () => resolve(reader.result); // data:... 字串
+                    reader.readAsDataURL(blob);
+                });
+            } catch (e) {
+                console.warn('blobUrlToDataURL failed', e);
+                return null;
+            }
+        }
         
         
         // 資料匯出完整版本
@@ -2109,7 +2148,41 @@
                                             cell.innerHTML = "❌ 錄音轉換失敗";
                                         }
                                     }
-                                    
+                                    // ===== 插入：把 originalCell 裡的 blob: 圖片轉成 data: 並更新 cloned cell =====
+                                    try {
+                                        const origImgs = originalCell.querySelectorAll('img');
+                                        const cloneImgs = cell.querySelectorAll('img');
+                                        for (let i = 0; i < origImgs.length; i++) {
+                                            const oImg = origImgs[i];
+                                            if (oImg && oImg.src && oImg.src.startsWith('blob:')) {
+                                                try {
+                                                    const dataURL = await blobUrlToDataURL(oImg.src);
+                                                    if (dataURL) {
+                                                        // 若匯出用的 cell（clone）已有對應的 img，直接替換 src
+                                                        if (cloneImgs[i]) {
+                                                            cloneImgs[i].src = dataURL;
+                                                        } else {
+                                                            // 否則建立一個 img 放進去（避免匯出後沒圖）
+                                                            const newImg = document.createElement('img');
+                                                            newImg.src = dataURL;
+                                                            newImg.alt = 'photo';
+                                                            newImg.style.maxWidth = '100%';
+                                                            newImg.style.height = 'auto';
+                                                            newImg.style.display = 'block';
+                                                            // 放在 cell 內靠底部（若你要放到特定位置可調）
+                                                            cell.appendChild(newImg);
+                                                        }
+                                                    }
+                                                } catch (e) {
+                                                    console.warn('convert image blob->data failed', e);
+                                                }
+                                            }
+                                        }
+                                    } catch (e) {
+                                        console.warn('img conversion block failed', e);
+                                    }
+                                    // ===== 插入結束 =====
+
                                     // 特殊單元格處理
                                     if (originalCell.classList.contains("editable-cell")) {
                                         const type = originalCell.dataset.type;
@@ -2270,93 +2343,5 @@
 
 
     </script>
-<!-- non-destructive iOS single-file export patch: dynamically added button & handler -->
-<script>
-(function(){
-    const origExportBtn = document.getElementById('exportBtn');
-    if (origExportBtn && !document.getElementById('exportSingleBtn')) {
-        const btn = document.createElement('button');
-        btn.id = 'exportSingleBtn';
-        btn.type = 'button';
-        btn.style.marginLeft = '8px';
-        btn.textContent = '匯出（iOS 單檔）';
-        btn.style.padding = '12px 14px';
-        btn.style.background = '#ff7a59';
-        btn.style.color = '#fff';
-        btn.style.border = 'none';
-        btn.style.borderRadius = '6px';
-        btn.style.cursor = 'pointer';
-        origExportBtn.parentNode && origExportBtn.parentNode.insertBefore(btn, origExportBtn.nextSibling);
-
-        btn.addEventListener('click', function exportSingleFileForIOS(){
-            const statusEl = document.getElementById('exportStatus');
-            if (statusEl) statusEl.innerText = '正在產生 single-file HTML，請稍候...';
-
-            try {
-                let sourceHTML = (typeof exportHTML !== 'undefined') ? exportHTML : document.documentElement.outerHTML;
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(sourceHTML, 'text/html');
-
-                const nodes = doc.querySelectorAll('[data-images]');
-                nodes.forEach(node => {
-                    try {
-                        const raw = node.getAttribute('data-images') || '[]';
-                        const arr = JSON.parse(raw);
-                        const gallery = doc.createElement('div');
-                        gallery.className = 'exported-gallery';
-                        arr.forEach((item, idx) => {
-                            if (!item) return;
-                            const wrap = doc.createElement('div');
-                            wrap.className = 'exported-thumb';
-                            const img = doc.createElement('img');
-                            img.alt = `img_${idx+1}`;
-                            img.loading = 'lazy';
-                            img.src = item;
-                            const badge = doc.createElement('div');
-                            badge.className = 'exported-badge';
-                            badge.textContent = `${idx+1}/${arr.length}`;
-                            wrap.appendChild(img);
-                            wrap.appendChild(badge);
-                            gallery.appendChild(wrap);
-                        });
-                        node.innerHTML = '';
-                        node.appendChild(gallery);
-                    } catch (e) {
-                        console.warn('exportSingleFile: 處理 data-images 失敗', e);
-                    }
-                });
-
-                const style = doc.createElement('style');
-                style.textContent = `
-                    .exported-gallery { display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; }
-                    .exported-thumb { position:relative; width:calc(50% - 8px); }
-                    .exported-thumb img { width:100%; height:auto; display:block; border-radius:6px; object-fit:contain; }
-                    .exported-badge { position:absolute; right:6px; top:6px; background:rgba(0,0,0,0.6); color:#fff; padding:3px 7px; border-radius:12px; font-size:12px; }
-                    .camera-actions { bottom: 200px !important; z-index:160 !important; }
-                    .image-index    { bottom: 260px !important; z-index:150 !important; }
-                    .camera-controls { bottom: 20px !important; z-index:80 !important; }
-                    @media (max-width:768px) {
-                        .exported-thumb { width:100% !important; }
-                        .camera-actions { bottom: 200px !important; }
-                        .image-index    { bottom: 280px !important; }
-                    }
-                `;
-                doc.head.appendChild(style);
-
-                const finalHTML = new XMLSerializer().serializeToString(doc);
-                const blob = new Blob([finalHTML], { type: 'text/html;charset=utf-8' });
-                saveAs(blob, 'exported_table.html');
-
-                if (statusEl) statusEl.innerText = '✅ 已產生 exported_table.html（請在 iOS 直接開啟此檔案）';
-            } catch (err) {
-                console.error('exportSingleFile 錯誤', err);
-                if (statusEl) statusEl.innerText = '匯出 single-file 失敗: ' + (err && err.message ? err.message : err);
-            }
-        });
-    }
-    window.exportSingleFileForIOS = function(){ const b = document.getElementById('exportSingleBtn'); if (b) b.click(); };
-})();
-</script>
-
 </body>
 </html>
