@@ -421,6 +421,8 @@
             text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
             z-index: 110;
         }
+        
+        
         /* 提醒視窗 */
         #reminder {
             display: none;
@@ -637,11 +639,23 @@
         </div>
     </div>
     <!-- 相機 Modal -->
-    <!-- 替换原有的相机模态框 -->
     <div id="cameraModal" class="modal" style="display:none;">
         <div class="modal-content" style="max-width:95%; width:100%; height:100%; padding:0; background:rgba(0,0,0,0.9);">
+            <!-- 修改關閉按鈕 -->
             <div style="position:absolute; top:15px; right:15px; z-index:100;">
-                <button onclick="closeCameraModal()" style="background:rgba(0,0,0,0.5); color:white; border:none; padding:10px; border-radius:50%; font-size:18px;">✕</button>
+                <button onclick="closeCameraModal()" style="
+                    background:rgba(255,255,255,0.2); 
+                    color:white; 
+                    border:none; 
+                    padding:12px 15px; 
+                    border-radius:50%; 
+                    font-size:24px;
+                    cursor:pointer;
+                    backdrop-filter: blur(5px);
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                    transition: all 0.2s ease;">
+                    ✕
+                </button>
             </div>
             
             <div id="cameraCarousel" class="camera-carousel">
@@ -2233,56 +2247,219 @@
                 <html>
                 <head>
                 <meta charset="utf-8">
-                <title>已匯出表格</title>
+                <title>野蠻的驕傲醫療卡</title>
                 <style>
-                body { font-family: Arial, sans-serif; padding:20px; }
-                table { border-collapse: collapse; table-layout: fixed; }
-                td, th { border:1px solid #ccc; padding: 6px 8px; word-wrap: break-word; }
-                .audio-cell audio { display:block; width: 100%; }
-                .sub-page { background-color: #f9f9f9; }
+                body { 
+                    font-family: Arial, sans-serif; 
+                    padding:20px; 
+                    background:#f5f5f5; 
+                }
+                table { 
+                    border-collapse: collapse; 
+                    table-layout: fixed; 
+                    margin-bottom:20px; 
+                }
+                td, th { 
+                    border:1px solid #ccc; 
+                    padding: 6px 8px; 
+                    word-wrap: break-word; 
+                }
+                .audio-cell audio { 
+                    display:block; 
+                    width: 100%; 
+                }
+                .sub-page { 
+                    background-color: #f9f9f9; 
+                    padding:15px; 
+                    margin-bottom:20px; 
+                    border-radius:8px; 
+                }
+
+                /* 圖片查看模態框樣式 */
+                .image-modal {
+                    display: none;
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.95);
+                    z-index: 10000;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .image-modal-content {
+                    position: relative;
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .image-modal-close {
+                    position: absolute;
+                    top: 20px;
+                    right: 20px;
+                    background: rgba(255,255,255,0.2);
+                    color: white;
+                    border: none;
+                    padding: 15px;
+                    border-radius: 50%;
+                    font-size: 28px;
+                    cursor: pointer;
+                    backdrop-filter: blur(5px);
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                    z-index: 10001;
+                }
+
+                .image-carousel {
+                    display: flex;
+                    overflow-x: auto;
+                    scroll-snap-type: x mandatory;
+                    width: 100%;
+                    height: 100%;
+                    align-items: center;
+                    scroll-behavior: smooth;
+                }
+
+                .image-carousel img {
+                    scroll-snap-align: center;
+                    flex: none;
+                    width: 100%;
+                    height: auto;
+                    max-height: 90vh;
+                    object-fit: contain;
+                }
+
+                .image-controls {
+                    position: absolute;
+                    bottom: 30px;
+                    left: 0;
+                    right: 0;
+                    display: flex;
+                    justify-content: center;
+                    gap: 15px;
+                    z-index: 100;
+                }
+
+                .image-controls button {
+                    background: rgba(255,255,255,0.2);
+                    color: white;
+                    border: none;
+                    padding: 12px 20px;
+                    border-radius: 50%;
+                    font-size: 20px;
+                    cursor: pointer;
+                    backdrop-filter: blur(5px);
+                }
+
+                .image-index {
+                    position: absolute;
+                    bottom: 100px;
+                    left: 0;
+                    right: 0;
+                    text-align: center;
+                    color: white;
+                    font-size: 18px;
+                    text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+                }
                 </style>
                 </head>
                 <body>
                 ${allContent}
                 <script>
+                // 圖片查看功能
+                let currentExportImageIndex = 0;
+                let currentExportImages = [];
+
                 function showExportedImages(button) {
-                    const images = JSON.parse(button.dataset.images || '[]');
-                    if (images.length === 0) return;
+                    currentExportImages = JSON.parse(button.dataset.images || '[]');
+                    if (currentExportImages.length === 0) return;
                     
-                    // 创建模态框
+                    currentExportImageIndex = 0;
+                    
+                    // 創建模態框
                     const modal = document.createElement('div');
-                    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; display:flex; align-items:center; justify-content:center;';
+                    modal.className = 'image-modal';
+                    modal.innerHTML = '<div class="image-modal-content">' +
+                        '<button class="image-modal-close" onclick="closeExportImageModal()">✕</button>' +
+                        '<div class="image-carousel" id="exportImageCarousel"></div>' +
+                        '<div class="image-controls">' +
+                            '<button onclick="changeExportImage(-1)">◀</button>' +
+                            '<button onclick="changeExportImage(1)">▶</button>' +
+                        '</div>' +
+                        '<div class="image-index" id="exportImageIndex"></div>' +
+                    '</div>';
                     
-                    // 创建关闭按钮
-                    const closeBtn = document.createElement('button');
-                    closeBtn.innerHTML = '✕';
-                    closeBtn.style.cssText = 'position:absolute; top:15px; right:15px; background:rgba(0,0,0,0.5); color:white; border:none; padding:10px; border-radius:50%; font-size:18px; z-index:10001;';
-                    closeBtn.onclick = function() {
+                    document.body.appendChild(modal);
+                    updateExportCarousel();
+                    modal.style.display = 'flex';
+                    
+                    // 添加鍵盤事件監聽
+                    document.addEventListener('keydown', handleExportKeydown);
+                }
+
+                function handleExportKeydown(e) {
+                    if (e.key === 'Escape') {
+                        closeExportImageModal();
+                    } else if (e.key === 'ArrowLeft') {
+                        changeExportImage(-1);
+                    } else if (e.key === 'ArrowRight') {
+                        changeExportImage(1);
+                    }
+                }
+
+                function closeExportImageModal() {
+                    const modal = document.querySelector('.image-modal');
+                    if (modal) {
+                        document.removeEventListener('keydown', handleExportKeydown);
                         document.body.removeChild(modal);
-                    };
+                    }
+                }
+
+                function updateExportCarousel() {
+                    const carousel = document.getElementById('exportImageCarousel');
+                    const indexDisplay = document.getElementById('exportImageIndex');
                     
-                    // 创建轮播容器
-                    const carousel = document.createElement('div');
-                    carousel.style.cssText = 'display:flex; overflow-x:auto; scroll-snap-type:x mandatory; width:100%; height:80%; align-items:center;';
+                    if (!carousel) return;
                     
-                    // 添加图片
-                    images.forEach(imgData => {
+                    carousel.innerHTML = '';
+                    
+                    currentExportImages.forEach((imgData, index) => {
                         const imgDiv = document.createElement('div');
                         imgDiv.style.cssText = 'scroll-snap-align:center; flex:none; width:100%; height:100%; display:flex; align-items:center; justify-content:center;';
-                        imgDiv.innerHTML = '<img src="' + imgData + '" style="max-width:100%; max-height:100%; object-fit:contain;">';
+                        imgDiv.innerHTML = '<img src="' + imgData + '" style="max-width:100%; max-height:90vh; object-fit:contain;">';
                         carousel.appendChild(imgDiv);
                     });
                     
-                    // 组装模态框
-                    modal.appendChild(closeBtn);
-                    modal.appendChild(carousel);
+                    if (indexDisplay) {
+                        indexDisplay.innerHTML = (currentExportImageIndex + 1) + ' / ' + currentExportImages.length;
+                    }
                     
-                    // 添加到文档
-                    document.body.appendChild(modal);
+                    // 滾動到當前圖片
+                    if (carousel.children[currentExportImageIndex]) {
+                        carousel.children[currentExportImageIndex].scrollIntoView({behavior: 'smooth'});
+                    }
+                }
+
+                function changeExportImage(direction) {
+                    if (currentExportImages.length <= 1) return;
+                    
+                    currentExportImageIndex += direction;
+                    
+                    if (currentExportImageIndex < 0) {
+                        currentExportImageIndex = currentExportImages.length - 1;
+                    } else if (currentExportImageIndex >= currentExportImages.length) {
+                        currentExportImageIndex = 0;
+                    }
+                    
+                    updateExportCarousel();
                 }
                 <\/script>
                 </body>
-                </html>`;    
+                </html>`;
                 // 外層
                 const zip = new JSZip();
                 zip.file("exported_table.html", exportHTML);
