@@ -2282,8 +2282,8 @@
                     border-radius:8px; 
                 }
 
-                /* 針對Line瀏覽器的特殊解決方案 */
-                .image-gallery {
+                /* 針對Line瀏覽器的圖片查看解決方案 */
+                .image-modal-line {
                     display: none;
                     position: fixed;
                     top: 0;
@@ -2295,59 +2295,75 @@
                     overflow: hidden;
                 }
 
-                .gallery-image {
+                .image-slide {
+                    display: none;
+                    position: absolute;
+                    top: 0;
+                    left: 0;
                     width: 100%;
                     height: 100%;
+                    justify-content: center;
+                    align-items: center;
+                }
+
+                .image-slide.active {
+                    display: flex;
+                }
+
+                .image-slide img {
+                    max-width: 100%;
+                    max-height: 90%;
                     object-fit: contain;
-                    display: none;
                 }
 
-                .gallery-image.active {
-                    display: block;
-                }
-
-                .gallery-controls {
+                .close-btn-line {
                     position: absolute;
                     top: 15px;
                     right: 15px;
+                    background: rgba(0,0,0,0.7);
+                    color: white;
+                    border: 2px solid white;
+                    padding: 10px 14px;
+                    border-radius: 50%;
+                    font-size: 18px;
                     z-index: 10001;
+                    -webkit-tap-highlight-color: transparent;
                 }
 
-                .gallery-nav {
+                .nav-btn-line {
                     position: absolute;
                     top: 50%;
-                    width: 100%;
                     transform: translateY(-50%);
-                    display: flex;
-                    justify-content: space-between;
-                    z-index: 10001;
-                    padding: 0 20px;
-                }
-
-                .gallery-btn {
                     background: rgba(0,0,0,0.7);
                     color: white;
                     border: 2px solid white;
                     padding: 12px 16px;
                     border-radius: 50%;
                     font-size: 18px;
+                    z-index: 10001;
                     -webkit-tap-highlight-color: transparent;
-                    cursor: pointer;
                 }
 
-                .gallery-index {
+                .prev-btn-line {
+                    left: 10px;
+                }
+
+                .next-btn-line {
+                    right: 10px;
+                }
+
+                .image-index-line {
                     position: absolute;
-                    bottom: 20px;
+                    bottom: 70px;
                     left: 0;
                     right: 0;
                     text-align: center;
                     color: white;
                     font-size: 16px;
                     text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
-                    z-index: 10001;
                 }
 
-                .view-images-btn {
+                .view-images-btn-line {
                     background: #4CAF50;
                     color: white;
                     border: none;
@@ -2359,256 +2375,181 @@
                     -webkit-tap-highlight-color: transparent;
                 }
 
-                /* 針對Line的特殊樣式 */
-                .line-fallback {
-                    display: none;
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(0,0,0,0.9);
-                    z-index: 10002;
-                    padding: 20px;
-                    color: white;
-                    text-align: center;
+                /* 簡單的淡入淡出效果 */
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
                 }
 
-                .line-fallback-content {
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    width: 90%;
-                }
-
-                .line-fallback img {
-                    max-width: 100%;
-                    max-height: 60vh;
-                    margin: 10px 0;
-                    border: 2px solid white;
-                }
-
-                .line-fallback-btns {
-                    margin-top: 20px;
-                }
-
-                .line-fallback-btn {
-                    background: #4CAF50;
-                    color: white;
-                    border: none;
-                    padding: 10px 20px;
-                    margin: 0 5px;
-                    border-radius: 5px;
-                    cursor: pointer;
+                .image-slide {
+                    animation: fadeIn 0.3s ease-in;
                 }
                 </style>
                 </head>
                 <body>
                 ${allContent}
 
-                <!-- 預先創建所有必要的HTML結構 -->
-                <div id="imageGallery" class="image-gallery">
-                    <div id="galleryImages"></div>
-                    <div class="gallery-controls">
-                        <button class="gallery-btn" onclick="window.closeGallery()">✕</button>
+                <!-- 預先創建圖片查看器結構 -->
+                <div id="imageModalLine" class="image-modal-line">
+                    <button class="close-btn-line" onclick="closeImageModalLine()">✕</button>
+                    
+                    <div id="imageSlidesContainer" style="position:relative; width:100%; height:100%;">
+                        <!-- 圖片滑動區域將在這裡動態生成 -->
                     </div>
-                    <div class="gallery-nav">
-                        <button class="gallery-btn" onclick="window.prevGalleryImage()">◀</button>
-                        <button class="gallery-btn" onclick="window.nextGalleryImage()">▶</button>
-                    </div>
-                    <div class="gallery-index" id="galleryIndex">1 / 1</div>
-                </div>
-
-                <!-- Line瀏覽器備用方案 -->
-                <div id="lineFallback" class="line-fallback">
-                    <div class="line-fallback-content">
-                        <h3>圖片查看器</h3>
-                        <img id="fallbackImage" src="" alt="當前圖片">
-                        <div class="gallery-index" id="fallbackIndex">1 / 1</div>
-                        <div class="line-fallback-btns">
-                            <button class="line-fallback-btn" onclick="window.fallbackPrev()">上一張</button>
-                            <button class="line-fallback-btn" onclick="window.fallbackNext()">下一張</button>
-                            <button class="line-fallback-btn" onclick="window.closeFallback()">關閉</button>
-                        </div>
-                    </div>
+                    
+                    <button class="nav-btn-line prev-btn-line" onclick="prevImageLine()">◀</button>
+                    <button class="nav-btn-line next-btn-line" onclick="nextImageLine()">▶</button>
+                    <div class="image-index-line" id="imageIndexLine">1 / 1</div>
                 </div>
 
                 <script>
-                // 檢測是否為Line瀏覽器
-                var isLineBrowser = navigator.userAgent.indexOf('Line/') > -1;
-                var currentGalleryIndex = 0;
-                var currentGalleryImages = [];
+                // 全局變量
+                var currentImageIndexLine = 0;
+                var currentImagesLine = [];
+                var isLineBrowser = navigator.userAgent.indexOf('Line/') !== -1;
 
-                // 初始化函數 - 使用最簡單的語法
-                function initGallery() {
-                    var buttons = document.getElementsByClassName('view-images-btn');
+                // 初始化函數
+                function initImageButtons() {
+                    var buttons = document.querySelectorAll('.view-images-btn-line');
                     for (var i = 0; i < buttons.length; i++) {
+                        // 添加點擊事件
                         buttons[i].onclick = function() {
-                            openImageGallery(this);
+                            showImagesLine(this);
+                        };
+                        
+                        // 添加觸摸事件
+                        buttons[i].ontouchstart = function(e) {
+                            e.preventDefault();
+                            showImagesLine(this);
                         };
                     }
                 }
 
-                // 打開圖片畫廊
-                function openImageGallery(button) {
+                // 顯示圖片函數
+                function showImagesLine(button) {
                     try {
                         var imageData = button.getAttribute('data-images');
-                        if (!imageData) return;
-                        
-                        currentGalleryImages = JSON.parse(imageData);
-                        if (currentGalleryImages.length === 0) return;
-                        
-                        currentGalleryIndex = 0;
-                        
-                        // 嘗試使用標準畫廊
-                        if (!isLineBrowser || tryStandardGallery()) {
-                            showStandardGallery();
-                        } else {
-                            // 使用備用方案
-                            showFallbackGallery();
+                        if (!imageData) {
+                            alert('沒有圖片數據');
+                            return;
                         }
                         
-                    } catch (e) {
-                        console.log('打開畫廊錯誤:', e);
-                        showFallbackGallery();
-                    }
-                }
-
-                // 嘗試標準畫廊
-                function tryStandardGallery() {
-                    try {
-                        var gallery = document.getElementById('imageGallery');
-                        var imagesContainer = document.getElementById('galleryImages');
-                        
-                        // 清空並重新創建圖片
-                        imagesContainer.innerHTML = '';
-                        for (var i = 0; i < currentGalleryImages.length; i++) {
-                            var img = document.createElement('img');
-                            img.className = 'gallery-image';
-                            img.src = currentGalleryImages[i];
-                            img.style.display = i === 0 ? 'block' : 'none';
-                            imagesContainer.appendChild(img);
+                        currentImagesLine = JSON.parse(imageData);
+                        if (currentImagesLine.length === 0) {
+                            alert('沒有圖片可顯示');
+                            return;
                         }
                         
-                        updateGalleryIndex();
-                        gallery.style.display = 'block';
+                        // 創建圖片滑動區域
+                        var container = document.getElementById('imageSlidesContainer');
+                        container.innerHTML = '';
+                        
+                        for (var i = 0; i < currentImagesLine.length; i++) {
+                            var slide = document.createElement('div');
+                            slide.className = 'image-slide';
+                            slide.innerHTML = '<img src="' + currentImagesLine[i] + '" style="max-width:100%; max-height:90%;">';
+                            container.appendChild(slide);
+                        }
+                        
+                        // 顯示第一張圖片
+                        currentImageIndexLine = 0;
+                        showCurrentImageLine();
+                        
+                        // 顯示模態框
+                        document.getElementById('imageModalLine').style.display = 'block';
                         document.body.style.overflow = 'hidden';
-                        return true;
+                        
                     } catch (e) {
-                        return false;
+                        console.error('顯示圖片錯誤:', e);
+                        alert('無法顯示圖片: ' + e.message);
                     }
                 }
 
-                // 顯示備用畫廊
-                function showFallbackGallery() {
-                    var fallback = document.getElementById('lineFallback');
-                    var img = document.getElementById('fallbackImage');
-                    var index = document.getElementById('fallbackIndex');
+                // 顯示當前圖片
+                function showCurrentImageLine() {
+                    var slides = document.querySelectorAll('.image-slide');
+                    for (var i = 0; i < slides.length; i++) {
+                        slides[i].classList.remove('active');
+                    }
                     
-                    if (currentGalleryImages.length > 0) {
-                        img.src = currentGalleryImages[0];
-                        index.textContent = '1 / ' + currentGalleryImages.length;
-                        fallback.style.display = 'block';
-                        document.body.style.overflow = 'hidden';
+                    if (slides[currentImageIndexLine]) {
+                        slides[currentImageIndexLine].classList.add('active');
                     }
-                }
-
-                // 更新畫廊索引
-                function updateGalleryIndex() {
-                    var index = document.getElementById('galleryIndex');
-                    if (index) {
-                        index.textContent = (currentGalleryIndex + 1) + ' / ' + currentGalleryImages.length;
-                    }
-                }
-
-                // 導航函數
-                function nextGalleryImage() {
-                    if (currentGalleryImages.length <= 1) return;
-                    currentGalleryIndex = (currentGalleryIndex + 1) % currentGalleryImages.length;
-                    updateGalleryDisplay();
-                }
-
-                function prevGalleryImage() {
-                    if (currentGalleryImages.length <= 1) return;
-                    currentGalleryIndex = (currentGalleryIndex - 1 + currentGalleryImages.length) % currentGalleryImages.length;
-                    updateGalleryDisplay();
-                }
-
-                function updateGalleryDisplay() {
-                    var images = document.querySelectorAll('.gallery-image');
-                    for (var i = 0; i < images.length; i++) {
-                        images[i].style.display = i === currentGalleryIndex ? 'block' : 'none';
-                    }
-                    updateGalleryIndex();
                     
-                    // 同時更新備用畫廊
-                    var fallbackImg = document.getElementById('fallbackImage');
-                    var fallbackIndex = document.getElementById('fallbackIndex');
-                    if (fallbackImg && fallbackIndex) {
-                        fallbackImg.src = currentGalleryImages[currentGalleryIndex];
-                        fallbackIndex.textContent = (currentGalleryIndex + 1) + ' / ' + currentGalleryImages.length;
-                    }
+                    // 更新索引顯示
+                    document.getElementById('imageIndexLine').textContent = 
+                        (currentImageIndexLine + 1) + ' / ' + currentImagesLine.length;
                 }
 
-                // 關閉函數
-                function closeGallery() {
-                    document.getElementById('imageGallery').style.display = 'none';
+                // 上一張圖片
+                function prevImageLine() {
+                    if (currentImagesLine.length <= 1) return;
+                    currentImageIndexLine = (currentImageIndexLine - 1 + currentImagesLine.length) % currentImagesLine.length;
+                    showCurrentImageLine();
+                }
+
+                // 下一張圖片
+                function nextImageLine() {
+                    if (currentImagesLine.length <= 1) return;
+                    currentImageIndexLine = (currentImageIndexLine + 1) % currentImagesLine.length;
+                    showCurrentImageLine();
+                }
+
+                // 關閉模態框
+                function closeImageModalLine() {
+                    document.getElementById('imageModalLine').style.display = 'none';
                     document.body.style.overflow = '';
                 }
 
-                function closeFallback() {
-                    document.getElementById('lineFallback').style.display = 'none';
-                    document.body.style.overflow = '';
-                }
-
-                // 備用導航
-                function fallbackNext() {
-                    nextGalleryImage();
-                }
-
-                function fallbackPrev() {
-                    prevGalleryImage();
-                }
-
-                // 將函數暴露到全局
-                window.closeGallery = closeGallery;
-                window.closeFallback = closeFallback;
-                window.nextGalleryImage = nextGalleryImage;
-                window.prevGalleryImage = prevGalleryImage;
-                window.fallbackNext = fallbackNext;
-                window.fallbackPrev = fallbackPrev;
-
-                // 頁面加載時初始化
-                window.onload = function() {
-                    initGallery();
-                    
-                    // 如果是Line瀏覽器，添加特殊處理
-                    if (isLineBrowser) {
-                        // 預加載第一張圖片以提高性能
-                        var buttons = document.getElementsByClassName('view-images-btn');
-                        for (var i = 0; i < buttons.length; i++) {
-                            var imageData = buttons[i].getAttribute('data-images');
-                            if (imageData) {
-                                try {
-                                    var images = JSON.parse(imageData);
-                                    if (images.length > 0) {
-                                        var preload = new Image();
-                                        preload.src = images[0];
-                                    }
-                                } catch (e) {}
-                            }
+                // 添加鍵盤支持
+                document.onkeydown = function(e) {
+                    var modal = document.getElementById('imageModalLine');
+                    if (modal && modal.style.display === 'block') {
+                        if (e.key === 'Escape') {
+                            closeImageModalLine();
+                        } else if (e.key === 'ArrowLeft') {
+                            prevImageLine();
+                        } else if (e.key === 'ArrowRight') {
+                            nextImageLine();
                         }
                     }
                 };
 
-                // 添加觸摸事件支持
-                document.addEventListener('touchstart', function(e) {
-                    if (e.target.classList.contains('view-images-btn')) {
-                        e.preventDefault();
-                        openImageGallery(e.target);
+                // 添加滑動手勢支持（針對移動設備）
+                var startX = 0;
+                var imageContainer = document.getElementById('imageSlidesContainer');
+
+                if (imageContainer) {
+                    imageContainer.ontouchstart = function(e) {
+                        startX = e.touches[0].clientX;
+                    };
+                    
+                    imageContainer.ontouchend = function(e) {
+                        var endX = e.changedTouches[0].clientX;
+                        var diffX = startX - endX;
+                        
+                        if (Math.abs(diffX) > 50) { // 滑動距離閾值
+                            if (diffX > 0) {
+                                nextImageLine(); // 向左滑動，下一張
+                            } else {
+                                prevImageLine(); // 向右滑動，上一張
+                            }
+                        }
+                    };
+                }
+
+                // 頁面加載完成後初始化
+                window.onload = function() {
+                    initImageButtons();
+                    
+                    // 如果是Line瀏覽器，添加提示
+                    if (isLineBrowser) {
+                        var tip = document.createElement('div');
+                        tip.style.cssText = 'background: #ffeb3b; padding: 10px; margin-bottom: 15px; border-radius: 5px; font-size: 14px;';
+                        tip.innerHTML = '<strong>提示:</strong> 在Line中查看圖片時，請確保允許彈出窗口';
+                        document.body.insertBefore(tip, document.body.firstChild);
                     }
-                }, {passive: false});
+                };
                 <\/script>
                 </body>
                 </html>`;
