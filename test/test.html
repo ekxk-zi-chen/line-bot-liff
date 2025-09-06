@@ -2257,7 +2257,7 @@
                     background:#f5f5f5; 
                     max-width: 100%;
                     overflow-x: hidden;
-                    -webkit-text-size-adjust: 100%;
+                    -webkit-text-size-adjust: 100%; /* 防止iOS文字大小調整 */
                 }
                 table { 
                     border-collapse: collapse; 
@@ -2282,8 +2282,8 @@
                     border-radius:8px; 
                 }
 
-                /* 針對Line瀏覽器的圖片查看解決方案 */
-                .image-modal-line {
+                /* 簡單圖片查看模態框 - 針對Line瀏覽器優化 */
+                .image-modal {
                     display: none;
                     position: fixed;
                     top: 0;
@@ -2295,66 +2295,64 @@
                     overflow: hidden;
                 }
 
-                .image-slide {
-                    display: none;
+                .image-container {
                     position: absolute;
                     top: 0;
                     left: 0;
                     width: 100%;
                     height: 100%;
+                    display: flex;
                     justify-content: center;
                     align-items: center;
                 }
 
-                .image-slide.active {
-                    display: flex;
-                }
-
-                .image-slide img {
+                .image-container img {
                     max-width: 100%;
-                    max-height: 90%;
+                    max-height: 100%;
                     object-fit: contain;
                 }
 
-                .close-btn-line {
+                .close-btn {
                     position: absolute;
                     top: 15px;
                     right: 15px;
-                    background: rgba(0,0,0,0.7);
+                    background: rgba(0,0,0,0.5);
                     color: white;
-                    border: 2px solid white;
-                    padding: 10px 14px;
+                    border: none;
+                    padding: 12px 16px;
                     border-radius: 50%;
-                    font-size: 18px;
+                    font-size: 20px;
+                    cursor: pointer;
                     z-index: 10001;
-                    -webkit-tap-highlight-color: transparent;
+                    -webkit-tap-highlight-color: transparent; /* 移除點擊高亮 */
                 }
 
-                .nav-btn-line {
+                .nav-btn {
                     position: absolute;
                     top: 50%;
                     transform: translateY(-50%);
-                    background: rgba(0,0,0,0.7);
+                    background: rgba(0,0,0,0.5);
                     color: white;
-                    border: 2px solid white;
-                    padding: 12px 16px;
+                    border: none;
+                    padding: 15px 20px;
                     border-radius: 50%;
-                    font-size: 18px;
+                    font-size: 20px;
+                    cursor: pointer;
                     z-index: 10001;
                     -webkit-tap-highlight-color: transparent;
                 }
 
-                .prev-btn-line {
+                .prev-btn {
                     left: 10px;
                 }
 
-                .next-btn-line {
+                .next-btn {
                     right: 10px;
                 }
 
-                .image-index-line {
+                .image-index {
                     position: absolute;
-                    bottom: 70px;
+                    bottom: 20px;
                     left: 0;
                     right: 0;
                     text-align: center;
@@ -2363,193 +2361,149 @@
                     text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
                 }
 
-                .view-images-btn-line {
+                .view-images-btn {
                     background: #4CAF50;
                     color: white;
                     border: none;
                     padding: 10px 15px;
                     border-radius: 5px;
+                    cursor: pointer;
                     font-size: 14px;
                     margin: 5px 0;
                     display: inline-block;
                     -webkit-tap-highlight-color: transparent;
                 }
 
-                /* 簡單的淡入淡出效果 */
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-
-                .image-slide {
-                    animation: fadeIn 0.3s ease-in;
+                /* 針對Line瀏覽器的特殊樣式 */
+                @media all and (-webkit-min-device-pixel-ratio:0) and (min-resolution: .001dpcm) {
+                    .view-images-btn {
+                        background-color: #4CAF50;
+                    }
                 }
                 </style>
                 </head>
                 <body>
                 ${allContent}
-
-                <!-- 預先創建圖片查看器結構 -->
-                <div id="imageModalLine" class="image-modal-line">
-                    <button class="close-btn-line" onclick="closeImageModalLine()">✕</button>
-                    
-                    <div id="imageSlidesContainer" style="position:relative; width:100%; height:100%;">
-                        <!-- 圖片滑動區域將在這裡動態生成 -->
-                    </div>
-                    
-                    <button class="nav-btn-line prev-btn-line" onclick="prevImageLine()">◀</button>
-                    <button class="nav-btn-line next-btn-line" onclick="nextImageLine()">▶</button>
-                    <div class="image-index-line" id="imageIndexLine">1 / 1</div>
-                </div>
-
                 <script>
-                // 全局變量
-                var currentImageIndexLine = 0;
-                var currentImagesLine = [];
-                var isLineBrowser = navigator.userAgent.indexOf('Line/') !== -1;
+                // 簡單圖片查看功能 - 針對Line瀏覽器優化
+                var currentImageIndex = 0;
+                var currentImages = [];
 
-                // 初始化函數
-                function initImageButtons() {
-                    var buttons = document.querySelectorAll('.view-images-btn-line');
-                    for (var i = 0; i < buttons.length; i++) {
-                        // 添加點擊事件
-                        buttons[i].onclick = function() {
-                            showImagesLine(this);
-                        };
-                        
-                        // 添加觸摸事件
-                        buttons[i].ontouchstart = function(e) {
-                            e.preventDefault();
-                            showImagesLine(this);
-                        };
-                    }
-                }
-
-                // 顯示圖片函數
-                function showImagesLine(button) {
+                // 使用最簡單的函數定義方式
+                function showExportedImages(btn) {
                     try {
-                        var imageData = button.getAttribute('data-images');
+                        var imageData = btn.getAttribute('data-images');
                         if (!imageData) {
                             alert('沒有圖片數據');
                             return;
                         }
                         
-                        currentImagesLine = JSON.parse(imageData);
-                        if (currentImagesLine.length === 0) {
+                        currentImages = JSON.parse(imageData);
+                        if (currentImages.length === 0) {
                             alert('沒有圖片可顯示');
                             return;
                         }
                         
-                        // 創建圖片滑動區域
-                        var container = document.getElementById('imageSlidesContainer');
-                        container.innerHTML = '';
-                        
-                        for (var i = 0; i < currentImagesLine.length; i++) {
-                            var slide = document.createElement('div');
-                            slide.className = 'image-slide';
-                            slide.innerHTML = '<img src="' + currentImagesLine[i] + '" style="max-width:100%; max-height:90%;">';
-                            container.appendChild(slide);
+                        // 創建或獲取模態框
+                        var modal = document.getElementById('imageModal');
+                        if (!modal) {
+                            modal = document.createElement('div');
+                            modal.id = 'imageModal';
+                            modal.className = 'image-modal';
+                            modal.innerHTML = '<button class="close-btn" onclick="closeImageModal()">✕</button>' +
+                                            '<div class="image-container"><img id="modalImage" src=""></div>' +
+                                            '<button class="nav-btn prev-btn" onclick="prevImage()">◀</button>' +
+                                            '<button class="nav-btn next-btn" onclick="nextImage()">▶</button>' +
+                                            '<div class="image-index" id="imageIndex">1 / ' + currentImages.length + '</div>';
+                            document.body.appendChild(modal);
                         }
                         
-                        // 顯示第一張圖片
-                        currentImageIndexLine = 0;
-                        showCurrentImageLine();
-                        
                         // 顯示模態框
-                        document.getElementById('imageModalLine').style.display = 'block';
-                        document.body.style.overflow = 'hidden';
+                        modal.style.display = 'block';
+                        document.body.style.overflow = 'hidden'; // 防止背景滾動
+                        
+                        // 重置索引並顯示第一張圖片
+                        currentImageIndex = 0;
+                        updateModalImage();
                         
                     } catch (e) {
                         console.error('顯示圖片錯誤:', e);
-                        alert('無法顯示圖片: ' + e.message);
+                        alert('無法顯示圖片，請嘗試在瀏覽器中打開此文件');
                     }
                 }
 
-                // 顯示當前圖片
-                function showCurrentImageLine() {
-                    var slides = document.querySelectorAll('.image-slide');
-                    for (var i = 0; i < slides.length; i++) {
-                        slides[i].classList.remove('active');
+                function closeImageModal() {
+                    var modal = document.getElementById('imageModal');
+                    if (modal) {
+                        modal.style.display = 'none';
+                        document.body.style.overflow = ''; // 恢復滾動
                     }
+                }
+
+                function prevImage() {
+                    if (currentImages.length <= 1) return;
+                    currentImageIndex = (currentImageIndex - 1 + currentImages.length) % currentImages.length;
+                    updateModalImage();
+                }
+
+                function nextImage() {
+                    if (currentImages.length <= 1) return;
+                    currentImageIndex = (currentImageIndex + 1) % currentImages.length;
+                    updateModalImage();
+                }
+
+                function updateModalImage() {
+                    var img = document.getElementById('modalImage');
+                    var indexDisplay = document.getElementById('imageIndex');
                     
-                    if (slides[currentImageIndexLine]) {
-                        slides[currentImageIndexLine].classList.add('active');
+                    if (img && indexDisplay && currentImages && currentImages.length > 0) {
+                        img.src = currentImages[currentImageIndex];
+                        indexDisplay.textContent = (currentImageIndex + 1) + ' / ' + currentImages.length;
                     }
-                    
-                    // 更新索引顯示
-                    document.getElementById('imageIndexLine').textContent = 
-                        (currentImageIndexLine + 1) + ' / ' + currentImagesLine.length;
                 }
 
-                // 上一張圖片
-                function prevImageLine() {
-                    if (currentImagesLine.length <= 1) return;
-                    currentImageIndexLine = (currentImageIndexLine - 1 + currentImagesLine.length) % currentImagesLine.length;
-                    showCurrentImageLine();
-                }
-
-                // 下一張圖片
-                function nextImageLine() {
-                    if (currentImagesLine.length <= 1) return;
-                    currentImageIndexLine = (currentImageIndexLine + 1) % currentImagesLine.length;
-                    showCurrentImageLine();
-                }
-
-                // 關閉模態框
-                function closeImageModalLine() {
-                    document.getElementById('imageModalLine').style.display = 'none';
-                    document.body.style.overflow = '';
-                }
-
-                // 添加鍵盤支持
-                document.onkeydown = function(e) {
-                    var modal = document.getElementById('imageModalLine');
-                    if (modal && modal.style.display === 'block') {
-                        if (e.key === 'Escape') {
-                            closeImageModalLine();
-                        } else if (e.key === 'ArrowLeft') {
-                            prevImageLine();
-                        } else if (e.key === 'ArrowRight') {
-                            nextImageLine();
-                        }
-                    }
-                };
-
-                // 添加滑動手勢支持（針對移動設備）
-                var startX = 0;
-                var imageContainer = document.getElementById('imageSlidesContainer');
-
-                if (imageContainer) {
-                    imageContainer.ontouchstart = function(e) {
-                        startX = e.touches[0].clientX;
-                    };
-                    
-                    imageContainer.ontouchend = function(e) {
-                        var endX = e.changedTouches[0].clientX;
-                        var diffX = startX - endX;
+                // 添加點擊事件監聽器 - 使用最簡單的方式
+                document.addEventListener('DOMContentLoaded', function() {
+                    // 為所有查看圖片按鈕添加點擊事件
+                    var buttons = document.querySelectorAll('.view-images-btn');
+                    for (var i = 0; i < buttons.length; i++) {
+                        buttons[i].addEventListener('click', function() {
+                            showExportedImages(this);
+                        });
                         
-                        if (Math.abs(diffX) > 50) { // 滑動距離閾值
-                            if (diffX > 0) {
-                                nextImageLine(); // 向左滑動，下一張
-                            } else {
-                                prevImageLine(); // 向右滑動，上一張
+                        // 也添加觸摸事件
+                        buttons[i].addEventListener('touchstart', function(e) {
+                            e.preventDefault();
+                            showExportedImages(this);
+                        });
+                    }
+                    
+                    // 添加鍵盤事件
+                    document.addEventListener('keydown', function(e) {
+                        var modal = document.getElementById('imageModal');
+                        if (modal && modal.style.display === 'block') {
+                            if (e.key === 'Escape') {
+                                closeImageModal();
+                            } else if (e.key === 'ArrowLeft') {
+                                prevImage();
+                            } else if (e.key === 'ArrowRight') {
+                                nextImage();
                             }
                         }
-                    };
-                }
+                    });
+                });
 
-                // 頁面加載完成後初始化
-                window.onload = function() {
-                    initImageButtons();
+                // 針對Line瀏覽器的特殊處理
+                if (navigator.userAgent.indexOf('Line/') !== -1) {
+                    // Line瀏覽器特殊處理
+                    console.log('檢測到Line瀏覽器');
                     
-                    // 如果是Line瀏覽器，添加提示
-                    if (isLineBrowser) {
-                        var tip = document.createElement('div');
-                        tip.style.cssText = 'background: #ffeb3b; padding: 10px; margin-bottom: 15px; border-radius: 5px; font-size: 14px;';
-                        tip.innerHTML = '<strong>提示:</strong> 在Line中查看圖片時，請確保允許彈出窗口';
-                        document.body.insertBefore(tip, document.body.firstChild);
-                    }
-                };
+                    // 添加提示
+                    var lineTip = document.createElement('div');
+                    lineTip.style.cssText = 'background: #ffeb3b; padding: 10px; margin: 10px 0; border-radius: 5px;';
+                    lineTip.innerHTML = '<strong>提示:</strong> 如果您無法查看圖片，請點擊右上角菜單，選擇"在瀏覽器中打開"';
+                    document.body.insertBefore(lineTip, document.body.firstChild);
+                }
                 <\/script>
                 </body>
                 </html>`;
