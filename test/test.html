@@ -374,7 +374,19 @@
             z-index: 10;
         }
 
-        /* 响应式箭头按钮 */
+        /* camera controls (左右箭頭) */
+        .camera-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            z-index: 50; /* 箭頭不需太高的 z-index */
+        }
+
+        /* 保持按鈕可點與大小 */
         .camera-controls button {
             width: 50px;
             height: 50px;
@@ -382,24 +394,32 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            bottom: 20px;
-            z-index: 50;   /* 保持在下層 */
+            z-index: 50;
         }
-        /* 新增/刪除按鈕 */
+
+        /* 新增/刪除按鈕（抬高，放在箭頭上方） */
         .camera-actions {
-            bottom: 100px;  /* 往上移，避免跟箭頭重疊 */
-            z-index: 100;   /* 在箭頭之上 */
+            position: absolute;
+            bottom: 120px; /* 往上移，避免與箭頭重疊 */
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            z-index: 120; /* 高於箭頭，確保點擊可用 */
         }
-        /* 图片索引指示器 */
+
+        /* 圖片索引顯示 */
         .image-index {
             position: absolute;
-            bottom: 80px;
+            bottom: 160px; /* 與 camera-actions 保持距離 */
             left: 0;
             right: 0;
             text-align: center;
             color: white;
             font-size: 18px;
             text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+            z-index: 110;
         }
         /* 提醒視窗 */
         #reminder {
@@ -462,18 +482,9 @@
                 padding: 6px 4px; 
                 font-size: 14px; 
             }
-
-            .camera-carousel {
-                height: 60vh;
-            }
-            .camera-carousel img {
-                max-height: 60vh;
-            }
-            .camera-controls button {
-                width: 60px;
-                height: 60px;
-                font-size: 28px;
-            }
+            .camera-controls { bottom: 20px; }
+            .camera-actions { bottom: 80px; }
+            .image-index { bottom: 100px; }
         }
     </style>
 </head>
