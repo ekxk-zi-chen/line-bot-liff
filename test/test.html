@@ -2257,7 +2257,7 @@
                     background:#f5f5f5; 
                     max-width: 100%;
                     overflow-x: hidden;
-                    -webkit-text-size-adjust: 100%; /* 防止iOS文字大小調整 */
+                    -webkit-text-size-adjust: 100%;
                 }
                 table { 
                     border-collapse: collapse; 
@@ -2282,8 +2282,8 @@
                     border-radius:8px; 
                 }
 
-                /* 簡單圖片查看模態框 - 針對Line瀏覽器優化 */
-                .image-modal {
+                /* 針對Line瀏覽器的特殊解決方案 */
+                .image-gallery {
                     display: none;
                     position: fixed;
                     top: 0;
@@ -2295,62 +2295,47 @@
                     overflow: hidden;
                 }
 
-                .image-container {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
+                .gallery-image {
                     width: 100%;
                     height: 100%;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                }
-
-                .image-container img {
-                    max-width: 100%;
-                    max-height: 100%;
                     object-fit: contain;
+                    display: none;
                 }
 
-                .close-btn {
+                .gallery-image.active {
+                    display: block;
+                }
+
+                .gallery-controls {
                     position: absolute;
                     top: 15px;
                     right: 15px;
-                    background: rgba(0,0,0,0.5);
-                    color: white;
-                    border: none;
-                    padding: 12px 16px;
-                    border-radius: 50%;
-                    font-size: 20px;
-                    cursor: pointer;
                     z-index: 10001;
-                    -webkit-tap-highlight-color: transparent; /* 移除點擊高亮 */
                 }
 
-                .nav-btn {
+                .gallery-nav {
                     position: absolute;
                     top: 50%;
+                    width: 100%;
                     transform: translateY(-50%);
-                    background: rgba(0,0,0,0.5);
-                    color: white;
-                    border: none;
-                    padding: 15px 20px;
-                    border-radius: 50%;
-                    font-size: 20px;
-                    cursor: pointer;
+                    display: flex;
+                    justify-content: space-between;
                     z-index: 10001;
+                    padding: 0 20px;
+                }
+
+                .gallery-btn {
+                    background: rgba(0,0,0,0.7);
+                    color: white;
+                    border: 2px solid white;
+                    padding: 12px 16px;
+                    border-radius: 50%;
+                    font-size: 18px;
                     -webkit-tap-highlight-color: transparent;
+                    cursor: pointer;
                 }
 
-                .prev-btn {
-                    left: 10px;
-                }
-
-                .next-btn {
-                    right: 10px;
-                }
-
-                .image-index {
+                .gallery-index {
                     position: absolute;
                     bottom: 20px;
                     left: 0;
@@ -2359,6 +2344,7 @@
                     color: white;
                     font-size: 16px;
                     text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+                    z-index: 10001;
                 }
 
                 .view-images-btn {
@@ -2367,143 +2353,262 @@
                     border: none;
                     padding: 10px 15px;
                     border-radius: 5px;
-                    cursor: pointer;
                     font-size: 14px;
                     margin: 5px 0;
                     display: inline-block;
                     -webkit-tap-highlight-color: transparent;
                 }
 
-                /* 針對Line瀏覽器的特殊樣式 */
-                @media all and (-webkit-min-device-pixel-ratio:0) and (min-resolution: .001dpcm) {
-                    .view-images-btn {
-                        background-color: #4CAF50;
-                    }
+                /* 針對Line的特殊樣式 */
+                .line-fallback {
+                    display: none;
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.9);
+                    z-index: 10002;
+                    padding: 20px;
+                    color: white;
+                    text-align: center;
+                }
+
+                .line-fallback-content {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 90%;
+                }
+
+                .line-fallback img {
+                    max-width: 100%;
+                    max-height: 60vh;
+                    margin: 10px 0;
+                    border: 2px solid white;
+                }
+
+                .line-fallback-btns {
+                    margin-top: 20px;
+                }
+
+                .line-fallback-btn {
+                    background: #4CAF50;
+                    color: white;
+                    border: none;
+                    padding: 10px 20px;
+                    margin: 0 5px;
+                    border-radius: 5px;
+                    cursor: pointer;
                 }
                 </style>
                 </head>
                 <body>
                 ${allContent}
-                <script>
-                // 簡單圖片查看功能 - 針對Line瀏覽器優化
-                var currentImageIndex = 0;
-                var currentImages = [];
 
-                // 使用最簡單的函數定義方式
-                function showExportedImages(btn) {
+                <!-- 預先創建所有必要的HTML結構 -->
+                <div id="imageGallery" class="image-gallery">
+                    <div id="galleryImages"></div>
+                    <div class="gallery-controls">
+                        <button class="gallery-btn" onclick="window.closeGallery()">✕</button>
+                    </div>
+                    <div class="gallery-nav">
+                        <button class="gallery-btn" onclick="window.prevGalleryImage()">◀</button>
+                        <button class="gallery-btn" onclick="window.nextGalleryImage()">▶</button>
+                    </div>
+                    <div class="gallery-index" id="galleryIndex">1 / 1</div>
+                </div>
+
+                <!-- Line瀏覽器備用方案 -->
+                <div id="lineFallback" class="line-fallback">
+                    <div class="line-fallback-content">
+                        <h3>圖片查看器</h3>
+                        <img id="fallbackImage" src="" alt="當前圖片">
+                        <div class="gallery-index" id="fallbackIndex">1 / 1</div>
+                        <div class="line-fallback-btns">
+                            <button class="line-fallback-btn" onclick="window.fallbackPrev()">上一張</button>
+                            <button class="line-fallback-btn" onclick="window.fallbackNext()">下一張</button>
+                            <button class="line-fallback-btn" onclick="window.closeFallback()">關閉</button>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                // 檢測是否為Line瀏覽器
+                var isLineBrowser = navigator.userAgent.indexOf('Line/') > -1;
+                var currentGalleryIndex = 0;
+                var currentGalleryImages = [];
+
+                // 初始化函數 - 使用最簡單的語法
+                function initGallery() {
+                    var buttons = document.getElementsByClassName('view-images-btn');
+                    for (var i = 0; i < buttons.length; i++) {
+                        buttons[i].onclick = function() {
+                            openImageGallery(this);
+                        };
+                    }
+                }
+
+                // 打開圖片畫廊
+                function openImageGallery(button) {
                     try {
-                        var imageData = btn.getAttribute('data-images');
-                        if (!imageData) {
-                            alert('沒有圖片數據');
-                            return;
+                        var imageData = button.getAttribute('data-images');
+                        if (!imageData) return;
+                        
+                        currentGalleryImages = JSON.parse(imageData);
+                        if (currentGalleryImages.length === 0) return;
+                        
+                        currentGalleryIndex = 0;
+                        
+                        // 嘗試使用標準畫廊
+                        if (!isLineBrowser || tryStandardGallery()) {
+                            showStandardGallery();
+                        } else {
+                            // 使用備用方案
+                            showFallbackGallery();
                         }
-                        
-                        currentImages = JSON.parse(imageData);
-                        if (currentImages.length === 0) {
-                            alert('沒有圖片可顯示');
-                            return;
-                        }
-                        
-                        // 創建或獲取模態框
-                        var modal = document.getElementById('imageModal');
-                        if (!modal) {
-                            modal = document.createElement('div');
-                            modal.id = 'imageModal';
-                            modal.className = 'image-modal';
-                            modal.innerHTML = '<button class="close-btn" onclick="closeImageModal()">✕</button>' +
-                                            '<div class="image-container"><img id="modalImage" src=""></div>' +
-                                            '<button class="nav-btn prev-btn" onclick="prevImage()">◀</button>' +
-                                            '<button class="nav-btn next-btn" onclick="nextImage()">▶</button>' +
-                                            '<div class="image-index" id="imageIndex">1 / ' + currentImages.length + '</div>';
-                            document.body.appendChild(modal);
-                        }
-                        
-                        // 顯示模態框
-                        modal.style.display = 'block';
-                        document.body.style.overflow = 'hidden'; // 防止背景滾動
-                        
-                        // 重置索引並顯示第一張圖片
-                        currentImageIndex = 0;
-                        updateModalImage();
                         
                     } catch (e) {
-                        console.error('顯示圖片錯誤:', e);
-                        alert('無法顯示圖片，請嘗試在瀏覽器中打開此文件');
+                        console.log('打開畫廊錯誤:', e);
+                        showFallbackGallery();
                     }
                 }
 
-                function closeImageModal() {
-                    var modal = document.getElementById('imageModal');
-                    if (modal) {
-                        modal.style.display = 'none';
-                        document.body.style.overflow = ''; // 恢復滾動
-                    }
-                }
-
-                function prevImage() {
-                    if (currentImages.length <= 1) return;
-                    currentImageIndex = (currentImageIndex - 1 + currentImages.length) % currentImages.length;
-                    updateModalImage();
-                }
-
-                function nextImage() {
-                    if (currentImages.length <= 1) return;
-                    currentImageIndex = (currentImageIndex + 1) % currentImages.length;
-                    updateModalImage();
-                }
-
-                function updateModalImage() {
-                    var img = document.getElementById('modalImage');
-                    var indexDisplay = document.getElementById('imageIndex');
-                    
-                    if (img && indexDisplay && currentImages && currentImages.length > 0) {
-                        img.src = currentImages[currentImageIndex];
-                        indexDisplay.textContent = (currentImageIndex + 1) + ' / ' + currentImages.length;
-                    }
-                }
-
-                // 添加點擊事件監聽器 - 使用最簡單的方式
-                document.addEventListener('DOMContentLoaded', function() {
-                    // 為所有查看圖片按鈕添加點擊事件
-                    var buttons = document.querySelectorAll('.view-images-btn');
-                    for (var i = 0; i < buttons.length; i++) {
-                        buttons[i].addEventListener('click', function() {
-                            showExportedImages(this);
-                        });
+                // 嘗試標準畫廊
+                function tryStandardGallery() {
+                    try {
+                        var gallery = document.getElementById('imageGallery');
+                        var imagesContainer = document.getElementById('galleryImages');
                         
-                        // 也添加觸摸事件
-                        buttons[i].addEventListener('touchstart', function(e) {
-                            e.preventDefault();
-                            showExportedImages(this);
-                        });
+                        // 清空並重新創建圖片
+                        imagesContainer.innerHTML = '';
+                        for (var i = 0; i < currentGalleryImages.length; i++) {
+                            var img = document.createElement('img');
+                            img.className = 'gallery-image';
+                            img.src = currentGalleryImages[i];
+                            img.style.display = i === 0 ? 'block' : 'none';
+                            imagesContainer.appendChild(img);
+                        }
+                        
+                        updateGalleryIndex();
+                        gallery.style.display = 'block';
+                        document.body.style.overflow = 'hidden';
+                        return true;
+                    } catch (e) {
+                        return false;
                     }
+                }
+
+                // 顯示備用畫廊
+                function showFallbackGallery() {
+                    var fallback = document.getElementById('lineFallback');
+                    var img = document.getElementById('fallbackImage');
+                    var index = document.getElementById('fallbackIndex');
                     
-                    // 添加鍵盤事件
-                    document.addEventListener('keydown', function(e) {
-                        var modal = document.getElementById('imageModal');
-                        if (modal && modal.style.display === 'block') {
-                            if (e.key === 'Escape') {
-                                closeImageModal();
-                            } else if (e.key === 'ArrowLeft') {
-                                prevImage();
-                            } else if (e.key === 'ArrowRight') {
-                                nextImage();
+                    if (currentGalleryImages.length > 0) {
+                        img.src = currentGalleryImages[0];
+                        index.textContent = '1 / ' + currentGalleryImages.length;
+                        fallback.style.display = 'block';
+                        document.body.style.overflow = 'hidden';
+                    }
+                }
+
+                // 更新畫廊索引
+                function updateGalleryIndex() {
+                    var index = document.getElementById('galleryIndex');
+                    if (index) {
+                        index.textContent = (currentGalleryIndex + 1) + ' / ' + currentGalleryImages.length;
+                    }
+                }
+
+                // 導航函數
+                function nextGalleryImage() {
+                    if (currentGalleryImages.length <= 1) return;
+                    currentGalleryIndex = (currentGalleryIndex + 1) % currentGalleryImages.length;
+                    updateGalleryDisplay();
+                }
+
+                function prevGalleryImage() {
+                    if (currentGalleryImages.length <= 1) return;
+                    currentGalleryIndex = (currentGalleryIndex - 1 + currentGalleryImages.length) % currentGalleryImages.length;
+                    updateGalleryDisplay();
+                }
+
+                function updateGalleryDisplay() {
+                    var images = document.querySelectorAll('.gallery-image');
+                    for (var i = 0; i < images.length; i++) {
+                        images[i].style.display = i === currentGalleryIndex ? 'block' : 'none';
+                    }
+                    updateGalleryIndex();
+                    
+                    // 同時更新備用畫廊
+                    var fallbackImg = document.getElementById('fallbackImage');
+                    var fallbackIndex = document.getElementById('fallbackIndex');
+                    if (fallbackImg && fallbackIndex) {
+                        fallbackImg.src = currentGalleryImages[currentGalleryIndex];
+                        fallbackIndex.textContent = (currentGalleryIndex + 1) + ' / ' + currentGalleryImages.length;
+                    }
+                }
+
+                // 關閉函數
+                function closeGallery() {
+                    document.getElementById('imageGallery').style.display = 'none';
+                    document.body.style.overflow = '';
+                }
+
+                function closeFallback() {
+                    document.getElementById('lineFallback').style.display = 'none';
+                    document.body.style.overflow = '';
+                }
+
+                // 備用導航
+                function fallbackNext() {
+                    nextGalleryImage();
+                }
+
+                function fallbackPrev() {
+                    prevGalleryImage();
+                }
+
+                // 將函數暴露到全局
+                window.closeGallery = closeGallery;
+                window.closeFallback = closeFallback;
+                window.nextGalleryImage = nextGalleryImage;
+                window.prevGalleryImage = prevGalleryImage;
+                window.fallbackNext = fallbackNext;
+                window.fallbackPrev = fallbackPrev;
+
+                // 頁面加載時初始化
+                window.onload = function() {
+                    initGallery();
+                    
+                    // 如果是Line瀏覽器，添加特殊處理
+                    if (isLineBrowser) {
+                        // 預加載第一張圖片以提高性能
+                        var buttons = document.getElementsByClassName('view-images-btn');
+                        for (var i = 0; i < buttons.length; i++) {
+                            var imageData = buttons[i].getAttribute('data-images');
+                            if (imageData) {
+                                try {
+                                    var images = JSON.parse(imageData);
+                                    if (images.length > 0) {
+                                        var preload = new Image();
+                                        preload.src = images[0];
+                                    }
+                                } catch (e) {}
                             }
                         }
-                    });
-                });
+                    }
+                };
 
-                // 針對Line瀏覽器的特殊處理
-                if (navigator.userAgent.indexOf('Line/') !== -1) {
-                    // Line瀏覽器特殊處理
-                    console.log('檢測到Line瀏覽器');
-                    
-                    // 添加提示
-                    var lineTip = document.createElement('div');
-                    lineTip.style.cssText = 'background: #ffeb3b; padding: 10px; margin: 10px 0; border-radius: 5px;';
-                    lineTip.innerHTML = '<strong>提示:</strong> 如果您無法查看圖片，請點擊右上角菜單，選擇"在瀏覽器中打開"';
-                    document.body.insertBefore(lineTip, document.body.firstChild);
-                }
+                // 添加觸摸事件支持
+                document.addEventListener('touchstart', function(e) {
+                    if (e.target.classList.contains('view-images-btn')) {
+                        e.preventDefault();
+                        openImageGallery(e.target);
+                    }
+                }, {passive: false});
                 <\/script>
                 </body>
                 </html>`;
