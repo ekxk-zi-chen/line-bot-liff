@@ -691,21 +691,25 @@
             // 隱藏所有內容區域
             const sections = document.querySelectorAll('.content-section');
             sections.forEach(section => section.style.display = 'none');
-            
+
             // 顯示選中的區域
             const targetSection = document.getElementById('section-' + sectionName);
             if (targetSection) {
                 targetSection.style.display = 'block';
             }
-            
-            // 更新側邊欄選中狀態
+
+            // 更新側邊欄選中狀態（不靠 event）
             const sidebarItems = document.querySelectorAll('.sidebar-item');
             sidebarItems.forEach(item => item.classList.remove('active'));
-            event.target.classList.add('active');
-            
+            // 找到內文包含該名稱的側欄項（可處理 emoji 前綴）
+            const clickedItem = Array.from(sidebarItems).find(it => {
+                return it.textContent && it.textContent.includes(sectionName);
+            });
+            if (clickedItem) clickedItem.classList.add('active');
+
             // 記錄當前分區
             currentSection = sectionName;
-            
+
             // 關閉側邊欄（手機版）
             if (window.innerWidth <= 768) {
                 toggleSidebar();
@@ -900,42 +904,50 @@
         function handleCameraUpload(input) {
             if (!currentCameraCell) return;
             const files = input.files;
-            
+
             for (let i = 0; i < files.length; i++) {
                 if (currentCameraImages.length >= 5) {
-                    alert('最多只能上传5张图片');
+                    alert('每個儲存格最多只能上傳 5 張圖片');
                     break;
                 }
-                
+
                 const file = files[i];
-                
-                // 显示压缩指示器
+
+                // 顯示壓縮指示器
                 const compressionIndicator = document.createElement('div');
                 compressionIndicator.className = 'compression-indicator';
-                compressionIndicator.innerText = '压缩中...';
-                document.getElementById('cameraModal').querySelector('.modal-content').appendChild(compressionIndicator);
-                
-                // 压缩图片
+                compressionIndicator.innerText = '壓縮中...';
+                const modalContent = document.getElementById('cameraModal').querySelector('.modal-content');
+                if (modalContent) modalContent.appendChild(compressionIndicator);
+
+                // 壓縮後加入陣列並更新 cell.dataset
                 compressImage(file, function(compressedDataUrl) {
+                    // 防止 race condition：再次確認上限
+                    if (currentCameraImages.length >= 5) {
+                        if (compressionIndicator.parentNode) compressionIndicator.parentNode.removeChild(compressionIndicator);
+                        alert('每個儲存格最多只能上傳 5 張圖片');
+                        return;
+                    }
+
                     currentCameraImages.push(compressedDataUrl);
+                    // 每個 cell 獨立儲存於 dataset.images
                     currentCameraCell.dataset.images = JSON.stringify(currentCameraImages);
                     updateCameraCellDisplay(currentCameraCell);
                     updateCameraCarousel();
-                    
-                    // 移除压缩指示器
+
+                    // 移除壓縮指示器
                     if (compressionIndicator.parentNode) {
                         compressionIndicator.parentNode.removeChild(compressionIndicator);
                     }
-                    
-                    // 滚动到最后一张图片
+
+                    // 滾動到最後一張圖片
                     currentImageIndex = currentCameraImages.length - 1;
                     scrollToImage(currentImageIndex);
                     updateImageIndex();
                 });
             }
-            input.value = ''; // 重置input，允许再次选择相同文件
+            input.value = ''; // 重置 input，允許再次選同一檔
         }
-
 
         function updateCameraCellDisplay(cell) {
             const images = JSON.parse(cell.dataset.images || '[]');
@@ -1111,13 +1123,9 @@
         }
 
         // 為手機添加觸摸事件處理
-        document.addEventListener('DOMContentLoaded', function() {
-            // 為所有"現在時間"單元格添加觸摸事件
-            document.querySelectorAll('[data-type="datetime"]').forEach(cell => {
-                cell.addEventListener('touchend', function(e) {
-                    e.preventDefault();
-                    fillCurrentTime(this);
-                });
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('td[data-type="camera"], td[data-type="camera"]').forEach(td => {
+                try { updateCameraCellDisplay(td); } catch (e) { /* 忽略 */ }
             });
         });
 
