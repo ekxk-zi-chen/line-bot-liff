@@ -2257,7 +2257,7 @@
                     background:#f5f5f5; 
                     max-width: 100%;
                     overflow-x: hidden;
-                    -webkit-text-size-adjust: 100%; /* 防止iOS文字大小調整 */
+                    -webkit-text-size-adjust: 100%;
                 }
                 table { 
                     border-collapse: collapse; 
@@ -2282,83 +2282,34 @@
                     border-radius:8px; 
                 }
 
-                /* 簡單圖片查看模態框 - 針對Line瀏覽器優化 */
-                .image-modal {
-                    display: none;
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: #000;
-                    z-index: 10000;
-                    overflow: hidden;
+                /* 終極解決方案 - 直接在頁面上顯示圖片 */
+                .camera-images-container {
+                    display: block;
+                    margin: 10px 0;
                 }
 
-                .image-container {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
+                .camera-image-item {
+                    margin: 10px 0;
+                    padding: 10px;
+                    background: white;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
                 }
 
-                .image-container img {
+                .camera-image-item img {
                     max-width: 100%;
-                    max-height: 100%;
-                    object-fit: contain;
+                    height: auto;
+                    display: block;
+                    margin: 0 auto;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
                 }
 
-                .close-btn {
-                    position: absolute;
-                    top: 15px;
-                    right: 15px;
-                    background: rgba(0,0,0,0.5);
-                    color: white;
-                    border: none;
-                    padding: 12px 16px;
-                    border-radius: 50%;
-                    font-size: 20px;
-                    cursor: pointer;
-                    z-index: 10001;
-                    -webkit-tap-highlight-color: transparent; /* 移除點擊高亮 */
-                }
-
-                .nav-btn {
-                    position: absolute;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    background: rgba(0,0,0,0.5);
-                    color: white;
-                    border: none;
-                    padding: 15px 20px;
-                    border-radius: 50%;
-                    font-size: 20px;
-                    cursor: pointer;
-                    z-index: 10001;
-                    -webkit-tap-highlight-color: transparent;
-                }
-
-                .prev-btn {
-                    left: 10px;
-                }
-
-                .next-btn {
-                    right: 10px;
-                }
-
-                .image-index {
-                    position: absolute;
-                    bottom: 20px;
-                    left: 0;
-                    right: 0;
+                .image-counter {
                     text-align: center;
-                    color: white;
-                    font-size: 16px;
-                    text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+                    font-size: 14px;
+                    color: #666;
+                    margin-top: 5px;
                 }
 
                 .view-images-btn {
@@ -2367,143 +2318,192 @@
                     border: none;
                     padding: 10px 15px;
                     border-radius: 5px;
-                    cursor: pointer;
                     font-size: 14px;
                     margin: 5px 0;
                     display: inline-block;
                     -webkit-tap-highlight-color: transparent;
                 }
 
-                /* 針對Line瀏覽器的特殊樣式 */
-                @media all and (-webkit-min-device-pixel-ratio:0) and (min-resolution: .001dpcm) {
-                    .view-images-btn {
-                        background-color: #4CAF50;
-                    }
+                /* 簡單的展開/收起效果 */
+                .collapsible {
+                    display: none;
+                }
+
+                .collapsible.active {
+                    display: block;
+                }
+
+                .toggle-btn {
+                    background: #2196F3;
+                    color: white;
+                    border: none;
+                    padding: 8px 12px;
+                    border-radius: 4px;
+                    margin: 5px 0;
+                    cursor: pointer;
+                    font-size: 12px;
+                }
+
+                .line-warning {
+                    background: #ffeb3b;
+                    padding: 10px;
+                    margin: 10px 0;
+                    border-radius: 5px;
+                    border-left: 4px solid #ff9800;
+                    display: none;
+                }
+
+                /* 針對Line瀏覽器顯示警告 */
+                .line-browser .line-warning {
+                    display: block;
                 }
                 </style>
                 </head>
                 <body>
+                <div class="line-warning">
+                    <strong>注意:</strong> 您正在Line瀏覽器中查看此文件。由於Line的限制，部分功能可能無法正常運作。
+                    建議點擊右上角菜单，選擇"在瀏覽器中打開"以獲得完整功能。
+                </div>
+
                 ${allContent}
+
                 <script>
-                // 簡單圖片查看功能 - 針對Line瀏覽器優化
-                var currentImageIndex = 0;
-                var currentImages = [];
-
-                // 使用最簡單的函數定義方式
-                function showExportedImages(btn) {
-                    try {
-                        var imageData = btn.getAttribute('data-images');
-                        if (!imageData) {
-                            alert('沒有圖片數據');
-                            return;
-                        }
-                        
-                        currentImages = JSON.parse(imageData);
-                        if (currentImages.length === 0) {
-                            alert('沒有圖片可顯示');
-                            return;
-                        }
-                        
-                        // 創建或獲取模態框
-                        var modal = document.getElementById('imageModal');
-                        if (!modal) {
-                            modal = document.createElement('div');
-                            modal.id = 'imageModal';
-                            modal.className = 'image-modal';
-                            modal.innerHTML = '<button class="close-btn" onclick="closeImageModal()">✕</button>' +
-                                            '<div class="image-container"><img id="modalImage" src=""></div>' +
-                                            '<button class="nav-btn prev-btn" onclick="prevImage()">◀</button>' +
-                                            '<button class="nav-btn next-btn" onclick="nextImage()">▶</button>' +
-                                            '<div class="image-index" id="imageIndex">1 / ' + currentImages.length + '</div>';
-                            document.body.appendChild(modal);
-                        }
-                        
-                        // 顯示模態框
-                        modal.style.display = 'block';
-                        document.body.style.overflow = 'hidden'; // 防止背景滾動
-                        
-                        // 重置索引並顯示第一張圖片
-                        currentImageIndex = 0;
-                        updateModalImage();
-                        
-                    } catch (e) {
-                        console.error('顯示圖片錯誤:', e);
-                        alert('無法顯示圖片，請嘗試在瀏覽器中打開此文件');
-                    }
+                // 檢測是否為Line瀏覽器
+                var isLineBrowser = navigator.userAgent.indexOf('Line/') > -1;
+                if (isLineBrowser) {
+                    document.body.classList.add('line-browser');
                 }
 
-                function closeImageModal() {
-                    var modal = document.getElementById('imageModal');
-                    if (modal) {
-                        modal.style.display = 'none';
-                        document.body.style.overflow = ''; // 恢復滾動
-                    }
-                }
-
-                function prevImage() {
-                    if (currentImages.length <= 1) return;
-                    currentImageIndex = (currentImageIndex - 1 + currentImages.length) % currentImages.length;
-                    updateModalImage();
-                }
-
-                function nextImage() {
-                    if (currentImages.length <= 1) return;
-                    currentImageIndex = (currentImageIndex + 1) % currentImages.length;
-                    updateModalImage();
-                }
-
-                function updateModalImage() {
-                    var img = document.getElementById('modalImage');
-                    var indexDisplay = document.getElementById('imageIndex');
-                    
-                    if (img && indexDisplay && currentImages && currentImages.length > 0) {
-                        img.src = currentImages[currentImageIndex];
-                        indexDisplay.textContent = (currentImageIndex + 1) + ' / ' + currentImages.length;
-                    }
-                }
-
-                // 添加點擊事件監聽器 - 使用最簡單的方式
-                document.addEventListener('DOMContentLoaded', function() {
-                    // 為所有查看圖片按鈕添加點擊事件
+                // 終極解決方案 - 直接在頁面上顯示圖片
+                function initImageDisplays() {
                     var buttons = document.querySelectorAll('.view-images-btn');
-                    for (var i = 0; i < buttons.length; i++) {
-                        buttons[i].addEventListener('click', function() {
-                            showExportedImages(this);
-                        });
-                        
-                        // 也添加觸摸事件
-                        buttons[i].addEventListener('touchstart', function(e) {
-                            e.preventDefault();
-                            showExportedImages(this);
-                        });
-                    }
                     
-                    // 添加鍵盤事件
-                    document.addEventListener('keydown', function(e) {
-                        var modal = document.getElementById('imageModal');
-                        if (modal && modal.style.display === 'block') {
-                            if (e.key === 'Escape') {
-                                closeImageModal();
-                            } else if (e.key === 'ArrowLeft') {
-                                prevImage();
-                            } else if (e.key === 'ArrowRight') {
-                                nextImage();
-                            }
+                    buttons.forEach(function(button, index) {
+                        // 移除舊的點擊事件
+                        button.onclick = null;
+                        
+                        // 為每個按鈕創建唯一的ID
+                        var containerId = 'image-container-' + index;
+                        
+                        // 檢查是否已經有容器
+                        var existingContainer = document.getElementById(containerId);
+                        if (existingContainer) {
+                            // 如果已有容器，只需更新按鈕行為
+                            button.onclick = function() {
+                                toggleImageContainer(containerId);
+                            };
+                            return;
+                        }
+                        
+                        // 獲取圖片數據
+                        var imageData = button.getAttribute('data-images');
+                        if (!imageData) return;
+                        
+                        try {
+                            var images = JSON.parse(imageData);
+                            if (images.length === 0) return;
+                            
+                            // 創建圖片容器
+                            var container = document.createElement('div');
+                            container.id = containerId;
+                            container.className = 'camera-images-container collapsible';
+                            
+                            // 添加圖片
+                            images.forEach(function(imgSrc, imgIndex) {
+                                var imgItem = document.createElement('div');
+                                imgItem.className = 'camera-image-item';
+                                
+                                var img = document.createElement('img');
+                                img.src = imgSrc;
+                                img.alt = '上傳的圖片 ' + (imgIndex + 1);
+                                
+                                var counter = document.createElement('div');
+                                counter.className = 'image-counter';
+                                counter.textContent = '圖片 ' + (imgIndex + 1) + ' / ' + images.length;
+                                
+                                imgItem.appendChild(img);
+                                imgItem.appendChild(counter);
+                                container.appendChild(imgItem);
+                            });
+                            
+                            // 插入到按鈕後面
+                            button.parentNode.insertBefore(container, button.nextSibling);
+                            
+                            // 更新按鈕文本和行為
+                            button.textContent = '📷 顯示圖片 (' + images.length + ')';
+                            button.onclick = function() {
+                                toggleImageContainer(containerId);
+                            };
+                            
+                        } catch (e) {
+                            console.error('初始化圖片顯示錯誤:', e);
                         }
                     });
-                });
-
-                // 針對Line瀏覽器的特殊處理
-                if (navigator.userAgent.indexOf('Line/') !== -1) {
-                    // Line瀏覽器特殊處理
-                    console.log('檢測到Line瀏覽器');
-                    
-                    // 添加提示
-                    var lineTip = document.createElement('div');
-                    lineTip.style.cssText = 'background: #ffeb3b; padding: 10px; margin: 10px 0; border-radius: 5px;';
-                    lineTip.innerHTML = '<strong>提示:</strong> 如果您無法查看圖片，請點擊右上角菜單，選擇"在瀏覽器中打開"';
-                    document.body.insertBefore(lineTip, document.body.firstChild);
                 }
+
+                // 切換圖片容器的顯示/隱藏
+                function toggleImageContainer(containerId) {
+                    var container = document.getElementById(containerId);
+                    if (container) {
+                        container.classList.toggle('active');
+                        
+                        // 更新按鈕文本
+                        var buttons = document.querySelectorAll('.view-images-btn');
+                        buttons.forEach(function(button) {
+                            if (button.nextSibling && button.nextSibling.id === containerId) {
+                                if (container.classList.contains('active')) {
+                                    button.textContent = button.textContent.replace('顯示', '隱藏');
+                                } else {
+                                    button.textContent = button.textContent.replace('隱藏', '顯示');
+                                }
+                            }
+                        });
+                    }
+                }
+
+                // 頁面加載完成後初始化
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initImageDisplays);
+                } else {
+                    initImageDisplays();
+                }
+
+                // 為所有現有的拍照單元格初始化
+                function initCameraCells() {
+                    var cameraCells = document.querySelectorAll('[data-type="camera"]');
+                    cameraCells.forEach(function(cell) {
+                        var imageData = cell.getAttribute('data-images');
+                        if (!imageData) return;
+                        
+                        try {
+                            var images = JSON.parse(imageData);
+                            if (images.length === 0) return;
+                            
+                            // 清除單元格內容
+                            cell.innerHTML = '';
+                            
+                            // 創建按鈕
+                            var button = document.createElement('button');
+                            button.className = 'view-images-btn';
+                            button.setAttribute('data-images', imageData);
+                            button.textContent = '📷 顯示圖片 (' + images.length + ')';
+                            
+                            cell.appendChild(button);
+                            
+                        } catch (e) {
+                            console.error('初始化拍照單元格錯誤:', e);
+                        }
+                    });
+                }
+
+                // 初始化所有拍照單元格
+                initCameraCells();
+
+                // 重新初始化函數，供外部調用
+                window.reinitImages = function() {
+                    initCameraCells();
+                    initImageDisplays();
+                };
                 <\/script>
                 </body>
                 </html>`;
