@@ -1909,10 +1909,23 @@
                                                 reader.onload = () => resolve(reader.result);
                                                 reader.readAsDataURL(blob);
                                             });
-                                            cell.innerHTML = `<audio controls src="${dataURL}"></audio>`;
+                                            // 只替换录音部分，保留其他内容
+                                            const recorderDiv = cell.querySelector(".recorder-cell");
+                                            if (recorderDiv) {
+                                                recorderDiv.innerHTML = `<audio controls src="${dataURL}" style="width:100%; max-width:100%; box-sizing:border-box;"></audio>`;
+                                            }
                                         } catch (error) {
-                                            console.error("錄音轉換失敗:", error);
-                                            cell.innerHTML = "❌ 錄音轉換失敗";
+                                            console.error("录音转换失败:", error);
+                                            const recorderDiv = cell.querySelector(".recorder-cell");
+                                            if (recorderDiv) {
+                                                recorderDiv.innerHTML = "❌ 录音转换失败";
+                                            }
+                                        }
+                                    } else {
+                                        // 没有录音时，只移除录音按钮部分
+                                        const recorderDiv = cell.querySelector(".recorder-cell");
+                                        if (recorderDiv) {
+                                            recorderDiv.remove();
                                         }
                                     }
                                     
@@ -1939,18 +1952,30 @@
                                             // 收合选择
                                             const value = originalCell.dataset.value || '';
                                             cell.innerHTML = `<div>${value}</div>`;
+                                        // 修改图片处理部分
                                         } else if (type === "camera") {
-                                            // 相機圖片處理
+                                            // 相机图片处理
                                             const images = JSON.parse(originalCell.dataset.images || '[]');
                                             let imagesHTML = '';
                                             if (images.length > 0) {
-                                                imagesHTML = '<div style="display:flex; overflow-x:auto;">';
+                                                // 使用单元格的实际尺寸来限制图片大小
+                                                const cellStyle = window.getComputedStyle(originalCell);
+                                                const cellWidth = parseInt(cellStyle.width) - 10; // 减去一些边距
+                                                const cellHeight = parseInt(cellStyle.height) - 10;
+                                                
+                                                // 根据单元格大小和图片数量计算每张图片的尺寸
+                                                const imgSize = Math.min(
+                                                    120, 
+                                                    Math.min(cellWidth, cellHeight) / Math.max(1, Math.ceil(Math.sqrt(images.length)))
+                                                );
+                                                
+                                                imagesHTML = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(' + imgSize + 'px, 1fr)); gap:5px; width:100%; height:100%;">';
                                                 images.forEach(imgData => {
-                                                    imagesHTML += `<img src="${imgData}" style="width:100px; height:100px; object-fit:cover; margin-right:5px;">`;
+                                                    imagesHTML += `<img src="${imgData}" style="width:100%; height:auto; max-height:${imgSize}px; object-fit:contain; border-radius:3px; border:1px solid #ddd;">`;
                                                 });
                                                 imagesHTML += '</div>';
                                             } else {
-                                                imagesHTML = '無圖片';
+                                                imagesHTML = '无图片';
                                             }
                                             cell.innerHTML = imagesHTML;
                                         }
