@@ -344,85 +344,61 @@
             color: white;
         }
         /* 相機預覽樣式 */
-        .camera-carousel {
+        .camera-preview {
             display: flex;
-            overflow-x: auto;
-            scroll-snap-type: x mandatory;
-            height: 70vh;
-            align-items: center;
-            scroll-behavior: smooth;
-        }
-
-        .camera-carousel img {
-            scroll-snap-align: center;
-            flex: none;
-            width: 100%;
-            height: auto;
-            max-height: 70vh;
-            object-fit: contain;
-        }
-        /* 图片压缩指示器 */
-        .compression-indicator {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            z-index: 10;
-        }
-
-        /* camera controls (左右箭頭) */
-        .camera-controls {
-            position: absolute;
-            bottom: 20px;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            z-index: 50; /* 箭頭不需太高的 z-index */
-        }
-
-        /* 保持按鈕可點與大小 */
-        .camera-controls button {
-            width: 50px;
-            height: 50px;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 50;
-        }
-
-        /* 新增/刪除按鈕（抬高，放在箭頭上方） */
-        .camera-actions {
-            position: absolute;
-            bottom: 120px; /* 往上移，避免與箭頭重疊 */
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: center;
+            flex-wrap: wrap;
             gap: 10px;
-            z-index: 120; /* 高於箭頭，確保點擊可用 */
+            padding: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
         }
 
-        /* 圖片索引顯示 */
-        .image-index {
-            position: absolute;
-            bottom: 160px; /* 與 camera-actions 保持距離 */
-            left: 0;
-            right: 0;
-            text-align: center;
+        .camera-preview img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        /* 現代化按鈕樣式 */
+        .modern-btn {
+            padding: 12px 20px;
+            background: #4CAF50;
             color: white;
-            font-size: 18px;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
-            z-index: 110;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            margin: 5px;
         }
         
+        .modern-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
         
+        .modern-btn:active {
+            transform: translateY(0);
+        }
+        
+        .modern-btn.secondary {
+            background: #f44336;
+        }
+        
+        .modern-btn.secondary:hover {
+            background: #d32f2f;
+        }
+        
+        /* 相機模態框按鈕容器 */
+        .camera-btn-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
         /* 提醒視窗 */
         #reminder {
             display: none;
@@ -470,23 +446,22 @@
         
         /* 響應式設計 */
         @media (max-width: 768px) {
-            .main-content { 
-                padding: 70px 10px 20px 10px; 
+            .main-content { padding: 70px 10px 20px 10px; }
+            .sidebar { width: 280px; left: -280px; }
+            div.table-container { padding: 10px; }
+            th, td { padding: 6px 4px; font-size: 14px; }
+            .camera-preview {
+                justify-content: center;
             }
-            .sidebar { 
-                width: 280px; 
-                left: -280px; 
+            
+            .camera-btn-container {
+                flex-direction: column;
             }
-            div.table-container { 
-                padding: 10px; 
+            
+            .modern-btn {
+                width: 100%;
+                margin: 5px 0;
             }
-            th, td { 
-                padding: 6px 4px; 
-                font-size: 14px; 
-            }
-            .camera-controls { bottom: 20px; }
-            .camera-actions { bottom: 80px; }
-            .image-index { bottom: 140px; }
         }
     </style>
 </head>
@@ -640,37 +615,13 @@
     </div>
     <!-- 相機 Modal -->
     <div id="cameraModal" class="modal" style="display:none;">
-        <div class="modal-content" style="max-width:95%; width:100%; height:100%; padding:0; background:rgba(0,0,0,0.9);">
-            <!-- 修改關閉按鈕 -->
-            <div style="position:absolute; top:15px; right:15px; z-index:100;">
-                <button onclick="closeCameraModal()" style="
-                    background:rgba(255,255,255,0.2); 
-                    color:white; 
-                    border:none; 
-                    padding:12px 15px; 
-                    border-radius:50%; 
-                    font-size:24px;
-                    cursor:pointer;
-                    backdrop-filter: blur(5px);
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-                    transition: all 0.2s ease;">
-                    ✕
-                </button>
-            </div>
-            
-            <div id="cameraCarousel" class="camera-carousel">
-                <!-- 图片轮播将在这里动态生成 -->
-            </div>
-            
-            <div class="camera-controls" style="position:absolute; bottom:20px; left:0; right:0; display:flex; justify-content:center; gap:15px;">
-                <button onclick="changeCameraImage(-1)" style="background:rgba(0,0,0,0.5); color:white; border:none; padding:12px 20px; border-radius:50%; font-size:20px;">◀</button>
-                <button onclick="changeCameraImage(1)" style="background:rgba(0,0,0,0.5); color:white; border:none; padding:12px 20px; border-radius:50%; font-size:20px;">▶</button>
-            </div>
-            
-            <div class="camera-actions" style="position:absolute; bottom:80px; left:0; right:0; display:flex; justify-content:center; gap:10px;">
+        <div class="modal-content" style="max-width:95%; width:500px;">
+            <h3>拍照/上傳圖片</h3>
+            <div id="cameraPreviewContainer" class="camera-preview"></div>
+            <div class="camera-btn-container">
                 <input type="file" id="cameraInput" accept="image/*" multiple style="display:none;" onchange="handleCameraUpload(this)">
-                <button onclick="document.getElementById('cameraInput').click()" style="background:#4CAF50; color:white; border:none; padding:10px 15px; border-radius:20px;">添加图片</button>
-                <button onclick="deleteCurrentImage()" style="background:#f44336; color:white; border:none; padding:10px 15px; border-radius:20px;">删除当前图片</button>
+                <button class="modern-btn" onclick="document.getElementById('cameraInput').click()">選擇圖片</button>
+                <button class="modern-btn secondary" onclick="closeCameraModal()">關閉</button>
             </div>
         </div>
     </div>
@@ -689,11 +640,6 @@
         let scrollPosition = { top: 0, left: 0 };
         // 收合選擇功能
         let currentCollapseCell = null;
-        // 相机功能 - 全局变量
-        let currentImageIndex = 0;
-        let currentCameraImages = [];
-        let currentCameraCell = null;
-
         // 側邊欄控制
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
@@ -705,25 +651,21 @@
             // 隱藏所有內容區域
             const sections = document.querySelectorAll('.content-section');
             sections.forEach(section => section.style.display = 'none');
-
+            
             // 顯示選中的區域
             const targetSection = document.getElementById('section-' + sectionName);
             if (targetSection) {
                 targetSection.style.display = 'block';
             }
-
-            // 更新側邊欄選中狀態（不靠 event）
+            
+            // 更新側邊欄選中狀態
             const sidebarItems = document.querySelectorAll('.sidebar-item');
             sidebarItems.forEach(item => item.classList.remove('active'));
-            // 找到內文包含該名稱的側欄項（可處理 emoji 前綴）
-            const clickedItem = Array.from(sidebarItems).find(it => {
-                return it.textContent && it.textContent.includes(sectionName);
-            });
-            if (clickedItem) clickedItem.classList.add('active');
-
+            event.target.classList.add('active');
+            
             // 記錄當前分區
             currentSection = sectionName;
-
+            
             // 關閉側邊欄（手機版）
             if (window.innerWidth <= 768) {
                 toggleSidebar();
@@ -740,137 +682,22 @@
         });
         // 相機功能
         function openCameraModal(cell) {
-            currentCameraCell = cell;
-            // 每個 cell 獨立的圖片陣列
-            currentCameraImages = JSON.parse(cell.dataset.images || '[]');
-            currentImageIndex = currentCameraImages.length > 0 ? 0 : -1;
-
-            updateCameraCarousel();
-            document.getElementById('cameraModal').style.display = 'flex';
-            initTouchEvents();
-        }
-
-        function updateCameraCarousel() {
-            const carousel = document.getElementById('cameraCarousel');
-            carousel.innerHTML = '';
+            currentCell = cell;
+            const images = JSON.parse(cell.dataset.images || '[]');
+            const previewContainer = document.getElementById('cameraPreviewContainer');
+            previewContainer.innerHTML = '';
             
-            if (currentCameraImages.length === 0) {
-                carousel.innerHTML = '<div style="text-align:center; color:white; padding:40px;"><p>尚未添加图片</p><p>点击"添加图片"按钮上传照片</p></div>';
-                return;
-            }
-            
-            currentCameraImages.forEach((imgData, index) => {
+            images.forEach((imgData, index) => {
                 const imgDiv = document.createElement('div');
-                imgDiv.style.cssText = 'scroll-snap-align:center; flex:none; width:100%; height:100%; display:flex; align-items:center; justify-content:center;';
-                imgDiv.innerHTML = `<img src="${imgData}" data-index="${index}" style="max-width:100%; max-height:100%; object-fit:contain;">`;
-                carousel.appendChild(imgDiv);
+                imgDiv.innerHTML = `<img src="${imgData}" style="width:100px; height:100px; object-fit:cover;">
+                                    <button onclick="removeCameraImage(${index})">刪除</button>`;
+                previewContainer.appendChild(imgDiv);
             });
             
-            // 更新图片索引显示
-            updateImageIndex();
-            
-            // 滚动到当前图片
-            if (currentImageIndex >= 0) {
-                scrollToImage(currentImageIndex);
-            }
-        }
-        
-        function scrollToImage(index) {
-            const carousel = document.getElementById('cameraCarousel');
-            const images = carousel.querySelectorAll('div');
-            if (images[index]) {
-                images[index].scrollIntoView({behavior: 'smooth'});
-            }
-        }
-        
-        function updateImageIndex() {
-            // 移除现有的索引指示器
-            const existingIndicator = document.querySelector('.image-index');
-            if (existingIndicator) {
-                existingIndicator.remove();
-            }
-            
-            if (currentCameraImages.length <= 1) return;
-            
-            // 创建新的索引指示器
-            const indicator = document.createElement('div');
-            indicator.className = 'image-index';
-            indicator.innerHTML = `${currentImageIndex + 1} / ${currentCameraImages.length}`;
-            
-            document.getElementById('cameraModal').querySelector('.modal-content').appendChild(indicator);
-        }
-        
-        function changeCameraImage(direction) {
-            if (currentCameraImages.length <= 1) return;
-            
-            currentImageIndex += direction;
-            
-            // 循环处理
-            if (currentImageIndex < 0) {
-                currentImageIndex = currentCameraImages.length - 1;
-            } else if (currentImageIndex >= currentCameraImages.length) {
-                currentImageIndex = 0;
-            }
-            
-            scrollToImage(currentImageIndex);
-            updateImageIndex();
+            document.getElementById('cameraModal').style.display = 'flex';
         }
 
-        function deleteCurrentImage() {
-            if (currentCameraImages.length === 0) return;
-            
-            currentCameraImages.splice(currentImageIndex, 1);
-            
-            // 调整当前索引
-            if (currentImageIndex >= currentCameraImages.length) {
-                currentImageIndex = Math.max(0, currentCameraImages.length - 1);
-            }
-            
-            // 更新单元格数据和显示
-            currentCameraCell.dataset.images = JSON.stringify(currentCameraImages);
-            updateCameraCellDisplay(currentCameraCell);
-            updateCameraCarousel();
-            
-            // 如果没有图片了，关闭模态框
-            if (currentCameraImages.length === 0) {
-                closeCameraModal();
-            }
-        }
-        // 初始化触摸事件
-        function initTouchEvents() {
-            const carousel = document.getElementById('cameraCarousel');
-            if (!carousel) return;
-            
-            let startX = 0;
-            let isScrolling = false;
-            
-            carousel.addEventListener('touchstart', function(e) {
-                startX = e.touches[0].pageX;
-                isScrolling = true;
-            });
-            
-            carousel.addEventListener('touchmove', function(e) {
-                if (!isScrolling) return;
-                e.preventDefault();
-            });
-            
-            carousel.addEventListener('touchend', function(e) {
-                if (!isScrolling) return;
-                isScrolling = false;
-                
-                const moveX = e.changedTouches[0].pageX - startX;
-                if (Math.abs(moveX) > 50) { // 滑动距离阈值
-                    if (moveX > 0) {
-                        // 向右滑动，显示上一张
-                        changeCameraImage(-1);
-                    } else {
-                        // 向左滑动，显示下一张
-                        changeCameraImage(1);
-                    }
-                }
-            });
-        }
-        // 图片压缩函数
+        // 圖片壓縮函數
         function compressImage(file, callback) {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -881,14 +708,14 @@
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     
-                    // 设定最大尺寸
+                    // 設定最大尺寸
                     const MAX_WIDTH = 800;
                     const MAX_HEIGHT = 800;
                     
                     let width = img.width;
                     let height = img.height;
                     
-                    // 计算缩放比例
+                    // 調整尺寸
                     if (width > height) {
                         if (width > MAX_WIDTH) {
                             height *= MAX_WIDTH / width;
@@ -901,74 +728,74 @@
                         }
                     }
                     
-                    // 设置canvas尺寸
                     canvas.width = width;
                     canvas.height = height;
                     
-                    // 绘制压缩后的图片
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // 获取压缩后的图片的DataURL
-                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                    callback(compressedDataUrl);
+                    // 壓縮品質 (0.7 = 70%)
+                    canvas.toBlob(callback, 'image/jpeg', 0.7);
                 };
             };
         }
-        // 处理文件上传
+        
+        // 修改handleCameraUpload函數以使用圖片壓縮
         function handleCameraUpload(input) {
-            if (!currentCameraCell) return;
+            if (!currentCell) return;
             const files = input.files;
-
+            const images = JSON.parse(currentCell.dataset.images || '[]');
+            
+            // 處理每個文件
+            let processed = 0;
+            const totalFiles = Math.min(files.length, 5 - images.length);
+            
+            if (totalFiles === 0) {
+                alert('最多只能上傳5張圖片');
+                return;
+            }
+            
             for (let i = 0; i < files.length; i++) {
-                if (currentCameraImages.length >= 5) {
-                    alert('每個儲存格最多只能上傳 5 張圖片');
+                if (images.length >= 5) {
                     break;
                 }
-
+                
                 const file = files[i];
-
-                // 顯示壓縮指示器
-                const compressionIndicator = document.createElement('div');
-                compressionIndicator.className = 'compression-indicator';
-                compressionIndicator.innerText = '壓縮中...';
-                const modalContent = document.getElementById('cameraModal').querySelector('.modal-content');
-                if (modalContent) modalContent.appendChild(compressionIndicator);
-
-                // 壓縮後加入陣列並更新 cell.dataset
-                compressImage(file, function(compressedDataUrl) {
-                    // 防止 race condition：再次確認上限
-                    if (currentCameraImages.length >= 5) {
-                        if (compressionIndicator.parentNode) compressionIndicator.parentNode.removeChild(compressionIndicator);
-                        alert('每個儲存格最多只能上傳 5 張圖片');
-                        return;
-                    }
-
-                    currentCameraImages.push(compressedDataUrl);
-                    // 每個 cell 獨立儲存於 dataset.images
-                    currentCameraCell.dataset.images = JSON.stringify(currentCameraImages);
-                    updateCameraCellDisplay(currentCameraCell);
-                    updateCameraCarousel();
-
-                    // 移除壓縮指示器
-                    if (compressionIndicator.parentNode) {
-                        compressionIndicator.parentNode.removeChild(compressionIndicator);
-                    }
-
-                    // 滾動到最後一張圖片
-                    currentImageIndex = currentCameraImages.length - 1;
-                    scrollToImage(currentImageIndex);
-                    updateImageIndex();
+                
+                // 壓縮圖片
+                compressImage(file, function(compressedBlob) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        images.push(e.target.result);
+                        currentCell.dataset.images = JSON.stringify(images);
+                        updateCameraCellDisplay(currentCell);
+                        
+                        // 如果所有文件都處理完成，重新打開模態框
+                        processed++;
+                        if (processed === totalFiles) {
+                            openCameraModal(currentCell);
+                        }
+                    };
+                    reader.readAsDataURL(compressedBlob);
                 });
             }
-            input.value = ''; // 重置 input，允許再次選同一檔
+            input.value = ''; // 重置input，允許再次選擇相同文件
+        }
+
+        function removeCameraImage(index) {
+            if (!currentCell) return;
+            const images = JSON.parse(currentCell.dataset.images || '[]');
+            images.splice(index, 1);
+            currentCell.dataset.images = JSON.stringify(images);
+            updateCameraCellDisplay(currentCell);
+            openCameraModal(currentCell); // 更新預覽
         }
 
         function updateCameraCellDisplay(cell) {
             const images = JSON.parse(cell.dataset.images || '[]');
             if (images.length > 0) {
-                cell.innerHTML = `<div style="text-align:center; padding:5px;">
-                    <img src="${images[0]}" style="width:40px; height:40px; object-fit:cover; border-radius:5px;"><br>
-                    <span style="font-size:12px;">查看图片 (${images.length})</span>
+                cell.innerHTML = `<div style="text-align:center;">
+                    <img src="${images[0]}" style="width:50px; height:50px; object-fit:cover;"><br>
+                    <span>${images.length}張圖片</span>
                 </div>`;
             } else {
                 cell.innerHTML = '📷 拍照';
@@ -977,13 +804,7 @@
 
         function closeCameraModal() {
             document.getElementById('cameraModal').style.display = 'none';
-            // 移除可能存在的压缩指示器
-            const compressionIndicator = document.querySelector('.compression-indicator');
-            if (compressionIndicator && compressionIndicator.parentNode) {
-                compressionIndicator.parentNode.removeChild(compressionIndicator);
-            }
         }
-        
         // 錄音功能
         function startRecording(btn) {
             const cell = btn.closest(".recorder-cell");
@@ -1137,9 +958,13 @@
         }
 
         // 為手機添加觸摸事件處理
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('td[data-type="camera"], td[data-type="camera"]').forEach(td => {
-                try { updateCameraCellDisplay(td); } catch (e) { /* 忽略 */ }
+        document.addEventListener('DOMContentLoaded', function() {
+            // 為所有"現在時間"單元格添加觸摸事件
+            document.querySelectorAll('[data-type="datetime"]').forEach(cell => {
+                cell.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    fillCurrentTime(this);
+                });
             });
         });
 
@@ -2008,90 +1833,8 @@
             );
         }
 
-        // 导出图片查看功能
-        function showExportedImages(button) {
-            const images = JSON.parse(button.dataset.images || '[]');
-            if (images.length === 0) return;
-            
-            // 创建模态框
-            const modal = document.createElement('div');
-            modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; display:flex; align-items:center; justify-content:center;';
-            
-            // 创建关闭按钮
-            const closeBtn = document.createElement('button');
-            closeBtn.innerHTML = '✕';
-            closeBtn.style.cssText = 'position:absolute; top:15px; right:15px; background:rgba(0,0,0,0.5); color:white; border:none; padding:10px; border-radius:50%; font-size:18px; z-index:10001;';
-            closeBtn.onclick = function() {
-                document.body.removeChild(modal);
-            };
-            
-            // 创建轮播容器
-            const carousel = document.createElement('div');
-            carousel.style.cssText = 'display:flex; overflow-x:auto; scroll-snap-type:x mandatory; width:100%; height:80%; align-items:center;';
-            
-            // 添加图片
-            images.forEach(imgData => {
-                const imgDiv = document.createElement('div');
-                imgDiv.style.cssText = 'scroll-snap-align:center; flex:none; width:100%; height:100%; display:flex; align-items:center; justify-content:center;';
-                imgDiv.innerHTML = `<img src="${imgData}" style="max-width:100%; max-height:100%; object-fit:contain;">`;
-                carousel.appendChild(imgDiv);
-            });
-            
-            // 组装模态框
-            modal.appendChild(closeBtn);
-            modal.appendChild(carousel);
-            
-            // 添加到文档
-            document.body.appendChild(modal);
-            
-            // 添加触摸事件支持滑动
-            let startX = 0;
-            let isScrolling = false;
-            
-            carousel.addEventListener('touchstart', function(e) {
-                startX = e.touches[0].pageX;
-                isScrolling = true;
-            });
-            
-            carousel.addEventListener('touchmove', function(e) {
-                if (!isScrolling) return;
-                e.preventDefault();
-            });
-            
-            carousel.addEventListener('touchend', function(e) {
-                if (!isScrolling) return;
-                isScrolling = false;
-                
-                const moveX = e.changedTouches[0].pageX - startX;
-                if (Math.abs(moveX) > 50) { // 滑动距离阈值
-                    if (moveX > 0) {
-                        // 向左滑动，显示上一张
-                        carousel.scrollBy({left: -carousel.offsetWidth, behavior: 'smooth'});
-                    } else {
-                        // 向右滑动，显示下一张
-                        carousel.scrollBy({left: carousel.offsetWidth, behavior: 'smooth'});
-                    }
-                }
-            });
-        }
-
         ////////////////////////////////////////////////////////////
-        async function blobUrlToDataURL(blobUrl) {
-            // fetch blob: 或 object URL，回傳 data:image/...;base64,...
-            try {
-                const resp = await fetch(blobUrl);
-                const blob = await resp.blob();
-                return await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onerror = () => reject(new Error('FileReader error'));
-                    reader.onload = () => resolve(reader.result); // data:... 字串
-                    reader.readAsDataURL(blob);
-                });
-            } catch (e) {
-                console.warn('blobUrlToDataURL failed', e);
-                return null;
-            }
-        }
+        
         
         
         // 資料匯出完整版本
@@ -2143,8 +1886,7 @@
                                     const originalCell = originalCells[c];
                                     
                                     if (!originalCell) continue;
-                                    // 移除 onclick 事件，避免匯出後點擊無效
-                                    cell.removeAttribute("onclick");
+                                    
                                     // 錄音處理
                                     const audio = originalCell.querySelector("audio");
                                     if (audio && audio.src.startsWith("blob:")) {
@@ -2162,41 +1904,7 @@
                                             cell.innerHTML = "❌ 錄音轉換失敗";
                                         }
                                     }
-                                    // ===== 插入：把 originalCell 裡的 blob: 圖片轉成 data: 並更新 cloned cell =====
-                                    try {
-                                        const origImgs = originalCell.querySelectorAll('img');
-                                        const cloneImgs = cell.querySelectorAll('img');
-                                        for (let i = 0; i < origImgs.length; i++) {
-                                            const oImg = origImgs[i];
-                                            if (oImg && oImg.src && oImg.src.startsWith('blob:')) {
-                                                try {
-                                                    const dataURL = await blobUrlToDataURL(oImg.src);
-                                                    if (dataURL) {
-                                                        // 若匯出用的 cell（clone）已有對應的 img，直接替換 src
-                                                        if (cloneImgs[i]) {
-                                                            cloneImgs[i].src = dataURL;
-                                                        } else {
-                                                            // 否則建立一個 img 放進去（避免匯出後沒圖）
-                                                            const newImg = document.createElement('img');
-                                                            newImg.src = dataURL;
-                                                            newImg.alt = 'photo';
-                                                            newImg.style.maxWidth = '100%';
-                                                            newImg.style.height = 'auto';
-                                                            newImg.style.display = 'block';
-                                                            // 放在 cell 內靠底部（若你要放到特定位置可調）
-                                                            cell.appendChild(newImg);
-                                                        }
-                                                    }
-                                                } catch (e) {
-                                                    console.warn('convert image blob->data failed', e);
-                                                }
-                                            }
-                                        }
-                                    } catch (e) {
-                                        console.warn('img conversion block failed', e);
-                                    }
-                                    // ===== 插入結束 =====
-
+                                    
                                     // 特殊單元格處理
                                     if (originalCell.classList.contains("editable-cell")) {
                                         const type = originalCell.dataset.type;
@@ -2220,17 +1928,20 @@
                                             // 收合选择
                                             const value = originalCell.dataset.value || '';
                                             cell.innerHTML = `<div>${value}</div>`;
-                                        // 在匯出功能中，添加對相機圖片的處理
-                                        }else if (type === "camera") {
+                                        } else if (type === "camera") {
                                             // 相機圖片處理
                                             const images = JSON.parse(originalCell.dataset.images || '[]');
+                                            let imagesHTML = '';
                                             if (images.length > 0) {
-                                                cell.innerHTML = '<button onclick="showExportedImages(this)" style="background:#4CAF50;color:white;border:none;padding:8px 12px;border-radius:4px;cursor:pointer;">查看图片 ('+images.length+')</button>';
-                                                // 将图片数据存储在按钮上
-                                                cell.querySelector('button').dataset.images = originalCell.dataset.images;
+                                                imagesHTML = '<div style="display:flex; overflow-x:auto;">';
+                                                images.forEach(imgData => {
+                                                    imagesHTML += `<img src="${imgData}" style="width:100px; height:100px; object-fit:cover; margin-right:5px;">`;
+                                                });
+                                                imagesHTML += '</div>';
                                             } else {
-                                                cell.innerHTML = '无图片';
+                                                imagesHTML = '無圖片';
                                             }
+                                            cell.innerHTML = imagesHTML;
                                         }
                                     }
 
@@ -2243,304 +1954,49 @@
                 }
 
                 // 在匯出功能中，添加表格寬度設定
-                // 在匯出功能中，添加表格寬度設定
                 const exportHTML = `<!DOCTYPE html>
                 <html>
                 <head>
                 <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>野蠻的驕傲醫療卡</title>
+                <title>已匯出表格</title>
                 <style>
-                body { 
-                    font-family: Arial, sans-serif; 
-                    padding:15px; 
-                    background:#f5f5f5; 
-                    max-width: 100%;
-                    overflow-x: hidden;
-                    -webkit-text-size-adjust: 100%;
-                }
-                table { 
-                    border-collapse: collapse; 
-                    table-layout: fixed; 
-                    margin-bottom:20px; 
-                    width: 100% !important;
-                }
-                td, th { 
-                    border:1px solid #ccc; 
-                    padding: 6px 8px; 
-                    word-wrap: break-word; 
-                    max-width: 100%;
-                    vertical-align: top;
-                }
-                .audio-cell audio { 
-                    display:block; 
-                    width: 100%; 
-                }
-                .sub-page { 
-                    background-color: #f9f9f9; 
-                    padding:15px; 
-                    margin-bottom:20px; 
-                    border-radius:8px; 
-                }
-
-                /* 直接在儲存格內顯示圖片 */
-                .camera-cell {
-                    text-align: center;
-                    padding: 5px;
-                }
-
-                .thumbnail-container {
-                    display: block;
-                    margin-top: 5px;
-                }
-
-                .thumbnail-item {
-                    display: inline-block;
-                    margin: 3px;
-                    position: relative;
-                }
-
-                .thumbnail {
-                    width: 70px;
-                    height: 70px;
-                    object-fit: cover;
-                    border-radius: 4px;
-                    border: 1px solid #ddd;
-                    cursor: pointer;
-                }
-
-                .thumbnail-count {
-                    position: absolute;
-                    bottom: 2px;
-                    right: 2px;
-                    background: rgba(0,0,0,0.7);
-                    color: white;
-                    border-radius: 50%;
-                    width: 22px;
-                    height: 22px;
-                    font-size: 12px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                /* 使用最簡單的放大效果 */
-                .image-preview {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(0,0,0,0.9);
-                    z-index: 10000;
-                    display: none;
-                    justify-content: center;
-                    align-items: center;
-                }
-
-                .image-preview.active {
-                    display: flex;
-                }
-
-                .preview-image {
-                    max-width: 95%;
-                    max-height: 95%;
-                    object-fit: contain;
-                }
-
-                .close-preview {
-                    position: absolute;
-                    top: 15px;
-                    right: 15px;
-                    background: rgba(0,0,0,0.5);
-                    color: white;
-                    border: none;
-                    padding: 10px 15px;
-                    border-radius: 50%;
-                    font-size: 20px;
-                    cursor: pointer;
-                }
-
-                /* 確保圖片在iOS Line中可見 */
-                .thumbnail {
-                    -webkit-touch-callout: none;
-                    -webkit-user-select: none;
-                    user-select: none;
-                }
-
-                /* 針對iOS Line應用的特殊提示 */
-                .ios-line-tip {
-                    background: #ffeb3b;
-                    padding: 10px;
-                    margin: 10px 0;
-                    border-radius: 5px;
-                    border-left: 4px solid #ff9800;
-                    display: none;
-                }
-
-                .ios-line .ios-line-tip {
-                    display: block;
-                }
+                body { font-family: Arial, sans-serif; padding:20px; }
+                table { border-collapse: collapse; table-layout: fixed; }
+                td, th { border:1px solid #ccc; padding: 6px 8px; word-wrap: break-word; }
+                .audio-cell audio { display:block; width: 100%; }
+                .sub-page { background-color: #f9f9f9; }
                 </style>
                 </head>
                 <body>
-                <div class="ios-line-tip">
-                    <strong>提示:</strong> 點擊圖片可以放大查看，點擊右上角的X可以關閉。
-                </div>
-
                 ${allContent}
-
-                <script>
-                // 檢測是否為iOS Line應用
-                var isIOSLine = /iPhone|iPad|iPod/.test(navigator.userAgent) && /Line/.test(navigator.userAgent);
-
-                if (isIOSLine) {
-                    document.body.classList.add('ios-line');
-                }
-
-                // 直接在頁面加載時處理所有拍照單元格
-                function processCameraCells() {
-                    var cameraCells = document.querySelectorAll('[data-type="camera"]');
-                    
-                    cameraCells.forEach(function(cell, index) {
-                        var imageData = cell.getAttribute('data-images');
-                        if (!imageData) return;
-                        
-                        try {
-                            var images = JSON.parse(imageData);
-                            if (images.length === 0) {
-                                cell.innerHTML = '📷 無圖片';
-                                return;
-                            }
-                            
-                            // 清空單元格內容
-                            cell.innerHTML = '';
-                            cell.className = cell.className + ' camera-cell';
-                            
-                            // 添加標題
-                            var title = document.createElement('div');
-                            title.textContent = '📷 拍照 (' + images.length + ')';
-                            title.style.fontWeight = 'bold';
-                            title.style.marginBottom = '5px';
-                            cell.appendChild(title);
-                            
-                            // 添加縮略圖容器
-                            var container = document.createElement('div');
-                            container.className = 'thumbnail-container';
-                            cell.appendChild(container);
-                            
-                            // 添加縮略圖
-                            images.forEach(function(imgSrc, imgIndex) {
-                                var item = document.createElement('div');
-                                item.className = 'thumbnail-item';
-                                
-                                var img = document.createElement('img');
-                                img.className = 'thumbnail';
-                                img.src = imgSrc;
-                                img.alt = '圖片 ' + (imgIndex + 1);
-                                
-                                // 直接添加點擊事件
-                                img.onclick = function() {
-                                    showImagePreview(imgSrc);
-                                };
-                                
-                                // 如果有多張圖片，顯示計數
-                                if (images.length > 1) {
-                                    var count = document.createElement('div');
-                                    count.className = 'thumbnail-count';
-                                    count.textContent = imgIndex + 1;
-                                    item.appendChild(count);
-                                }
-                                
-                                item.appendChild(img);
-                                container.appendChild(item);
-                            });
-                            
-                        } catch (e) {
-                            console.error('處理拍照單元格錯誤:', e);
-                            cell.innerHTML = '📷 圖片載入錯誤';
-                        }
-                    });
-                }
-
-                // 顯示圖片預覽
-                function showImagePreview(src) {
-                    // 檢查是否已有預覽層
-                    var preview = document.getElementById('imagePreview');
-                    var previewImg = document.getElementById('previewImage');
-                    
-                    if (!preview) {
-                        // 創建預覽層
-                        preview = document.createElement('div');
-                        preview.id = 'imagePreview';
-                        preview.className = 'image-preview';
-                        
-                        previewImg = document.createElement('img');
-                        previewImg.id = 'previewImage';
-                        previewImg.className = 'preview-image';
-                        
-                        var closeBtn = document.createElement('button');
-                        closeBtn.className = 'close-preview';
-                        closeBtn.innerHTML = '✕';
-                        closeBtn.onclick = function() {
-                            preview.classList.remove('active');
-                        };
-                        
-                        // 點擊圖片背景也可關閉
-                        preview.onclick = function(e) {
-                            if (e.target === preview) {
-                                preview.classList.remove('active');
-                            }
-                        };
-                        
-                        preview.appendChild(previewImg);
-                        preview.appendChild(closeBtn);
-                        document.body.appendChild(preview);
-                    }
-                    
-                    // 顯示圖片
-                    previewImg.src = src;
-                    preview.classList.add('active');
-                }
-
-                // 頁面加載時直接處理
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', processCameraCells);
-                } else {
-                    processCameraCells();
-                }
-
-                // 添加鍵盤支持
-                document.addEventListener('keydown', function(e) {
-                    var preview = document.getElementById('imagePreview');
-                    if (preview && preview.classList.contains('active')) {
-                        if (e.key === 'Escape') {
-                            preview.classList.remove('active');
-                        }
-                    }
-                });
-
-                // 添加觸摸事件支持
-                document.addEventListener('touchstart', function(e) {
-                    // 確保觸摸事件不會阻止點擊事件
-                }, {passive: true});
-                <\/script>
                 </body>
                 </html>`;
-                // 外層
+
                 const zip = new JSZip();
                 zip.file("exported_table.html", exportHTML);
 
+                // 檔名用 B2
                 let fileName = "exported_table.zip";
                 const b2 = document.querySelector("table tbody tr:nth-child(1) td:nth-child(2)");
                 if (b2 && b2.innerText.trim()) {
                     fileName = b2.innerText.trim() + "的資料.zip";
                 }
 
+                // 🔹 定義是否為手機
                 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
                 if (isMobile) {
-                    // 手機端
+                    // 手機端：打包 zip 後用分享 API
+                    const zip = new JSZip();
+                    zip.file("exported_table.html", exportHTML);
+
+                    // 檔名用 B2
+                    let fileName = "exported_table.zip";
+                    const b2 = document.querySelector("table tbody tr:nth-child(1) td:nth-child(2)");
+                    if (b2 && b2.innerText.trim()) {
+                        fileName = b2.innerText.trim() + "的資料.zip";
+                    }
+
                     const content = await zip.generateAsync({ type: "blob" });
                     const fixedBlob = new Blob([content], { type: "application/zip" });
 
@@ -2555,30 +2011,39 @@
                             return;
                         } catch (err) {
                             console.warn("分享 API 失敗，改用下載方式", err);
+                            // fallback 仍可下載
                             saveAs(fixedBlob, fileName);
                             exportStatus.innerText = "✅ 匯出成功（下載）！";
                             return;
                         }
                     } else {
+                        // 不支援分享 API，直接下載
                         saveAs(fixedBlob, fileName);
                         exportStatus.innerText = "✅ 匯出成功（下載）！";
                         return;
                     }
+
                 } else {
-                    // 桌機端
+                    // 桌機端：直接下載單一 HTML 避免危險通知
                     let htmlFileName = "exported_table.html";
+                    const b2 = document.querySelector("table tbody tr:nth-child(1) td:nth-child(2)");
                     if (b2 && b2.innerText.trim()) {
                         htmlFileName = b2.innerText.trim() + "的資料.html";
                     }
+
                     const htmlBlob = new Blob([exportHTML], { type: "text/html;charset=utf-8" });
                     saveAs(htmlBlob, htmlFileName);
                     exportStatus.innerText = "✅ 匯出成功！";
-                }                
+                }
+
+
+                
             } catch (error) {
                 console.error("匯出錯誤:", error);
                 exportStatus.innerText = "❌ 匯出失敗: " + error.message;
             }
         });
+
 
 
 
