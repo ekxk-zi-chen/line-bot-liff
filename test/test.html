@@ -2270,6 +2270,7 @@
                     padding: 6px 8px; 
                     word-wrap: break-word; 
                     max-width: 100%;
+                    vertical-align: top;
                 }
                 .audio-cell audio { 
                     display:block; 
@@ -2282,32 +2283,29 @@
                     border-radius:8px; 
                 }
 
-                /* 圖片顯示在儲存格內 */
+                /* 圖片顯示在儲存格內 - 最簡單的實現 */
                 .camera-cell {
                     text-align: center;
                     padding: 5px;
                 }
 
                 .thumbnail-container {
-                    display: flex;
-                    flex-wrap: wrap;
-                    justify-content: center;
-                    gap: 5px;
+                    display: block;
                     margin-top: 5px;
                 }
 
                 .thumbnail-item {
+                    display: inline-block;
+                    margin: 3px;
                     position: relative;
-                    margin: 2px;
                 }
 
                 .thumbnail {
-                    width: 60px;
-                    height: 60px;
+                    width: 70px;
+                    height: 70px;
                     object-fit: cover;
                     border-radius: 4px;
                     border: 1px solid #ddd;
-                    cursor: pointer;
                 }
 
                 .thumbnail-count {
@@ -2317,17 +2315,16 @@
                     background: rgba(0,0,0,0.7);
                     color: white;
                     border-radius: 50%;
-                    width: 20px;
-                    height: 20px;
+                    width: 22px;
+                    height: 22px;
                     font-size: 12px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                 }
 
-                /* 簡單的放大效果 */
+                /* 使用 :target 偽類實現圖片放大 - 無需JavaScript */
                 .image-preview {
-                    display: none;
                     position: fixed;
                     top: 0;
                     left: 0;
@@ -2335,18 +2332,19 @@
                     height: 100%;
                     background: rgba(0,0,0,0.9);
                     z-index: 10000;
+                    display: none;
                     justify-content: center;
                     align-items: center;
                 }
 
-                .image-preview img {
+                .image-preview:target {
+                    display: flex;
+                }
+
+                .preview-image {
                     max-width: 95%;
                     max-height: 95%;
                     object-fit: contain;
-                }
-
-                .image-preview.active {
-                    display: flex;
                 }
 
                 .close-preview {
@@ -2356,14 +2354,14 @@
                     background: rgba(0,0,0,0.5);
                     color: white;
                     border: none;
-                    padding: 10px;
+                    padding: 10px 15px;
                     border-radius: 50%;
                     font-size: 20px;
-                    cursor: pointer;
+                    text-decoration: none;
                 }
 
-                /* 針對Line瀏覽器的提示 */
-                .line-tip {
+                /* 針對iOS Line應用的特殊樣式 */
+                .ios-line-tip {
                     background: #ffeb3b;
                     padding: 10px;
                     margin: 10px 0;
@@ -2372,26 +2370,38 @@
                     display: none;
                 }
 
-                .line-browser .line-tip {
+                .ios-line .ios-line-tip {
                     display: block;
+                }
+
+                /* 確保圖片在iOS Line中可見 */
+                .thumbnail {
+                    -webkit-touch-callout: none;
+                    -webkit-user-select: none;
+                    user-select: none;
                 }
                 </style>
                 </head>
                 <body>
-                <div class="line-tip">
-                    <strong>提示:</strong> 您正在Line瀏覽器中查看。點擊圖片可以放大查看，再次點擊或點擊右上角的X可以關閉。
+                <div class="ios-line-tip">
+                    <strong>提示:</strong> 您正在iOS的Line應用中查看此文件。點擊圖片可以放大查看，點擊右上角的X可以關閉。
                 </div>
 
                 ${allContent}
 
                 <script>
-                // 檢測是否為Line瀏覽器
-                var isLineBrowser = navigator.userAgent.indexOf('Line/') > -1;
-                if (isLineBrowser) {
-                    document.body.classList.add('line-browser');
+                // 檢測是否為iOS Line應用
+                function isIOSLine() {
+                    return /iPhone|iPad|iPod/.test(navigator.userAgent) && 
+                        /Line/.test(navigator.userAgent) &&
+                        !window.navigator.standalone;
                 }
 
-                // 初始化所有拍照單元格
+                if (isIOSLine()) {
+                    document.body.classList.add('ios-line');
+                }
+
+                // 初始化所有拍照單元格 - 使用最簡單的方法
                 function initCameraCells() {
                     var cameraCells = document.querySelectorAll('[data-type="camera"]');
                     
@@ -2424,16 +2434,22 @@
                             
                             // 添加縮略圖
                             images.forEach(function(imgSrc, imgIndex) {
+                                // 創建唯一的ID用於圖片預覽
+                                var previewId = 'preview-' + index + '-' + imgIndex;
+                                
                                 var item = document.createElement('div');
                                 item.className = 'thumbnail-item';
+                                
+                                // 創建縮略圖鏈接
+                                var link = document.createElement('a');
+                                link.href = '#' + previewId;
                                 
                                 var img = document.createElement('img');
                                 img.className = 'thumbnail';
                                 img.src = imgSrc;
                                 img.alt = '圖片 ' + (imgIndex + 1);
-                                img.onclick = function() {
-                                    showImagePreview(imgSrc);
-                                };
+                                
+                                link.appendChild(img);
                                 
                                 // 如果有多張圖片，顯示計數
                                 if (images.length > 1) {
@@ -2443,8 +2459,26 @@
                                     item.appendChild(count);
                                 }
                                 
-                                item.appendChild(img);
+                                item.appendChild(link);
                                 container.appendChild(item);
+                                
+                                // 創建圖片預覽層
+                                var preview = document.createElement('div');
+                                preview.id = previewId;
+                                preview.className = 'image-preview';
+                                
+                                var closeLink = document.createElement('a');
+                                closeLink.href = '#';
+                                closeLink.className = 'close-preview';
+                                closeLink.innerHTML = '✕';
+                                
+                                var previewImg = document.createElement('img');
+                                previewImg.src = imgSrc;
+                                previewImg.className = 'preview-image';
+                                
+                                preview.appendChild(closeLink);
+                                preview.appendChild(previewImg);
+                                document.body.appendChild(preview);
                             });
                             
                         } catch (e) {
@@ -2454,45 +2488,6 @@
                     });
                 }
 
-                // 顯示圖片預覽
-                function showImagePreview(src) {
-                    // 檢查是否已有預覽層
-                    var preview = document.getElementById('imagePreview');
-                    var previewImg = document.getElementById('previewImage');
-                    
-                    if (!preview) {
-                        // 創建預覽層
-                        preview = document.createElement('div');
-                        preview.id = 'imagePreview';
-                        preview.className = 'image-preview';
-                        
-                        previewImg = document.createElement('img');
-                        previewImg.id = 'previewImage';
-                        
-                        var closeBtn = document.createElement('button');
-                        closeBtn.className = 'close-preview';
-                        closeBtn.innerHTML = '✕';
-                        closeBtn.onclick = function() {
-                            preview.classList.remove('active');
-                        };
-                        
-                        // 點擊圖片背景也可關閉
-                        preview.onclick = function(e) {
-                            if (e.target === preview) {
-                                preview.classList.remove('active');
-                            }
-                        };
-                        
-                        preview.appendChild(previewImg);
-                        preview.appendChild(closeBtn);
-                        document.body.appendChild(preview);
-                    }
-                    
-                    // 顯示圖片
-                    previewImg.src = src;
-                    preview.classList.add('active');
-                }
-
                 // 頁面加載完成後初始化
                 if (document.readyState === 'loading') {
                     document.addEventListener('DOMContentLoaded', initCameraCells);
@@ -2500,15 +2495,8 @@
                     initCameraCells();
                 }
 
-                // 添加鍵盤支持
-                document.addEventListener('keydown', function(e) {
-                    var preview = document.getElementById('imagePreview');
-                    if (preview && preview.classList.contains('active')) {
-                        if (e.key === 'Escape') {
-                            preview.classList.remove('active');
-                        }
-                    }
-                });
+                // 添加一個簡單的觸摸事件處理，確保在iOS上點擊有效
+                document.addEventListener('touchstart', function() {}, {passive: true});
                 <\/script>
                 </body>
                 </html>`;
