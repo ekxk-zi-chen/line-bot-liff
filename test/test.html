@@ -2282,69 +2282,88 @@
                     border-radius:8px; 
                 }
 
-                /* 終極解決方案 - 直接在頁面上顯示圖片 */
-                .camera-images-container {
-                    display: block;
-                    margin: 10px 0;
-                }
-
-                .camera-image-item {
-                    margin: 10px 0;
-                    padding: 10px;
-                    background: white;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-                }
-
-                .camera-image-item img {
-                    max-width: 100%;
-                    height: auto;
-                    display: block;
-                    margin: 0 auto;
-                    border: 1px solid #ddd;
-                    border-radius: 4px;
-                }
-
-                .image-counter {
+                /* 圖片顯示在儲存格內 */
+                .camera-cell {
                     text-align: center;
-                    font-size: 14px;
-                    color: #666;
+                    padding: 5px;
+                }
+
+                .thumbnail-container {
+                    display: flex;
+                    flex-wrap: wrap;
+                    justify-content: center;
+                    gap: 5px;
                     margin-top: 5px;
                 }
 
-                .view-images-btn {
-                    background: #4CAF50;
-                    color: white;
-                    border: none;
-                    padding: 10px 15px;
-                    border-radius: 5px;
-                    font-size: 14px;
-                    margin: 5px 0;
-                    display: inline-block;
-                    -webkit-tap-highlight-color: transparent;
+                .thumbnail-item {
+                    position: relative;
+                    margin: 2px;
                 }
 
-                /* 簡單的展開/收起效果 */
-                .collapsible {
-                    display: none;
-                }
-
-                .collapsible.active {
-                    display: block;
-                }
-
-                .toggle-btn {
-                    background: #2196F3;
-                    color: white;
-                    border: none;
-                    padding: 8px 12px;
+                .thumbnail {
+                    width: 60px;
+                    height: 60px;
+                    object-fit: cover;
                     border-radius: 4px;
-                    margin: 5px 0;
+                    border: 1px solid #ddd;
                     cursor: pointer;
-                    font-size: 12px;
                 }
 
-                .line-warning {
+                .thumbnail-count {
+                    position: absolute;
+                    bottom: 2px;
+                    right: 2px;
+                    background: rgba(0,0,0,0.7);
+                    color: white;
+                    border-radius: 50%;
+                    width: 20px;
+                    height: 20px;
+                    font-size: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                /* 簡單的放大效果 */
+                .image-preview {
+                    display: none;
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.9);
+                    z-index: 10000;
+                    justify-content: center;
+                    align-items: center;
+                }
+
+                .image-preview img {
+                    max-width: 95%;
+                    max-height: 95%;
+                    object-fit: contain;
+                }
+
+                .image-preview.active {
+                    display: flex;
+                }
+
+                .close-preview {
+                    position: absolute;
+                    top: 15px;
+                    right: 15px;
+                    background: rgba(0,0,0,0.5);
+                    color: white;
+                    border: none;
+                    padding: 10px;
+                    border-radius: 50%;
+                    font-size: 20px;
+                    cursor: pointer;
+                }
+
+                /* 針對Line瀏覽器的提示 */
+                .line-tip {
                     background: #ffeb3b;
                     padding: 10px;
                     margin: 10px 0;
@@ -2353,16 +2372,14 @@
                     display: none;
                 }
 
-                /* 針對Line瀏覽器顯示警告 */
-                .line-browser .line-warning {
+                .line-browser .line-tip {
                     display: block;
                 }
                 </style>
                 </head>
                 <body>
-                <div class="line-warning">
-                    <strong>注意:</strong> 您正在Line瀏覽器中查看此文件。由於Line的限制，部分功能可能無法正常運作。
-                    建議點擊右上角菜单，選擇"在瀏覽器中打開"以獲得完整功能。
+                <div class="line-tip">
+                    <strong>提示:</strong> 您正在Line瀏覽器中查看。點擊圖片可以放大查看，再次點擊或點擊右上角的X可以關閉。
                 </div>
 
                 ${allContent}
@@ -2374,136 +2391,124 @@
                     document.body.classList.add('line-browser');
                 }
 
-                // 終極解決方案 - 直接在頁面上顯示圖片
-                function initImageDisplays() {
-                    var buttons = document.querySelectorAll('.view-images-btn');
-                    
-                    buttons.forEach(function(button, index) {
-                        // 移除舊的點擊事件
-                        button.onclick = null;
-                        
-                        // 為每個按鈕創建唯一的ID
-                        var containerId = 'image-container-' + index;
-                        
-                        // 檢查是否已經有容器
-                        var existingContainer = document.getElementById(containerId);
-                        if (existingContainer) {
-                            // 如果已有容器，只需更新按鈕行為
-                            button.onclick = function() {
-                                toggleImageContainer(containerId);
-                            };
-                            return;
-                        }
-                        
-                        // 獲取圖片數據
-                        var imageData = button.getAttribute('data-images');
-                        if (!imageData) return;
-                        
-                        try {
-                            var images = JSON.parse(imageData);
-                            if (images.length === 0) return;
-                            
-                            // 創建圖片容器
-                            var container = document.createElement('div');
-                            container.id = containerId;
-                            container.className = 'camera-images-container collapsible';
-                            
-                            // 添加圖片
-                            images.forEach(function(imgSrc, imgIndex) {
-                                var imgItem = document.createElement('div');
-                                imgItem.className = 'camera-image-item';
-                                
-                                var img = document.createElement('img');
-                                img.src = imgSrc;
-                                img.alt = '上傳的圖片 ' + (imgIndex + 1);
-                                
-                                var counter = document.createElement('div');
-                                counter.className = 'image-counter';
-                                counter.textContent = '圖片 ' + (imgIndex + 1) + ' / ' + images.length;
-                                
-                                imgItem.appendChild(img);
-                                imgItem.appendChild(counter);
-                                container.appendChild(imgItem);
-                            });
-                            
-                            // 插入到按鈕後面
-                            button.parentNode.insertBefore(container, button.nextSibling);
-                            
-                            // 更新按鈕文本和行為
-                            button.textContent = '📷 顯示圖片 (' + images.length + ')';
-                            button.onclick = function() {
-                                toggleImageContainer(containerId);
-                            };
-                            
-                        } catch (e) {
-                            console.error('初始化圖片顯示錯誤:', e);
-                        }
-                    });
-                }
-
-                // 切換圖片容器的顯示/隱藏
-                function toggleImageContainer(containerId) {
-                    var container = document.getElementById(containerId);
-                    if (container) {
-                        container.classList.toggle('active');
-                        
-                        // 更新按鈕文本
-                        var buttons = document.querySelectorAll('.view-images-btn');
-                        buttons.forEach(function(button) {
-                            if (button.nextSibling && button.nextSibling.id === containerId) {
-                                if (container.classList.contains('active')) {
-                                    button.textContent = button.textContent.replace('顯示', '隱藏');
-                                } else {
-                                    button.textContent = button.textContent.replace('隱藏', '顯示');
-                                }
-                            }
-                        });
-                    }
-                }
-
-                // 頁面加載完成後初始化
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', initImageDisplays);
-                } else {
-                    initImageDisplays();
-                }
-
-                // 為所有現有的拍照單元格初始化
+                // 初始化所有拍照單元格
                 function initCameraCells() {
                     var cameraCells = document.querySelectorAll('[data-type="camera"]');
-                    cameraCells.forEach(function(cell) {
+                    
+                    cameraCells.forEach(function(cell, index) {
                         var imageData = cell.getAttribute('data-images');
                         if (!imageData) return;
                         
                         try {
                             var images = JSON.parse(imageData);
-                            if (images.length === 0) return;
+                            if (images.length === 0) {
+                                cell.innerHTML = '📷 無圖片';
+                                return;
+                            }
                             
-                            // 清除單元格內容
+                            // 清空單元格內容
                             cell.innerHTML = '';
+                            cell.className = cell.className + ' camera-cell';
                             
-                            // 創建按鈕
-                            var button = document.createElement('button');
-                            button.className = 'view-images-btn';
-                            button.setAttribute('data-images', imageData);
-                            button.textContent = '📷 顯示圖片 (' + images.length + ')';
+                            // 添加標題
+                            var title = document.createElement('div');
+                            title.textContent = '📷 拍照 (' + images.length + ')';
+                            title.style.fontWeight = 'bold';
+                            title.style.marginBottom = '5px';
+                            cell.appendChild(title);
                             
-                            cell.appendChild(button);
+                            // 添加縮略圖容器
+                            var container = document.createElement('div');
+                            container.className = 'thumbnail-container';
+                            cell.appendChild(container);
+                            
+                            // 添加縮略圖
+                            images.forEach(function(imgSrc, imgIndex) {
+                                var item = document.createElement('div');
+                                item.className = 'thumbnail-item';
+                                
+                                var img = document.createElement('img');
+                                img.className = 'thumbnail';
+                                img.src = imgSrc;
+                                img.alt = '圖片 ' + (imgIndex + 1);
+                                img.onclick = function() {
+                                    showImagePreview(imgSrc);
+                                };
+                                
+                                // 如果有多張圖片，顯示計數
+                                if (images.length > 1) {
+                                    var count = document.createElement('div');
+                                    count.className = 'thumbnail-count';
+                                    count.textContent = imgIndex + 1;
+                                    item.appendChild(count);
+                                }
+                                
+                                item.appendChild(img);
+                                container.appendChild(item);
+                            });
                             
                         } catch (e) {
                             console.error('初始化拍照單元格錯誤:', e);
+                            cell.innerHTML = '📷 圖片載入錯誤';
                         }
                     });
                 }
 
-                // 初始化所有拍照單元格
-                initCameraCells();
+                // 顯示圖片預覽
+                function showImagePreview(src) {
+                    // 檢查是否已有預覽層
+                    var preview = document.getElementById('imagePreview');
+                    var previewImg = document.getElementById('previewImage');
+                    
+                    if (!preview) {
+                        // 創建預覽層
+                        preview = document.createElement('div');
+                        preview.id = 'imagePreview';
+                        preview.className = 'image-preview';
+                        
+                        previewImg = document.createElement('img');
+                        previewImg.id = 'previewImage';
+                        
+                        var closeBtn = document.createElement('button');
+                        closeBtn.className = 'close-preview';
+                        closeBtn.innerHTML = '✕';
+                        closeBtn.onclick = function() {
+                            preview.classList.remove('active');
+                        };
+                        
+                        // 點擊圖片背景也可關閉
+                        preview.onclick = function(e) {
+                            if (e.target === preview) {
+                                preview.classList.remove('active');
+                            }
+                        };
+                        
+                        preview.appendChild(previewImg);
+                        preview.appendChild(closeBtn);
+                        document.body.appendChild(preview);
+                    }
+                    
+                    // 顯示圖片
+                    previewImg.src = src;
+                    preview.classList.add('active');
+                }
 
-                // 重新初始化函數，供外部調用
-                window.reinitImages = function() {
+                // 頁面加載完成後初始化
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initCameraCells);
+                } else {
                     initCameraCells();
-                    initImageDisplays();
-                };
+                }
+
+                // 添加鍵盤支持
+                document.addEventListener('keydown', function(e) {
+                    var preview = document.getElementById('imagePreview');
+                    if (preview && preview.classList.contains('active')) {
+                        if (e.key === 'Escape') {
+                            preview.classList.remove('active');
+                        }
+                    }
+                });
                 <\/script>
                 </body>
                 </html>`;
