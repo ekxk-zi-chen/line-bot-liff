@@ -93,17 +93,21 @@
             flex-wrap: wrap;
             gap: 4px;
             justify-content: center;
+            max-width: 100%; /* 新增：確保不超過單元格寬度 */
         }
 
         .recorder-cell button {
             flex: 1;
-            min-width: 80px; /* 設定最小寬度 */
+            min-width: 60px; /* 減少最小寬度 */
+            padding: 4px 6px; /* 減少內邊距 */
+            font-size: 12px; /* 縮小字體 */
             white-space: nowrap;
         }
 
         .recorder-cell audio {
             width: 100%;
             margin-top: 5px;
+            max-width: 100%; /* 新增：確保不超過單元格寬度 */
         }
         /* 選項按鈕 */
         .option-button {
@@ -343,23 +347,33 @@
             background: #6c757d;
             color: white;
         }
-        /* 相機預覽樣式 */
+        /* 相機預覽樣式 - 修改为自适应布局 */
         .camera-preview {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             gap: 10px;
             padding: 10px 0;
-            max-height: 300px;
-            overflow-y: auto;
+            width: 100%;
         }
-
+        /* 修改模态框中图片的尺寸设置 */
         .camera-preview img {
-            width: 100px;
-            height: 100px;
+            width: 100%; /* 改为百分比 */
+            height: auto; /* 高度自适应 */
+            aspect-ratio: 1/1; /* 保持宽高比 */
             object-fit: cover;
             border-radius: 5px;
             border: 1px solid #ddd;
         }
+        
+        /* 確保在合併儲存格時圖片能放大 */
+        .camera-preview.large {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+        
+        .camera-preview.large img {
+            aspect-ratio: 4/3;
+        }
+        
         /* 現代化按鈕樣式 */
         .modern-btn {
             padding: 12px 20px;
@@ -451,7 +465,7 @@
             div.table-container { padding: 10px; }
             th, td { padding: 6px 4px; font-size: 14px; }
             .camera-preview {
-                justify-content: center;
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
             }
             
             .camera-btn-container {
@@ -480,16 +494,7 @@
         <!-- 表單填寫內容 -->
         <div id="section-表單填寫" class="content-section">
             <div class="table-container">
-<table border="0" style="border-collapse:collapse; width:613.6484375px; table-layout:fixed;"><thead><tr><th colspan="5" style="font-weight:bold;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th></tr></thead><tbody><tr><td style="width:249.6484375px;font-weight:bold;background-color:#FFFF00;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">傷病患姓名</div></td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td style="width:91.0px;font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">年齡</div></td><td colspan="2" class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td></tr><tr><td style="width:249.6484375px;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">性別</div></td><td class="editable-cell" style="width:91.0px;font-weight:bold;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="男生,女生"><div class="option-container"><button class="option-button" onclick="selectInlineOption(this,'radio')">男生</button><button class="option-button" onclick="selectInlineOption(this,'radio')">女生</button></div></td><td style="width:91.0px;font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">體重</div></td><td colspan="2" class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td></tr><tr><td rowspan="2" style="width:249.6484375px;font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">緊急聯絡人</div></td>
-                    <td rowspan="2" class='editable-cell' style="width:91.0px;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;">
-                        <div class="recorder-cell">
-                            <button onclick="startRecording(this)">🎤 錄音</button>
-                            <button onclick="stopRecording(this)" disabled>⏹ 停止</button>
-                            <button onclick="playRecording(this)" disabled>▶ 播放</button>
-                            <audio controls style="display:none;"></audio>
-                        </div>
-                    </td>
-                    <td style="width:91.0px;font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">傷病患行程總天數</div></td><td colspan="2" class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="radio" data-options='[{"text": "一日", "sub_options": [{"text": "加上半天", "input_positions": null, "display_text": "加上半天", "original_text": "加上半天"}, {"text": "加上一天", "input_positions": null, "display_text": "加上一天", "original_text": "加上一天"}], "sub_option_type": "checkbox", "input_positions": [], "original_text": "一日(多選題)"}, {"text": "二日", "input_positions": null, "sub_options": null, "display_text": "二日", "original_text": "二日"}, {"text": "三日", "input_positions": null, "sub_options": null, "display_text": "三日", "original_text": "三日"}, {"text": "四日", "input_positions": null, "sub_options": null, "display_text": "四日", "original_text": "四日"}, {"text": "五日", "input_positions": null, "sub_options": null, "display_text": "五日", "original_text": "五日"}, {"text": "六日", "input_positions": null, "sub_options": null, "display_text": "六日", "original_text": "六日"}, {"text": "七日", "input_positions": null, "sub_options": null, "display_text": "七日", "original_text": "七日"}]' data-value="" onclick="openCollapseModal(this)">天數</td></tr><tr><td style="width:91.0px;font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">總行程天數</div></td><td colspan="2" class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">可以填寫預計的天數等等計畫</td></tr><tr><td style="width:249.6484375px;font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">發生日期</div></td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td style="width:91.0px;font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">發生時間</div></td><td colspan="2" class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td style="width:249.6484375px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">第幾天發生</div></td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td style="width:91.0px;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">發生地點</div></td><td colspan="2" class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">詳細地點</td></tr><tr><td style="width:249.6484375px;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">患者座標</div></td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">手動填寫</td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="location" onclick="fillCurrentLocation(this)">📍 點擊取得座標</td><td style="width:91.0px;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">目前救難人員座標</div></td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="location" onclick="fillCurrentLocation(this)">📍 點擊取得座標</td></tr><tr><td style="width:249.6484375px;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">接觸時間紀錄</div></td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">預計脫困時間</div></td><td colspan="2" class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="約幾分鐘" onclick="openNumberModal(this)">約幾分鐘</td></tr><tr><td style="width:249.6484375px;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">傷病機轉</div></td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "創傷", "input_positions": null, "sub_options": null, "display_text": "創傷", "original_text": "創傷"}, {"text": "疾病", "input_positions": null, "sub_options": null, "display_text": "疾病", "original_text": "疾病"}, {"text": "高處墜落", "input_positions": null, "sub_options": null, "display_text": "高處墜落", "original_text": "高處墜落"}, {"text": "生物咬螫傷", "input_positions": null, "sub_options": null, "display_text": "生物咬螫傷", "original_text": "生物咬螫傷"}]' data-value="" onclick="openCollapseModal(this)">收合選擇</td><td style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">其他補述</div></td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">✏️ 輸入文字</td>
+<table border="0" style="border-collapse:collapse; width:613.6484375px; table-layout:fixed;"><thead><tr><th colspan="5" style="font-weight:bold;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">意外傷病現場紀錄/SOP</div></th></tr></thead><tbody><tr><td style="width:249.6484375px;font-weight:bold;background-color:#FFFF00;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">傷病患姓名</div></td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td style="width:91.0px;font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">年齡</div></td><td colspan="2" class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td></tr><tr><td style="width:249.6484375px;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">性別</div></td><td class="editable-cell" style="width:91.0px;font-weight:bold;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="男生,女生"><div class="option-container"><button class="option-button" onclick="selectInlineOption(this,'radio')">男生</button><button class="option-button" onclick="selectInlineOption(this,'radio')">女生</button></div></td><td style="width:91.0px;font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">體重</div></td><td colspan="2" class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td></tr><tr><td rowspan="2" style="width:249.6484375px;font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">緊急聯絡人</div></td><td rowspan="2" class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td style="width:91.0px;font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">傷病患行程總天數</div></td><td colspan="2" class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="radio" data-options='[{"text": "一日", "sub_options": [{"text": "加上半天", "input_positions": null, "display_text": "加上半天", "original_text": "加上半天"}, {"text": "加上一天", "input_positions": null, "display_text": "加上一天", "original_text": "加上一天"}], "sub_option_type": "checkbox", "input_positions": [], "original_text": "一日(多選題)"}, {"text": "二日", "input_positions": null, "sub_options": null, "display_text": "二日", "original_text": "二日"}, {"text": "三日", "input_positions": null, "sub_options": null, "display_text": "三日", "original_text": "三日"}, {"text": "四日", "input_positions": null, "sub_options": null, "display_text": "四日", "original_text": "四日"}, {"text": "五日", "input_positions": null, "sub_options": null, "display_text": "五日", "original_text": "五日"}, {"text": "六日", "input_positions": null, "sub_options": null, "display_text": "六日", "original_text": "六日"}, {"text": "七日", "input_positions": null, "sub_options": null, "display_text": "七日", "original_text": "七日"}]' data-value="" onclick="openCollapseModal(this)">天數</td></tr><tr><td style="width:91.0px;font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">總行程天數</div></td><td colspan="2" class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">可以填寫預計的天數等等計畫</td></tr><tr><td style="width:249.6484375px;font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">發生日期</div></td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td><td style="width:91.0px;font-weight:bold;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">發生時間</div></td><td colspan="2" class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</td></tr><tr><td style="width:249.6484375px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">第幾天發生</div></td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</td><td style="width:91.0px;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">發生地點</div></td><td colspan="2" class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">詳細地點</td></tr><tr><td style="width:249.6484375px;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">患者座標</div></td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">手動填寫</td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="location" onclick="fillCurrentLocation(this)">📍 點擊取得座標</td><td style="width:91.0px;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">目前救難人員座標</div></td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="location" onclick="fillCurrentLocation(this)">📍 點擊取得座標</td></tr><tr><td style="width:249.6484375px;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">接觸時間紀錄</div></td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td><td style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">預計脫困時間</div></td><td colspan="2" class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="約幾分鐘" onclick="openNumberModal(this)">約幾分鐘</td></tr><tr><td style="width:249.6484375px;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">傷病機轉</div></td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "創傷", "input_positions": null, "sub_options": null, "display_text": "創傷", "original_text": "創傷"}, {"text": "疾病", "input_positions": null, "sub_options": null, "display_text": "疾病", "original_text": "疾病"}, {"text": "高處墜落", "input_positions": null, "sub_options": null, "display_text": "高處墜落", "original_text": "高處墜落"}, {"text": "生物咬螫傷", "input_positions": null, "sub_options": null, "display_text": "生物咬螫傷", "original_text": "生物咬螫傷"}]' data-value="" onclick="openCollapseModal(this)">收合選擇</td><td style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">其他補述</div></td><td class="editable-cell" style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">✏️ 輸入文字</td>
                     <td class='editable-cell' style="width:91.0px;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;">
                         <div class="recorder-cell">
                             <button onclick="startRecording(this)">🎤 錄音</button>
@@ -542,7 +547,7 @@
                         <audio controls style="display:none;"></audio>
                     </div>
                 </td>
-                </tr></table>
+                </tr><tr><td colspan="6" class="editable-cell" style="vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="camera" data-images="[]" onclick="openCameraModal(this)">📷 拍照</td></tr></table>
             </div>
         </div>
         <!-- 評估，處置與撤退計畫內容 -->
@@ -681,16 +686,25 @@
             }
         });
         // 相機功能
+        // 修改openCameraModal函數，根據合併儲存格調整預覽大小
         function openCameraModal(cell) {
             currentCell = cell;
             const images = JSON.parse(cell.dataset.images || '[]');
             const previewContainer = document.getElementById('cameraPreviewContainer');
             previewContainer.innerHTML = '';
             
+            // 檢查是否為合併儲存格
+            const isMerged = cell.colSpan > 1 || cell.rowSpan > 1;
+            if (isMerged) {
+                previewContainer.classList.add('large');
+            } else {
+                previewContainer.classList.remove('large');
+            }
+            
             images.forEach((imgData, index) => {
                 const imgDiv = document.createElement('div');
-                imgDiv.innerHTML = `<img src="${imgData}" style="width:100px; height:100px; object-fit:cover;">
-                                    <button onclick="removeCameraImage(${index})">刪除</button>`;
+                imgDiv.innerHTML = `<img src="${imgData}" alt="上傳的圖片 ${index + 1}">
+                                    <button class="modern-btn secondary" style="width:100%; margin-top:5px; padding:5px;" onclick="removeCameraImage(${index})">刪除</button>`;
                 previewContainer.appendChild(imgDiv);
             });
             
@@ -790,13 +804,28 @@
             openCameraModal(currentCell); // 更新預覽
         }
 
+        // 修改updateCameraCellDisplay函數，使圖片在單元格內正確顯示
         function updateCameraCellDisplay(cell) {
             const images = JSON.parse(cell.dataset.images || '[]');
             if (images.length > 0) {
-                cell.innerHTML = `<div style="text-align:center;">
-                    <img src="${images[0]}" style="width:50px; height:50px; object-fit:cover;"><br>
-                    <span>${images.length}張圖片</span>
-                </div>`;
+                // 更准确地检测合并单元格
+                const isMerged = cell.colSpan > 1 || cell.rowSpan > 1;
+                
+                if (isMerged) {
+                    // 合并单元格时使用更大的图片
+                    let imagesHTML = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(80px, 1fr)); gap:5px; width:100%; height:100%;">';
+                    images.forEach(imgData => {
+                        imagesHTML += `<img src="${imgData}" style="width:100%; height:100%; object-fit:contain; border-radius:3px; border:1px solid #ddd;">`;
+                    });
+                    imagesHTML += '</div>';
+                    cell.innerHTML = imagesHTML;
+                } else {
+                    // 普通单元格使用小图
+                    cell.innerHTML = `<div style="text-align:center; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                        <img src="${images[0]}" style="max-width:100%; max-height:80%; object-fit:contain; border-radius:3px; border:1px solid #ddd;">
+                        <span style="font-size:0.8em; margin-top:5px;">${images.length}張圖片</span>
+                    </div>`;
+                }
             } else {
                 cell.innerHTML = '📷 拍照';
             }
