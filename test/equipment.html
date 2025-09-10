@@ -460,21 +460,40 @@
         
         /* 響應式設計 */
         @media (max-width: 768px) {
-            .main-content { padding: 70px 10px 20px 10px; }
-            .sidebar { width: 280px; left: -280px; }
-            div.table-container { padding: 10px; }
-            th, td { padding: 6px 4px; font-size: 14px; }
-            .camera-preview {
-                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-            }
-            
-            .camera-btn-container {
-                flex-direction: column;
-            }
-            
-            .modern-btn {
+            .table-container {
                 width: 100%;
-                margin: 5px 0;
+                overflow-x: visible;
+                padding: 5px;
+            }
+            
+            table {
+                width: 100% !important;
+                max-width: 100%;
+                table-layout: auto;
+            }
+            
+            th, td {
+                padding: 4px 2px;
+                font-size: 12px;
+                word-break: break-word;
+                white-space: normal;
+            }
+            
+            /* 调整表头字体大小 */
+            th div[data-gjs-editable="true"] {
+                font-size: 12px;
+            }
+            
+            /* 调整内容字体大小 */
+            td div[data-gjs-editable="true"] {
+                font-size: 11px;
+            }
+            
+            /* 调整选项按钮大小 */
+            .option-button {
+                padding: 4px 6px;
+                font-size: 11px;
+                min-height: 28px;
             }
         }
     </style>
