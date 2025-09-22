@@ -614,14 +614,6 @@
             }
         }
 
-        // ---------- 修改 manual-login 按鈕行為（可替換你 setupEventListeners 內的那段） ----------
-        document.getElementById('manual-login-btn').addEventListener('click', async function () {
-            addDebugInfo('手動登入按鈕被按');
-            // set timestamp 記錄：表明是我們發起的 login
-            localStorage.setItem('loginRedirect', String(Date.now()));
-            // 觸發 login（這會導到 LINE 網頁或 LIFF login）
-            liff.login({ redirectUri: window.location.href });
-        });
 
         // ---------- Token 驗證 ----------
         async function verifyToken(idToken, sessionToken) {
@@ -780,27 +772,13 @@
             });
             
             // 登入按鈕
-            document.getElementById('manual-login-btn').addEventListener('click', async function() {
-                addDebugInfo('手動登入按鈕點擊');
-                toggleLoader('login', true);
-                
-                try {
-                    if (!LIFF_INITIALIZED) {
-                        addDebugInfo('LIFF 尚未初始化，正在初始化...');
-                        await liff.init({ liffId: CONFIG.LIFF_ID });
-                        LIFF_INITIALIZED = true;
-                    }
-                    
-                    // 設置重定向標記，以便返回時識別
-                    localStorage.setItem('loginRedirect', 'true');
-                    liff.login({
-                        redirectUri: window.location.origin + window.location.pathname
-                    });
-                } catch (error) {
-                    addDebugInfo('登入錯誤: ' + error.message);
-                    showStatus('登入失敗: ' + error.message, 'error');
-                    toggleLoader('login', false);
-                }
+            document.getElementById('manual-login-btn').addEventListener('click', async function () {
+                addDebugInfo('手動登入按鈕被按');
+                // set timestamp 記錄：表明是我們發起的 login
+                localStorage.setItem('loginRedirect', String(Date.now()));
+                LOGIN_IN_PROGRESS = true;            // <- 新增
+                // 觸發 login（這會導到 LINE 網頁或 LIFF login）
+                liff.login({ redirectUri: window.location.href });
             });
             
             // 清除Session按鈕
