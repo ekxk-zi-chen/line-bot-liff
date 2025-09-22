@@ -399,13 +399,33 @@
 
         // ---------- Session管理函數 ----------
         function clearSession() {
-            localStorage.removeItem('sessionToken');
-            localStorage.removeItem('loginRedirect');
-            SESSION_TOKEN = null;
-            addDebugInfo('已清除本地Session和重定向標記');
-            showStatus('已清除登入狀態，請重新登入', 'info');
-            showLoginOptions();
+            try {
+                // 清掉 LIFF SDK 內部 token
+                if (typeof liff !== 'undefined' && liff.isLoggedIn()) {
+                    liff.logout(); // LIFF SDK 會清掉內部 token / session
+                    addDebugInfo('已呼叫 liff.logout() 清除 SDK token');
+                }
+
+                // 清掉 localStorage 舊的 session
+                localStorage.removeItem('sessionToken');
+                localStorage.removeItem('loginRedirect');
+
+                // 清掉全局變數
+                SESSION_TOKEN = null;
+                ID_TOKEN = null;
+                PROFILE = null;
+
+                addDebugInfo('已清除本地 Session、全局變數、LIFF token');
+                showStatus('已清除登入狀態，請重新登入', 'info');
+
+                // 顯示登入選項
+                showLoginOptions();
+            } catch (err) {
+                console.error('清除 Session 失敗:', err);
+                addDebugInfo('清除 Session 失敗: ' + err.message);
+            }
         }
+
 
         function saveSession(token) {
             localStorage.setItem('sessionToken', token);
@@ -484,19 +504,20 @@
         // 強制取得最新的 ID Token
         async function getFreshIdToken() {
             try {
-                if (typeof liff === 'undefined') {
-                    addDebugInfo('getFreshIdToken: liff 未定義');
-                    return null;
-                }
+                if (typeof liff === 'undefined') return null;
+
+                // 如果還登入，拿 token
                 const token = liff.getIDToken ? liff.getIDToken() : null;
-                addDebugInfo('getFreshIdToken: liff.isLoggedIn=' + !!(liff.isLoggedIn && liff.isLoggedIn()) + ', tokenLength=' + (token ? token.length : 0));
+
                 if (token && !isTokenExpired(token)) {
+                    addDebugInfo('getFreshIdToken: token 有效, 長度=' + token.length);
                     return token;
                 }
-                // **重要**：不要在這裡自動呼叫 liff.login()，只回傳 null
-                return null;
-            } catch (e) {
-                addDebugInfo('getFreshIdToken 錯誤: ' + e.message);
+
+                addDebugInfo('getFreshIdToken: token 無效或不存在, 回傳 null');
+                return null; // 不自動登入，強制手動登入
+            } catch (err) {
+                addDebugInfo('getFreshIdToken 錯誤: ' + err.message);
                 return null;
             }
         }
@@ -812,3 +833,5 @@
     </script>
 </body>
 </html>
+
+eyJraWQiOiIw
