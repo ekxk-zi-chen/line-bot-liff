@@ -396,7 +396,6 @@
         let PROFILE = null;
         let LIFF_INITIALIZED = false;
         let IS_EXTERNAL_BROWSER = false;
-        let LOGIN_IN_PROGRESS = false;
 
         // ---------- Session管理函數 ----------
         function clearSession() {
@@ -482,18 +481,19 @@
             }
         }
 
-        // ---------- 更新：取得 idToken（不自動 login） ----------
+        // 強制取得最新的 ID Token
         async function getFreshIdToken() {
             try {
                 if (typeof liff === 'undefined') {
                     addDebugInfo('getFreshIdToken: liff 未定義');
                     return null;
                 }
-                const token = liff.getIDToken();
+                const token = liff.getIDToken ? liff.getIDToken() : null;
                 addDebugInfo('getFreshIdToken: liff.isLoggedIn=' + !!(liff.isLoggedIn && liff.isLoggedIn()) + ', tokenLength=' + (token ? token.length : 0));
                 if (token && !isTokenExpired(token)) {
                     return token;
                 }
+                // **重要**：不要在這裡自動呼叫 liff.login()，只回傳 null
                 return null;
             } catch (e) {
                 addDebugInfo('getFreshIdToken 錯誤: ' + e.message);
@@ -501,130 +501,94 @@
             }
         }
 
-        // ---------- 更新：初始化流程（避免無限 login，支援外部瀏覽器嘗試拿 token） ----------
+        // ---------- 初始化流程 ----------
         async function initializeApp() {
             showStatus('正在初始化應用程式...');
-            addDebugInfo('開始 initializeApp');
+            addDebugInfo('開始初始化應用');
 
             try {
-                // 1) init LIFF
-                addDebugInfo('呼叫 liff.init...');
+                // 初始化 LIFF
+                addDebugInfo('正在初始化 LIFF...');
                 await liff.init({ liffId: CONFIG.LIFF_ID });
                 LIFF_INITIALIZED = true;
-                addDebugInfo('LIFF 初始化完成');
-
-                // 立刻輸出狀態（方便追蹤）
-                try {
-                    addDebugInfo('liff.isInClient=' + (liff.isInClient ? liff.isInClient() : 'unknown'));
-                    addDebugInfo('liff.isLoggedIn=' + (liff.isLoggedIn ? liff.isLoggedIn() : 'unknown'));
-                    const peek = liff.getIDToken ? liff.getIDToken() : null;
-                    addDebugInfo('liff.getIDToken length=' + (peek ? peek.length : 0));
-                    addDebugInfo('localStorage keys: ' + JSON.stringify(Object.keys(localStorage)));
-                    addDebugInfo('SESSION_TOKEN exists? ' + (SESSION_TOKEN ? 'yes' : 'no'));
-                } catch (e) { addDebugInfo('init debug error: ' + e.message); }
+                addDebugInfo('LIFF 初始化成功');
 
                 const isInLINE = liff.isInClient();
                 IS_EXTERNAL_BROWSER = !isInLINE;
+                addDebugInfo('運行環境: ' + (isInLINE ? 'LINE 內部' : '外部瀏覽器'));
 
-                // 2) 檢查是否剛從 login redirect 回來（使用 timestamp 標記）
-                const redirectStamp = localStorage.getItem('loginRedirect');
-                if (redirectStamp) {
-                    const age = Date.now() - Number(redirectStamp || 0);
-                    addDebugInfo('loginRedirect stamp exists, age(ms)=' + age);
-                    // 若 < 5 分鐘內，視為剛回來（把時間放寬到 5 分鐘以免網路延遲）
-                    if (age > 0 && age < 5 * 60 * 1000) {
-                        addDebugInfo('偵測到剛從 login redirect 回來，清除標記並嘗試重試取得 token');
-                        localStorage.removeItem('loginRedirect');
-                        clearRedirectState();
-
-                        // 等待/重試機制（總共等待最多 5 秒，每 500ms 嘗試一次）
-                        let attempts = 0;
-                        const maxAttempts = 10;
-                        let got = null;
-                        while (attempts < maxAttempts) {
-                            attempts++;
-                            addDebugInfo(`redirect retry #${attempts} - 嘗試取得 idToken`);
-                            got = await getFreshIdToken();
-                            if (got) break;
-                            // 等 500ms 再試
-                            await new Promise(res => setTimeout(res, 500));
-                        }
-
-                        if (got) {
-                            addDebugInfo('redirect retried and got idToken (len=' + got.length + '), 呼叫 verifyIdToken()');
-                            ID_TOKEN = got;
-                            await verifyIdToken(ID_TOKEN);
-                            return;
-                        } else {
-                            addDebugInfo('redirect retried 但仍未取得 idToken（可能 cookie/cross-site 設定或 LIFF 尚未完成），繼續後續流程');
-                            // 繼續後面流程（不要自動 login）
-                        }
-                    } else {
-                        // 舊的標記，清掉避免干擾
-                        localStorage.removeItem('loginRedirect');
-                        addDebugInfo('loginRedirect stamp 太舊，已移除');
-                    }
+                // 判斷是否重定向回來
+                if (getUrlParam('liff.state')) {
+                    addDebugInfo('檢測到登入重定向回傳');
+                    clearRedirectState();
                 }
 
-                // 3) 若有有效 local session，先驗證 session (優先)
+                // 先嘗試快取 session
                 if (SESSION_TOKEN && validateSessionFormat(SESSION_TOKEN) && !isTokenExpired(SESSION_TOKEN)) {
-                    addDebugInfo('有本機 SESSION_TOKEN，嘗試呼叫後端驗證');
-                    const idt = await getFreshIdToken(); // 可能為 null
-                    addDebugInfo('呼叫 verifyToken with sessionToken, idToken length=' + (idt ? idt.length : 0));
-                    const r = await verifyToken(idt, SESSION_TOKEN);
-                    addDebugInfo('verifyToken(for session) 回傳: ' + JSON.stringify(r));
-                    if (r && r.status === 'ok') {
-                        addDebugInfo('session 驗證成功，render UI');
-                        renderUserInterface(r);
+                    const freshIdToken = await getFreshIdToken();
+                    if (!freshIdToken) return; // login redirect
+                    const result = await verifyToken(freshIdToken, SESSION_TOKEN);
+                    if (result && result.status === 'ok') {
+                        renderUserInterface(result);
                         return;
-                    } else {
-                        addDebugInfo('session 驗證失敗，移除本機 session 並繼續');
-                        localStorage.removeItem('sessionToken');
-                        SESSION_TOKEN = null;
                     }
                 }
 
-                // 4) 嘗試從 LIFF 直接拿 idToken（不自動 login）
-                ID_TOKEN = await getFreshIdToken();
-                if (ID_TOKEN) {
-                    addDebugInfo('直接取得 idToken，開始驗證');
-                    await verifyIdToken(ID_TOKEN);
-                    return;
-                }
-
-                // 5) 還拿不到 token：視運行環境處理，但**絕不**自動重複呼叫 liff.login() 導致迴圈
+                // 如果在 LINE 環境
                 if (isInLINE) {
-                    // 在 LINE client 裡：如果尚未登入，才觸發 login（並設定 timestamp 標記）
+                    // 在 LINE client 裡，先檢查是否登入
+                    addDebugInfo('LINE client 環境偵測到 (isInLINE=true)');
                     if (!liff.isLoggedIn()) {
-                        if (LOGIN_IN_PROGRESS) {
-                            addDebugInfo('已在 login 進行中，略過再次呼叫');
-                            showLoginOptions();
-                            return;
-                        }
-                        addDebugInfo('LINE client 且未登入，設定 loginRedirect 並呼叫 liff.login()');
-                        localStorage.setItem('loginRedirect', String(Date.now()));
-                        LOGIN_IN_PROGRESS = true;
-                        liff.login({ redirectUri: window.location.href });
-                        return;
-                    } else {
-                        // 已登入但仍沒 token（較罕見） -> 顯示登入選項供使用者手動操作
-                        addDebugInfo('LINE client 已登入但無 idToken，顯示登入選項');
+                        addDebugInfo('LINE client：用戶未登入 -> 顯示登入選項（不自動跳轉）');
                         showLoginOptions();
                         return;
                     }
+
+                    // 已登入則嘗試拿 token（getFreshIdToken 不會自動呼叫 login）
+                    ID_TOKEN = await getFreshIdToken();
+                    addDebugInfo('LINE client：getFreshIdToken 回傳長度=' + (ID_TOKEN ? ID_TOKEN.length : 0));
+                    if (!ID_TOKEN) {
+                        addDebugInfo('LINE client：已登入但未拿到 idToken，顯示登入選項讓使用者手動登入以完成授權');
+                        showLoginOptions();
+                        return;
+                    }
+
+                    // 拿到 token -> 呼叫後端驗證
+                    addDebugInfo('LINE client：取得 idToken，呼叫 verifyIdToken()');
+                    await verifyIdToken(ID_TOKEN);
+
                 } else {
-                    // 外部瀏覽器：不要自動呼叫 login（避免跳走），顯示登入選項供手動登入
-                    addDebugInfo('外部瀏覽器且無 idToken，顯示登入選項（不要自動跳轉）');
-                    showLoginOptions();
-                    return;
+                    // 外部瀏覽器：先檢查 liff.isLoggedIn()（如果 true，嘗試拿 idToken 去驗證）
+                    addDebugInfo('外部瀏覽器偵測 (isInLINE=false)，嘗試檢查 liff.isLoggedIn()');
+                    const extLoggedIn = (typeof liff.isLoggedIn === 'function') ? liff.isLoggedIn() : false;
+                    addDebugInfo('外部瀏覽器：liff.isLoggedIn=' + extLoggedIn);
+
+                    if (extLoggedIn) {
+                        // 使用者在該瀏覽器可能已登入 LINE，嘗試拿 idToken
+                        ID_TOKEN = await getFreshIdToken();
+                        addDebugInfo('外部瀏覽器：getFreshIdToken 回傳長度=' + (ID_TOKEN ? ID_TOKEN.length : 0));
+                        if (ID_TOKEN) {
+                            addDebugInfo('外部瀏覽器：取得 idToken -> 呼叫 verifyIdToken()');
+                            await verifyIdToken(ID_TOKEN);
+                            return;
+                        } else {
+                            addDebugInfo('外部瀏覽器：liff.isLoggedIn=true 但無 idToken（可能 race 或 cookie 問題），顯示登入按鈕');
+                            showLoginOptions();
+                            return;
+                        }
+                    } else {
+                        // 未登入，顯示登入按鈕（由使用者手動觸發登入）
+                        addDebugInfo('外部瀏覽器：未登入，顯示登入選項（請手動按登入）');
+                        showLoginOptions();
+                        return;
+                    }
                 }
-            } catch (err) {
-                addDebugInfo('initializeApp 捕獲錯誤: ' + (err && err.message ? err.message : err));
-                showStatus('初始化錯誤: ' + (err && err.message ? err.message : ''), 'error');
+
+            } catch (error) {
+                console.error('初始化錯誤:', error);
+                addDebugInfo('初始化錯誤: ' + error.message);
+                showStatus('初始化失敗: ' + error.message, 'error');
                 showLoginOptions();
-            } finally {
-                // reset guard（避免因異常鎖住）
-                LOGIN_IN_PROGRESS = false;
             }
         }
 
@@ -786,14 +750,27 @@
             });
             
             // 登入按鈕
-            document.getElementById('manual-login-btn').addEventListener('click', async function () {
-                addDebugInfo('手動登入按鈕被按');
-                // set timestamp 記錄：表明是我們發起的 login
-                localStorage.setItem('loginRedirect', String(Date.now()));
-                LOGIN_IN_PROGRESS = true;
-                // 使用沒有 query 的乾淨 redirectUri（避免頁面回來時帶入舊的 query）
-                const redirectUri = window.location.origin + window.location.pathname;
-                liff.login({ redirectUri });
+            document.getElementById('manual-login-btn').addEventListener('click', async function() {
+                addDebugInfo('手動登入按鈕點擊');
+                toggleLoader('login', true);
+                
+                try {
+                    if (!LIFF_INITIALIZED) {
+                        addDebugInfo('LIFF 尚未初始化，正在初始化...');
+                        await liff.init({ liffId: CONFIG.LIFF_ID });
+                        LIFF_INITIALIZED = true;
+                    }
+                    
+                    // 設置重定向標記，以便返回時識別
+                    localStorage.setItem('loginRedirect', 'true');
+                    liff.login({
+                        redirectUri: window.location.origin + window.location.pathname
+                    });
+                } catch (error) {
+                    addDebugInfo('登入錯誤: ' + error.message);
+                    showStatus('登入失敗: ' + error.message, 'error');
+                    toggleLoader('login', false);
+                }
             });
             
             // 清除Session按鈕
