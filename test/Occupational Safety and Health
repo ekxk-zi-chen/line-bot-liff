@@ -1,0 +1,2521 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026花蓮野蠻的驕傲more比賽裝備清單</title>
+    <style>
+        /* 基礎樣式 */
+        * { box-sizing: border-box; }
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Microsoft JhengHei', sans-serif; 
+            font-size: 16px; /* 添加这行，调整基础字体大小 */
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* 選單按鈕 */
+        .menu-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        .menu-button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        /* 側邊欄 */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 280px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            z-index: 1000;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 
+                2px 0 40px rgba(0,0,0,0.15),
+                0 0 0 1px rgba(255,255,255,0.1);
+            border-right: none;
+        }
+        .sidebar.open { left: 0; }
+        .sidebar-header {
+            padding: 30px 25px;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+        .sidebar-item {
+            padding: 20px 25px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: #333; /* 確保文字顏色 */
+            font-size: 16px;
+        }
+        .sidebar-item:hover { 
+            background: rgba(102, 126, 234, 0.08);
+            transform: translateX(8px);
+            color: #667eea; /* 懸停時的文字顏色 */
+        }
+        .sidebar-item.active { 
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white !important; /* 強制白色文字 */
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            border-left: 4px solid rgba(255,255,255,0.5);
+        }
+        /* 確保活動項目的圖標也是白色 */
+        .sidebar-item.active::before {
+            filter: brightness(0) invert(1);
+        }
+        /* 主要內容區域 */
+        .main-content {
+            padding: 80px 15px 20px 15px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: transparent;
+        }
+        
+        /* 容器 */
+        div.table-container {
+            overflow-x: auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 
+                0 20px 40px rgba(0,0,0,0.1),
+                0 8px 32px rgba(255,255,255,0.2);
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        
+        /* 表格基礎 */
+        table {
+            table-layout: auto;
+            width: 100%;
+            margin: 0 auto;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        /* 每一行居中對齊 */
+        tr {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            width: 100%;
+            gap: 8px;
+            padding: 8px 0;
+            transition: background-color 0.2s ease;
+        }
+        tr:hover {
+            background-color: rgba(102, 126, 234, 0.05);
+        }
+        td, th {
+            flex: 1 1 auto;
+            min-width: 80px;
+            max-width: 100%;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            vertical-align: middle;
+            text-align: center;
+            padding: 12px 8px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            font-size: 15px; /* 添加这行，表格字体调大 */
+        }
+
+        /* 表頭美化 - 只在完全沒有內聯樣式時應用紫色 */
+        th:not([style]) {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        /* 有內聯樣式的表頭就完全沿用Excel設定，不強制任何顏色 */
+        th[style] {
+            /* 不設定背景和顏色，讓內聯樣式完全控制 */
+        }
+        
+        /* 可編輯 cell 樣式 */
+        .editable-cell { 
+            /* 移除 background 和 color，讓Excel的內聯樣式優先 */
+            font-weight: 600; 
+            cursor: pointer; 
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(255, 234, 167, 0.3);
+            transition: all 0.3s ease;
+        }
+        /* 只有當單元格完全沒有內聯樣式時才應用黃色背景 */
+        .editable-cell:not([style]) { 
+            background: linear-gradient(135deg, #fff8dc, #ffeaa7);
+            color: #333;
+        }
+        .editable-cell:hover { 
+            background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(253, 203, 110, 0.4);
+        }
+        /* 錄音按鈕 */
+        .recorder-cell {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: center;
+            max-width: 100%; /* 新增：確保不超過單元格寬度 */
+        }
+
+        .recorder-cell button {
+            flex: 1;
+            min-width: 60px; /* 減少最小寬度 */
+            padding: 4px 6px; /* 減少內邊距 */
+            font-size: 12px; /* 縮小字體 */
+            white-space: nowrap;
+        }
+
+        .recorder-cell audio {
+            width: 100%;
+            margin-top: 5px;
+            max-width: 100%; /* 新增：確保不超過單元格寬度 */
+        }
+        /* 選項按鈕 */
+        .option-button {
+            margin: 3px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            cursor: pointer;
+            white-space: normal;
+            word-break: break-word;
+            flex-shrink: 0;
+            min-height: 44px; /* 手機友好尺寸 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            line-height: 1.4;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .option-button:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        /* 添加容器樣式確保正確佈局 */
+        /* 選項按鈕容器 - 修改為置中對齊 */
+        .option-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px; /* 增加間距從 4px 改為 8px */
+            width: 100%;
+            box-sizing: border-box;
+            align-items: center;
+            justify-content: center; /* 添加這行 - 水平置中 */
+            padding: 5px; /* 添加內邊距 */
+        }
+        /* 選項按鈕 - 調整間距和對齊 */
+        .option-button {
+            margin: 4px; /* 從 3px 增加到 4px */
+            padding: 12px 18px; /* 調整內邊距 */
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            cursor: pointer;
+            white-space: normal;
+            word-break: break-word;
+            flex-shrink: 0;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            line-height: 1.4;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            flex-grow: 1; /* 添加這行 - 讓按鈕平均分配空間 */
+            max-width: 200px; /* 添加最大寬度限制 */
+        }
+        /* 當選項很少時，確保按鈕不會太寬 */
+        .option-container:has(.option-button:nth-child(1):nth-last-child(1)) .option-button,
+        .option-container:has(.option-button:nth-child(2):nth-last-child(1)) .option-button,
+        .option-container:has(.option-button:nth-child(3):nth-last-child(1)) .option-button {
+            max-width: 150px; /* 選項很少時限制最大寬度 */
+        }
+        .option-button.selected { 
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; 
+            border-color: #667eea;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* 匯出區域 */
+        .export-section { text-align: center; padding: 40px 20px; }
+        #exportBtn {
+            padding: 18px 35px;
+            background: linear-gradient(135deg, #00b894, #00a085);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0, 184, 148, 0.3);
+            transition: all 0.3s ease;
+            min-height: 60px; /* 手機友好 */
+        }
+        #exportBtn:hover { 
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 184, 148, 0.4);
+        }
+        
+        /* Modal 樣式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            position: relative;
+            width: 90%;
+            max-width: 500px;
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        /* 在CSS部分添加以下样式 */
+        .collapse-options-container {
+            margin-bottom: 15px;
+        }
+
+        .collapse-option {
+            margin-bottom: 10px;
+        }
+
+        .main-option {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+
+        .main-option-checkbox {
+            margin-right: 10px;
+        }
+
+        .main-option-label {
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .sub-options-container {
+            margin-left: 30px;
+            margin-top: 5px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+
+        .sub-option {
+            margin-bottom: 5px;
+        }
+
+        .sub-option-input {
+            margin-right: 8px;
+        }
+
+        .sub-option-label {
+            cursor: pointer;
+        }
+
+        .option-input,
+        .sub-option-input {
+            margin-right: 8px;
+        }
+
+
+        .option-label,
+        .sub-option-label {
+            cursor: pointer;
+        }
+        .sub-option-input-field,
+        .option-input-field {
+            width: 100px;
+            padding: 4px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+        /* 這是選項裡面又可以填寫的美化 */
+        .option-with-inputs {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .option-with-inputs label {
+            display: inline-flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .option-with-inputs input[type="text"],
+        .option-with-inputs input[type="number"] {
+            width: 60px;
+            padding: 4px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin: 0 5px;
+        }
+        /* 時間選項按鈕 */
+        /* 時間選項菜單樣式（手機優化） */
+        .time-options {
+            position: fixed;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 150px;
+        }
+
+        .time-options button {
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #f8f9fa;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .time-options button:hover {
+            background: #e9ecef;
+        }
+
+        /* 時間編輯器樣式（手機優化） */
+        .time-editor-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .time-editor-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .time-editor-content input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .time-editor-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            gap: 10px;
+        }
+
+        .time-editor-buttons button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .time-editor-confirm {
+            background: #007bff;
+            color: white;
+        }
+
+        .time-editor-cancel {
+            background: #6c757d;
+            color: white;
+        }
+        /* 相機預覽樣式 - 修改为自适应布局 */
+        .camera-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            padding: 10px 0;
+            width: 100%;
+        }
+        /* 修改模态框中图片的尺寸设置 */
+        .camera-preview img {
+            width: 100%; /* 改为百分比 */
+            height: auto; /* 高度自适应 */
+            aspect-ratio: 1/1; /* 保持宽高比 */
+            object-fit: cover;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        /* 確保在合併儲存格時圖片能放大 */
+        .camera-preview.large {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+        
+        .camera-preview.large img {
+            aspect-ratio: 4/3;
+        }
+        
+        /* 現代化按鈕樣式 */
+        .modern-btn {
+            padding: 12px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            margin: 5px;
+        }
+        
+        .modern-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .modern-btn:active {
+            transform: translateY(0);
+        }
+        
+        .modern-btn.secondary {
+            background: #f44336;
+        }
+        
+        .modern-btn.secondary:hover {
+            background: #d32f2f;
+        }
+        
+        /* 相機模態框按鈕容器 */
+        .camera-btn-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        /* 提醒視窗 */
+        #reminder {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 2147483647;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+        }
+        #reminder .modal-content {
+            max-width: 90%;
+            width: 520px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+        #reminder .reminder-message {
+            font-size: 20px;
+            margin-bottom: 16px;
+            color: #222;
+        }
+        #reminder .reminder-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 8px;
+        }
+        #reminder .reminder-actions button {
+            padding: 12px 22px;
+            font-size: 18px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+        }
+        #reminder .play-sound-btn { background: #ff7043; color: #fff; display: none; }
+        #reminder .ok-btn { background: #4CAF50; color: #fff; }
+        
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            body, html {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background-attachment: fixed;
+                font-size: 15px; /* 手机端基础字体 */
+            }
+            .menu-button {
+                top: 15px;
+                left: 15px;
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+            .main-content {
+                padding: 70px 10px 15px 10px;
+            }
+            
+            div.table-container {
+                padding: 20px;
+                border-radius: 18px;
+                margin-bottom: 20px;
+                backdrop-filter: blur(15px);
+                -webkit-backdrop-filter: blur(15px);
+            }
+            .table-container {
+                width: 100%;
+                overflow-x: visible;
+                padding: 5px;
+            }
+            
+            table {
+                width: 100% !important;
+                max-width: 100%;
+                table-layout: auto;
+            }
+            
+            td, th {
+                padding: 10px 6px;
+                font-size: 14px;
+                min-width: 70px;
+                
+            }
+            
+            /* 调整表头字体大小 */
+            th div[data-gjs-editable="true"] {
+                font-size: 14px;
+            }
+            
+            /* 调整内容字体大小 */
+            td div[data-gjs-editable="true"] {
+                font-size: 13px;
+            }
+            
+            /* 调整选项按钮大小 */
+            .option-button {
+                padding: 10px 14px; /* 手機端內邊距 */
+                font-size: 14px; /* 手機端字體大小 */
+                min-height: 42px;
+                margin: 3px;
+                max-width: 180px; /* 手機端最大寬度 */
+            }
+            
+            .option-container {
+                gap: 6px; /* 手機端間距稍小 */
+            }
+            #exportBtn {
+                padding: 16px 30px;
+                font-size: 16px;
+                min-height: 55px;
+            }
+            
+            .sidebar {
+                width: 85%;
+                max-width: 300px;
+                background: rgba(255, 255, 255, 0.98);
+                backdrop-filter: blur(25px);
+                -webkit-backdrop-filter: blur(25px);
+            }
+        }
+        /* 觸摸友好的改進 */
+        @media (max-width: 480px) {
+            body, html {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                font-size: 14px; /* 小屏幕基础字体 */
+            }
+            div.table-container {
+                padding: 15px;
+                border-radius: 16px;
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+            td, th {
+                padding: 8px 4px;
+                font-size: 12px;
+                min-width: 60px;
+                font-size: 13px; /* 小屏幕表格字体 */
+            }
+            
+            .option-button {
+                padding: 8px 12px;
+                font-size: 13px;
+                min-height: 40px;
+                margin: 2px;
+                max-width: 160px;
+            }
+            
+            .option-container {
+                gap: 4px;
+            }
+            
+            /* 確保觸摸目標足夠大 */
+            button, .editable-cell, .sidebar-item {
+                min-height: 44px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="menu-button" onclick="toggleSidebar()">選單</button>
+    
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">📋 功能選單</div>
+        <div class="sidebar-item active" onclick="showSection('表單填寫')">📝 一、職安專章  保障消防人員工作安全</div>
+        <div class="sidebar-item" onclick="showSection('二、消防法三權')">二、消防法三權</div>
+        <div class="sidebar-item" onclick="showSection('三、LPMO團隊建置及推動安全衛生工作')">三、LPMO團隊建置及推動安全衛生工作</div>
+        <div class="sidebar-item" onclick="showSection('四、安全衛生管理手冊')">四、安全衛生管理手冊</div>
+        <div class="sidebar-item" onclick="showSection('五、安全衛生管理作業程序書')">五、安全衛生管理作業程序書</div>
+        <div class="sidebar-item" onclick="showSection('匯出')">💾 匯出</div>
+    </div>
+
+    <div class="main-content">
+        <!-- 表單填寫內容 -->
+        <div id="section-表單填寫" class="content-section">
+            <div class="table-container">
+<table border="0" style="border-collapse:collapse; width:100%; table-layout:auto;"><thead><tr></tr></thead><tbody><tr><td colspan="5" style="width:249.6484375px;font-weight:bold;background-color:#00B050;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">一、職安專章  保障消防人員工作安全</div></td></tr><tr><td colspan="5" class="editable-cell" style="width:249.6484375px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "1.中央主管機關為預防消防人員基於其身分與職務活動所可能引起之生命、身體及健康危害,應遴聘消防機關代表、公務人員協會代表及學者專家,組成消防人員職務安全衛生諮詢會(以下簡稱諮詢會)。", "input_positions": null, "sub_options": null, "display_text": "1.中央主管機關為預防消防人員基於其身分與職務活動所可能引起之生命、身體及健康危害,應遴聘消防機關代表、公務人員協會代表及學者專家,組成消防人員職務安全衛生諮詢會(以下簡稱諮詢會)。", "original_text": "1.中央主管機關為預防消防人員基於其身分與職務活動所可能引起之生命、身體及健康危害,應遴聘消防機關代表、公務人員協會代表及學者專家,組成消防人員職務安全衛生諮詢會(以下簡稱諮詢會)。"}, {"text": "2.諮詢會委員任一性別比例不得少於三分之一。", "input_positions": null, "sub_options": null, "display_text": "2.諮詢會委員任一性別比例不得少於三分之一。", "original_text": "2.諮詢會委員任一性別比例不得少於三分之一。"}, {"text": "3.諮詢會應就消防人員之職務安全衛生政策、安全衛生管理系統、安全衛生防護設備及措施等事項提供建議。", "input_positions": null, "sub_options": null, "display_text": "3.諮詢會應就消防人員之職務安全衛生政策、安全衛生管理系統、安全衛生防護設備及措施等事項提供建議。", "original_text": "3.諮詢會應就消防人員之職務安全衛生政策、安全衛生管理系統、安全衛生防護設備及措施等事項提供建議。"}, {"text": "4.諮詢會之組成、任務、委員之資格條件、遴聘方式及其他相關事項之辦法,由中央主管機關定之。", "input_positions": null, "sub_options": null, "display_text": "4.諮詢會之組成、任務、委員之資格條件、遴聘方式及其他相關事項之辦法,由中央主管機關定之。", "original_text": "4.諮詢會之組成、任務、委員之資格條件、遴聘方式及其他相關事項之辦法,由中央主管機關定之。"}]' data-value="" onclick="openCollapseModal(this)">第 25-1 條</td></tr><tr><td colspan="5" class="editable-cell" style="width:249.6484375px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "1.各級消防機關應設安全衛生專責單位及置專責人員。但預算員額數未滿二百人者,得僅置安全衛生專責人員。", "input_positions": null, "sub_options": null, "display_text": "1.各級消防機關應設安全衛生專責單位及置專責人員。但預算員額數未滿二百人者,得僅置安全衛生專責人員。", "original_text": "1.各級消防機關應設安全衛生專責單位及置專責人員。但預算員額數未滿二百人者,得僅置安全衛生專責人員。"}, {"text": "2.各級消防機關應執行下列事項:", "sub_options": [{"text": "一、建置消防人員安全衛生管理系統。", "input_positions": null, "display_text": "一、建置消防人員安全衛生管理系統。", "original_text": "一、建置消防人員安全衛生管理系統。"}, {"text": "二、提供所屬消防人員執行職務必要之安全衛生防護設備及措施。", "input_positions": null, "display_text": "二、提供所屬消防人員執行職務必要之安全衛生防護設備及措施。", "original_text": "二、提供所屬消防人員執行職務必要之安全衛生防護設備及措施。"}], "sub_option_type": "checkbox", "input_positions": [], "original_text": "2.各級消防機關應執行下列事項:(多選題)"}]' data-value="" onclick="openCollapseModal(this)">第 25-2 條</td></tr><tr><td colspan="5" class="editable-cell" style="width:249.6484375px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="radio" data-options='[{"text": "各級消防機關依公務人員保障法第十九條相關規定組成安全及衛生防護小組之成員,任一性別比例不得低於三分之一,其消防基層人員比例不得低於五分之一。", "input_positions": null, "sub_options": null, "display_text": "各級消防機關依公務人員保障法第十九條相關規定組成安全及衛生防護小組之成員,任一性別比例不得低於三分之一,其消防基層人員比例不得低於五分之一。", "original_text": "各級消防機關依公務人員保障法第十九條相關規定組成安全及衛生防護小組之成員,任一性別比例不得低於三分之一,其消防基層人員比例不得低於五分之一。"}]' data-value="" onclick="openCollapseModal(this)">第 25-3 條</td></tr><tr><td colspan="5" class="editable-cell" style="width:249.6484375px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "各級消防機關應辦理下列事項,並報請中央主管機關備查:", "sub_options": [{"text": "一、定期統計及評估消防人員安全衛生管理系統之建置成效。", "input_positions": null, "display_text": "一、定期統計及評估消防人員安全衛生管理系統之建置成效。", "original_text": "一、定期統計及評估消防人員安全衛生管理系統之建置成效。"}, {"text": "二、消防人員因其工作場所、作業活動或其他職業上原因,引發疾病、傷害、失能或死亡之事故,即時通報並作成調查紀錄。", "input_positions": null, "display_text": "二、消防人員因其工作場所、作業活動或其他職業上原因,引發疾病、傷害、失能或死亡之事故,即時通報並作成調查紀錄。", "original_text": "二、消防人員因其工作場所、作業活動或其他職業上原因,引發疾病、傷害、失能或死亡之事故,即時通報並作成調查紀錄。"}], "sub_option_type": "checkbox", "input_positions": [], "original_text": "各級消防機關應辦理下列事項,並報請中央主管機關備查:(多選題)"}]' data-value="" onclick="openCollapseModal(this)">第 25-4 條</td></tr><tr><td colspan="5" class="editable-cell" style="width:249.6484375px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "1.中央主管機關或其委託之團體、機關(構)及學校,得查核各級消防機關消防人員安全衛生管理系統之建置情形,並由中央主管機關公告查核結果。", "input_positions": null, "sub_options": null, "display_text": "1.中央主管機關或其委託之團體、機關(構)及學校,得查核各級消防機關消防人員安全衛生管理系統之建置情形,並由中央主管機關公告查核結果。", "original_text": "1.中央主管機關或其委託之團體、機關(構)及學校,得查核各級消防機關消防人員安全衛生管理系統之建置情形,並由中央主管機關公告查核結果。"}, {"text": "2.前項查核結果,績效良好者,中央主管機關得予獎勵及公開表揚;執行不力者,得令其改善及提出懲處建議。", "input_positions": null, "sub_options": null, "display_text": "2.前項查核結果,績效良好者,中央主管機關得予獎勵及公開表揚;執行不力者,得令其改善及提出懲處建議。", "original_text": "2.前項查核結果,績效良好者,中央主管機關得予獎勵及公開表揚;執行不力者,得令其改善及提出懲處建議。"}]' data-value="" onclick="openCollapseModal(this)">第 25-5 條</td></tr><tr><td colspan="5" class="editable-cell" style="width:249.6484375px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "1.各級消防機關對於所屬消防人員得定期實施特定項目之健康檢查,必要時,並得實施臨時健康檢查;其檢查之項目及方式,由中央主管機關會商衛生、環保等相關機關定之。", "input_positions": null, "sub_options": null, "display_text": "1.各級消防機關對於所屬消防人員得定期實施特定項目之健康檢查,必要時,並得實施臨時健康檢查;其檢查之項目及方式,由中央主管機關會商衛生、環保等相關機關定之。", "original_text": "1.各級消防機關對於所屬消防人員得定期實施特定項目之健康檢查,必要時,並得實施臨時健康檢查;其檢查之項目及方式,由中央主管機關會商衛生、環保等相關機關定之。"}, {"text": "2.消防人員有接受前項健康檢查之義務。", "input_positions": null, "sub_options": null, "display_text": "2.消防人員有接受前項健康檢查之義務。", "original_text": "2.消防人員有接受前項健康檢查之義務。"}, {"text": "3.第一項健康檢查應由中央衛生主管機關評鑑合格之區域醫院或醫學中心為之;健康檢查紀錄應由各級消防機關予以保存,並負擔健康檢查費用;實施臨時健康檢查時,各級消防機 關應提供救災作業經歷資料予醫院。", "input_positions": null, "sub_options": null, "display_text": "3.第一項健康檢查應由中央衛生主管機關評鑑合格之區域醫院或醫學中心為之;健康檢查紀錄應由各級消防機關予以保存,並負擔健康檢查費用;實施臨時健康檢查時,各級消防機 關應提供救災作業經歷資料予醫院。", "original_text": "3.第一項健康檢查應由中央衛生主管機關評鑑合格之區域醫院或醫學中心為之;健康檢查紀錄應由各級消防機關予以保存,並負擔健康檢查費用;實施臨時健康檢查時,各級消防機 關應提供救災作業經歷資料予醫院。"}, {"text": "4.各級消防機關對於所屬消防人員健康檢查之結果,應通報中央主管機關備查,以作為與其職務相關疾病預防之必要應用。", "input_positions": null, "sub_options": null, "display_text": "4.各級消防機關對於所屬消防人員健康檢查之結果,應通報中央主管機關備查,以作為與其職務相關疾病預防之必要應用。", "original_text": "4.各級消防機關對於所屬消防人員健康檢查之結果,應通報中央主管機關備查,以作為與其職務相關疾病預防之必要應用。"}]' data-value="" onclick="openCollapseModal(this)">第 25-6 條</td></tr><tr><td colspan="5" class="editable-cell" style="width:249.6484375px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "1.各級消防機關對所屬消防人員應施以執行職務與預防災變所必要之安全衛生教育及訓練;消防人員有接受之義務。", "input_positions": null, "sub_options": null, "display_text": "1.各級消防機關對所屬消防人員應施以執行職務與預防災變所必要之安全衛生教育及訓練;消防人員有接受之義務。", "original_text": "1.各級消防機關對所屬消防人員應施以執行職務與預防災變所必要之安全衛生教育及訓練;消防人員有接受之義務。"}, {"text": "2.前項必要之安全衛生教育與訓練事項、訓練單位之資格條件、管理及其他應遵行事項之規則,由中央主管機關定之。", "input_positions": null, "sub_options": null, "display_text": "2.前項必要之安全衛生教育與訓練事項、訓練單位之資格條件、管理及其他應遵行事項之規則,由中央主管機關定之。", "original_text": "2.前項必要之安全衛生教育與訓練事項、訓練單位之資格條件、管理及其他應遵行事項之規則,由中央主管機關定之。"}]' data-value="" onclick="openCollapseModal(this)">第 25-7 條</td></tr><tr><td colspan="5" class="editable-cell" style="width:249.6484375px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "1.各級消防機關應考重消防人員性別、年齡、身心障礙等因素之特殊需要提供適當之環境、安全衛生防護設備及措施。", "input_positions": null, "sub_options": null, "display_text": "1.各級消防機關應考重消防人員性別、年齡、身心障礙等因素之特殊需要提供適當之環境、安全衛生防護設備及措施。", "original_text": "1.各級消防機關應考重消防人員性別、年齡、身心障礙等因素之特殊需要提供適當之環境、安全衛生防護設備及措施。"}, {"text": "2.各級消防機關對於女性妊娠中或分娩後未滿二年之消防人員,除應提供適當之環境、安全衛生防護設備及措施外,並應依醫師適性評估建議,採取", "input_positions": null, "sub_options": null, "display_text": "2.各級消防機關對於女性妊娠中或分娩後未滿二年之消防人員,除應提供適當之環境、安全衛生防護設備及措施外,並應依醫師適性評估建議,採取", "original_text": "2.各級消防機關對於女性妊娠中或分娩後未滿二年之消防人員,除應提供適當之環境、安全衛生防護設備及措施外,並應依醫師適性評估建議,採取"}, {"text": "勤務調整或必要之健康保護措施。", "input_positions": null, "sub_options": null, "display_text": "勤務調整或必要之健康保護措施。", "original_text": "勤務調整或必要之健康保護措施。"}]' data-value="" onclick="openCollapseModal(this)">第 25-8 條</td></tr><tr><td colspan="5" class="editable-cell" style="width:249.6484375px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="radio" data-options='[{"text": "各級政府辦理消防人貝之安全衛生防護設備、措施及健康檢查所需經費,應優先編列預算支應。", "input_positions": null, "sub_options": null, "display_text": "各級政府辦理消防人貝之安全衛生防護設備、措施及健康檢查所需經費,應優先編列預算支應。", "original_text": "各級政府辦理消防人貝之安全衛生防護設備、措施及健康檢查所需經費,應優先編列預算支應。"}]' data-value="" onclick="openCollapseModal(this)">第 25-9 條</td></tr></tbody></table>
+            </div>
+        </div>
+        <!-- 二、消防法三權內容 -->
+        <div id="section-二、消防法三權" class="content-section" style="display:none;">
+            <div class="table-container">
+                <h2>二、消防法三權</h2>
+                <table border="0" style="border-collapse:collapse; width:613.6484375px; table-layout:fixed;"><tr><th colspan="5" style="font-weight:bold;background-color:#00B050;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">二、消防法三權</div></th></tr><tr><td colspan="5" class="editable-cell" style="font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="radio" data-options='[{"text": "現場各級搶救人員應於救災安全之前提下,衡酌搶救目的與救災風險後,採取適當之搶救作為;如現場無人命危害之虞,得不執行危險性救災行動。前項所稱危險性救災行動認定標準,由中央主管機關另定之。", "input_positions": null, "sub_options": null, "display_text": "現場各級搶救人員應於救災安全之前提下,衡酌搶救目的與救災風險後,採取適當之搶救作為;如現場無人命危害之虞,得不執行危險性救災行動。前項所稱危險性救災行動認定標準,由中央主管機關另定之。", "original_text": "現場各級搶救人員應於救災安全之前提下,衡酌搶救目的與救災風險後,採取適當之搶救作為;如現場無人命危害之虞,得不執行危險性救災行動。前項所稱危險性救災行動認定標準,由中央主管機關另定之。"}]' data-value="" onclick="openCollapseModal(this)">20-1 退 避 權 - 消 防 法 - 消 防 3 權 (108.10.29) 明 定 危 險 救 災</td></tr><tr><td colspan="5" class="editable-cell" style="font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "消防指揮人員搶救工廠、儲存化學品之倉庫或儲存場所及一定規模以上之實驗室或倉庫火災時,其管理權人應依下列規定辦理:", "sub_options": [{"text": "一、提供場所平面配置圖及搶救必要資訊。", "input_positions": null, "display_text": "一、提供場所平面配置圖及搶救必要資訊。", "original_text": "一、提供場所平面配置圖及搶救必要資訊。"}, {"text": "二、提供該場所化學品之種類、數量、", "input_positions": null, "display_text": "二、提供該場所化學品之種類、數量、", "original_text": "二、提供該場所化學品之種類、數量、"}], "sub_option_type": "checkbox", "input_positions": [], "original_text": "消防指揮人員搶救工廠、儲存化學品之倉庫或儲存場所及一定規模以上之實驗室或倉庫火災時,其管理權人應依下列規定辦理:(多選題)"}, {"text": "位置平面配置圖及搶救必要資訊。&三、前二款之必要資訊,應依中央各主管機關之規定更新上傳至指定之網路平臺。&四、立即指派專人至現場並協助救災。前項一定規模以上之實驗室或倉庫,由中央主管機關會商目的事業主管機關公告之。", "input_positions": null, "sub_options": null, "display_text": "位置平面配置圖及搶救必要資訊。&三、前二款之必要資訊,應依中央各主管機關之規定更新上傳至指定之網路平臺。&四、立即指派專人至現場並協助救災。前項一定規模以上之實驗室或倉庫,由中央主管機關會商目的事業主管機關公告之。", "original_text": "位置平面配置圖及搶救必要資訊。&三、前二款之必要資訊,應依中央各主管機關之規定更新上傳至指定之網路平臺。&四、立即指派專人至現場並協助救災。前項一定規模以上之實驗室或倉庫,由中央主管機關會商目的事業主管機關公告之。"}]' data-value="" onclick="openCollapseModal(this)">21-1 資訊權-要求廠區資訊認定標準公開透明</td></tr><tr><td colspan="5" class="editable-cell" style="font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "各級主管機關為調查消防及義勇消防人員因災害搶救或其他消防勤務致發生死亡或重傷或受傷程度符合公教人員保險失能給付標準之失能等級事故之原因,應聘請相關機關(構)、團體代表、學者專家及基層消防團體代表,組成災害事故調查會(以下簡稱調查會)", "input_positions": null, "sub_options": null, "display_text": "各級主管機關為調查消防及義勇消防人員因災害搶救或其他消防勤務致發生死亡或重傷或受傷程度符合公教人員保險失能給付標準之失能等級事故之原因,應聘請相關機關(構)、團體代表、學者專家及基層消防團體代表,組成災害事故調查會(以下簡稱調查會)", "original_text": "各級主管機關為調查消防及義勇消防人員因災害搶救或其他消防勤務致發生死亡或重傷或受傷程度符合公教人員保險失能給付標準之失能等級事故之原因,應聘請相關機關(構)、團體代表、學者專家及基層消防團體代表,組成災害事故調查會(以下簡稱調查會)"}, {"text": "調查會應製作事故原因調查報告,提出災害搶救改善建議事項及追蹤改善建議事項之執行。", "input_positions": null, "sub_options": null, "display_text": "調查會應製作事故原因調查報告,提出災害搶救改善建議事項及追蹤改善建議事項之執行。", "original_text": "調查會應製作事故原因調查報告,提出災害搶救改善建議事項及追蹤改善建議事項之執行。"}, {"text": "調查會為執行業務所需,得向有關機關(構)調閱或要求法人、團體、個人提供資料或文件。調閱之資料或文件業經司法機關或監察院先為調取時,應由其敘明理由,並提供複本。如有正當理由無法提出複本者,應提出已被他機關調取之證明。", "input_positions": null, "sub_options": null, "display_text": "調查會為執行業務所需,得向有關機關(構)調閱或要求法人、團體、個人提供資料或文件。調閱之資料或文件業經司法機關或監察院先為調取時,應由其敘明理由,並提供複本。如有正當理由無法提出複本者,應提出已被他機關調取之證明。", "original_text": "調查會為執行業務所需,得向有關機關(構)調閱或要求法人、團體、個人提供資料或文件。調閱之資料或文件業經司法機關或監察院先為調取時,應由其敘明理由,並提供複本。如有正當理由無法提出複本者,應提出已被他機關調取之證明。"}, {"text": "第一項調查會,其組成、委員之資格條件、聘請方式、處理程序及其他應遵行事項之辦法由中央主管機關定之。", "input_positions": null, "sub_options": null, "display_text": "第一項調查會,其組成、委員之資格條件、聘請方式、處理程序及其他應遵行事項之辦法由中央主管機關定之。", "original_text": "第一項調查會,其組成、委員之資格條件、聘請方式、處理程序及其他應遵行事項之辦法由中央主管機關定之。"}]' data-value="" onclick="openCollapseModal(this)">27-1 調 查 權 - 法 定 救 災 傷 亡 事 故 調 查</td></tr></table>
+            </div>
+        </div>
+        <!-- 三、LPMO團隊建置及推動安全衛生工作內容 -->
+        <div id="section-三、LPMO團隊建置及推動安全衛生工作" class="content-section" style="display:none;">
+            <div class="table-container">
+                <h2>三、LPMO團隊建置及推動安全衛生工作</h2>
+                <table border="0" style="border-collapse:collapse; width:613.6484375px; table-layout:fixed;"><tr><th colspan="5" style="font-weight:bold;background-color:#00B050;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">三、LPMO團隊建置及推動安全衛生工作</div></th></tr><tr><th colspan="5" style="font-weight:bold;background-color:#FFC000;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">工作安全作業輔助團隊(L-PMO):
+為協助各消防機關完善推動工作安全衛生管理,專責推動及 落實各項安全衛生管理作業,協助所屬機構推動職務內容專責化,以利進行自主管理及任務銜接。</div></th></tr><tr><td colspan="5" class="editable-cell" style="font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "1、依據中央工作安全規劃設計團隊(C-PMO)制定方法與標準:制定專案管理方法、流程和標準,協助各級消防機關推動、執行並落實消防工作安全衛生管理系統。", "input_positions": null, "sub_options": null, "display_text": "1、依據中央工作安全規劃設計團隊(C-PMO)制定方法與標準:制定專案管理方法、流程和標準,協助各級消防機關推動、執行並落實消防工作安全衛生管理系統。", "original_text": "1、依據中央工作安全規劃設計團隊(C-PMO)制定方法與標準:制定專案管理方法、流程和標準,協助各級消防機關推動、執行並落實消防工作安全衛生管理系統。"}, {"text": "2、資源規劃與管理:協助各級消防機關規劃消防工作安全衛生整體發展建議與年度規劃,統籌和調配消防安全衛生工作所需的人力、物力、財力等資源,確保這些資源能夠有效地被分配和利用。", "input_positions": null, "sub_options": null, "display_text": "2、資源規劃與管理:協助各級消防機關規劃消防工作安全衛生整體發展建議與年度規劃,統籌和調配消防安全衛生工作所需的人力、物力、財力等資源,確保這些資源能夠有效地被分配和利用。", "original_text": "2、資源規劃與管理:協助各級消防機關規劃消防工作安全衛生整體發展建議與年度規劃,統籌和調配消防安全衛生工作所需的人力、物力、財力等資源,確保這些資源能夠有效地被分配和利用。"}, {"text": "3、風險評估與管理:協助各級消防機關識別、評估和管理消防工作安全衛生之風險,並提供相應的風險管理工具和技術支援,以確保消防工作安全衛生能順利執行並達成目標。", "input_positions": null, "sub_options": null, "display_text": "3、風險評估與管理:協助各級消防機關識別、評估和管理消防工作安全衛生之風險,並提供相應的風險管理工具和技術支援,以確保消防工作安全衛生能順利執行並達成目標。", "original_text": "3、風險評估與管理:協助各級消防機關識別、評估和管理消防工作安全衛生之風險,並提供相應的風險管理工具和技術支援,以確保消防工作安全衛生能順利執行並達成目標。"}, {"text": "4、統計與分析:協助各級消防機關針對消防人員之工作安全衛生 相關調查,例如事故通報、傷亡案件等,進行數據統計與分析,提出建議及改善方式。", "input_positions": null, "sub_options": null, "display_text": "4、統計與分析:協助各級消防機關針對消防人員之工作安全衛生 相關調查,例如事故通報、傷亡案件等,進行數據統計與分析,提出建議及改善方式。", "original_text": "4、統計與分析:協助各級消防機關針對消防人員之工作安全衛生 相關調查,例如事故通報、傷亡案件等,進行數據統計與分析,提出建議及改善方式。"}, {"text": "5、監控與報告;設置監控機制,定期監督安全衛生工作的進度、成本、品質等方面的執行情況並彙報。", "input_positions": null, "sub_options": null, "display_text": "5、監控與報告;設置監控機制,定期監督安全衛生工作的進度、成本、品質等方面的執行情況並彙報。", "original_text": "5、監控與報告;設置監控機制,定期監督安全衛生工作的進度、成本、品質等方面的執行情況並彙報。"}, {"text": "6、專業溝通與協助:協助促進各級消防機關工作安全衛生議題的溝通和協調,協助解決問題與衝突,確保各級消防機關之間的共識和合作。", "input_positions": null, "sub_options": null, "display_text": "6、專業溝通與協助:協助促進各級消防機關工作安全衛生議題的溝通和協調,協助解決問題與衝突,確保各級消防機關之間的共識和合作。", "original_text": "6、專業溝通與協助:協助促進各級消防機關工作安全衛生議題的溝通和協調,協助解決問題與衝突,確保各級消防機關之間的共識和合作。"}]' data-value="" onclick="openCollapseModal(this)">以下為團隊工作項目:</td></tr><tr><th colspan="5" style="font-weight:bold;background-color:#FFC000;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">成立工作安全作業輔助團隊在於提供對消防安全衛生工作的支援、監督和協調,以確保能夠安全衛生工作落實並精進,提升消防人員的安全與健康。</div></th></tr></table>
+            </div>
+        </div>
+        <!-- 四、安全衛生管理手冊內容 -->
+        <div id="section-四、安全衛生管理手冊" class="content-section" style="display:none;">
+            <div class="table-container">
+                <h2>四、安全衛生管理手冊</h2>
+                <table border="0" style="border-collapse:collapse; width:613.6484375px; table-layout:fixed;"><tr><th colspan="5" style="font-weight:bold;background-color:#00B050;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">四、安全衛生管理手冊</div></th></tr><tr><th colspan="5" style="font-weight:bold;background-color:#FFC000;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">花蓮縣消防局(以下簡稱本局)為與所屬人員共同建構消防人員工作安全衛生管理系統,符合執行職務之安全衛生作業,強化自主管理,持續改善工作安全衛生績效,降低工作災害,特訂定「花蓮縣消防局工作安全衛生管理系統手冊」(以下簡稱本手冊),以保護所屬人員之安全與健康。</div></th></tr><tr><th colspan="5" style="font-weight:bold;background-color:#FFC000;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">本手冊適用範圍包含本局所屬人員執行災害搶救工作、緊急救護工作、教育訓練、駐地設施(含廳舍設施、廳舍設備、門禁、裝備、車輛 ... 等)、衛生健康及其他消防工作的安全衛生事項,基於其身分與職務活動所可能引起之生命、身體及健康危害,應採取必要之預防、矯正、保護、消減及其他照顧措施。</div></th></tr><tr><td colspan="5" class="editable-cell" style="font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "一工作期間事故、傷害及危害暴露之發生。", "input_positions": null, "sub_options": null, "display_text": "一工作期間事故、傷害及危害暴露之發生。", "original_text": "一工作期間事故、傷害及危害暴露之發生。"}, {"text": "二 工作期間發生事故、傷害和危害暴露之嚴重性。", "input_positions": null, "sub_options": null, "display_text": "二 工作期間發生事故、傷害和危害暴露之嚴重性。", "original_text": "二 工作期間發生事故、傷害和危害暴露之嚴重性。"}, {"text": "三 工作期間因設備或零組件失效、電氣設施因素、人為操作失誤、環境或外在因素及天然災害發生的可能潛在風險。", "input_positions": null, "sub_options": null, "display_text": "三 工作期間因設備或零組件失效、電氣設施因素、人為操作失誤、環境或外在因素及天然災害發生的可能潛在風險。", "original_text": "三 工作期間因設備或零組件失效、電氣設施因素、人為操作失誤、環境或外在因素及天然災害發生的可能潛在風險。"}, {"text": "四 工作期間直接接觸危險品、傳染病、燃燒產物、致癌物質、火場汙染及其他有關健康危害。", "input_positions": null, "sub_options": null, "display_text": "四 工作期間直接接觸危險品、傳染病、燃燒產物、致癌物質、火場汙染及其他有關健康危害。", "original_text": "四 工作期間直接接觸危險品、傳染病、燃燒產物、致癌物質、火場汙染及其他有關健康危害。"}]' data-value="" onclick="openCollapseModal(this)">前項預防、矯正、保護、消減及其他照顧措施應包括下列事項造成因公傷亡、疾病及身心障礙之可能性:</td></tr></table>
+            </div>
+        </div>
+        <!-- 五、安全衛生管理作業程序書內容 -->
+        <div id="section-五、安全衛生管理作業程序書" class="content-section" style="display:none;">
+            <div class="table-container">
+                <h2>五、安全衛生管理作業程序書</h2>
+                <table border="0" style="border-collapse:collapse; width:613.6484375px; table-layout:fixed;"><tr><th colspan="5" style="font-weight:bold;background-color:#00B050;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">五、安全衛生管理作業程序書</div></th></tr><tr><th colspan="5" style="font-weight:bold;background-color:#FFC000;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">針對消防人員各項勤務製作專門標準作業程序-並包含危害案例、風險評估及策進作為</div></th></tr><tr><td colspan="5" class="editable-cell" style="font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "1.SH-P1-001_廳舍設施安全衛生管理程序書", "input_positions": null, "sub_options": null, "display_text": "1.SH-P1-001_廳舍設施安全衛生管理程序書", "original_text": "1.SH-P1-001_廳舍設施安全衛生管理程序書"}, {"text": "2.SH-P1-002_廳舍設備安全衛生管理程序書", "input_positions": null, "sub_options": null, "display_text": "2.SH-P1-002_廳舍設備安全衛生管理程序書", "original_text": "2.SH-P1-002_廳舍設備安全衛生管理程序書"}, {"text": "3.SH-P1-003_門禁安全管理程序書", "input_positions": null, "sub_options": null, "display_text": "3.SH-P1-003_門禁安全管理程序書", "original_text": "3.SH-P1-003_門禁安全管理程序書"}]' data-value="" onclick="openCollapseModal(this)">駐地安全</td></tr><tr><td colspan="5" class="editable-cell" style="font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "5.SH-P2-001_裝備及車輛保養、檢修、汰換管理程序書", "input_positions": null, "sub_options": null, "display_text": "5.SH-P2-001_裝備及車輛保養、檢修、汰換管理程序書", "original_text": "5.SH-P2-001_裝備及車輛保養、檢修、汰換管理程序書"}, {"text": "6.SH-P2-002_駕駛及操作人員管理程序書", "input_positions": null, "sub_options": null, "display_text": "6.SH-P2-002_駕駛及操作人員管理程序書", "original_text": "6.SH-P2-002_駕駛及操作人員管理程序書"}]' data-value="" onclick="openCollapseModal(this)">裝備/車輛</td></tr><tr><td colspan="5" class="editable-cell" style="font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "7.SH-P3-001_教育訓練管理程序書", "input_positions": null, "sub_options": null, "display_text": "7.SH-P3-001_教育訓練管理程序書", "original_text": "7.SH-P3-001_教育訓練管理程序書"}, {"text": "8.SH-P3-002_救災訓練與安全方案管理程序書", "input_positions": null, "sub_options": null, "display_text": "8.SH-P3-002_救災訓練與安全方案管理程序書", "original_text": "8.SH-P3-002_救災訓練與安全方案管理程序書"}]' data-value="" onclick="openCollapseModal(this)">教育訓練</td></tr><tr><td colspan="5" class="editable-cell" style="font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "9.SH-P4-001_事故安全官管理程序書", "input_positions": null, "sub_options": null, "display_text": "9.SH-P4-001_事故安全官管理程序書", "original_text": "9.SH-P4-001_事故安全官管理程序書"}, {"text": "10.SH-P4-002_待命出勤安全程序書", "input_positions": null, "sub_options": null, "display_text": "10.SH-P4-002_待命出勤安全程序書", "original_text": "10.SH-P4-002_待命出勤安全程序書"}, {"text": "11.SH-P4-003_車輛行駛時安全程序書", "input_positions": null, "sub_options": null, "display_text": "11.SH-P4-003_車輛行駛時安全程序書", "original_text": "11.SH-P4-003_車輛行駛時安全程序書"}, {"text": "12.SH-P4-004_車輛佈署安全程序書", "input_positions": null, "sub_options": null, "display_text": "12.SH-P4-004_車輛佈署安全程序書", "original_text": "12.SH-P4-004_車輛佈署安全程序書"}, {"text": "13.SH-P4-005_幫浦操作安全程序書", "input_positions": null, "sub_options": null, "display_text": "13.SH-P4-005_幫浦操作安全程序書", "original_text": "13.SH-P4-005_幫浦操作安全程序書"}, {"text": "14.SH-P4-006_佈線安全程序書", "input_positions": null, "sub_options": null, "display_text": "14.SH-P4-006_佈線安全程序書", "original_text": "14.SH-P4-006_佈線安全程序書"}, {"text": "15.SH-P4-007_射水安全程序書", "input_positions": null, "sub_options": null, "display_text": "15.SH-P4-007_射水安全程序書", "original_text": "15.SH-P4-007_射水安全程序書"}, {"text": "16.SH-P4-008_入室搜救安全程序書", "input_positions": null, "sub_options": null, "display_text": "16.SH-P4-008_入室搜救安全程序書", "original_text": "16.SH-P4-008_入室搜救安全程序書"}, {"text": "17.SH-P4-009_強力入屋安全程序書", "input_positions": null, "sub_options": null, "display_text": "17.SH-P4-009_強力入屋安全程序書", "original_text": "17.SH-P4-009_強力入屋安全程序書"}, {"text": "18.SH-P4-010_執行車禍救助安全程序書", "input_positions": null, "sub_options": null, "display_text": "18.SH-P4-010_執行車禍救助安全程序書", "original_text": "18.SH-P4-010_執行車禍救助安全程序書"}, {"text": "19.SH-P4-011_搶救木造建築物火災安全程序書", "input_positions": null, "sub_options": null, "display_text": "19.SH-P4-011_搶救木造建築物火災安全程序書", "original_text": "19.SH-P4-011_搶救木造建築物火災安全程序書"}, {"text": "20.SH-P4-012_搶救高層建築物火災安全程序書", "input_positions": null, "sub_options": null, "display_text": "20.SH-P4-012_搶救高層建築物火災安全程序書", "original_text": "20.SH-P4-012_搶救高層建築物火災安全程序書"}, {"text": "21.SH-P4-013_搶救地下空間(場域)火災安全程序書", "input_positions": null, "sub_options": null, "display_text": "21.SH-P4-013_搶救地下空間(場域)火災安全程序書", "original_text": "21.SH-P4-013_搶救地下空間(場域)火災安全程序書"}, {"text": "22.SH-P4-014_搶救輕量型鋼結構建築物火災安全程序書", "input_positions": null, "sub_options": null, "display_text": "22.SH-P4-014_搶救輕量型鋼結構建築物火災安全程序書", "original_text": "22.SH-P4-014_搶救輕量型鋼結構建築物火災安全程序書"}, {"text": "23.SH-P4-015_搶救化學工廠火災安全程序書", "input_positions": null, "sub_options": null, "display_text": "23.SH-P4-015_搶救化學工廠火災安全程序書", "original_text": "23.SH-P4-015_搶救化學工廠火災安全程序書"}, {"text": "24.SH-P4-016_搶救大型運動場館火災安全程序書", "input_positions": null, "sub_options": null, "display_text": "24.SH-P4-016_搶救大型運動場館火災安全程序書", "original_text": "24.SH-P4-016_搶救大型運動場館火災安全程序書"}, {"text": "25.SH-P4-017_資源回收處理工廠火災安全程序書", "input_positions": null, "sub_options": null, "display_text": "25.SH-P4-017_資源回收處理工廠火災安全程序書", "original_text": "25.SH-P4-017_資源回收處理工廠火災安全程序書"}, {"text": "26.SH-P4-018_搶救太陽光電發電設備場所安全程序書", "input_positions": null, "sub_options": null, "display_text": "26.SH-P4-018_搶救太陽光電發電設備場所安全程序書", "original_text": "26.SH-P4-018_搶救太陽光電發電設備場所安全程序書"}, {"text": "27.SH-P4-019_搶救電動車與儲能系統安全程序書", "input_positions": null, "sub_options": null, "display_text": "27.SH-P4-019_搶救電動車與儲能系統安全程序書", "original_text": "27.SH-P4-019_搶救電動車與儲能系統安全程序書"}, {"text": "28.SH-P4-020_搶救山林火災安全程序書", "input_positions": null, "sub_options": null, "display_text": "28.SH-P4-020_搶救山林火災安全程序書", "original_text": "28.SH-P4-020_搶救山林火災安全程序書"}, {"text": "29.SH-P4-021_搶救瓦斯災害安全程序書", "input_positions": null, "sub_options": null, "display_text": "29.SH-P4-021_搶救瓦斯災害安全程序書", "original_text": "29.SH-P4-021_搶救瓦斯災害安全程序書"}, {"text": "30.SH-P4-022_搶救捷運(含地下場站)及地下鐵火災安全程序書", "input_positions": null, "sub_options": null, "display_text": "30.SH-P4-022_搶救捷運(含地下場站)及地下鐵火災安全程序書", "original_text": "30.SH-P4-022_搶救捷運(含地下場站)及地下鐵火災安全程序書"}, {"text": "31.SH-P4-023_搶救長公路隧道火災安全程序書", "input_positions": null, "sub_options": null, "display_text": "31.SH-P4-023_搶救長公路隧道火災安全程序書", "original_text": "31.SH-P4-023_搶救長公路隧道火災安全程序書"}, {"text": "32.SH-P4-024_搶救船舶火災安全程序書", "input_positions": null, "sub_options": null, "display_text": "32.SH-P4-024_搶救船舶火災安全程序書", "original_text": "32.SH-P4-024_搶救船舶火災安全程序書"}, {"text": "33.SH-P4-025_侷限空間救援安全程序書", "input_positions": null, "sub_options": null, "display_text": "33.SH-P4-025_侷限空間救援安全程序書", "original_text": "33.SH-P4-025_侷限空間救援安全程序書"}, {"text": "34.SH-P4-026_水域救援安全程序書", "input_positions": null, "sub_options": null, "display_text": "34.SH-P4-026_水域救援安全程序書", "original_text": "34.SH-P4-026_水域救援安全程序書"}, {"text": "35.SH-P4-027_觸(感)電救援安全程序書", "input_positions": null, "sub_options": null, "display_text": "35.SH-P4-027_觸(感)電救援安全程序書", "original_text": "35.SH-P4-027_觸(感)電救援安全程序書"}, {"text": "36.SH-P4-028_山域事故搜救安全程序書", "input_positions": null, "sub_options": null, "display_text": "36.SH-P4-028_山域事故搜救安全程序書", "original_text": "36.SH-P4-028_山域事故搜救安全程序書"}, {"text": "37.SH-P4-029_直升機共勤救災安全程序書", "input_positions": null, "sub_options": null, "display_text": "37.SH-P4-029_直升機共勤救災安全程序書", "original_text": "37.SH-P4-029_直升機共勤救災安全程序書"}, {"text": "38.SH-P4-030_核生化災害初期、恐怖攻擊、戰時消防搶救安全程序書", "input_positions": null, "sub_options": null, "display_text": "38.SH-P4-030_核生化災害初期、恐怖攻擊、戰時消防搶救安全程序書", "original_text": "38.SH-P4-030_核生化災害初期、恐怖攻擊、戰時消防搶救安全程序書"}, {"text": "39.SH-P4-031_使用空氣呼吸器安全程序書", "input_positions": null, "sub_options": null, "display_text": "39.SH-P4-031_使用空氣呼吸器安全程序書", "original_text": "39.SH-P4-031_使用空氣呼吸器安全程序書"}, {"text": "40.SH-P4-032_特種車輛操作安全程序書", "input_positions": null, "sub_options": null, "display_text": "40.SH-P4-032_特種車輛操作安全程序書", "original_text": "40.SH-P4-032_特種車輛操作安全程序書"}, {"text": "41.SH-P4-033_消防梯操作安全程序書", "input_positions": null, "sub_options": null, "display_text": "41.SH-P4-033_消防梯操作安全程序書", "original_text": "41.SH-P4-033_消防梯操作安全程序書"}, {"text": "42.SH-P4-034_操作各式常用破壞器材安全程序書", "input_positions": null, "sub_options": null, "display_text": "42.SH-P4-034_操作各式常用破壞器材安全程序書", "original_text": "42.SH-P4-034_操作各式常用破壞器材安全程序書"}, {"text": "43.SH-P4-035_操作各種繩索安全程序書", "input_positions": null, "sub_options": null, "display_text": "43.SH-P4-035_操作各種繩索安全程序書", "original_text": "43.SH-P4-035_操作各種繩索安全程序書"}, {"text": "44.SH-P4-036_各式船艇操作安全程序書", "input_positions": null, "sub_options": null, "display_text": "44.SH-P4-036_各式船艇操作安全程序書", "original_text": "44.SH-P4-036_各式船艇操作安全程序書"}]' data-value="" onclick="openCollapseModal(this)">災害搶救</td></tr><tr><td colspan="5" class="editable-cell" style="font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "45.SH-P5-001_救護勤務安全程序書", "input_positions": null, "sub_options": null, "display_text": "45.SH-P5-001_救護勤務安全程序書", "original_text": "45.SH-P5-001_救護勤務安全程序書"}, {"text": "46.SH-P5-002_緊急傷病患救護安全程序書", "input_positions": null, "sub_options": null, "display_text": "46.SH-P5-002_緊急傷病患救護安全程序書", "original_text": "46.SH-P5-002_緊急傷病患救護安全程序書"}, {"text": "47.SH-P5-003_傳染病救護安全程序書", "input_positions": null, "sub_options": null, "display_text": "47.SH-P5-003_傳染病救護安全程序書", "original_text": "47.SH-P5-003_傳染病救護安全程序書"}, {"text": "48.SH-P5-004_化學及輻射汙染傷患救護安全程序書", "input_positions": null, "sub_options": null, "display_text": "48.SH-P5-004_化學及輻射汙染傷患救護安全程序書", "original_text": "48.SH-P5-004_化學及輻射汙染傷患救護安全程序書"}]' data-value="" onclick="openCollapseModal(this)">緊急救護</td></tr><tr><td colspan="5" class="editable-cell" style="font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="radio" data-options='[{"text": "49.SH-P6-001_體格與健康管理程序書", "input_positions": null, "sub_options": null, "display_text": "49.SH-P6-001_體格與健康管理程序書", "original_text": "49.SH-P6-001_體格與健康管理程序書"}]' data-value="" onclick="openCollapseModal(this)">人員健康</td></tr><tr><td colspan="5" class="editable-cell" style="font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "50.SH-P7-001_火災調查工作管理程序書", "input_positions": null, "sub_options": null, "display_text": "50.SH-P7-001_火災調查工作管理程序書", "original_text": "50.SH-P7-001_火災調查工作管理程序書"}, {"text": "51.SH-P7-002_消防安全檢查工作管理程序書", "input_positions": null, "sub_options": null, "display_text": "51.SH-P7-002_消防安全檢查工作管理程序書", "original_text": "51.SH-P7-002_消防安全檢查工作管理程序書"}]' data-value="" onclick="openCollapseModal(this)">安全管理</td></tr><tr><td colspan="5" class="editable-cell" style="font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="radio" data-options='[{"text": "52.SH-P8-001_人因性危害預防管理程序書", "input_positions": null, "sub_options": null, "display_text": "52.SH-P8-001_人因性危害預防管理程序書", "original_text": "52.SH-P8-001_人因性危害預防管理程序書"}]' data-value="" onclick="openCollapseModal(this)">預防管理</td></tr></table>
+            </div>
+        </div>
+        <!-- 匯出內容 -->
+        <div id="section-匯出" class="content-section" style="display:none;">
+            <div class="table-container">
+                <div class="export-section">
+                    <h2>📦 資料匯出</h2>
+                    <p>點擊下方按鈕將所有填寫的資料匯出為ZIP檔案</p>
+                    <button id="exportBtn">💾 匯出 ZIP 檔案</button>
+                    <div id="exportStatus" style="margin-top: 15px; color: #666;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 文字輸入 Modal -->
+    <div id="modal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5);">
+        <div class="modal-content" style="position:relative; background:white; width:400px; max-width:90%; margin:80px auto 40px auto; padding:20px 20px 60px 20px; border-radius:8px;">
+            <h3>文字輸入</h3>
+            <textarea id="modalInput" rows="5" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;"></textarea>
+            <!-- 左下角按鈕 -->
+            <div style="position:absolute; bottom:20px; left:20px;">
+                <button onclick="confirmModal()" style="margin-right:10px; padding:8px 16px; background:#4CAF50; color:white; border:none; border-radius:4px; cursor:pointer;">確定</button>
+                <button onclick="closeModal()" style="padding:8px 16px; background:#ccc; border:none; border-radius:4px; cursor:pointer;">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 數字輸入 Modal -->
+    <div id="numberModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5);">
+        <div class="modal-content" style="position:relative; background:white; width:400px; max-width:90%; margin:80px auto 40px auto; padding:20px 20px 60px 20px; border-radius:8px;">
+            <h3>數字輸入</h3>
+            <input type="number" id="numberInput" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" />
+            <!-- 左下角按鈕 -->
+            <div style="position:absolute; bottom:20px; left:20px;">
+                <button onclick="confirmNumberModal()" style="margin-right:10px; padding:8px 16px; background:#4CAF50; color:white; border:none; border-radius:4px; cursor:pointer;">確定</button>
+                <button onclick="closeNumberModal()" style="padding:8px 16px; background:#ccc; border:none; border-radius:4px; cursor:pointer;">取消</button>
+            </div>
+        </div>
+    </div>
+    <!-- 收合選擇 Modal -->
+    <div id="collapseModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000;">
+        <div class="modal-content" style="position:fixed; bottom:0; left:0; width:100%; max-height:70%; background:white; border-radius:16px 16px 0 0; padding:20px; overflow-y:auto;">
+            <h3 id="collapseModalTitle">請選擇</h3>
+            <div id="collapseOptions" style="margin:15px 0;"></div>
+            <div style="display:flex; justify-content:space-between;">
+                <button onclick="confirmCollapseSelection()" style="padding:12px 20px; background:#4CAF50; color:white; border:none; border-radius:8px; cursor:pointer;">確定</button>
+                <button onclick="closeCollapseModal()" style="padding:12px 20px; background:#ccc; border:none; border-radius:8px; cursor:pointer;">取消</button>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- 在提醒視窗部分 -->
+    <div id="reminder" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="reminder-message">提醒</div>
+            <div class="reminder-actions">
+                <button class="play-sound-btn" onclick="playReminderSound()" style="display:none;">🔊 播放提示音</button>
+                <button class="ok-btn" onclick="closeReminder()">OK</button>
+            </div>
+        </div>
+    </div>
+    <!-- 相機 Modal -->
+    <div id="cameraModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width:95%; width:500px;">
+            <h3>拍照/上傳圖片</h3>
+            <div id="cameraPreviewContainer" class="camera-preview"></div>
+            <div class="camera-btn-container">
+                <input type="file" id="cameraInput" accept="image/*" multiple style="display:none;" onchange="handleCameraUpload(this)">
+                <button class="modern-btn" onclick="document.getElementById('cameraInput').click()">選擇圖片</button>
+                <button class="modern-btn secondary" onclick="closeCameraModal()">關閉</button>
+            </div>
+        </div>
+    </div>
+    
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <script>
+        // 全域變數
+        let mediaRecorder, recordedChunks = [], latestBlob = null, currentCell = null;
+        let reminderQueue = [];
+        let showingReminder = false;
+        let alarmAudio = null;
+        let currentSection = '表單填寫';
+        let scrollPosition = { top: 0, left: 0 };
+        
+        // 新增：导出表格数据
+        const exportTableData = {
+            default: `<table border="1" style="border-collapse:collapse; width:100%;"><tr><th colspan="5">意外傷病現場紀錄/SOP</th></tr><tr><td colspan="5">一、職安專章  保障消防人員工作安全</td></tr><tr><td colspan="5">收合#第 25-1 條
+多選題
+1.中央主管機關為預防消防人員基於其身分與職務活動所可能引起之生命、身體及健康危害,應遴聘消防機關代表、公務人員協會代表及學者專家,組成消防人員職務安全衛生諮詢會(以下簡稱諮詢會)。
+2.諮詢會委員任一性別比例不得少於三分之一。
+3.諮詢會應就消防人員之職務安全衛生政策、安全衛生管理系統、安全衛生防護設備及措施等事項提供建議。
+4.諮詢會之組成、任務、委員之資格條件、遴聘方式及其他相關事項之辦法,由中央主管機關定之。</td></tr><tr><td colspan="5">收合#第 25-2 條
+多選題
+1.各級消防機關應設安全衛生專責單位及置專責人員。但預算員額數未滿二百人者,得僅置安全衛生專責人員。
+2.各級消防機關應執行下列事項:(多選題)
+"一、建置消防人員安全衛生管理系統。&二、提供所屬消防人員執行職務必要之安全衛生防護設備及措施。"</td></tr><tr><td colspan="5">收合#第 25-3 條
+單選題
+各級消防機關依公務人員保障法第十九條相關規定組成安全及衛生防護小組之成員,任一性別比例不得低於三分之一,其消防基層人員比例不得低於五分之一。</td></tr><tr><td colspan="5">收合#第 25-4 條
+多選題
+各級消防機關應辦理下列事項,並報請中央主管機關備查:(多選題)
+"一、定期統計及評估消防人員安全衛生管理系統之建置成效。&二、消防人員因其工作場所、作業活動或其他職業上原因,引發疾病、傷害、失能或死亡之事故,即時通報並作成調查紀錄。"</td></tr><tr><td colspan="5">收合#第 25-5 條
+多選題
+1.中央主管機關或其委託之團體、機關(構)及學校,得查核各級消防機關消防人員安全衛生管理系統之建置情形,並由中央主管機關公告查核結果。
+2.前項查核結果,績效良好者,中央主管機關得予獎勵及公開表揚;執行不力者,得令其改善及提出懲處建議。</td></tr><tr><td colspan="5">收合#第 25-6 條
+多選題
+1.各級消防機關對於所屬消防人員得定期實施特定項目之健康檢查,必要時,並得實施臨時健康檢查;其檢查之項目及方式,由中央主管機關會商衛生、環保等相關機關定之。
+2.消防人員有接受前項健康檢查之義務。
+3.第一項健康檢查應由中央衛生主管機關評鑑合格之區域醫院或醫學中心為之;健康檢查紀錄應由各級消防機關予以保存,並負擔健康檢查費用;實施臨時健康檢查時,各級消防機 關應提供救災作業經歷資料予醫院。
+4.各級消防機關對於所屬消防人員健康檢查之結果,應通報中央主管機關備查,以作為與其職務相關疾病預防之必要應用。</td></tr><tr><td colspan="5">收合#第 25-7 條
+多選題
+1.各級消防機關對所屬消防人員應施以執行職務與預防災變所必要之安全衛生教育及訓練;消防人員有接受之義務。
+2.前項必要之安全衛生教育與訓練事項、訓練單位之資格條件、管理及其他應遵行事項之規則,由中央主管機關定之。</td></tr><tr><td colspan="5">收合#第 25-8 條
+多選題
+1.各級消防機關應考重消防人員性別、年齡、身心障礙等因素之特殊需要提供適當之環境、安全衛生防護設備及措施。
+2.各級消防機關對於女性妊娠中或分娩後未滿二年之消防人員,除應提供適當之環境、安全衛生防護設備及措施外,並應依醫師適性評估建議,採取
+勤務調整或必要之健康保護措施。</td></tr><tr><td colspan="5">收合#第 25-9 條
+單選題
+各級政府辦理消防人貝之安全衛生防護設備、措施及健康檢查所需經費,應優先編列預算支應。</td></tr></table>`,
+            sections: {
+                "二、消防法三權": `<table border="1" style="border-collapse:collapse; width:100%;"><tr><td colspan="5">二、消防法三權</td></tr><tr><td colspan="5">收合#20-1 退 避 權 - 消 防 法 - 消 防 3 權 (108.10.29) 明 定 危 險 救 災
+單選題
+現場各級搶救人員應於救災安全之前提下,衡酌搶救目的與救災風險後,採取適當之搶救作為;如現場無人命危害之虞,得不執行危險性救災行動。前項所稱危險性救災行動認定標準,由中央主管機關另定之。</td></tr><tr><td colspan="5">收合#21-1 資訊權-要求廠區資訊認定標準公開透明
+多選題
+消防指揮人員搶救工廠、儲存化學品之倉庫或儲存場所及一定規模以上之實驗室或倉庫火災時,其管理權人應依下列規定辦理:(多選題)
+"一、提供場所平面配置圖及搶救必要資訊。&二、提供該場所化學品之種類、數量、
+位置平面配置圖及搶救必要資訊。&三、前二款之必要資訊,應依中央各主管機關之規定更新上傳至指定之網路平臺。&四、立即指派專人至現場並協助救災。前項一定規模以上之實驗室或倉庫,由中央主管機關會商目的事業主管機關公告之。</td></tr><tr><td colspan="5">收合#27-1 調 查 權 - 法 定 救 災 傷 亡 事 故 調 查
+多選題
+各級主管機關為調查消防及義勇消防人員因災害搶救或其他消防勤務致發生死亡或重傷或受傷程度符合公教人員保險失能給付標準之失能等級事故之原因,應聘請相關機關(構)、團體代表、學者專家及基層消防團體代表,組成災害事故調查會(以下簡稱調查會)
+調查會應製作事故原因調查報告,提出災害搶救改善建議事項及追蹤改善建議事項之執行。
+調查會為執行業務所需,得向有關機關(構)調閱或要求法人、團體、個人提供資料或文件。調閱之資料或文件業經司法機關或監察院先為調取時,應由其敘明理由,並提供複本。如有正當理由無法提出複本者,應提出已被他機關調取之證明。
+第一項調查會,其組成、委員之資格條件、聘請方式、處理程序及其他應遵行事項之辦法由中央主管機關定之。</td></tr></table>`,
+                "三、LPMO團隊建置及推動安全衛生工作": `<table border="1" style="border-collapse:collapse; width:100%;"><tr><td colspan="5">三、LPMO團隊建置及推動安全衛生工作</td></tr><tr><td colspan="5">工作安全作業輔助團隊(L-PMO):
+為協助各消防機關完善推動工作安全衛生管理,專責推動及 落實各項安全衛生管理作業,協助所屬機構推動職務內容專責化,以利進行自主管理及任務銜接。</td></tr><tr><td colspan="5">收合#以下為團隊工作項目:
+多選題
+1、依據中央工作安全規劃設計團隊(C-PMO)制定方法與標準:制定專案管理方法、流程和標準,協助各級消防機關推動、執行並落實消防工作安全衛生管理系統。
+2、資源規劃與管理:協助各級消防機關規劃消防工作安全衛生整體發展建議與年度規劃,統籌和調配消防安全衛生工作所需的人力、物力、財力等資源,確保這些資源能夠有效地被分配和利用。
+3、風險評估與管理:協助各級消防機關識別、評估和管理消防工作安全衛生之風險,並提供相應的風險管理工具和技術支援,以確保消防工作安全衛生能順利執行並達成目標。
+4、統計與分析:協助各級消防機關針對消防人員之工作安全衛生 相關調查,例如事故通報、傷亡案件等,進行數據統計與分析,提出建議及改善方式。
+5、監控與報告;設置監控機制,定期監督安全衛生工作的進度、成本、品質等方面的執行情況並彙報。
+6、專業溝通與協助:協助促進各級消防機關工作安全衛生議題的溝通和協調,協助解決問題與衝突,確保各級消防機關之間的共識和合作。</td></tr><tr><td colspan="5">成立工作安全作業輔助團隊在於提供對消防安全衛生工作的支援、監督和協調,以確保能夠安全衛生工作落實並精進,提升消防人員的安全與健康。</td></tr></table>`,
+                "四、安全衛生管理手冊": `<table border="1" style="border-collapse:collapse; width:100%;"><tr><td colspan="5">四、安全衛生管理手冊</td></tr><tr><td colspan="5">花蓮縣消防局(以下簡稱本局)為與所屬人員共同建構消防人員工作安全衛生管理系統,符合執行職務之安全衛生作業,強化自主管理,持續改善工作安全衛生績效,降低工作災害,特訂定「花蓮縣消防局工作安全衛生管理系統手冊」(以下簡稱本手冊),以保護所屬人員之安全與健康。</td></tr><tr><td colspan="5">本手冊適用範圍包含本局所屬人員執行災害搶救工作、緊急救護工作、教育訓練、駐地設施(含廳舍設施、廳舍設備、門禁、裝備、車輛 ... 等)、衛生健康及其他消防工作的安全衛生事項,基於其身分與職務活動所可能引起之生命、身體及健康危害,應採取必要之預防、矯正、保護、消減及其他照顧措施。</td></tr><tr><td colspan="5">收合#前項預防、矯正、保護、消減及其他照顧措施應包括下列事項造成因公傷亡、疾病及身心障礙之可能性:
+多選題
+一工作期間事故、傷害及危害暴露之發生。
+二 工作期間發生事故、傷害和危害暴露之嚴重性。
+三 工作期間因設備或零組件失效、電氣設施因素、人為操作失誤、環境或外在因素及天然災害發生的可能潛在風險。
+四 工作期間直接接觸危險品、傳染病、燃燒產物、致癌物質、火場汙染及其他有關健康危害。</td></tr></table>`,
+                "五、安全衛生管理作業程序書": `<table border="1" style="border-collapse:collapse; width:100%;"><tr><td colspan="5">五、安全衛生管理作業程序書</td></tr><tr><td colspan="5">針對消防人員各項勤務製作專門標準作業程序-並包含危害案例、風險評估及策進作為</td></tr><tr><td colspan="5">收合#駐地安全
+多選題
+1.SH-P1-001_廳舍設施安全衛生管理程序書
+2.SH-P1-002_廳舍設備安全衛生管理程序書
+3.SH-P1-003_門禁安全管理程序書</td></tr><tr><td colspan="5">收合#裝備/車輛
+多選題
+5.SH-P2-001_裝備及車輛保養、檢修、汰換管理程序書
+6.SH-P2-002_駕駛及操作人員管理程序書</td></tr><tr><td colspan="5">收合#教育訓練
+多選題
+7.SH-P3-001_教育訓練管理程序書
+8.SH-P3-002_救災訓練與安全方案管理程序書</td></tr><tr><td colspan="5">收合#災害搶救
+多選題
+9.SH-P4-001_事故安全官管理程序書
+10.SH-P4-002_待命出勤安全程序書
+11.SH-P4-003_車輛行駛時安全程序書
+12.SH-P4-004_車輛佈署安全程序書
+13.SH-P4-005_幫浦操作安全程序書
+14.SH-P4-006_佈線安全程序書
+15.SH-P4-007_射水安全程序書
+16.SH-P4-008_入室搜救安全程序書
+17.SH-P4-009_強力入屋安全程序書
+18.SH-P4-010_執行車禍救助安全程序書
+19.SH-P4-011_搶救木造建築物火災安全程序書
+20.SH-P4-012_搶救高層建築物火災安全程序書
+21.SH-P4-013_搶救地下空間(場域)火災安全程序書
+22.SH-P4-014_搶救輕量型鋼結構建築物火災安全程序書
+23.SH-P4-015_搶救化學工廠火災安全程序書
+24.SH-P4-016_搶救大型運動場館火災安全程序書
+25.SH-P4-017_資源回收處理工廠火災安全程序書
+26.SH-P4-018_搶救太陽光電發電設備場所安全程序書
+27.SH-P4-019_搶救電動車與儲能系統安全程序書
+28.SH-P4-020_搶救山林火災安全程序書
+29.SH-P4-021_搶救瓦斯災害安全程序書
+30.SH-P4-022_搶救捷運(含地下場站)及地下鐵火災安全程序書
+31.SH-P4-023_搶救長公路隧道火災安全程序書
+32.SH-P4-024_搶救船舶火災安全程序書
+33.SH-P4-025_侷限空間救援安全程序書
+34.SH-P4-026_水域救援安全程序書
+35.SH-P4-027_觸(感)電救援安全程序書
+36.SH-P4-028_山域事故搜救安全程序書
+37.SH-P4-029_直升機共勤救災安全程序書
+38.SH-P4-030_核生化災害初期、恐怖攻擊、戰時消防搶救安全程序書
+39.SH-P4-031_使用空氣呼吸器安全程序書
+40.SH-P4-032_特種車輛操作安全程序書
+41.SH-P4-033_消防梯操作安全程序書
+42.SH-P4-034_操作各式常用破壞器材安全程序書
+43.SH-P4-035_操作各種繩索安全程序書
+44.SH-P4-036_各式船艇操作安全程序書</td></tr><tr><td colspan="5">收合#緊急救護
+多選題
+45.SH-P5-001_救護勤務安全程序書
+46.SH-P5-002_緊急傷病患救護安全程序書
+47.SH-P5-003_傳染病救護安全程序書
+48.SH-P5-004_化學及輻射汙染傷患救護安全程序書</td></tr><tr><td colspan="5">收合#人員健康
+單選題
+49.SH-P6-001_體格與健康管理程序書</td></tr><tr><td colspan="5">收合#安全管理
+多選題
+50.SH-P7-001_火災調查工作管理程序書
+51.SH-P7-002_消防安全檢查工作管理程序書</td></tr><tr><td colspan="5">收合#預防管理
+單選題
+52.SH-P8-001_人因性危害預防管理程序書</td></tr></table>`
+            }
+        };
+        
+        // 收合選擇功能
+        let currentCollapseCell = null;
+        // 側邊欄控制
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+        
+        // 切換分區
+        function showSection(sectionName) {
+            // 隱藏所有內容區域
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => section.style.display = 'none');
+            
+            // 顯示選中的區域
+            const targetSection = document.getElementById('section-' + sectionName);
+            if (targetSection) {
+                targetSection.style.display = 'block';
+            }
+            
+            // 更新側邊欄選中狀態
+            const sidebarItems = document.querySelectorAll('.sidebar-item');
+            sidebarItems.forEach(item => item.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // 記錄當前分區
+            currentSection = sectionName;
+            
+            // 關閉側邊欄（手機版）
+            if (window.innerWidth <= 768) {
+                toggleSidebar();
+            }
+        }
+        
+        // 點擊頁面其他地方關閉側邊欄
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const menuButton = document.querySelector('.menu-button');
+            if (!sidebar.contains(event.target) && !menuButton.contains(event.target)) {
+                sidebar.classList.remove('open');
+            }
+        });
+        // 相機功能
+        // 修改openCameraModal函數，根據合併儲存格調整預覽大小
+        function openCameraModal(cell) {
+            currentCell = cell;
+            const images = JSON.parse(cell.dataset.images || '[]');
+            const previewContainer = document.getElementById('cameraPreviewContainer');
+            previewContainer.innerHTML = '';
+            
+            // 檢查是否為合併儲存格
+            const isMerged = cell.colSpan > 1 || cell.rowSpan > 1;
+            if (isMerged) {
+                previewContainer.classList.add('large');
+            } else {
+                previewContainer.classList.remove('large');
+            }
+            
+            images.forEach((imgData, index) => {
+                const imgDiv = document.createElement('div');
+                imgDiv.innerHTML = `<img src="${imgData}" alt="上傳的圖片 ${index + 1}">
+                                    <button class="modern-btn secondary" style="width:100%; margin-top:5px; padding:5px;" onclick="removeCameraImage(${index})">刪除</button>`;
+                previewContainer.appendChild(imgDiv);
+            });
+            
+            document.getElementById('cameraModal').style.display = 'flex';
+        }
+
+        // 圖片壓縮函數
+        function compressImage(file, callback) {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function(event) {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // 設定最大尺寸
+                    const MAX_WIDTH = 800;
+                    const MAX_HEIGHT = 800;
+                    
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // 調整尺寸
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // 壓縮品質 (0.7 = 70%)
+                    canvas.toBlob(callback, 'image/jpeg', 0.7);
+                };
+            };
+        }
+        
+        // 修改handleCameraUpload函數以使用圖片壓縮
+        function handleCameraUpload(input) {
+            if (!currentCell) return;
+            const files = input.files;
+            const images = JSON.parse(currentCell.dataset.images || '[]');
+            
+            // 處理每個文件
+            let processed = 0;
+            const totalFiles = Math.min(files.length, 5 - images.length);
+            
+            if (totalFiles === 0) {
+                alert('最多只能上傳5張圖片');
+                return;
+            }
+            
+            for (let i = 0; i < files.length; i++) {
+                if (images.length >= 5) {
+                    break;
+                }
+                
+                const file = files[i];
+                
+                // 壓縮圖片
+                compressImage(file, function(compressedBlob) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        images.push(e.target.result);
+                        currentCell.dataset.images = JSON.stringify(images);
+                        updateCameraCellDisplay(currentCell);
+                        
+                        // 如果所有文件都處理完成，重新打開模態框
+                        processed++;
+                        if (processed === totalFiles) {
+                            openCameraModal(currentCell);
+                        }
+                    };
+                    reader.readAsDataURL(compressedBlob);
+                });
+            }
+            input.value = ''; // 重置input，允許再次選擇相同文件
+        }
+
+        function removeCameraImage(index) {
+            if (!currentCell) return;
+            const images = JSON.parse(currentCell.dataset.images || '[]');
+            images.splice(index, 1);
+            currentCell.dataset.images = JSON.stringify(images);
+            updateCameraCellDisplay(currentCell);
+            openCameraModal(currentCell); // 更新預覽
+        }
+
+        // 修改updateCameraCellDisplay函數，使圖片在單元格內正確顯示
+        function updateCameraCellDisplay(cell) {
+            const images = JSON.parse(cell.dataset.images || '[]');
+            if (images.length > 0) {
+                // 更准确地检测合并单元格
+                const isMerged = cell.colSpan > 1 || cell.rowSpan > 1;
+                
+                if (isMerged) {
+                    // 合并单元格时使用更大的图片
+                    let imagesHTML = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(80px, 1fr)); gap:5px; width:100%; height:100%;">';
+                    images.forEach(imgData => {
+                        imagesHTML += `<img src="${imgData}" style="width:100%; height:100%; object-fit:contain; border-radius:3px; border:1px solid #ddd;">`;
+                    });
+                    imagesHTML += '</div>';
+                    cell.innerHTML = imagesHTML;
+                } else {
+                    // 普通单元格使用小图
+                    cell.innerHTML = `<div style="text-align:center; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                        <img src="${images[0]}" style="max-width:100%; max-height:80%; object-fit:contain; border-radius:3px; border:1px solid #ddd;">
+                        <span style="font-size:0.8em; margin-top:5px;">${images.length}張圖片</span>
+                    </div>`;
+                }
+            } else {
+                cell.innerHTML = '📷 拍照';
+            }
+        }
+
+        function closeCameraModal() {
+            document.getElementById('cameraModal').style.display = 'none';
+        }
+        // 錄音功能
+        function startRecording(btn) {
+            const cell = btn.closest(".recorder-cell");
+            const stopBtn = cell.querySelector("button[onclick^='stopRecording']");
+            const playBtn = cell.querySelector("button[onclick^='playRecording']");
+            const audio = cell.querySelector("audio");
+            recordedChunks = [];
+            
+            navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
+                mediaRecorder = new MediaRecorder(stream, {mimeType: 'audio/mp4'});
+                mediaRecorder.start();
+                mediaRecorder.ondataavailable = e => {if(e.data.size > 0) recordedChunks.push(e.data);}
+                mediaRecorder.onstop = () => {
+                    latestBlob = new Blob(recordedChunks, {type: 'audio/mp4'});
+                    audio.src = URL.createObjectURL(latestBlob);
+                    audio.style.display = "block";
+                    playBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    btn.disabled = false;
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                
+                btn.disabled = true;
+                stopBtn.disabled = false;
+                playBtn.disabled = true;
+            }).catch(err => alert("錄音失敗: " + err.message));
+        }
+        
+        function stopRecording(btn) {
+            if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        }
+        
+        function playRecording(btn) {
+            const audio = btn.closest(".recorder-cell").querySelector("audio");
+            audio.play();
+        }
+        
+        // 內嵌選擇題
+        function selectInlineOption(btn, type) {
+            if(type === 'radio') {
+                const siblings = btn.parentNode.querySelectorAll('.option-button');
+                siblings.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+            } else if(type === 'multi') {
+                btn.classList.toggle('selected');
+            }
+            
+            const values = Array.from(btn.parentNode.querySelectorAll('.option-button.selected')).map(b => b.innerText);
+            btn.parentNode.dataset.value = type === 'radio' ? values[0] || '' : values.join('、');
+        }
+        
+        // 文字輸入 Modal
+        function openTextModal(cell) {
+            currentCell = cell;
+            const value = cell.dataset.value || '';
+            const modal = document.getElementById('modal');
+            const input = document.getElementById('modalInput');
+            input.value = value;
+            
+            // 記錄滾動位置
+            scrollPosition = { top: window.scrollY, left: window.scrollX };
+            
+            // 顯示 modal
+            modal.style.display = 'flex';
+            input.focus();
+        }
+        
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+            
+            // 恢復滾動位置
+            window.scrollTo(scrollPosition.left, scrollPosition.top);
+        }
+        
+        function confirmModal() {
+            if(!currentCell) return;
+            const newValue = document.getElementById('modalInput').value.trim();
+            currentCell.dataset.value = newValue;
+            currentCell.innerText = newValue || '尚未輸入';
+            closeModal();
+        }
+        
+        // 數字輸入 Modal
+        function openNumberModal(cell) {
+            currentCell = cell;
+            const value = cell.dataset.value || '';
+            const modal = document.getElementById('numberModal');
+            const input = document.getElementById('numberInput');
+            input.value = value;
+            
+            // 記錄滾動位置
+            scrollPosition = { top: window.scrollY, left: window.scrollX };
+            
+            // 顯示 modal
+            modal.style.display = 'flex';
+            input.focus();
+        }
+        
+        function closeNumberModal() {
+            document.getElementById('numberModal').style.display = 'none';
+            
+            // 恢復滾動位置
+            window.scrollTo(scrollPosition.left, scrollPosition.top);
+        }
+        
+        function confirmNumberModal() {
+            if(!currentCell) return;
+            const newValue = document.getElementById('numberInput').value.trim();
+            
+            if(currentCell.dataset.type === "countdown") {
+                const unit = currentCell.dataset.unit || "秒";
+                let seconds = Math.floor(parseFloat(newValue)) || 0;
+                
+                // 根據單位轉換為秒數
+                if (unit === "時") {
+                    seconds = seconds * 3600;
+                } else if (unit === "分") {
+                    seconds = seconds * 60;
+                }
+                
+                currentCell.dataset.seconds = seconds;
+                currentCell.innerText = `⏳倒數計時(${unit})`;
+                if(seconds > 0) {
+                    startCountdown(currentCell);
+                }
+            } else {
+                currentCell.dataset.value = newValue;
+                currentCell.innerText = newValue || '尚未輸入';
+            }
+            closeNumberModal();
+        }
+        
+        // 現在時間功能
+        function fillCurrentTime(cell) {
+            // 檢查是否已經顯示過選項菜單
+            if (cell.querySelector('.time-options')) {
+                return; // 如果已經顯示，不再重複顯示
+            }
+            
+            // 檢查是否已經有時間值
+            if (cell.dataset.value) {
+                // 已經有時間值，顯示選項菜單
+                showTimeOptions(cell);
+            } else {
+                // 第一次點擊，填充當前時間
+                const now = new Date();
+                const formatted = formatDateTime(now);
+                cell.dataset.value = formatted;
+                cell.innerText = formatted;
+            }
+        }
+
+        // 為手機添加觸摸事件處理
+        document.addEventListener('DOMContentLoaded', function() {
+            // 為所有"現在時間"單元格添加觸摸事件
+            document.querySelectorAll('[data-type="datetime"]').forEach(cell => {
+                cell.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    fillCurrentTime(this);
+                });
+            });
+        });
+
+        // 顯示時間選項菜單（修改版本）
+        function showTimeOptions(cell) {
+            // 移除現有的選項菜單（如果存在）
+            document.querySelectorAll('.time-options').forEach(el => el.remove());
+            
+            // 創建選項菜單
+            const optionsDiv = document.createElement('div');
+            optionsDiv.className = 'time-options';
+            optionsDiv.style.cssText = `
+                position: fixed;
+                background: white;
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                padding: 10px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                min-width: 150px;
+            `;
+            
+            // 獲取單元格位置（針對手機優化）
+            const rect = cell.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
+            
+            // 決定菜單顯示位置（避免超出屏幕）
+            if (rect.bottom + 120 > viewportHeight) {
+                // 如果下方空間不足，顯示在上方
+                optionsDiv.style.bottom = (viewportHeight - rect.top + 10) + 'px';
+            } else {
+                optionsDiv.style.top = (rect.bottom + 5) + 'px';
+            }
+            
+            // 水平居中對齊
+            optionsDiv.style.left = '50%';
+            optionsDiv.style.transform = 'translateX(-50%)';
+            
+            // 創建按鈕（針對手機優化）
+            const createButton = (text, onClick) => {
+                const button = document.createElement('button');
+                button.textContent = text;
+                button.style.cssText = `
+                    padding: 12px 16px;
+                    border: 1px solid #ddd;
+                    border-radius: 6px;
+                    background: #f8f9fa;
+                    font-size: 16px;
+                    cursor: pointer;
+                    text-align: center;
+                `;
+                button.onclick = onClick;
+                button.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    onClick();
+                });
+                return button;
+            };
+            
+            // 更新時間按鈕
+            const updateBtn = createButton('🔄 更新時間', () => {
+                const now = new Date();
+                const formatted = formatDateTime(now);
+                cell.dataset.value = formatted;
+                cell.innerText = formatted;
+                optionsDiv.remove();
+            });
+            
+            // 修改時間按鈕
+            const editBtn = createButton('✏️ 修改時間', () => {
+                openTimeEditor(cell);
+                optionsDiv.remove();
+            });
+            
+            // 取消按鈕
+            const cancelBtn = createButton('❌ 取消', () => {
+                optionsDiv.remove();
+            });
+            
+            // 添加按鈕到選項菜單
+            optionsDiv.appendChild(updateBtn);
+            optionsDiv.appendChild(editBtn);
+            optionsDiv.appendChild(cancelBtn);
+            
+            // 添加到文檔
+            document.body.appendChild(optionsDiv);
+            
+            // 點擊頁面其他地方關閉菜單
+            const clickHandler = (e) => {
+                if (!optionsDiv.contains(e.target) && e.target !== cell) {
+                    optionsDiv.remove();
+                    document.removeEventListener('click', clickHandler);
+                    document.removeEventListener('touchstart', clickHandler);
+                }
+            };
+            
+            // 添加觸摸和點擊事件監聽
+            setTimeout(() => {
+                document.addEventListener('click', clickHandler);
+                document.addEventListener('touchstart', clickHandler);
+            }, 0);
+        }
+
+        // 打開時間編輯器（手機優化版本）
+        function openTimeEditor(cell) {
+            // 移除現有的編輯器（如果存在）
+            document.querySelectorAll('.time-editor-modal').forEach(el => el.remove());
+            
+            // 創建模態框
+            const modal = document.createElement('div');
+            modal.className = 'time-editor-modal';
+            
+            // 創建內容區域
+            const content = document.createElement('div');
+            content.className = 'time-editor-content';
+            
+            // 創建標題
+            const title = document.createElement('h3');
+            title.textContent = '修改時間';
+            title.style.marginTop = '0';
+            content.appendChild(title);
+            
+            // 創建日期輸入
+            const dateLabel = document.createElement('label');
+            dateLabel.textContent = '日期: ';
+            dateLabel.style.display = 'block';
+            dateLabel.style.marginTop = '10px';
+            dateLabel.style.fontWeight = 'bold';
+            
+            const dateInput = document.createElement('input');
+            dateInput.type = 'date';
+            
+            // 設置默認值為當前單元格的日期部分
+            if (cell.dataset.value) {
+                const datePart = cell.dataset.value.split(' ')[0];
+                dateInput.value = datePart;
+            } else {
+                // 如果沒有值，使用當前日期
+                const now = new Date();
+                dateInput.value = now.toISOString().split('T')[0];
+            }
+            
+            dateLabel.appendChild(dateInput);
+            content.appendChild(dateLabel);
+            
+            // 創建時間輸入
+            const timeLabel = document.createElement('label');
+            timeLabel.textContent = '時間: ';
+            timeLabel.style.display = 'block';
+            timeLabel.style.marginTop = '15px';
+            timeLabel.style.fontWeight = 'bold';
+            
+            const timeInput = document.createElement('input');
+            timeInput.type = 'time';
+            timeInput.step = 1; // 允許秒級精度
+            
+            // 設置默認值為當前單元格的時間部分
+            if (cell.dataset.value) {
+                const timePart = cell.dataset.value.split(' ')[1];
+                timeInput.value = timePart;
+            } else {
+                // 如果沒有值，使用當前時間
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                timeInput.value = `${hours}:${minutes}:${seconds}`;
+            }
+            
+            timeLabel.appendChild(timeInput);
+            content.appendChild(timeLabel);
+            
+            // 創建按鈕區域
+            const buttonDiv = document.createElement('div');
+            buttonDiv.className = 'time-editor-buttons';
+            
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = 'time-editor-confirm';
+            confirmBtn.textContent = '確定';
+            confirmBtn.onclick = () => {
+                const date = dateInput.value;
+                const time = timeInput.value;
+                
+                if (date && time) {
+                    cell.dataset.value = `${date} ${time}`;
+                    cell.innerText = `${date} ${time}`;
+                }
+                
+                modal.remove();
+            };
+            
+            // 添加觸摸事件
+            confirmBtn.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                const date = dateInput.value;
+                const time = timeInput.value;
+                
+                if (date && time) {
+                    cell.dataset.value = `${date} ${time}`;
+                    cell.innerText = `${date} ${time}`;
+                }
+                
+                modal.remove();
+            });
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'time-editor-cancel';
+            cancelBtn.textContent = '取消';
+            cancelBtn.onclick = () => {
+                modal.remove();
+            };
+            
+            // 添加觸摸事件
+            cancelBtn.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                modal.remove();
+            });
+            
+            buttonDiv.appendChild(confirmBtn);
+            buttonDiv.appendChild(cancelBtn);
+            content.appendChild(buttonDiv);
+            
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            
+            // 點擊模態框背景關閉
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+            
+            // 添加觸摸事件
+            modal.addEventListener('touchend', (e) => {
+                if (e.target === modal) {
+                    e.preventDefault();
+                    modal.remove();
+                }
+            });
+        }
+        // 格式化日期時間函數
+        function formatDateTime(date) {
+            return date.getFullYear() + "-" + 
+                String(date.getMonth() + 1).padStart(2, '0') + "-" + 
+                String(date.getDate()).padStart(2, '0') + " " + 
+                String(date.getHours()).padStart(2, '0') + ":" + 
+                String(date.getMinutes()).padStart(2, '0') + ":" + 
+                String(date.getSeconds()).padStart(2, '0');
+        }
+        // 倒數計時
+        // 修改 startCountdown 函數以顯示時分秒格式
+        function startCountdown(cell) {
+            if(cell._countdownInterval) return;
+            
+            let seconds = parseInt(cell.dataset.seconds) || 0;
+            if (seconds <= 0) return;
+            
+            // 格式化時間顯示
+            function formatTime(secs) {
+                const hrs = Math.floor(secs / 3600);
+                const mins = Math.floor((secs % 3600) / 60);
+                const secsRemaining = secs % 60;
+                return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secsRemaining.toString().padStart(2, '0')}`;
+            }
+            
+            cell.innerText = "⏳" + formatTime(seconds);
+            
+            let interval = setInterval(() => {
+                seconds--;
+                if (seconds > 0) {
+                    cell.innerText = "⏳" + formatTime(seconds);
+                    
+                    // 最後30秒顯示紅色警示
+                    if (seconds <= 30) {
+                        cell.style.color = "red";
+                        cell.style.fontWeight = "bold";
+                    }
+                } else {
+                    clearInterval(interval);
+                    cell._countdownInterval = null;
+                    cell.innerText = "⏳時間到！";
+                    cell.style.color = "";
+                    cell.style.fontWeight = "";
+                    addCountdownHistory(cell);
+                    
+                    let prevCell = cell.previousElementSibling;
+                    let medName = prevCell ? prevCell.innerText.trim() : "項目";
+                    
+                    reminderQueue.push({
+                        cell: cell,
+                        msg: medName + " 時間到，請注意！"
+                    });
+                    processReminderQueue();
+                }
+            }, 1000);
+            
+            cell._countdownInterval = interval;
+        }
+        
+        // 修改 promptCountdown 函數以顯示適當的提示
+        function promptCountdown(cell) {
+            currentCell = cell;
+            const unit = cell.dataset.unit || "秒";
+            let defaultValue = "";
+            
+            // 如果有設定的秒數，轉換回原始單位
+            const seconds = parseInt(cell.dataset.seconds) || 0;
+            if (seconds > 0) {
+                if (unit === "時") {
+                    defaultValue = (seconds / 3600).toString();
+                } else if (unit === "分") {
+                    defaultValue = (seconds / 60).toString();
+                } else {
+                    defaultValue = seconds.toString();
+                }
+            }
+            
+            const modal = document.getElementById('numberModal');
+            const input = document.getElementById('numberInput');
+            input.value = defaultValue;
+            input.placeholder = `請輸入${unit}數`;
+            
+            // 記錄滾動位置
+            scrollPosition = { top: window.scrollY, left: window.scrollX };
+            
+            // 顯示 modal
+            modal.style.display = 'flex';
+            input.focus();
+        }
+        
+        // 倒數計時歷史記錄
+        function addCountdownHistory(cell) {
+            let row = cell.parentNode;
+            let idx = Array.from(row.children).indexOf(cell);
+            let historyCell = row.children[idx + 1];
+            
+            if(!historyCell) {
+                historyCell = document.createElement("td");
+                row.appendChild(historyCell);
+            }
+            
+            const now = new Date();
+            const formatted = now.getFullYear() + "-" + 
+                String(now.getMonth() + 1).padStart(2, '0') + "-" + 
+                String(now.getDate()).padStart(2, '0') + " " + 
+                String(now.getHours()).padStart(2, '0') + ":" + 
+                String(now.getMinutes()).padStart(2, '0') + ":" + 
+                String(now.getSeconds()).padStart(2, '0');
+            
+            let count = historyCell.dataset.count ? parseInt(historyCell.dataset.count) + 1 : 1;
+            historyCell.dataset.count = count;
+            const prefix = count === 1 ? "第一次時間:" : "第" + count + "次時間:";
+            historyCell.innerHTML += prefix + formatted + "<br>";
+        }
+        
+        // 選擇功能
+        function openCollapseModal(cell) {
+            currentCollapseCell = cell;
+            const options = JSON.parse(cell.dataset.options);
+            const type = cell.dataset.optionType;
+            const container = document.getElementById('collapseOptions');
+            const title = document.getElementById('collapseModalTitle');
+            
+            container.innerHTML = '';
+            title.innerText = '請選擇';
+            
+            // 创建选项容器
+            const optionsContainer = document.createElement('div');
+            optionsContainer.className = 'collapse-options-container';
+            
+            options.forEach((option, index) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'collapse-option';
+                
+                // 确保 original_text 存在
+                if (!option.original_text) {
+                    option.original_text = option.text || option.display_text || '';
+                }
+                
+                if (option.sub_options) {
+                    // 有子选项的选项
+                    const mainOption = document.createElement('div');
+                    mainOption.className = 'main-option';
+                    
+                    // 检查主选项是否有输入标记
+                    if (option.input_positions && option.input_positions.length > 0) {
+                        // 有输入框的主选项
+                        const mainOptionContent = document.createElement('div');
+                        mainOptionContent.className = 'main-option-with-inputs';
+                        
+                        // 创建复选框和标签
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.id = `main-option-${index}`;
+                        checkbox.className = 'main-option-checkbox';
+                        checkbox.value = option.text; // 保存原始文本
+                        
+                        const label = document.createElement('label');
+                        label.htmlFor = `main-option-${index}`;
+                        label.className = 'main-option-label';
+                        
+                        // 构建标签内容
+                        let lastPos = 0;
+                        option.input_positions.forEach((inputPos, inputIndex) => {
+                            // 添加输入标记前的文本
+                            if (inputPos.position > lastPos) {
+                                const textSpan = document.createElement('span');
+                                textSpan.textContent = option.original_text.substring(lastPos, inputPos.position);
+                                label.appendChild(textSpan);
+                            }
+                            
+                            // 添加输入框
+                            const input = document.createElement('input');
+                            input.type = inputPos.type === 'text' ? 'text' : 'number';
+                            input.className = 'sub-option-input-field';
+                            input.placeholder = inputPos.placeholder;
+                            input.dataset.position = inputPos.position;
+                            input.dataset.length = inputPos.length;
+                            input.style.width = '60px';
+                            input.style.margin = '0 5px';
+                            
+                            label.appendChild(input);
+                            
+                            // 更新最后位置，跳过输入标记本身
+                            lastPos = inputPos.position + inputPos.length;
+                        });
+
+                        // 添加剩余的文本
+                        if (lastPos < option.original_text.length) {
+                            const textSpan = document.createElement('span');
+                            textSpan.textContent = option.original_text.substring(lastPos);
+                            label.appendChild(textSpan);
+                        }
+                        
+                        mainOptionContent.appendChild(checkbox);
+                        mainOptionContent.appendChild(label);
+                        mainOption.appendChild(mainOptionContent);
+                    } else {
+                        // 普通主选项
+                        mainOption.innerHTML = `
+                            <input type="checkbox" id="main-option-${index}" class="main-option-checkbox" value="${option.text}">
+                            <label for="main-option-${index}" class="main-option-label">${option.text}</label>
+                        `;
+                    }
+                    
+                    const subOptionsContainer = document.createElement('div');
+                    subOptionsContainer.className = 'sub-options-container';
+                    subOptionsContainer.style.display = 'none';
+                    
+                    option.sub_options.forEach((subOption, subIndex) => {
+                        const subOptionDiv = document.createElement('div');
+                        subOptionDiv.className = 'sub-option';
+                        
+                        // 确保子选项的 original_text 存在
+                        if (!subOption.original_text) {
+                            subOption.original_text = subOption.text || subOption.display_text || '';
+                        }
+                        
+                        if (subOption.input_positions && subOption.input_positions.length > 0) {
+                            // 有输入框的子选项
+                            const optionContent = document.createElement('div');
+                            optionContent.className = 'sub-option-with-inputs';
+                            
+                            // 创建复选框和标签
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.id = `sub-option-${index}-${subIndex}`;
+                            checkbox.className = 'sub-option-input';
+                            checkbox.value = subOption.text; // 保存原始文本
+                            
+                            const label = document.createElement('label');
+                            label.htmlFor = `sub-option-${index}-${subIndex}`;
+                            label.className = 'sub-option-label';
+                            
+                            // 构建标签内容
+                            let lastPos = 0;
+                            subOption.input_positions.forEach((inputPos, inputIndex) => {
+                                // 添加输入标记前的文本
+                                if (inputPos.position > lastPos) {
+                                    const textSpan = document.createElement('span');
+                                    textSpan.textContent = subOption.original_text.substring(lastPos, inputPos.position);
+                                    label.appendChild(textSpan);
+                                }
+                                
+                                // 添加输入框
+                                const input = document.createElement('input');
+                                input.type = inputPos.type === 'text' ? 'text' : 'number';
+                                input.className = 'sub-option-input-field';
+                                input.placeholder = inputPos.placeholder;
+                                input.dataset.position = inputPos.position;
+                                input.dataset.length = inputPos.length;
+                                input.style.width = '60px';
+                                input.style.margin = '0 5px';
+                                
+                                label.appendChild(input);
+                                
+                                // 更新最后位置
+                                lastPos = inputPos.position + inputPos.length;
+                            });
+                            
+                            // 添加剩余的文本
+                            if (lastPos < subOption.original_text.length) {
+                                const textSpan = document.createElement('span');
+                                textSpan.textContent = subOption.original_text.substring(lastPos);
+                                label.appendChild(textSpan);
+                            }
+                            
+                            optionContent.appendChild(checkbox);
+                            optionContent.appendChild(label);
+                            subOptionDiv.appendChild(optionContent);
+                        } else {
+                            // 普通子选项
+                            subOptionDiv.innerHTML = `
+                                <input type="checkbox" id="sub-option-${index}-${subIndex}" 
+                                    class="sub-option-input" value="${subOption.text}">
+                                <label for="sub-option-${index}-${subIndex}" class="sub-option-label">${subOption.text}</label>
+                            `;
+                        }
+                        
+                        subOptionsContainer.appendChild(subOptionDiv);
+                    });
+                    
+                    // 点击主选项时显示/隐藏子选项
+                    mainOption.querySelector('.main-option-checkbox').addEventListener('change', function() {
+                        if (this.checked) {
+                            subOptionsContainer.style.display = 'block';
+                        } else {
+                            subOptionsContainer.style.display = 'none';
+                            // 取消选择所有子选项
+                            subOptionsContainer.querySelectorAll('.sub-option-input').forEach(input => {
+                                input.checked = false;
+                            });
+                        }
+                    });
+                    
+                    optionDiv.appendChild(mainOption);
+                    optionDiv.appendChild(subOptionsContainer);
+                } else if (option.input_positions && option.input_positions.length > 0) {
+                    // 特殊输入类型的选项（没有子选项）
+                    const optionContent = document.createElement('div');
+                    optionContent.className = 'option-with-inputs';
+                    
+                    if (type === 'radio') {
+                        const radio = document.createElement('input');
+                        radio.type = 'radio';
+                        radio.id = `option-${index}`;
+                        radio.name = 'collapseOption';
+                        radio.className = 'option-input';
+                        radio.value = option.text; // 保存原始文本
+                        
+                        const label = document.createElement('label');
+                        label.htmlFor = `option-${index}`;
+                        label.className = 'option-label';
+                        
+                        // 构建标签内容
+                        let lastPos = 0;
+                        option.input_positions.forEach((inputPos, inputIndex) => {
+                            // 添加输入标记前的文本
+                            if (inputPos.position > lastPos) {
+                                const textSpan = document.createElement('span');
+                                textSpan.textContent = option.original_text.substring(lastPos, inputPos.position);
+                                label.appendChild(textSpan);
+                            }
+                            
+                            // 添加输入框
+                            const input = document.createElement('input');
+                            input.type = inputPos.type === 'text' ? 'text' : 'number';
+                            input.className = 'option-input-field';
+                            input.placeholder = inputPos.placeholder;
+                            input.dataset.position = inputPos.position;
+                            input.dataset.length = inputPos.length;
+                            input.style.width = '60px';
+                            input.style.margin = '0 5px';
+                            
+                            label.appendChild(input);
+                            
+                            // 更新最后位置
+                            lastPos = inputPos.position + inputPos.length;
+                        });
+                        
+                        // 添加剩余的文本
+                        if (lastPos < option.original_text.length) {
+                            const textSpan = document.createElement('span');
+                            textSpan.textContent = option.original_text.substring(lastPos);
+                            label.appendChild(textSpan);
+                        }
+                        
+                        optionContent.appendChild(radio);
+                        optionContent.appendChild(label);
+                    } else {
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.id = `option-${index}`;
+                        checkbox.className = 'option-input';
+                        checkbox.value = option.text; // 保存原始文本
+                        
+                        const label = document.createElement('label');
+                        label.htmlFor = `option-${index}`;
+                        label.className = 'option-label';
+                        
+                        // 构建标签内容
+                        let lastPos = 0;
+                        option.input_positions.forEach((inputPos, inputIndex) => {
+                            // 添加输入标记前的文本
+                            if (inputPos.position > lastPos) {
+                                const textSpan = document.createElement('span');
+                                textSpan.textContent = option.original_text.substring(lastPos, inputPos.position);
+                                label.appendChild(textSpan);
+                            }
+                            
+                            // 添加输入框
+                            const input = document.createElement('input');
+                            input.type = inputPos.type === 'text' ? 'text' : 'number';
+                            input.className = 'option-input-field';
+                            input.placeholder = inputPos.placeholder;
+                            input.dataset.position = inputPos.position;
+                            input.dataset.length = inputPos.length;
+                            input.style.width = '60px';
+                            input.style.margin = '0 5px';
+                            
+                            label.appendChild(input);
+                            
+                            // 更新最后位置
+                            lastPos = inputPos.position + inputPos.length;
+                        });
+                        
+                        // 添加剩余的文本
+                        if (lastPos < option.original_text.length) {
+                            const textSpan = document.createElement('span');
+                            textSpan.textContent = option.original_text.substring(lastPos);
+                            label.appendChild(textSpan);
+                        }
+                        
+                        optionContent.appendChild(checkbox);
+                        optionContent.appendChild(label);
+                    }
+                    
+                    optionDiv.appendChild(optionContent);
+                } else {
+                    // 普通选项
+                    if (type === 'radio') {
+                        optionDiv.innerHTML = `
+                            <input type="radio" id="option-${index}" name="collapseOption" 
+                                class="option-input" value="${option.text}">
+                            <label for="option-${index}" class="option-label">${option.text}</label>
+                        `;
+                    } else {
+                        optionDiv.innerHTML = `
+                            <input type="checkbox" id="option-${index}" 
+                                class="option-input" value="${option.text}">
+                            <label for="option-${index}" class="option-label">${option.text}</label>
+                        `;
+                    }
+                }
+                
+                optionsContainer.appendChild(optionDiv);
+            });
+            
+            container.appendChild(optionsContainer);
+            
+            // 显示模态框
+            document.getElementById('collapseModal').style.display = 'flex';
+        }
+
+        // 在 confirmCollapseSelection 函数中，修改处理带输入框选项的部分
+        function confirmCollapseSelection() {
+            if (!currentCollapseCell) return;
+            
+            const type = currentCollapseCell.dataset.optionType;
+            const container = document.getElementById('collapseOptions');
+            let selectedValues = [];
+            
+            // 获取所有选中的主选项
+            const mainOptions = container.querySelectorAll('.main-option-checkbox:checked');
+            mainOptions.forEach(mainOption => {
+                // 检查主选项是否有输入框
+                const mainOptionWithInputs = mainOption.closest('.main-option-with-inputs');
+                let mainOptionText = mainOption.value; // 使用原始文本
+                
+                if (mainOptionWithInputs) {
+                    // 构建包含输入值的文本
+                    const label = mainOptionWithInputs.querySelector('label');
+                    mainOptionText = buildTextWithInputs(label, mainOption.value);
+                }
+                
+                // 获取该主选项下的子选项
+                const subOptionsContainer = mainOption.closest('.collapse-option').querySelector('.sub-options-container');
+                if (subOptionsContainer) {
+                    const selectedSubOptions = subOptionsContainer.querySelectorAll('.sub-option-input:checked');
+                    if (selectedSubOptions.length > 0) {
+                        const subOptionValues = Array.from(selectedSubOptions).map(input => {
+                            // 检查是否有输入框
+                            const optionWithInputs = input.closest('.sub-option-with-inputs');
+                            if (optionWithInputs) {
+                                // 构建包含输入值的文本
+                                const label = optionWithInputs.querySelector('label');
+                                return buildTextWithInputs(label, input.value);
+                            } else {
+                                return input.value;
+                            }
+                        });
+                        
+                        // 将子选项值用顿号连接，并放在括号内
+                        selectedValues.push(`${mainOptionText}(${subOptionValues.join('、')})`);
+                    } else {
+                        // 没有选中任何子选项，只显示主选项
+                        selectedValues.push(mainOptionText);
+                    }
+                } else {
+                    // 没有子选项的主选项
+                    selectedValues.push(mainOptionText);
+                }
+            });
+            
+            // 获取普通选项（没有子选项的）
+            const regularOptions = container.querySelectorAll('.option-input:checked');
+            regularOptions.forEach(option => {
+                // 检查是否有输入框
+                const optionWithInputs = option.closest('.option-with-inputs');
+                if (optionWithInputs) {
+                    // 构建包含输入值的文本
+                    const label = optionWithInputs.querySelector('label');
+                    selectedValues.push(buildTextWithInputs(label, option.value));
+                } else {
+                    selectedValues.push(option.value);
+                }
+            });
+            
+            currentCollapseCell.dataset.value = selectedValues.join('、');
+            currentCollapseCell.innerText = selectedValues.join('、') || '選擇項目';
+            closeCollapseModal();
+        }
+
+        // 新增辅助函数：构建包含输入值的文本
+        function buildTextWithInputs(labelElement, originalText) {
+            let result = "";
+            
+            // 遍历label的所有子节点
+            for (let i = 0; i < labelElement.childNodes.length; i++) {
+                const node = labelElement.childNodes[i];
+                
+                if (node.nodeType === 3) { // 文本节点
+                    result += node.textContent;
+                } else if (node.tagName === 'INPUT') {
+                    // 添加输入框的值
+                    result += node.value || node.placeholder;
+                } else if (node.nodeType === 1) { // 元素节点
+                    // 递归处理嵌套元素
+                    result += buildTextWithInputs(node, "");
+                }
+            }
+            
+            return result || originalText;
+        }
+
+        function closeCollapseModal() {
+            document.getElementById('collapseModal').style.display = 'none';
+        }
+        
+        
+        
+        // 提醒系統
+        function getAlarmAudio() {
+            if (!alarmAudio) {
+                alarmAudio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+                alarmAudio.loop = true;
+            }
+            return alarmAudio;
+        }
+        
+        function processReminderQueue() {
+            if (showingReminder || reminderQueue.length === 0) return;
+            
+            showingReminder = true;
+            const obj = reminderQueue.shift();
+            const msg = obj.msg;
+            
+            const reminder = document.getElementById("reminder");
+            const playBtn = reminder.querySelector(".play-sound-btn");
+            reminder.querySelector(".reminder-message").innerText = msg;
+            reminder.style.display = "flex";
+            
+            // 嘗試播放提示音
+            const audio = getAlarmAudio();
+            audio.play()
+                .then(() => {
+                    // 播放成功，隱藏播放按鈕
+                    if (playBtn) playBtn.style.display = "none";
+                })
+                .catch(err => {
+                    console.warn("自動播放被阻擋:", err);
+                    // 自動播放失敗時，嘗試使用用戶手勢觸發播放
+                    // 先暫停並重置音頻
+                    audio.pause();
+                    audio.currentTime = 0;
+                    
+                    // 顯示播放按鈕，但設置為自動點擊
+                    if (playBtn) {
+                        playBtn.style.display = "inline-block";
+                        // 自動點擊播放按鈕（這需要用戶已與頁面交互過）
+                        try {
+                            playBtn.click();
+                        } catch (e) {
+                            console.warn("自動點擊失敗:", e);
+                        }
+                    }
+                });
+        }
+        
+        function closeReminder() {
+            const reminder = document.getElementById("reminder");
+            reminder.style.display = "none";
+            
+            if (alarmAudio) {
+                try {
+                    alarmAudio.pause();
+                    alarmAudio.currentTime = 0;
+                } catch (e) {
+                    console.warn("停止音檔錯誤:", e);
+                }
+            }
+            
+            showingReminder = false;
+            setTimeout(processReminderQueue, 100);
+        }
+        
+        function playReminderSound() {
+            const audio = getAlarmAudio();
+            audio.play()
+                .then(() => {
+                    const playBtn = document.querySelector(".play-sound-btn");
+                    if (playBtn) playBtn.style.display = "none";
+                })
+                .catch(err => {
+                    console.error("播放音效失敗:", err);
+                    alert("播放失敗，請確認瀏覽器是否允許聲音。");
+                });
+        }
+        
+        // 目前座標
+        function fillCurrentLocation(cell) {
+            if(!navigator.geolocation) {
+                alert("❌ 此瀏覽器不支援定位功能");
+                return;
+            }
+            
+            cell.innerText = "📍 取得中...";
+            
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    const lat = pos.coords.latitude.toFixed(6);
+                    const lng = pos.coords.longitude.toFixed(6);
+                    const coords = lng + "," + lat;
+                    cell.dataset.value = coords;
+                    cell.innerText = coords;
+                },
+                err => {
+                    cell.innerText = "📍 點擊取得座標";
+                    alert("定位失敗: " + err.message);
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+
+        ////////////////////////////////////////////////////////////
+        
+        
+        
+        // 資料匯出完整版本 - 使用Python生成的导出表格，但保留用户数据
+        // 資料匯出完整版本 - 完全保留原本逻辑，移除/分割
+        document.getElementById("exportBtn").addEventListener("click", async () => {
+            const exportStatus = document.getElementById("exportStatus");
+            exportStatus.innerText = "正在準備匯出資料...";
+            
+            try {
+                // 获取所有分区的內容
+                let allContent = "";
+                const sections = document.querySelectorAll('.content-section');
+                
+                for (let section of sections) {
+                    if (section.id !== 'section-匯出') {
+                        const sectionName = section.id.replace('section-', '');
+                        // 使用原始节点而不是克隆
+                        const sectionContent = section.querySelector('.table-container');
+                        
+                        // 创建一个临时容器来处理内容
+                        const tempContainer = document.createElement('div');
+                        tempContainer.innerHTML = sectionContent.innerHTML;
+                        
+                        // 移除 table-container 內的 h2 標題，避免重复
+                        const innerH2 = tempContainer.querySelector('h2');
+                        if(innerH2) innerH2.remove();
+                        
+                        // 处理录音檔和选择题 - 直接使用原始节点数据
+                        const tables = tempContainer.querySelectorAll("table");
+                        const originalTables = sectionContent.querySelectorAll("table");
+                        
+                        for (let t = 0; t < tables.length; t++) {
+                            const table = tables[t];
+                            const originalTable = originalTables[t];
+                            
+                            const rows = table.querySelectorAll("tr");
+                            const originalRows = originalTable.querySelectorAll("tr");
+                            
+                            // 关键修改：合并由/分割的行
+                            const mergedRows = [];
+                            let currentRowGroup = null;
+                            
+                            for (let r = 0; r < rows.length; r++) {
+                                const row = rows[r];
+                                const originalRow = originalRows[r];
+                                
+                                if (!originalRow) continue;
+                                
+                                const cells = row.querySelectorAll("td, th");
+                                
+                                // 检查是否是新的行组（没有/分割的行）
+                                const isNewRowGroup = !cells[0] || !cells[0].innerHTML.includes('data-gjs-editable="true"') || 
+                                                    !cells[0].querySelector('[data-gjs-editable="true"]')?.innerHTML.startsWith('/');
+                                
+                                if (isNewRowGroup) {
+                                    // 开始新的行组
+                                    if (currentRowGroup) {
+                                        mergedRows.push(currentRowGroup);
+                                    }
+                                    currentRowGroup = {
+                                        row: row.cloneNode(true),
+                                        originalRow: originalRow,
+                                        additionalRows: []
+                                    };
+                                } else {
+                                    // 添加到当前行组
+                                    if (currentRowGroup) {
+                                        currentRowGroup.additionalRows.push({
+                                            row: row.cloneNode(true),
+                                            originalRow: originalRow
+                                        });
+                                    }
+                                }
+                            }
+                            
+                            // 添加最后一个行组
+                            if (currentRowGroup) {
+                                mergedRows.push(currentRowGroup);
+                            }
+                            
+                            // 清空原表格并添加合并后的行
+                            table.innerHTML = '';
+                            
+                            for (const rowGroup of mergedRows) {
+                                const mainRow = rowGroup.row;
+                                const mainCells = mainRow.querySelectorAll("td, th");
+                                
+                                // 合并附加行的内容到主行
+                                for (const additionalRow of rowGroup.additionalRows) {
+                                    const additionalCells = additionalRow.row.querySelectorAll("td, th");
+                                    
+                                    for (let c = 0; c < Math.min(mainCells.length, additionalCells.length); c++) {
+                                        const mainCell = mainCells[c];
+                                        const additionalCell = additionalCells[c];
+                                        
+                                        // 移除/符号并合并内容
+                                        if (additionalCell.innerHTML.includes('data-gjs-editable="true"')) {
+                                            const tempDiv = document.createElement('div');
+                                            tempDiv.innerHTML = additionalCell.innerHTML;
+                                            const editableDiv = tempDiv.querySelector('[data-gjs-editable="true"]');
+                                            if (editableDiv) {
+                                                let cleanContent = editableDiv.innerHTML;
+                                                // 移除开头的/符号
+                                                if (cleanContent.startsWith('/')) {
+                                                    cleanContent = cleanContent.substring(1);
+                                                }
+                                                // 添加到主单元格内容
+                                                const mainTempDiv = document.createElement('div');
+                                                mainTempDiv.innerHTML = mainCell.innerHTML;
+                                                const mainEditableDiv = mainTempDiv.querySelector('[data-gjs-editable="true"]');
+                                                if (mainEditableDiv) {
+                                                    mainEditableDiv.innerHTML += ' ' + cleanContent;
+                                                    mainCell.innerHTML = mainTempDiv.innerHTML;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                table.appendChild(mainRow);
+                            }
+                            
+                            // 处理特殊单元格
+                            const finalRows = table.querySelectorAll("tr");
+                            const finalOriginalRows = originalTable.querySelectorAll("tr");
+                            
+                            for (let r = 0; r < finalRows.length; r++) {
+                                const row = finalRows[r];
+                                const originalRow = finalOriginalRows[r];
+                                
+                                if (!originalRow) continue;
+                                
+                                const cells = row.querySelectorAll("td, th");
+                                const originalCells = originalRow.querySelectorAll("td, th");
+                                
+                                for (let c = 0; c < cells.length; c++) {
+                                    const cell = cells[c];
+                                    const originalCell = originalCells[c];
+                                    
+                                    if (!originalCell) continue;
+                                    
+                                    // 錄音處理
+                                    const audio = originalCell.querySelector("audio");
+                                    if (audio && audio.src.startsWith("blob:")) {
+                                        try {
+                                            const response = await fetch(audio.src);
+                                            const blob = await response.blob();
+                                            const dataURL = await new Promise(resolve => {
+                                                const reader = new FileReader();
+                                                reader.onload = () => resolve(reader.result);
+                                                reader.readAsDataURL(blob);
+                                            });
+                                            // 只替换录音部分，保留其他内容
+                                            const recorderDiv = cell.querySelector(".recorder-cell");
+                                            if (recorderDiv) {
+                                                recorderDiv.innerHTML = `<audio controls src="${dataURL}" style="width:100%; max-width:100%; box-sizing:border-box;"></audio>`;
+                                            }
+                                        } catch (error) {
+                                            console.error("录音转换失败:", error);
+                                            const recorderDiv = cell.querySelector(".recorder-cell");
+                                            if (recorderDiv) {
+                                                recorderDiv.innerHTML = "❌ 录音转换失败";
+                                            }
+                                        }
+                                    } else {
+                                        // 没有录音时，只移除录音按钮部分
+                                        const recorderDiv = cell.querySelector(".recorder-cell");
+                                        if (recorderDiv) {
+                                            recorderDiv.remove();
+                                        }
+                                    }
+                                    
+                                    // 特殊單元格處理
+                                    if (originalCell.classList.contains("editable-cell")) {
+                                        const type = originalCell.dataset.type;
+                                        
+                                        if (type === "radio") {
+                                            // 获取单选按钮的选中值
+                                            const selectedBtn = originalCell.querySelector(".option-button.selected");
+                                            const value = selectedBtn ? selectedBtn.innerText.trim() : '';
+                                            cell.innerHTML = `<div>${value}</div>`;
+                                        } else if (type === "multi") {
+                                            // 获取多选按钮的选中值
+                                            const selectedBtns = originalCell.querySelectorAll(".option-button.selected");
+                                            const value = Array.from(selectedBtns).map(b => b.innerText.trim()).join('、');
+                                            cell.innerHTML = `<div>${value}</div>`;
+                                        } else if (type === "text" || type === "number" || type === "datetime" || 
+                                                type === "countdown" || type === "location") {
+                                            // 获取其他类型的值
+                                            const value = originalCell.dataset.value || '';
+                                            cell.innerHTML = `<div>${value}</div>`;
+                                        } else if (type === "collapse") {
+                                            // 收合选择
+                                            const value = originalCell.dataset.value || '';
+                                            cell.innerHTML = `<div>${value}</div>`;
+                                        } else if (type === "camera") {
+                                            // 相机图片处理
+                                            const images = JSON.parse(originalCell.dataset.images || '[]');
+                                            let imagesHTML = '';
+                                            if (images.length > 0) {
+                                                // 使用单元格的实际尺寸来限制图片大小
+                                                const cellStyle = window.getComputedStyle(originalCell);
+                                                const cellWidth = parseInt(cellStyle.width) - 10; // 减去一些边距
+                                                const cellHeight = parseInt(cellStyle.height) - 10;
+                                                
+                                                // 根据单元格大小和图片数量计算每张图片的尺寸
+                                                const imgSize = Math.min(
+                                                    120, 
+                                                    Math.min(cellWidth, cellHeight) / Math.max(1, Math.ceil(Math.sqrt(images.length)))
+                                                );
+                                                
+                                                imagesHTML = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(' + imgSize + 'px, 1fr)); gap:5px; width:100%; height:100%;">';
+                                                images.forEach(imgData => {
+                                                    imagesHTML += `<img src="${imgData}" style="width:100%; height:auto; max-height:${imgSize}px; object-fit:contain; border-radius:3px; border:1px solid #ddd;">`;
+                                                });
+                                                imagesHTML += '</div>';
+                                            } else {
+                                                imagesHTML = '无图片';
+                                            }
+                                            cell.innerHTML = imagesHTML;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        allContent += `<h2>${sectionName}</h2><div class="table-container">${tempContainer.innerHTML}</div>`;
+                    }
+                }
+
+                const exportHTML = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>已匯出表格</title>
+<style>
+body { font-family: Arial, sans-serif; padding:20px; }
+table { border-collapse: collapse; width: 100%; border: 1px solid #ccc; }
+td, th { border: 1px solid #ccc; padding: 6px 8px; word-wrap: break-word; vertical-align: top; }
+h2 { margin-top: 30px; color: #333; }
+</style>
+</head>
+<body>
+${allContent}
+</body>
+</html>`;
+
+                // 檔名用 B2
+                let fileName = "exported_table.html";
+                const b2 = document.querySelector("table tbody tr:nth-child(1) td:nth-child(2)");
+                if (b2 && b2.innerText.trim()) {
+                    fileName = b2.innerText.trim() + "的資料.html";
+                }
+
+                // 🔹 定義是否為手機
+                const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+                if (isMobile) {
+                    // 手機端：打包 zip 後用分享 API
+                    const zip = new JSZip();
+                    zip.file("exported_table.html", exportHTML);
+
+                    const content = await zip.generateAsync({ type: "blob" });
+                    const fixedBlob = new Blob([content], { type: "application/zip" });
+
+                    if (navigator.canShare && navigator.canShare({ files: [new File([fixedBlob], fileName.replace('.html', '.zip'))] })) {
+                        try {
+                            await navigator.share({
+                                files: [new File([fixedBlob], fileName.replace('.html', '.zip'))],
+                                title: "匯出表格",
+                                text: "這是你匯出的表格 ZIP 檔"
+                            });
+                            exportStatus.innerText = "✅ 匯出成功！";
+                            return;
+                        } catch (err) {
+                            console.warn("分享 API 失敗，改用下載方式", err);
+                            // fallback 仍可下載
+                            saveAs(fixedBlob, fileName.replace('.html', '.zip'));
+                            exportStatus.innerText = "✅ 匯出成功（下載）！";
+                            return;
+                        }
+                    } else {
+                        // 不支援分享 API，直接下載
+                        saveAs(fixedBlob, fileName.replace('.html', '.zip'));
+                        exportStatus.innerText = "✅ 匯出成功（下載）！";
+                        return;
+                    }
+
+                } else {
+                    // 桌機端：直接下載單一 HTML
+                    const htmlBlob = new Blob([exportHTML], { type: "text/html;charset=utf-8" });
+                    saveAs(htmlBlob, fileName);
+                    exportStatus.innerText = "✅ 匯出成功！";
+                }
+                
+            } catch (error) {
+                console.error("匯出錯誤:", error);
+                exportStatus.innerText = "❌ 匯出失敗: " + error.message;
+            }
+        });
+
+
+
+
+
+
+
+
+    </script>
+</body>
+</html>
