@@ -1752,14 +1752,40 @@ Ticagrelor 180mg
             
             // 顯示 modal
             modal.style.display = 'flex';
-            input.focus();
+            
+            // 阻止移動端自動縮放
+            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                // 設置視口禁止縮放
+                const viewport = document.querySelector('meta[name=viewport]');
+                if (viewport) {
+                    viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+                }
+                
+                // 延遲一點再聚焦，減少自動縮放
+                setTimeout(() => {
+                    input.focus();
+                    // 移動到可見區域
+                    input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            } else {
+                input.focus();
+            }
         }
         
+        // 在 closeModal 和 closeNumberModal 中恢復視口設置
         function closeModal() {
             document.getElementById('modal').style.display = 'none';
             
             // 恢復滾動位置
             window.scrollTo(scrollPosition.left, scrollPosition.top);
+            
+            // 恢復視口設置
+            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                const viewport = document.querySelector('meta[name=viewport]');
+                if (viewport) {
+                    viewport.content = 'width=device-width, initial-scale=1.0, user-scalable=yes';
+                }
+            }
         }
         
         function confirmModal() {
@@ -1791,6 +1817,14 @@ Ticagrelor 180mg
             
             // 恢復滾動位置
             window.scrollTo(scrollPosition.left, scrollPosition.top);
+            
+            // 恢復視口設置
+            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                const viewport = document.querySelector('meta[name=viewport]');
+                if (viewport) {
+                    viewport.content = 'width=device-width, initial-scale=1.0, user-scalable=yes';
+                }
+            }
         }
         
         function confirmNumberModal() {
