@@ -3076,43 +3076,38 @@ ${allContent}
                 // 🔹 定義是否為手機
                 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-                if (isMobile) {
-                    // 手機端：打包 zip 後用分享 API
-                    const zip = new JSZip();
-                    zip.file("exported_table.html", exportHTML);
+                // 一律產生ZIP
+                const zip = new JSZip();
+                zip.file(fileName, exportHTML);
 
-                    const content = await zip.generateAsync({ type: "blob" });
-                    const fixedBlob = new Blob([content], { type: "application/zip" });
+                const content = await zip.generateAsync({ type: "blob" });
+                const zipBlob = new Blob([content], { type: "application/zip" });
+                const zipFileName = fileName.replace('.html', '.zip');
 
-                    if (navigator.canShare && navigator.canShare({ files: [new File([fixedBlob], fileName.replace('.html', '.zip'))] })) {
-                        try {
-                            await navigator.share({
-                                files: [new File([fixedBlob], fileName.replace('.html', '.zip'))],
-                                title: "匯出表格",
-                                text: "這是你匯出的表格 ZIP 檔"
-                            });
-                            exportStatus.innerText = "✅ 匯出成功！";
-                            return;
-                        } catch (err) {
-                            console.warn("分享 API 失敗，改用下載方式", err);
-                            // fallback 仍可下載
-                            saveAs(fixedBlob, fileName.replace('.html', '.zip'));
-                            exportStatus.innerText = "✅ 匯出成功（下載）！";
-                            return;
-                        }
-                    } else {
-                        // 不支援分享 API，直接下載
-                        saveAs(fixedBlob, fileName.replace('.html', '.zip'));
-                        exportStatus.innerText = "✅ 匯出成功（下載）！";
+                // 手機端嘗試分享
+                if (isMobile && navigator.share) {
+                    try {
+                        const zipFile = new File([zipBlob], zipFileName, { 
+                            type: "application/zip" 
+                        });
+                        
+                        await navigator.share({
+                            files: [zipFile],
+                            title: "匯出表格",
+                            text: "這是你匯出的表格檔案"
+                        });
+                        exportStatus.innerText = "✅ 匯出成功！";
                         return;
+                    } catch (err) {
+                        console.warn("分享失敗，改用下載:", err);
+                        // 繼續到下載
                     }
-
-                } else {
-                    // 桌機端：直接下載單一 HTML
-                    const htmlBlob = new Blob([exportHTML], { type: "text/html;charset=utf-8" });
-                    saveAs(htmlBlob, fileName);
-                    exportStatus.innerText = "✅ 匯出成功！";
                 }
+
+                // 下載ZIP（手機分享失敗或桌機）
+                saveAs(zipBlob, zipFileName);
+                exportStatus.innerText = "✅ 匯出成功！";
+
                 
             } catch (error) {
                 console.error("匯出錯誤:", error);
