@@ -2829,49 +2829,38 @@ Ticagrelor 180mg
             exportStatus.innerText = "正在準備匯出資料...";
             
             try {
-                // 複製整個頁面
-                const fullHTML = document.documentElement.outerHTML;
-                
-                // 創建一個臨時容器來處理
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = fullHTML;
-                
-                // 處理所有分區的特殊單元格
-                const sections = tempDiv.querySelectorAll('.content-section');
+                // 收集所有內容區域
+                let allContent = '';
+                const sections = document.querySelectorAll('.content-section');
                 
                 for (let section of sections) {
                     if (section.id === 'section-匯出') continue;
                     
-                    const sectionContent = section.querySelector('.table-container');
-                    if (!sectionContent) continue;
+                    const sectionTitle = section.querySelector('.section-title');
+                    const tableContainer = section.querySelector('.table-container');
                     
-                    // 移除內部標題避免重複
-                    const innerH2 = sectionContent.querySelector('h2');
-                    if (innerH2) innerH2.remove();
+                    if (!tableContainer) continue;
                     
-                    const tables = sectionContent.querySelectorAll("table");
-                    const originalTables = section.querySelectorAll("table");
+                    // 添加區段標題
+                    if (sectionTitle) {
+                        allContent += `<h2>${sectionTitle.textContent}</h2>`;
+                    }
                     
-                    for (let t = 0; t < tables.length; t++) {
-                        const table = tables[t];
-                        const originalTable = originalTables[t];
+                    // 處理表格內容
+                    const tables = tableContainer.querySelectorAll("table");
+                    
+                    for (let table of tables) {
+                        const processedTable = table.cloneNode(true);
                         
-                        const rows = table.querySelectorAll("tr");
-                        const originalRows = originalTable.querySelectorAll("tr");
+                        // 處理所有行和單元格
+                        const rows = processedTable.querySelectorAll("tr");
                         
-                        // === 邏輯判斷：保持原有的處理邏輯 ===
-                        for (let r = 0; r < rows.length; r++) {
-                            const row = rows[r];
-                            const originalRow = originalRows[r];
-                            
-                            if (!originalRow) continue;
-                            
+                        for (let row of rows) {
                             const cells = row.querySelectorAll("td, th");
-                            const originalCells = originalRow.querySelectorAll("td, th");
                             
-                            for (let c = 0; c < cells.length; c++) {
-                                const cell = cells[c];
-                                const originalCell = originalCells[c];
+                            for (let cell of cells) {
+                                const originalCell = Array.from(table.querySelectorAll("td, th"))
+                                    .find(c => c.textContent.trim() === cell.textContent.trim());
                                 
                                 if (!originalCell) continue;
                                 
@@ -2887,6 +2876,7 @@ Ticagrelor 180mg
                                             reader.readAsDataURL(blob);
                                         });
                                         
+                                        // 替換錄音單元格
                                         const recorderDiv = cell.querySelector(".recorder-cell");
                                         if (recorderDiv) {
                                             recorderDiv.innerHTML = `<audio controls src="${dataURL}" style="width:100%; max-width:100%; box-sizing:border-box;"></audio>`;
@@ -2938,23 +2928,75 @@ Ticagrelor 180mg
                                 }
                             }
                         }
+                        
+                        allContent += processedTable.outerHTML;
                     }
                 }
                 
-                // 修改匯出區域
-                const exportSection = tempDiv.querySelector('#section-匯出 .export-section');
-                if (exportSection) {
-                    exportSection.innerHTML = `
-                        <h2>📦 已匯出檔案</h2>
-                        <p style="color: #666; font-style: italic;">此檔案為已匯出資料</p>
-                        <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-top: 20px;">
-                            <p><strong>匯出時間：</strong>${new Date().toLocaleString()}</p>
-                        </div>
-                    `;
-                }
-                
-                // 取得完整的HTML（包含側邊欄）
-                const exportHTML = tempDiv.innerHTML;
+                // 創建乾淨的導出 HTML
+                const exportHTML = `<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <title>已匯出表格</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            margin: 0;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        table { 
+            border-collapse: collapse; 
+            width: 100%; 
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+            table-layout: fixed;
+            word-wrap: break-word;
+        }
+        td, th { 
+            border: 1px solid #ccc; 
+            padding: 8px 10px; 
+            word-break: break-word;
+            vertical-align: top;
+            max-width: 300px;
+            overflow-wrap: break-word;
+        }
+        h2 { 
+            margin-top: 30px; 
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.5em;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #eee;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        audio {
+            width: 100%;
+            max-width: 250px;
+        }
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            table { font-size: 14px; }
+            td, th { padding: 6px 8px; }
+            h2 { font-size: 1.3em; }
+        }
+        </style>
+        </head>
+        <body>
+        ${allContent}
+        <div style="margin-top: 30px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+            <p><strong>匯出時間：</strong>${new Date().toLocaleString()}</p>
+            <p style="color: #666; font-style: italic; margin-top: 5px;">此檔案為已匯出資料，所有動態功能已轉換為靜態內容。</p>
+        </div>
+        </body>
+        </html>`;
 
                 // 檔名用 B2
                 let fileName = "exported_table.html";
@@ -2963,47 +3005,99 @@ Ticagrelor 180mg
                     fileName = b2.innerText.trim() + "的資料.html";
                 }
 
+                // 檢測是否為移動設備
                 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
                 if (isMobile) {
-                    const zip = new JSZip();
-                    zip.file("exported_table.html", exportHTML);
-
-                    const content = await zip.generateAsync({ type: "blob" });
-                    const fixedBlob = new Blob([content], { type: "application/zip" });
-
-                    if (navigator.canShare && navigator.canShare({ files: [new File([fixedBlob], fileName.replace('.html', '.zip'))] })) {
-                        try {
-                            await navigator.share({
-                                files: [new File([fixedBlob], fileName.replace('.html', '.zip'))],
-                                title: "匯出表格",
-                                text: "這是你匯出的表格 ZIP 檔"
-                            });
-                            exportStatus.innerText = "✅ 匯出成功！";
-                            return;
-                        } catch (err) {
-                            saveAs(fixedBlob, fileName.replace('.html', '.zip'));
-                            exportStatus.innerText = "✅ 匯出成功（下載）！";
-                            return;
-                        }
-                    } else {
-                        saveAs(fixedBlob, fileName.replace('.html', '.zip'));
-                        exportStatus.innerText = "✅ 匯出成功（下載）！";
+                    // 手機端：打包 ZIP 並嘗試分享
+                    if (typeof JSZip === 'undefined') {
+                        console.error("JSZip 未載入");
+                        exportStatus.innerText = "❌ JSZip 庫未載入";
                         return;
+                    }
+                    
+                    const zip = new JSZip();
+                    zip.file(fileName, exportHTML);
+
+                    try {
+                        const content = await zip.generateAsync({ type: "blob" });
+                        const zipBlob = new Blob([content], { type: "application/zip" });
+                        const zipFileName = fileName.replace('.html', '.zip');
+
+                        if (navigator.share && navigator.canShare) {
+                            try {
+                                const zipFile = new File([zipBlob], zipFileName, { 
+                                    type: "application/zip" 
+                                });
+                                
+                                if (navigator.canShare({ files: [zipFile] })) {
+                                    await navigator.share({
+                                        files: [zipFile],
+                                        title: "匯出表格",
+                                        text: "這是你匯出的表格 ZIP 檔"
+                                    });
+                                    exportStatus.innerText = "✅ 匯出成功！";
+                                    return;
+                                }
+                            } catch (shareError) {
+                                console.warn("分享 API 失敗，改用下載方式", shareError);
+                                // 繼續到下載流程
+                            }
+                        }
+
+                        // 下載備用方案
+                        const url = URL.createObjectURL(zipBlob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = zipFileName;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        
+                        exportStatus.innerText = "✅ 匯出成功（已下載）！";
+                        
+                    } catch (zipError) {
+                        console.error("ZIP 處理失敗:", zipError);
+                        // ZIP 失敗時嘗試直接下載 HTML
+                        const htmlBlob = new Blob([exportHTML], { type: "text/html;charset=utf-8" });
+                        const url = URL.createObjectURL(htmlBlob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = fileName;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        
+                        exportStatus.innerText = "✅ 匯出成功（HTML格式）！";
                     }
 
                 } else {
+                    // 桌機端：直接下載 HTML
                     const htmlBlob = new Blob([exportHTML], { type: "text/html;charset=utf-8" });
-                    saveAs(htmlBlob, fileName);
+                    const url = URL.createObjectURL(htmlBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
                     exportStatus.innerText = "✅ 匯出成功！";
                 }
                 
             } catch (error) {
                 console.error("匯出錯誤:", error);
                 exportStatus.innerText = "❌ 匯出失敗: " + error.message;
+                
+                // 顯示更多錯誤細節
+                if (error.name === 'TypeError') {
+                    exportStatus.innerText += " (可能缺少必要的 JavaScript 庫)";
+                }
             }
         });
-
 
 
 
