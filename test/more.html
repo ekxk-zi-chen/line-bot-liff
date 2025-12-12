@@ -2962,44 +2962,40 @@ Ticagrelor 180mg
                 if (b2 && b2.innerText.trim()) {
                     fileName = b2.innerText.trim() + "的資料.html";
                 }
-                const zipFileName = fileName.replace('.html', '.zip');
 
-                // 2. 創建 ZIP（只包含 HTML）
-                const zip = new JSZip();
-                zip.file(fileName, fullHTML);
+                const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-                // 3. 生成 ZIP blob
-                const content = await zip.generateAsync({ type: "blob" });
-                const zipBlob = new Blob([content], { type: "application/zip" });
+                if (isMobile) {
+                    const zip = new JSZip();
+                    zip.file("exported_table.html", exportHTML);
 
-                // 4. 創建 File 物件
-                const zipFile = new File([zipBlob], zipFileName, {
-                    type: "application/zip",
-                    lastModified: Date.now()
-                });
+                    const content = await zip.generateAsync({ type: "blob" });
+                    const fixedBlob = new Blob([content], { type: "application/zip" });
 
-                // 5. 檢查是否在手機且支援分享
-                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                
-                if (isMobile && navigator.share) {
-                    try {
-                        // 直接分享 ZIP 檔案
-                        await navigator.share({
-                            files: [zipFile],
-                            title: '表格資料',
-                            text: '匯出的表格資料'
-                        });
-                        exportStatus.innerText = "✅ 分享成功！";
-                    } catch (err) {
-                        // 如果分享失敗，直接下載
-                        console.log('分享失敗，改用下載:', err);
-                        saveAs(zipBlob, zipFileName);
-                        exportStatus.innerText = "✅ 下載完成！";
+                    if (navigator.canShare && navigator.canShare({ files: [new File([fixedBlob], fileName.replace('.html', '.zip'))] })) {
+                        try {
+                            await navigator.share({
+                                files: [new File([fixedBlob], fileName.replace('.html', '.zip'))],
+                                title: "匯出表格",
+                                text: "這是你匯出的表格 ZIP 檔"
+                            });
+                            exportStatus.innerText = "✅ 匯出成功！";
+                            return;
+                        } catch (err) {
+                            saveAs(fixedBlob, fileName.replace('.html', '.zip'));
+                            exportStatus.innerText = "✅ 匯出成功（下載）！";
+                            return;
+                        }
+                    } else {
+                        saveAs(fixedBlob, fileName.replace('.html', '.zip'));
+                        exportStatus.innerText = "✅ 匯出成功（下載）！";
+                        return;
                     }
+
                 } else {
-                    // 桌面版直接下載
-                    saveAs(zipBlob, zipFileName);
-                    exportStatus.innerText = "✅ 下載完成！";
+                    const htmlBlob = new Blob([exportHTML], { type: "text/html;charset=utf-8" });
+                    saveAs(htmlBlob, fileName);
+                    exportStatus.innerText = "✅ 匯出成功！";
                 }
                 
             } catch (error) {
