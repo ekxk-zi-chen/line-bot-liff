@@ -165,6 +165,10 @@
             box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
         }
 
+        /* 有內聯樣式的表頭就完全沿用Excel設定，不強制任何顏色 */
+        th[style] {
+            /* 不設定背景和顏色，讓內聯樣式完全控制 */
+        }
         
         /* 可編輯 cell 樣式 */
         .editable-cell { 
@@ -2800,249 +2804,137 @@ Ticagrelor 180mg
         
         
         // 資料匯出完整版本 - 使用Python生成的导出表格，但保留用户数据
-        // 資料匯出完整版本 - 完全保留原本逻辑，移除/分割
         document.getElementById("exportBtn").addEventListener("click", async () => {
             const exportStatus = document.getElementById("exportStatus");
             exportStatus.innerText = "正在準備匯出資料...";
             
             try {
-                // 获取所有分区的內容
-                let allContent = "";
-                const sections = document.querySelectorAll('.content-section');
+                // 複製整個頁面
+                const fullHTML = document.documentElement.outerHTML;
+                
+                // 創建一個臨時容器來處理
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = fullHTML;
+                
+                // 處理所有分區的特殊單元格
+                const sections = tempDiv.querySelectorAll('.content-section');
                 
                 for (let section of sections) {
-                    if (section.id !== 'section-匯出') {
-                        const sectionName = section.id.replace('section-', '');
-                        // 使用原始节点而不是克隆
-                        const sectionContent = section.querySelector('.table-container');
+                    if (section.id === 'section-匯出') continue;
+                    
+                    const sectionContent = section.querySelector('.table-container');
+                    if (!sectionContent) continue;
+                    
+                    // 移除內部標題避免重複
+                    const innerH2 = sectionContent.querySelector('h2');
+                    if (innerH2) innerH2.remove();
+                    
+                    const tables = sectionContent.querySelectorAll("table");
+                    const originalTables = section.querySelectorAll("table");
+                    
+                    for (let t = 0; t < tables.length; t++) {
+                        const table = tables[t];
+                        const originalTable = originalTables[t];
                         
-                        // 创建一个临时容器来处理内容
-                        const tempContainer = document.createElement('div');
-                        tempContainer.innerHTML = sectionContent.innerHTML;
+                        const rows = table.querySelectorAll("tr");
+                        const originalRows = originalTable.querySelectorAll("tr");
                         
-                        // 移除 table-container 內的 h2 標題，避免重复
-                        const innerH2 = tempContainer.querySelector('h2');
-                        if(innerH2) innerH2.remove();
-                        
-                        // 处理录音檔和选择题 - 直接使用原始节点数据
-                        const tables = tempContainer.querySelectorAll("table");
-                        const originalTables = sectionContent.querySelectorAll("table");
-                        
-                        for (let t = 0; t < tables.length; t++) {
-                            const table = tables[t];
-                            const originalTable = originalTables[t];
+                        // === 邏輯判斷：保持原有的處理邏輯 ===
+                        for (let r = 0; r < rows.length; r++) {
+                            const row = rows[r];
+                            const originalRow = originalRows[r];
                             
-                            const rows = table.querySelectorAll("tr");
-                            const originalRows = originalTable.querySelectorAll("tr");
+                            if (!originalRow) continue;
                             
-                            // 关键修改：合并由/分割的行
-                            const mergedRows = [];
-                            let currentRowGroup = null;
+                            const cells = row.querySelectorAll("td, th");
+                            const originalCells = originalRow.querySelectorAll("td, th");
                             
-                            for (let r = 0; r < rows.length; r++) {
-                                const row = rows[r];
-                                const originalRow = originalRows[r];
+                            for (let c = 0; c < cells.length; c++) {
+                                const cell = cells[c];
+                                const originalCell = originalCells[c];
                                 
-                                if (!originalRow) continue;
+                                if (!originalCell) continue;
                                 
-                                const cells = row.querySelectorAll("td, th");
-                                
-                                // 检查是否是新的行组（没有/分割的行）
-                                const isNewRowGroup = !cells[0] || !cells[0].innerHTML.includes('data-gjs-editable="true"') || 
-                                                    !cells[0].querySelector('[data-gjs-editable="true"]')?.innerHTML.startsWith('/');
-                                
-                                if (isNewRowGroup) {
-                                    // 开始新的行组
-                                    if (currentRowGroup) {
-                                        mergedRows.push(currentRowGroup);
-                                    }
-                                    currentRowGroup = {
-                                        row: row.cloneNode(true),
-                                        originalRow: originalRow,
-                                        additionalRows: []
-                                    };
-                                } else {
-                                    // 添加到当前行组
-                                    if (currentRowGroup) {
-                                        currentRowGroup.additionalRows.push({
-                                            row: row.cloneNode(true),
-                                            originalRow: originalRow
+                                // 1. 錄音處理
+                                const audio = originalCell.querySelector("audio");
+                                if (audio && audio.src.startsWith("blob:")) {
+                                    try {
+                                        const response = await fetch(audio.src);
+                                        const blob = await response.blob();
+                                        const dataURL = await new Promise(resolve => {
+                                            const reader = new FileReader();
+                                            reader.onload = () => resolve(reader.result);
+                                            reader.readAsDataURL(blob);
                                         });
-                                    }
-                                }
-                            }
-                            
-                            // 添加最后一个行组
-                            if (currentRowGroup) {
-                                mergedRows.push(currentRowGroup);
-                            }
-                            
-                            // 清空原表格并添加合并后的行
-                            table.innerHTML = '';
-                            
-                            for (const rowGroup of mergedRows) {
-                                const mainRow = rowGroup.row;
-                                const mainCells = mainRow.querySelectorAll("td, th");
-                                
-                                // 合并附加行的内容到主行
-                                for (const additionalRow of rowGroup.additionalRows) {
-                                    const additionalCells = additionalRow.row.querySelectorAll("td, th");
-                                    
-                                    for (let c = 0; c < Math.min(mainCells.length, additionalCells.length); c++) {
-                                        const mainCell = mainCells[c];
-                                        const additionalCell = additionalCells[c];
                                         
-                                        // 移除/符号并合并内容
-                                        if (additionalCell.innerHTML.includes('data-gjs-editable="true"')) {
-                                            const tempDiv = document.createElement('div');
-                                            tempDiv.innerHTML = additionalCell.innerHTML;
-                                            const editableDiv = tempDiv.querySelector('[data-gjs-editable="true"]');
-                                            if (editableDiv) {
-                                                let cleanContent = editableDiv.innerHTML;
-                                                // 移除开头的/符号
-                                                if (cleanContent.startsWith('/')) {
-                                                    cleanContent = cleanContent.substring(1);
-                                                }
-                                                // 添加到主单元格内容
-                                                const mainTempDiv = document.createElement('div');
-                                                mainTempDiv.innerHTML = mainCell.innerHTML;
-                                                const mainEditableDiv = mainTempDiv.querySelector('[data-gjs-editable="true"]');
-                                                if (mainEditableDiv) {
-                                                    mainEditableDiv.innerHTML += ' ' + cleanContent;
-                                                    mainCell.innerHTML = mainTempDiv.innerHTML;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                
-                                table.appendChild(mainRow);
-                            }
-                            
-                            // 处理特殊单元格
-                            const finalRows = table.querySelectorAll("tr");
-                            const finalOriginalRows = originalTable.querySelectorAll("tr");
-                            
-                            for (let r = 0; r < finalRows.length; r++) {
-                                const row = finalRows[r];
-                                const originalRow = finalOriginalRows[r];
-                                
-                                if (!originalRow) continue;
-                                
-                                const cells = row.querySelectorAll("td, th");
-                                const originalCells = originalRow.querySelectorAll("td, th");
-                                
-                                for (let c = 0; c < cells.length; c++) {
-                                    const cell = cells[c];
-                                    const originalCell = originalCells[c];
-                                    
-                                    if (!originalCell) continue;
-                                    
-                                    // 錄音處理
-                                    const audio = originalCell.querySelector("audio");
-                                    if (audio && audio.src.startsWith("blob:")) {
-                                        try {
-                                            const response = await fetch(audio.src);
-                                            const blob = await response.blob();
-                                            const dataURL = await new Promise(resolve => {
-                                                const reader = new FileReader();
-                                                reader.onload = () => resolve(reader.result);
-                                                reader.readAsDataURL(blob);
-                                            });
-                                            // 只替换录音部分，保留其他内容
-                                            const recorderDiv = cell.querySelector(".recorder-cell");
-                                            if (recorderDiv) {
-                                                recorderDiv.innerHTML = `<audio controls src="${dataURL}" style="width:100%; max-width:100%; box-sizing:border-box;"></audio>`;
-                                            }
-                                        } catch (error) {
-                                            console.error("录音转换失败:", error);
-                                            const recorderDiv = cell.querySelector(".recorder-cell");
-                                            if (recorderDiv) {
-                                                recorderDiv.innerHTML = "❌ 录音转换失败";
-                                            }
-                                        }
-                                    } else {
-                                        // 没有录音时，只移除录音按钮部分
                                         const recorderDiv = cell.querySelector(".recorder-cell");
                                         if (recorderDiv) {
-                                            recorderDiv.remove();
+                                            recorderDiv.innerHTML = `<audio controls src="${dataURL}" style="width:100%; max-width:100%; box-sizing:border-box;"></audio>`;
+                                        }
+                                    } catch (error) {
+                                        const recorderDiv = cell.querySelector(".recorder-cell");
+                                        if (recorderDiv) {
+                                            recorderDiv.innerHTML = "❌ 錄音轉換失敗";
                                         }
                                     }
+                                } else {
+                                    const recorderDiv = cell.querySelector(".recorder-cell");
+                                    if (recorderDiv) {
+                                        recorderDiv.remove();
+                                    }
+                                }
+                                
+                                // 2. 特殊單元格處理
+                                if (originalCell.classList.contains("editable-cell")) {
+                                    const type = originalCell.dataset.type;
                                     
-                                    // 特殊單元格處理
-                                    if (originalCell.classList.contains("editable-cell")) {
-                                        const type = originalCell.dataset.type;
-                                        
-                                        if (type === "radio") {
-                                            // 获取单选按钮的选中值
-                                            const selectedBtn = originalCell.querySelector(".option-button.selected");
-                                            const value = selectedBtn ? selectedBtn.innerText.trim() : '';
-                                            cell.innerHTML = `<div>${value}</div>`;
-                                        } else if (type === "multi") {
-                                            // 获取多选按钮的选中值
-                                            const selectedBtns = originalCell.querySelectorAll(".option-button.selected");
-                                            const value = Array.from(selectedBtns).map(b => b.innerText.trim()).join('、');
-                                            cell.innerHTML = `<div>${value}</div>`;
-                                        } else if (type === "text" || type === "number" || type === "datetime" || 
-                                                type === "countdown" || type === "location") {
-                                            // 获取其他类型的值
-                                            const value = originalCell.dataset.value || '';
-                                            cell.innerHTML = `<div>${value}</div>`;
-                                        } else if (type === "collapse") {
-                                            // 收合选择
-                                            const value = originalCell.dataset.value || '';
-                                            cell.innerHTML = `<div>${value}</div>`;
-                                        } else if (type === "camera") {
-                                            // 相机图片处理
-                                            const images = JSON.parse(originalCell.dataset.images || '[]');
-                                            let imagesHTML = '';
-                                            if (images.length > 0) {
-                                                // 使用单元格的实际尺寸来限制图片大小
-                                                const cellStyle = window.getComputedStyle(originalCell);
-                                                const cellWidth = parseInt(cellStyle.width) - 10; // 减去一些边距
-                                                const cellHeight = parseInt(cellStyle.height) - 10;
-                                                
-                                                // 根据单元格大小和图片数量计算每张图片的尺寸
-                                                const imgSize = Math.min(
-                                                    120, 
-                                                    Math.min(cellWidth, cellHeight) / Math.max(1, Math.ceil(Math.sqrt(images.length)))
-                                                );
-                                                
-                                                imagesHTML = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(' + imgSize + 'px, 1fr)); gap:5px; width:100%; height:100%;">';
-                                                images.forEach(imgData => {
-                                                    imagesHTML += `<img src="${imgData}" style="width:100%; height:auto; max-height:${imgSize}px; object-fit:contain; border-radius:3px; border:1px solid #ddd;">`;
-                                                });
-                                                imagesHTML += '</div>';
-                                            } else {
-                                                imagesHTML = '无图片';
-                                            }
-                                            cell.innerHTML = imagesHTML;
+                                    if (type === "radio") {
+                                        const selectedBtn = originalCell.querySelector(".option-button.selected");
+                                        const value = selectedBtn ? selectedBtn.innerText.trim() : '';
+                                        cell.innerHTML = `<div>${value}</div>`;
+                                    } else if (type === "multi") {
+                                        const selectedBtns = originalCell.querySelectorAll(".option-button.selected");
+                                        const value = Array.from(selectedBtns).map(b => b.innerText.trim()).join('、');
+                                        cell.innerHTML = `<div>${value}</div>`;
+                                    } else if (type === "text" || type === "number" || type === "datetime" || 
+                                            type === "countdown" || type === "location") {
+                                        const value = originalCell.dataset.value || '';
+                                        cell.innerHTML = `<div>${value}</div>`;
+                                    } else if (type === "collapse") {
+                                        const value = originalCell.dataset.value || '';
+                                        cell.innerHTML = `<div>${value}</div>`;
+                                    } else if (type === "camera") {
+                                        const images = JSON.parse(originalCell.dataset.images || '[]');
+                                        let imagesHTML = '';
+                                        if (images.length > 0) {
+                                            imagesHTML = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr)); gap:5px;">';
+                                            images.forEach(imgData => {
+                                                imagesHTML += `<img src="${imgData}" style="width:100%; height:auto; border-radius:3px; border:1px solid #ddd;">`;
+                                            });
+                                            imagesHTML += '</div>';
                                         }
+                                        cell.innerHTML = imagesHTML;
                                     }
                                 }
                             }
                         }
-                        
-                        allContent += `<h2>${sectionName}</h2><div class="table-container">${tempContainer.innerHTML}</div>`;
                     }
                 }
-
-                const exportHTML = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>已匯出表格</title>
-<style>
-body { font-family: Arial, sans-serif; padding:20px; }
-table { border-collapse: collapse; width: 100%; border: 1px solid #ccc; }
-td, th { border: 1px solid #ccc; padding: 6px 8px; word-wrap: break-word; vertical-align: top; }
-h2 { margin-top: 30px; color: #333; }
-</style>
-</head>
-<body>
-${allContent}
-</body>
-</html>`;
+                
+                // 修改匯出區域
+                const exportSection = tempDiv.querySelector('#section-匯出 .export-section');
+                if (exportSection) {
+                    exportSection.innerHTML = `
+                        <h2>📦 已匯出檔案</h2>
+                        <p style="color: #666; font-style: italic;">此檔案為已匯出資料</p>
+                        <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                            <p><strong>匯出時間：</strong>${new Date().toLocaleString()}</p>
+                        </div>
+                    `;
+                }
+                
+                // 取得完整的HTML（包含側邊欄）
+                const exportHTML = tempDiv.innerHTML;
 
                 // 檔名用 B2
                 let fileName = "exported_table.html";
@@ -3051,11 +2943,9 @@ ${allContent}
                     fileName = b2.innerText.trim() + "的資料.html";
                 }
 
-                // 🔹 定義是否為手機
                 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
                 if (isMobile) {
-                    // 手機端：打包 zip 後用分享 API
                     const zip = new JSZip();
                     zip.file("exported_table.html", exportHTML);
 
@@ -3072,21 +2962,17 @@ ${allContent}
                             exportStatus.innerText = "✅ 匯出成功！";
                             return;
                         } catch (err) {
-                            console.warn("分享 API 失敗，改用下載方式", err);
-                            // fallback 仍可下載
                             saveAs(fixedBlob, fileName.replace('.html', '.zip'));
                             exportStatus.innerText = "✅ 匯出成功（下載）！";
                             return;
                         }
                     } else {
-                        // 不支援分享 API，直接下載
                         saveAs(fixedBlob, fileName.replace('.html', '.zip'));
                         exportStatus.innerText = "✅ 匯出成功（下載）！";
                         return;
                     }
 
                 } else {
-                    // 桌機端：直接下載單一 HTML
                     const htmlBlob = new Blob([exportHTML], { type: "text/html;charset=utf-8" });
                     saveAs(htmlBlob, fileName);
                     exportStatus.innerText = "✅ 匯出成功！";
@@ -3097,9 +2983,6 @@ ${allContent}
                 exportStatus.innerText = "❌ 匯出失敗: " + error.message;
             }
         });
-
-
-
 
 
 
