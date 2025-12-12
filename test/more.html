@@ -2828,35 +2828,294 @@ Ticagrelor 180mg
             exportStatus.innerText = "正在準備匯出資料...";
             
             try {
-                // 複製整個頁面
-                const fullHTML = document.documentElement.outerHTML;
+                // 獲取側邊欄（克隆並處理）
+                const sidebar = document.querySelector('.sidebar-container') || document.querySelector('.sidebar');
+                let sidebarHTML = '';
                 
-                // 創建一個臨時容器來處理
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = fullHTML;
-                
-                // 處理錄音檔
-                const audioElements = tempDiv.querySelectorAll('audio[src^="blob:"]');
-                for (let audio of audioElements) {
-                    try {
-                        const originalAudio = document.querySelector(`audio[src="${audio.getAttribute('src')}"]`);
-                        if (originalAudio) {
-                            const response = await fetch(originalAudio.src);
-                            const blob = await response.blob();
-                            const dataURL = await new Promise(resolve => {
-                                const reader = new FileReader();
-                                reader.onload = () => resolve(reader.result);
-                                reader.readAsDataURL(blob);
-                            });
-                            audio.src = dataURL;
+                if (sidebar) {
+                    // 克隆側邊欄
+                    const clonedSidebar = sidebar.cloneNode(true);
+                    
+                    // 處理側邊欄內的可編輯單元格
+                    clonedSidebar.querySelectorAll('.editable-cell').forEach(cell => {
+                        const type = cell.getAttribute('data-type');
+                        
+                        if (type === "radio") {
+                            const selected = cell.querySelector('.option-button.selected');
+                            if (selected) {
+                                cell.innerHTML = '<div>' + selected.textContent + '</div>';
+                            }
                         }
-                    } catch (error) {
-                        console.warn("錄音轉換失敗:", error);
-                    }
+                        else if (type === "multi") {
+                            const selected = cell.querySelectorAll('.option-button.selected');
+                            const values = Array.from(selected).map(btn => btn.textContent).join('、');
+                            cell.innerHTML = '<div>' + values + '</div>';
+                        }
+                        else if (type === "text" || type === "number" || type === "datetime" || 
+                                type === "countdown" || type === "location") {
+                            const value = cell.getAttribute('data-value') || '';
+                            cell.innerHTML = '<div>' + value + '</div>';
+                        }
+                        else if (type === "camera") {
+                            try {
+                                const imagesJson = cell.getAttribute('data-images') || '[]';
+                                const images = JSON.parse(imagesJson);
+                                let html = '';
+                                images.forEach(img => {
+                                    html += '<img src="' + img + '" style="width:80px; height:auto; margin:2px;">';
+                                });
+                                cell.innerHTML = html || '<div>無照片</div>';
+                            } catch (e) {
+                                cell.innerHTML = '<div>圖片載入錯誤</div>';
+                            }
+                        }
+                    });
+                    
+                    sidebarHTML = clonedSidebar.innerHTML;
                 }
                 
-                // 取得完整的HTML（包含側邊欄）
-                const exportHTML = tempDiv.innerHTML;
+                // 獲取所有分區的內容
+                let allContent = "";
+                const sections = document.querySelectorAll('.content-section');
+                
+                for (let section of sections) {
+                    if (section.id !== 'section-匯出') {
+                        const sectionName = section.id.replace('section-', '');
+                        const sectionContent = section.querySelector('.table-container');
+                        
+                        if (!sectionContent) continue;
+                        
+                        // 創建一個臨時容器來處理內容
+                        const tempContainer = document.createElement('div');
+                        tempContainer.innerHTML = sectionContent.innerHTML;
+                        
+                        // 移除 table-container 內的 h2 標題，避免重複
+                        const innerH2 = tempContainer.querySelector('h2');
+                        if(innerH2) innerH2.remove();
+                        
+                        // 處理錄音檔和選擇題 - 直接使用原始節點數據
+                        const tables = tempContainer.querySelectorAll("table");
+                        const originalTables = sectionContent.querySelectorAll("table");
+                        
+                        for (let t = 0; t < tables.length; t++) {
+                            const table = tables[t];
+                            const originalTable = originalTables[t];
+                            
+                            const rows = table.querySelectorAll("tr");
+                            const originalRows = originalTable.querySelectorAll("tr");
+                            
+                            // 合併由/分割的行
+                            const mergedRows = [];
+                            let currentRowGroup = null;
+                            
+                            for (let r = 0; r < rows.length; r++) {
+                                const row = rows[r];
+                                const originalRow = originalRows[r];
+                                
+                                if (!originalRow) continue;
+                                
+                                const cells = row.querySelectorAll("td, th");
+                                
+                                // 檢查是否是新的行組
+                                const isNewRowGroup = !cells[0] || !cells[0].innerHTML.includes('data-gjs-editable="true"') || 
+                                                    !cells[0].querySelector('[data-gjs-editable="true"]')?.innerHTML.startsWith('/');
+                                
+                                if (isNewRowGroup) {
+                                    // 開始新的行組
+                                    if (currentRowGroup) {
+                                        mergedRows.push(currentRowGroup);
+                                    }
+                                    currentRowGroup = {
+                                        row: row.cloneNode(true),
+                                        originalRow: originalRow,
+                                        additionalRows: []
+                                    };
+                                } else {
+                                    // 添加到當前行組
+                                    if (currentRowGroup) {
+                                        currentRowGroup.additionalRows.push({
+                                            row: row.cloneNode(true),
+                                            originalRow: originalRow
+                                        });
+                                    }
+                                }
+                            }
+                            
+                            // 添加最後一個行組
+                            if (currentRowGroup) {
+                                mergedRows.push(currentRowGroup);
+                            }
+                            
+                            // 清空原表格並添加合併後的行
+                            table.innerHTML = '';
+                            
+                            for (const rowGroup of mergedRows) {
+                                const mainRow = rowGroup.row;
+                                const mainCells = mainRow.querySelectorAll("td, th");
+                                
+                                // 合併附加行的內容到主行
+                                for (const additionalRow of rowGroup.additionalRows) {
+                                    const additionalCells = additionalRow.row.querySelectorAll("td, th");
+                                    
+                                    for (let c = 0; c < Math.min(mainCells.length, additionalCells.length); c++) {
+                                        const mainCell = mainCells[c];
+                                        const additionalCell = additionalCells[c];
+                                        
+                                        // 移除/符號並合併內容
+                                        if (additionalCell.innerHTML.includes('data-gjs-editable="true"')) {
+                                            const tempDiv = document.createElement('div');
+                                            tempDiv.innerHTML = additionalCell.innerHTML;
+                                            const editableDiv = tempDiv.querySelector('[data-gjs-editable="true"]');
+                                            if (editableDiv) {
+                                                let cleanContent = editableDiv.innerHTML;
+                                                // 移除開頭的/符號
+                                                if (cleanContent.startsWith('/')) {
+                                                    cleanContent = cleanContent.substring(1);
+                                                }
+                                                // 添加到主單元格內容
+                                                const mainTempDiv = document.createElement('div');
+                                                mainTempDiv.innerHTML = mainCell.innerHTML;
+                                                const mainEditableDiv = mainTempDiv.querySelector('[data-gjs-editable="true"]');
+                                                if (mainEditableDiv) {
+                                                    mainEditableDiv.innerHTML += ' ' + cleanContent;
+                                                    mainCell.innerHTML = mainTempDiv.innerHTML;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                table.appendChild(mainRow);
+                            }
+                            
+                            // 處理特殊單元格
+                            const finalRows = table.querySelectorAll("tr");
+                            const finalOriginalRows = originalTable.querySelectorAll("tr");
+                            
+                            for (let r = 0; r < finalRows.length; r++) {
+                                const row = finalRows[r];
+                                const originalRow = finalOriginalRows[r];
+                                
+                                if (!originalRow) continue;
+                                
+                                const cells = row.querySelectorAll("td, th");
+                                const originalCells = originalRow.querySelectorAll("td, th");
+                                
+                                for (let c = 0; c < cells.length; c++) {
+                                    const cell = cells[c];
+                                    const originalCell = originalCells[c];
+                                    
+                                    if (!originalCell) continue;
+                                    
+                                    // 錄音處理
+                                    const audio = originalCell.querySelector("audio");
+                                    if (audio && audio.src.startsWith("blob:")) {
+                                        try {
+                                            const response = await fetch(audio.src);
+                                            const blob = await response.blob();
+                                            const dataURL = await new Promise(resolve => {
+                                                const reader = new FileReader();
+                                                reader.onload = () => resolve(reader.result);
+                                                reader.readAsDataURL(blob);
+                                            });
+                                            // 只替換錄音部分，保留其他內容
+                                            const recorderDiv = cell.querySelector(".recorder-cell");
+                                            if (recorderDiv) {
+                                                recorderDiv.innerHTML = '<audio controls src="' + dataURL + '" style="width:100%; max-width:100%; box-sizing:border-box;"></audio>';
+                                            }
+                                        } catch (error) {
+                                            console.error("錄音轉換失敗:", error);
+                                            const recorderDiv = cell.querySelector(".recorder-cell");
+                                            if (recorderDiv) {
+                                                recorderDiv.innerHTML = "❌ 錄音轉換失敗";
+                                            }
+                                        }
+                                    } else {
+                                        // 沒有錄音時，只移除錄音按鈕部分
+                                        const recorderDiv = cell.querySelector(".recorder-cell");
+                                        if (recorderDiv) {
+                                            recorderDiv.remove();
+                                        }
+                                    }
+                                    
+                                    // 特殊單元格處理
+                                    if (originalCell.classList.contains("editable-cell")) {
+                                        const type = originalCell.dataset.type;
+                                        
+                                        if (type === "radio") {
+                                            // 獲取單選按鈕的選中值
+                                            const selectedBtn = originalCell.querySelector(".option-button.selected");
+                                            const value = selectedBtn ? selectedBtn.innerText.trim() : '';
+                                            cell.innerHTML = "<div>" + value + "</div>";
+                                        } else if (type === "multi") {
+                                            // 獲取多選按鈕的選中值
+                                            const selectedBtns = originalCell.querySelectorAll(".option-button.selected");
+                                            const value = Array.from(selectedBtns).map(b => b.innerText.trim()).join('、');
+                                            cell.innerHTML = "<div>" + value + "</div>";
+                                        } else if (type === "text" || type === "number" || type === "datetime" || 
+                                                type === "countdown" || type === "location") {
+                                            // 獲取其他類型的值
+                                            const value = originalCell.dataset.value || '';
+                                            cell.innerHTML = "<div>" + value + "</div>";
+                                        } else if (type === "collapse") {
+                                            // 收合選擇
+                                            const value = originalCell.dataset.value || '';
+                                            cell.innerHTML = "<div>" + value + "</div>";
+                                        } else if (type === "camera") {
+                                            // 相機圖片處理
+                                            const images = JSON.parse(originalCell.dataset.images || '[]');
+                                            let imagesHTML = '';
+                                            if (images.length > 0) {
+                                                // 使用單元格的實際尺寸來限制圖片大小
+                                                const cellStyle = window.getComputedStyle(originalCell);
+                                                const cellWidth = parseInt(cellStyle.width) - 10; // 減去一些邊距
+                                                const cellHeight = parseInt(cellStyle.height) - 10;
+                                                
+                                                // 根據單元格大小和圖片數量計算每張圖片的尺寸
+                                                const imgSize = Math.min(
+                                                    120, 
+                                                    Math.min(cellWidth, cellHeight) / Math.max(1, Math.ceil(Math.sqrt(images.length)))
+                                                );
+                                                
+                                                imagesHTML = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(' + imgSize + 'px, 1fr)); gap:5px; width:100%; height:100%;">';
+                                                images.forEach(imgData => {
+                                                    imagesHTML += '<img src="' + imgData + '" style="width:100%; height:auto; max-height:' + imgSize + 'px; object-fit:contain; border-radius:3px; border:1px solid #ddd;">';
+                                                });
+                                                imagesHTML += '</div>';
+                                            } else {
+                                                imagesHTML = '無圖片';
+                                            }
+                                            cell.innerHTML = imagesHTML;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        allContent += '<h2>' + sectionName + '</h2><div class="table-container">' + tempContainer.innerHTML + '</div>';
+                    }
+                }
+
+                // 建立完整的HTML，包含側邊欄
+                const exportHTML = '<!DOCTYPE html>' +
+                                '<html>' +
+                                '<head>' +
+                                '<meta charset="utf-8">' +
+                                '<title>已匯出表格</title>' +
+                                '<style>' +
+                                'body { font-family: Arial, sans-serif; padding:20px; margin:0; }' +
+                                'table { border-collapse: collapse; width: 100%; border: 1px solid #ccc; }' +
+                                'td, th { border: 1px solid #ccc; padding: 6px 8px; word-wrap: break-word; vertical-align: top; }' +
+                                'h2 { margin-top: 30px; color: #333; }' +
+                                '.sidebar { position: fixed; left: 0; top: 0; width: 200px; height: 100%; background: #f0f0f0; padding: 20px; }' +
+                                '.main-content { margin-left: 220px; padding: 20px; }' +
+                                '</style>' +
+                                '</head>' +
+                                '<body>' +
+                                '<div class="sidebar">' + sidebarHTML + '</div>' +
+                                '<div class="main-content">' + allContent + '</div>' +
+                                '</body>' +
+                                '</html>';
 
                 // 檔名用 B2
                 let fileName = "exported_table.html";
@@ -2865,9 +3124,11 @@ Ticagrelor 180mg
                     fileName = b2.innerText.trim() + "的資料.html";
                 }
 
+                // 定義是否為手機
                 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
                 if (isMobile) {
+                    // 手機端：打包 zip 後用分享 API
                     const zip = new JSZip();
                     zip.file("exported_table.html", exportHTML);
 
@@ -2884,17 +3145,21 @@ Ticagrelor 180mg
                             exportStatus.innerText = "✅ 匯出成功！";
                             return;
                         } catch (err) {
+                            console.warn("分享 API 失敗，改用下載方式", err);
+                            // fallback 仍可下載
                             saveAs(fixedBlob, fileName.replace('.html', '.zip'));
                             exportStatus.innerText = "✅ 匯出成功（下載）！";
                             return;
                         }
                     } else {
+                        // 不支援分享 API，直接下載
                         saveAs(fixedBlob, fileName.replace('.html', '.zip'));
                         exportStatus.innerText = "✅ 匯出成功（下載）！";
                         return;
                     }
 
                 } else {
+                    // 桌機端：直接下載單一 HTML
                     const htmlBlob = new Blob([exportHTML], { type: "text/html;charset=utf-8" });
                     saveAs(htmlBlob, fileName);
                     exportStatus.innerText = "✅ 匯出成功！";
@@ -2905,9 +3170,6 @@ Ticagrelor 180mg
                 exportStatus.innerText = "❌ 匯出失敗: " + error.message;
             }
         });
-
-
-
 
 
 
