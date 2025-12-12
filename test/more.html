@@ -407,6 +407,26 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             border: 1px solid rgba(255,255,255,0.2);
         }
+        
+        /* 防止移動端自動縮放 */
+        input, textarea {
+            font-size: 16px !important;  /* 這是最關鍵的一行 */
+            max-height: 40px;
+        }
+
+        /* 特別針對iOS */
+        @supports (-webkit-touch-callout: none) {
+            input, textarea {
+                font-size: 16px !important;
+                line-height: 1.2;
+            }
+        }
+
+        /* 模態框中的輸入框 */
+        .modal-content input {
+            min-height: 44px; /* 符合iOS觸摸標準 */
+            padding: 12px;
+        }
         /* 在CSS部分添加以下样式 */
         .collapse-options-container {
             margin-bottom: 15px;
@@ -1752,40 +1772,14 @@ Ticagrelor 180mg
             
             // 顯示 modal
             modal.style.display = 'flex';
-            
-            // 阻止移動端自動縮放
-            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                // 設置視口禁止縮放
-                const viewport = document.querySelector('meta[name=viewport]');
-                if (viewport) {
-                    viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-                }
-                
-                // 延遲一點再聚焦，減少自動縮放
-                setTimeout(() => {
-                    input.focus();
-                    // 移動到可見區域
-                    input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }, 100);
-            } else {
-                input.focus();
-            }
+            input.focus();
         }
         
-        // 在 closeModal 和 closeNumberModal 中恢復視口設置
         function closeModal() {
             document.getElementById('modal').style.display = 'none';
             
             // 恢復滾動位置
             window.scrollTo(scrollPosition.left, scrollPosition.top);
-            
-            // 恢復視口設置
-            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                const viewport = document.querySelector('meta[name=viewport]');
-                if (viewport) {
-                    viewport.content = 'width=device-width, initial-scale=1.0, user-scalable=yes';
-                }
-            }
         }
         
         function confirmModal() {
@@ -1817,14 +1811,6 @@ Ticagrelor 180mg
             
             // 恢復滾動位置
             window.scrollTo(scrollPosition.left, scrollPosition.top);
-            
-            // 恢復視口設置
-            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                const viewport = document.querySelector('meta[name=viewport]');
-                if (viewport) {
-                    viewport.content = 'width=device-width, initial-scale=1.0, user-scalable=yes';
-                }
-            }
         }
         
         function confirmNumberModal() {
