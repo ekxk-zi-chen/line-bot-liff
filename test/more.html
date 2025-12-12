@@ -707,6 +707,43 @@
         #reminder .play-sound-btn { background: #ff7043; color: #fff; display: none; }
         #reminder .ok-btn { background: #4CAF50; color: #fff; }
         
+        
+        /* 分享按鈕樣式 */
+        .share-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .share-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
+        }
+
+        .share-btn:active {
+            transform: translateY(0);
+        }
+
+        /* 行動裝置分享提示 */
+        .share-hint {
+            display: none;
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f8ff;
+            border-radius: 8px;
+            border-left: 4px solid #007AFF;
+        }
         /* 響應式設計 */
         @media (max-width: 768px) {
             body, html {
@@ -722,6 +759,10 @@
             }
             .main-content {
                 padding: 70px 10px 15px 10px;
+            }
+            
+            .share-hint {
+                display: block;
             }
             
             div.table-container {
@@ -2820,7 +2861,14 @@ Ticagrelor 180mg
         }
 
         ////////////////////////////////////////////////////////////
-        
+        // 在匯出函數的頂部添加兼容性檢查
+        function canShareFile() {
+            return navigator.canShare && navigator.canShare({
+                files: [new File([], 'test.zip')],
+                title: 'test',
+                text: 'test'
+            }).catch(() => false);
+        }
         
         
         // 資料匯出完整版本 - 使用Python生成的导出表格，但保留用户数据
@@ -2963,38 +3011,61 @@ Ticagrelor 180mg
                     fileName = b2.innerText.trim() + "的資料.html";
                 }
 
-                const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                // 創建 ZIP 檔案
+                const zip = new JSZip();
+                zip.file(fileName, exportHTML);
+                
+                // 可以添加其他檔案到 ZIP
+                zip.file("export_info.txt", `匯出時間: ${new Date().toLocaleString()}
+檔案編碼: UTF-8`);
 
-                if (isMobile) {
-                    const zip = new JSZip();
-                    zip.file("exported_table.html", exportHTML);
+                const content = await zip.generateAsync({ type: "blob" });
+                const zipBlob = new Blob([content], { type: "application/zip" });
+                const zipFileName = fileName.replace('.html', '.zip');
 
-                    const content = await zip.generateAsync({ type: "blob" });
-                    const fixedBlob = new Blob([content], { type: "application/zip" });
+                // 創建 File 物件
+                const zipFile = new File([zipBlob], zipFileName, {
+                    type: "application/zip",
+                    lastModified: Date.now()
+                });
 
-                    if (navigator.canShare && navigator.canShare({ files: [new File([fixedBlob], fileName.replace('.html', '.zip'))] })) {
-                        try {
+                // 檢查是否在行動裝置並支援分享
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                
+                if (isMobile && navigator.share) {
+                    try {
+                        // 準備分享資料
+                        const shareData = {
+                            files: [zipFile],
+                            title: '表格資料匯出',
+                            text: '這是你匯出的表格資料 ZIP 檔案'
+                        };
+
+                        // 檢查是否能分享檔案
+                        if (navigator.canShare && navigator.canShare(shareData)) {
+                            await navigator.share(shareData);
+                            exportStatus.innerText = "✅ 分享成功！";
+                        } else {
+                            // 如果不支援檔案分享，回退到 URL 分享
+                            const objectURL = URL.createObjectURL(zipBlob);
                             await navigator.share({
-                                files: [new File([fixedBlob], fileName.replace('.html', '.zip'))],
-                                title: "匯出表格",
-                                text: "這是你匯出的表格 ZIP 檔"
+                                title: '表格資料匯出',
+                                text: '點擊連結下載匯出的表格',
+                                url: objectURL
                             });
-                            exportStatus.innerText = "✅ 匯出成功！";
-                            return;
-                        } catch (err) {
-                            saveAs(fixedBlob, fileName.replace('.html', '.zip'));
-                            exportStatus.innerText = "✅ 匯出成功（下載）！";
-                            return;
+                            exportStatus.innerText = "✅ 分享連結成功！";
+                            // 清理 URL
+                            setTimeout(() => URL.revokeObjectURL(objectURL), 10000);
                         }
-                    } else {
-                        saveAs(fixedBlob, fileName.replace('.html', '.zip'));
-                        exportStatus.innerText = "✅ 匯出成功（下載）！";
-                        return;
+                    } catch (err) {
+                        console.warn('分享失敗:', err);
+                        // 分享失敗時自動下載
+                        saveAs(zipBlob, zipFileName);
+                        exportStatus.innerText = "✅ 匯出成功（已下載）！";
                     }
-
                 } else {
-                    const htmlBlob = new Blob([exportHTML], { type: "text/html;charset=utf-8" });
-                    saveAs(htmlBlob, fileName);
+                    // 桌面版或舊版瀏覽器直接下載
+                    saveAs(zipBlob, zipFileName);
                     exportStatus.innerText = "✅ 匯出成功！";
                 }
                 
