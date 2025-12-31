@@ -13,7 +13,7 @@ export default async function handler(req: Request, context: any) {
 
   try {
     const rawBody = await req.text();
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwPPgRYU_hsKv1rb9H1Rqo49sMh4P4UjY5559lGUEzhwpM_eIroz_W9xBYuvfCU87b-/exec";
+    const GAS_URL = process.env.GAS_URL;
 
     // 🕵️ 尋找 waitUntil 蹤跡
     const waitUntil = context?.waitUntil || (req as any).waitUntil;
