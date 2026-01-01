@@ -1,24 +1,42 @@
 // api/webhook.ts
+
 export const config = {
   runtime: 'edge',
 };
 
 export default async function handler(req: Request, context: any) {
-  // 1. 取得環境變數中的 GAS 網址
+  // ==========================================
+  // 1. CORS 標頭設定 (解決 GitHub Pages 呼叫 Vercel 的 405/跨域錯誤)
+  // ==========================================
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*", // 允許所有網域呼叫 (GitHub Pages, localhost 等)
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
+
+  // 處理瀏覽器的預檢請求 (Preflight Request)
+  // 當瀏覽器發送 POST 前，會先發送一個 OPTIONS 請求來確認權限
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  // ==========================================
+  // 2. 取得環境變數中的 GAS 網址
+  // ==========================================
   // @ts-ignore
   const GAS_URL = process.env.GAS_URL;
 
   if (!GAS_URL) {
-    return new Response('Config Error', { status: 500 });
+    return new Response('Config Error: GAS_URL missing', { status: 500, headers: corsHeaders });
   }
 
+  // 簡單的 GET 測試 (例如瀏覽器直接開網址)
   if (req.method === 'GET') {
-    return new Response('Vercel Edge Gateway Active', { status: 200 });
+    return new Response('Vercel Edge Gateway Active', { status: 200, headers: corsHeaders });
   }
 
   try {
-    // 複製一份 request，因為 body 串流只能讀一次
-    const reqClone = req.clone();
+    // 讀取請求內容
     const rawBody = await req.text();
     
     let isLiffRequest = false;
@@ -31,14 +49,14 @@ export default async function handler(req: Request, context: any) {
         isLiffRequest = true;
       }
     } catch (e) {
-      // 解析 JSON 失敗，當作一般 Webhook 處理
+      // 解析 JSON 失敗，當作一般 Webhook 處理 (可能是 LINE 的驗證封包或壞掉的封包)
     }
 
     // ==========================================
     // 🚦 模式 A：LIFF 網頁請求 (必須等待資料回傳)
     // ==========================================
     if (isLiffRequest) {
-      console.log("📥 收到 LIFF 請求，啟動【同步等待】模式");
+      // console.log("📥 收到 LIFF 請求，啟動【同步等待】模式");
       
       const gasResponse = await fetch(GAS_URL, {
         method: 'POST',
@@ -46,11 +64,16 @@ export default async function handler(req: Request, context: any) {
         body: rawBody,
       });
 
-      // 直接把 GAS 的回應 (JSON) 轉發回給瀏覽器
+      // 取得 GAS 的回應文字
       const data = await gasResponse.text();
+
+      // 回傳給瀏覽器 (記得帶上 CORS 標頭，不然瀏覽器會擋)
       return new Response(data, {
         status: gasResponse.status,
-        headers: { 'Content-Type': 'application/json' }
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
       });
     }
 
@@ -76,10 +99,10 @@ export default async function handler(req: Request, context: any) {
       }
 
       // 秒回 OK 給 LINE
-      return new Response('OK', { status: 200 });
+      return new Response('OK', { status: 200, headers: corsHeaders });
     }
 
   } catch (e: any) {
-    return new Response(`Error: ${e.message}`, { status: 500 });
+    return new Response(`Error: ${e.message}`, { status: 500, headers: corsHeaders });
   }
 }
