@@ -41,23 +41,18 @@
         <h2 class="text-lg font-bold mb-2">🤖 AI 戰情/簡報中心</h2>
         
         <div class="bg-gray-800 p-3 rounded mb-3 border border-gray-700">
-            <p class="text-sm text-gray-400 mb-1">請輸入目標國家或地區：</p>
-            <input type="text" id="ai-input" class="w-full p-2 bg-gray-700 rounded text-white border border-gray-600 focus:border-green-500 outline-none" placeholder="例如: 土耳其、日本石川縣、花蓮太魯閣...">
-            
-            <p class="text-xs text-gray-500 mt-2">💡 提示：輸入地點越精確，情資越準確。</p>
+            <p class="text-sm text-gray-400 mb-1">請輸入目標 (支援 GPS: 24.12, 121.55)</p>
+            <input type="text" id="ai-input" class="w-full p-2 bg-gray-700 rounded text-white border border-gray-600 focus:border-green-500 outline-none" placeholder="例如: 土耳其、花蓮秀林鄉...">
         </div>
 
-        <div class="flex gap-3">
-            <button onclick="askAI('text')" class="btn btn-blue flex-1 flex flex-col items-center justify-center gap-1">
-                <span class="text-xl">💬</span>
-                <span class="text-sm">文字分析</span>
-            </button>
-            
-            <button onclick="askAI('ppt')" class="btn btn-red flex-1 flex flex-col items-center justify-center gap-1">
-                <span class="text-xl">📊</span>
-                <span class="text-sm">生成簡報</span>
-            </button>
+        <div class="flex gap-2 mb-3">
+            <button onclick="askAI('text')" class="btn btn-blue flex-1">💬 文字分析</button>
+            <button onclick="askAI('ppt')" class="btn btn-red flex-1">📊 生成簡報</button>
         </div>
+
+        <a href="https://drive.google.com/drive/folders/1XAtHLGeo2fQH3wO5Lfq5_IjunbkIqzn_" target="_blank" class="btn block text-center mb-4" style="background-color: #FF9800; text-decoration: none; color: white;">
+            📂 開啟「歷史情資歸檔」資料夾
+        </a>
 
         <div id="ai-response" class="mt-4 p-4 bg-gray-800 rounded border-l-4 border-green-500 hidden"></div>
     </div>
@@ -198,71 +193,72 @@
 
             if (!query) { alert("請輸入地點或關鍵字！"); return; }
 
-            // 顯示載入中狀態
             responseDiv.classList.remove('hidden');
-            responseDiv.style.borderLeftColor = mode === 'ppt' ? '#f44336' : '#2196F3'; // 紅色或藍色邊框
+            responseDiv.style.borderLeftColor = mode === 'ppt' ? '#f44336' : '#2196F3';
             
             if (mode === 'ppt') {
                 responseDiv.innerHTML = `
                     <div class="loader"></div>
-                    <p class="text-center text-green-400 font-bold animate-pulse">正在生成 Google Slides 簡報...</p>
-                    <p class="text-center text-xs text-gray-400 mt-1">AI 正在撰寫治安、交通、氣候分析<br>請稍候約 10~15 秒</p>
+                    <p class="text-center text-green-400 font-bold animate-pulse">正在調閱 USGS 災情與 Open-Meteo 氣象...</p>
+                    <p class="text-center text-xs text-gray-400 mt-2">
+                        ⏳ 預計耗時 15~20 秒<br>
+                        若畫面跳出錯誤，請直接點擊上方橘色按鈕<br>
+                        進入資料夾查看結果。
+                    </p>
                 `;
             } else {
-                responseDiv.innerHTML = `
-                    <div class="loader"></div>
-                    <p class="text-center text-blue-400">正在連線戰情中心分析中...</p>
-                `;
+                responseDiv.innerHTML = '<div class="loader"></div><p class="text-center text-blue-400">正在連線戰情中心分析中...</p>';
             }
 
             try {
-                // 根據模式呼叫不同的 GAS Action
-                // mode 'text' -> action 'ask_ai'
-                // mode 'ppt'  -> action 'make_briefing_ppt'
                 const action = mode === 'ppt' ? 'make_briefing_ppt' : 'ask_ai';
                 
-                // 呼叫 API (這裡參數名稱稍微統一一下，後端如果是用 query 就傳 query，用 question 就傳 question)
-                // 為了保險，我兩個都傳
+                // 設定一個 Promise.race 來處理前端顯示超時，但不中斷後端請求
+                // (這裡我們還是乖乖等，等到死為止，死了就顯示備用方案)
                 const data = await callGasApi({ 
                     action: action, 
                     userId: userId, 
-                    question: query, // 給 ask_ai 用
-                    query: query     // 給 make_briefing_ppt 用
+                    question: query, 
+                    query: query 
                 });
                 
                 if (mode === 'text') {
-                    // --- 文字模式結果 ---
+                    // 文字模式
                     responseDiv.innerHTML = `
                         <strong class="text-blue-400 text-lg">🤖 分析報告：${query}</strong><br>
-                        <div class="whitespace-pre-wrap mt-2 text-gray-200 leading-relaxed">${data.answer || "⚠️ 分析失敗，請重試。"}</div>
+                        <div class="whitespace-pre-wrap mt-2 text-gray-200">${data.answer || "⚠️ 分析失敗"}</div>
                     `;
                 } else {
-                    // --- PPT 模式結果 ---
+                    // PPT 模式 (成功回傳)
                     if (data.url) {
                         responseDiv.innerHTML = `
-                            <div class="text-center">
-                                <p class="text-green-400 font-bold text-lg mb-2">✅ 情資簡報製作完成！</p>
-                                <p class="text-sm text-gray-400 mb-4">目標區：${query}</p>
-                                
-                                <a href="${data.url}" target="_blank" class="block w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded shadow-lg transition duration-200" style="text-decoration:none;">
-                                    📂 點擊開啟 Google Slides
-                                </a>
-                                
-                                <p class="text-xs text-gray-500 mt-3 border-t border-gray-700 pt-2">
-                                    連結已設定為「知道連結者可檢視」，您可以直接複製連結回報給指揮官。
-                                </p>
-                            </div>
+                            <p class="text-green-400 font-bold text-lg mb-2">✅ 簡報製作完成！</p>
+                            <a href="${data.url}" target="_blank" class="btn btn-green block text-center" style="text-decoration:none;">
+                                📂 開啟本份簡報
+                            </a>
                         `;
                     } else {
-                        responseDiv.innerHTML = `<p class="text-red-400 font-bold text-center">❌ 生成失敗</p><p class="text-sm text-gray-400 text-center">可能是 AI 忙線中，請稍後再試。</p>`;
+                        // 回傳 null (邏輯錯誤)
+                        throw new Error("生成失敗");
                     }
                 }
             } catch (e) {
                 console.error(e);
-                responseDiv.innerHTML = `<p class="text-red-500">連線錯誤: ${e.message}</p>`;
+                // 🔥 這裡是最重要的改動：針對超時或錯誤的安撫訊息
+                if (mode === 'ppt') {
+                    responseDiv.innerHTML = `
+                        <p class="text-yellow-400 font-bold text-center">⚠️ 連線逾時 (但後台可能還在跑)</p>
+                        <p class="text-sm text-gray-300 mt-2">
+                            因為災情資料分析量較大，連線暫時中斷。<br>
+                            <strong>請稍候 30 秒，直接點擊上方的「📂 橘色按鈕」查看歸檔資料夾。</strong>
+                        </p>
+                    `;
+                } else {
+                    responseDiv.innerHTML = `<p class="text-red-500">連線錯誤: ${e.message}</p>`;
+                }
             }
         }
-
+        
         // --- 工具: 呼叫 GAS API (透過 POST) ---
         async function callGasApi(payload) {
             // source: 'liff' 是為了讓 GAS 區分這不是 LINE Webhook
