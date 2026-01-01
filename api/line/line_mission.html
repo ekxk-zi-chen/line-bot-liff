@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>花蓮特搜戰情中心</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #1a1a1a; color: #e0e0e0; font-family: sans-serif; }
+        .card { background-color: #2d2d2d; border-radius: 12px; padding: 16px; margin-bottom: 12px; border-left: 5px solid #4CAF50; }
+        .btn { width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; margin-top: 8px; cursor: pointer; }
+        .btn-green { background-color: #4CAF50; color: white; border: none; }
+        .btn-red { background-color: #f44336; color: white; border: none; }
+        .btn-blue { background-color: #2196F3; color: white; border: none; }
+        .loader { border: 4px solid #333; border-top: 4px solid #4CAF50; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="p-4">
+
+    <div id="header" class="mb-4 text-center">
+        <h1 class="text-xl font-bold text-green-400">🚒 花蓮特搜行動系統</h1>
+        <p id="user-info" class="text-sm text-gray-400">識別中...</p>
+    </div>
+
+    <div id="loader" class="loader"></div>
+
+    <div id="view-report" class="hidden">
+        <h2 class="text-lg font-bold mb-2">📝 您的任務回報</h2>
+        <div id="report-list"></div>
+    </div>
+
+    <div id="view-query" class="hidden">
+        <h2 class="text-lg font-bold mb-2">🔍 進行中任務看板</h2>
+        <div id="query-list"></div>
+    </div>
+
+    <div id="view-ai" class="hidden">
+        <h2 class="text-lg font-bold mb-2">🤖 AI 戰情分析</h2>
+        <textarea id="ai-input" class="w-full p-3 bg-gray-800 rounded text-white" rows="4" placeholder="請輸入問題 (例如: 當地天氣、土耳其目前局勢、搜救隊注意事項...)"></textarea>
+        <button onclick="askAI()" class="btn btn-blue">傳送分析請求</button>
+        <div id="ai-response" class="mt-4 p-3 bg-gray-800 rounded hidden"></div>
+    </div>
+
+    <script>
+        // 🔥 請填入你的 GAS 網址 (記得結尾要是 /exec)
+        const GAS_API_URL = process.env.GAS_URL; 
+
+        let userId = "";
+        let displayName = "";
+
+        // 初始化 LIFF
+        async function main() {
+            try {
+                // 記得填入 LIFF ID
+                await liff.init({ liffId: "你的_LIFF_ID" }); 
+                
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                    return;
+                }
+
+                const profile = await liff.getProfile();
+                userId = profile.userId;
+                displayName = profile.displayName;
+                document.getElementById('user-info').innerText = `隊員：${displayName}`;
+
+                // 根據 URL 參數判斷要顯示哪一頁
+                const urlParams = new URLSearchParams(window.location.search);
+                const path = urlParams.get('path'); // 會抓到 'report', 'query', 或 'ai'
+
+                document.getElementById('loader').classList.add('hidden');
+
+                if (path === 'report') {
+                    showReportPage();
+                } else if (path === 'query') {
+                    showQueryPage();
+                } else if (path === 'ai') {
+                    showAiPage();
+                } else {
+                    // 預設顯示查詢
+                    showQueryPage();
+                }
+
+            } catch (err) {
+                alert("LIFF 初始化失敗: " + err);
+            }
+        }
+
+        // --- 頁面 1: 任務回報 ---
+        async function showReportPage() {
+            document.getElementById('view-report').classList.remove('hidden');
+            document.getElementById('report-list').innerHTML = '<div class="loader"></div>';
+
+            const data = await callGasApi({ action: 'get_my_assignments', userId: userId });
+            const listDiv = document.getElementById('report-list');
+            listDiv.innerHTML = "";
+
+            if (!data || data.length === 0) {
+                listDiv.innerHTML = "<p class='text-center text-gray-500'>💤 目前沒有指派給您的任務</p>";
+                return;
+            }
+
+            data.forEach(task => {
+                const div = document.createElement('div');
+                div.className = "card";
+                div.innerHTML = `
+                    <h3 class="font-bold text-lg">${task.mission_title}</h3>
+                    <p class="text-sm text-gray-300 mb-2">梯次: ${task.batch_no} | ${task.assignment_note || ''}</p>
+                    <input type="text" id="note-${task.assignment_id}" class="w-full p-2 bg-gray-700 rounded text-white mb-2" placeholder="輸入回報內容 (例如: 抵達)">
+                    <div class="flex gap-2">
+                        <button onclick="submitReport(${task.assignment_id}, '${task.mission_id}', false)" class="btn btn-blue flex-1">僅回報</button>
+                        <button onclick="submitReport(${task.assignment_id}, '${task.mission_id}', true)" class="btn btn-green flex-1">任務完成</button>
+                    </div>
+                `;
+                listDiv.appendChild(div);
+            });
+        }
+
+        async function submitReport(assignmentId, missionId, isFinished) {
+            const note = document.getElementById(`note-${assignmentId}`).value;
+            if (!note && !isFinished) { alert("請輸入回報內容"); return; }
+
+            const confirmMsg = isFinished ? "確定要回報「任務完成」嗎？" : "確定要送出回報嗎？";
+            if (!confirm(confirmMsg)) return;
+
+            // 顯示 Loading
+            liff.sendMessages([{ type: 'text', text: isFinished ? '任務完成回報中...' : '進度回報中...' }]);
+            
+            await callGasApi({
+                action: 'submit_report',
+                userId: userId,
+                assignmentId: assignmentId,
+                missionId: missionId,
+                isFinished: isFinished,
+                note: note || (isFinished ? "任務完成" : "")
+            });
+
+            alert("✅ 回報成功！");
+            liff.closeWindow(); // 關閉視窗
+        }
+
+        // --- 頁面 2: 任務查詢 ---
+        async function showQueryPage() {
+            document.getElementById('view-query').classList.remove('hidden');
+            document.getElementById('query-list').innerHTML = '<div class="loader"></div>';
+
+            const data = await callGasApi({ action: 'get_public_missions', userId: userId });
+            const listDiv = document.getElementById('query-list');
+            listDiv.innerHTML = "";
+
+            if (!data || data.length === 0) {
+                listDiv.innerHTML = "<p class='text-center text-gray-500'>📭 目前沒有進行中的任務</p>";
+                return;
+            }
+
+            data.forEach(task => {
+                const div = document.createElement('div');
+                div.className = "card";
+                div.style.borderLeftColor = "#2196F3";
+                div.innerHTML = `
+                    <h3 class="font-bold text-lg">${task.title}</h3>
+                    <p class="text-sm text-gray-400">啟動時間: ${task.start_time.split('T')[0]}</p>
+                `;
+                listDiv.appendChild(div);
+            });
+        }
+
+        // --- 頁面 3: AI 戰情室 ---
+        function showAiPage() {
+            document.getElementById('view-ai').classList.remove('hidden');
+        }
+
+        async function askAI() {
+            const input = document.getElementById('ai-input');
+            const responseDiv = document.getElementById('ai-response');
+            const question = input.value;
+
+            if (!question) return;
+
+            responseDiv.classList.remove('hidden');
+            responseDiv.innerHTML = '<div class="loader"></div>';
+
+            const data = await callGasApi({ action: 'ask_ai', userId: userId, question: question });
+            
+            responseDiv.innerHTML = `
+                <strong class="text-green-400">🤖 分析報告：</strong><br>
+                <div class="whitespace-pre-wrap">${data.answer || "分析失敗"}</div>
+            `;
+        }
+
+        // --- 工具: 呼叫 GAS API (透過 POST) ---
+        async function callGasApi(payload) {
+            // source: 'liff' 是為了讓 GAS 區分這不是 LINE Webhook
+            const body = JSON.stringify({ ...payload, source: 'liff' });
+            
+            const res = await fetch(GAS_API_URL, {
+                method: "POST",
+                body: body
+            });
+            return await res.json();
+        }
+
+        main();
+    </script>
+</body>
+</html>
