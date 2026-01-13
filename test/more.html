@@ -746,7 +746,10 @@
             td, th {
                 padding: 10px 6px;
                 font-size: 14px;
-                min-width: 70px;
+                min-width: unset;       /* 取消最小寬度限制，讓格子能縮到最小 */
+                width: auto !important; /* 關鍵！強制忽略 Excel 帶來的固定寬度 */
+                white-space: normal;    /* 確保文字會自動換行 */
+                word-break: break-all;  /* 如果字太長直接切斷換行，避免撐開 */
                 
             }
             
