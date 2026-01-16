@@ -257,12 +257,9 @@
         // --- 功能 3: 互動式任務看板 (最終完成版 - 含回報紀錄) ---
         async function showQueryPage() {
             document.getElementById('view-query').classList.remove('hidden');
-            
-            // ✅ 1. 呼叫山豬載入中
             toggleLoader(true, "正在連線戰情中心...");
 
             try {
-                // 呼叫後端 API
                 const data = await callGasApi({ action: 'get_public_missions', userId: userId });
                 const listDiv = document.getElementById('query-list');
                 listDiv.innerHTML = "";
@@ -271,75 +268,75 @@
                     listDiv.innerHTML = "<p class='text-center text-gray-500 mt-4'>📭 目前無進行中任務</p>";
                 } else {
                     data.forEach(task => {
-                        // 產生隨機 ID 用於開關卡片
                         const cardId = `mission-${Math.random().toString(36).substr(2, 9)}`;
                         const div = document.createElement('div');
                         div.className = "card";
-                        div.style.borderLeftColor = "#2196F3"; // 藍色代表查詢
+                        div.style.borderLeftColor = "#2196F3"; 
                         div.style.cursor = "pointer";
                         
-                        // --- A. 基本資料對應 (防呆處理) ---
-                        // 這裡對應剛剛 SQL 改好的欄位名稱
                         const title = task.title || "未命名任務";
-                        const batch = task.batch_no || "梯次未定";
-                        const reporter = task.reporter || "特搜中心";
                         const desc = task.description || "尚無詳細描述";
-                        
-                        // 時間格式優化
                         let timeDisplay = "時間未定";
-                        if (task.start_time) {
-                            timeDisplay = task.start_time.replace('T', ' ').substring(0, 16);
-                        }
+                        if (task.start_time) timeDisplay = task.start_time.replace('T', ' ').substring(0, 16);
 
-                        // --- B. 🔥 關鍵：處理進度回報 (JSON 陣列) ---
+                        // --- 處理回報紀錄 ---
                         let logsHtml = '';
-                        // 這是剛剛 SQL 新增的 progress_logs 欄位
                         const logs = task.progress_logs || []; 
 
                         if (logs.length > 0) {
-                            // 如果有回報紀錄，就畫出列表
                             logsHtml = `<div class="mt-3 pt-3 border-t border-gray-600">
-                                        <p class="text-xs text-gray-400 mb-2 flex items-center">
-                                            📡 最新現場回報 (近5筆)
-                                        </p>`;
+                                        <p class="text-xs text-gray-400 mb-2 flex items-center justify-between">
+                                            <span>📡 現場回報日誌 (近50筆)</span>
+                                            <span class="text-gray-500 text-[10px]">▼ 依時間倒序</span>
+                                        </p>
+                                        <div class="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">`; // 加入捲軸
                             
                             logs.forEach(log => {
-                                // 根據狀態給顏色 (綠:完成 / 紅:求救 / 藍:進行中)
-                                let statusColor = "text-blue-400";
-                                let statusIcon = "🔵";
-                                
+                                // 狀態顏色判斷 (根據你的資料庫值: '已完成' 或 '進行中')
+                                let statusColor = "text-gray-400"; // 預設
+                                let statusIcon = "⚪";
+                                let borderClass = "border-gray-500";
+
                                 if (log.status === '已完成') {
                                     statusColor = "text-green-400";
                                     statusIcon = "🟢";
-                                }
-                                if (log.status === '進行中') {
-                                    statusColor = "text-red-400";
-                                    statusIcon = "🔴";
+                                    borderClass = "border-green-600";
+                                } else if (log.status === '進行中') {
+                                    statusColor = "text-blue-400";
+                                    statusIcon = "🔵"; // 進行中用藍色
+                                    borderClass = "border-blue-600";
+                                } else {
+                                    // 其他狀況 (如救援中、待命)
+                                    statusColor = "text-yellow-400";
+                                    statusIcon = "🟡";
                                 }
 
-                                // 每一筆回報的 HTML
+                                // 🔥 梯次顯示 (如果有抓到)
+                                const batchBadge = log.batch_num !== '未知' 
+                                    ? `<span class="bg-gray-600 text-white px-1 rounded ml-2">第${log.batch_num}梯</span>` 
+                                    : '';
+
                                 logsHtml += `
-                                    <div class="mb-2 p-2 bg-gray-700 rounded-md text-sm border-l-2 border-gray-500">
+                                    <div class="p-2 bg-gray-700 rounded-md text-sm border-l-4 ${borderClass}">
                                         <div class="flex justify-between items-center mb-1">
-                                            <span class="font-bold ${statusColor}">${statusIcon} ${log.status}</span>
-                                            <span class="text-xs text-gray-400">${log.time_str || ''}</span>
+                                            <div class="flex items-center">
+                                                <span class="font-bold ${statusColor} mr-1">${statusIcon} ${log.status}</span>
+                                                <span class="text-[10px] bg-gray-800 px-1 rounded text-gray-400">${log.time_str}</span>
+                                                ${batchBadge}
+                                            </div>
                                         </div>
-                                        <div class="text-gray-200 pl-1">${log.note}</div>
-                                        <div class="text-xs text-gray-500 mt-1 text-right">
-                                            👤 ${log.reporter_name}
+                                        <div class="text-gray-200 pl-1 mb-1 leading-relaxed">${log.note}</div>
+                                        <div class="text-xs text-gray-400 text-right border-t border-gray-600 pt-1 mt-1">
+                                            回報人: <span class="text-gray-300">${log.reporter_name}</span>
                                         </div>
                                     </div>
                                 `;
                             });
-                            logsHtml += `</div>`;
+                            logsHtml += `</div></div>`;
                         } else {
-                            // 如果沒有回報紀錄
-                            logsHtml = `<div class="mt-3 pt-2 border-t border-gray-600 text-center text-xs text-gray-500">
-                                            (尚無現場回報紀錄)
-                                        </div>`;
+                            logsHtml = `<div class="mt-3 pt-2 border-t border-gray-600 text-center text-xs text-gray-500">(尚無回報紀錄)</div>`;
                         }
 
-                        // --- C. 組合卡片 HTML ---
                         div.innerHTML = `
                             <div onclick="toggleDetail('${cardId}')" class="flex justify-between items-center select-none">
                                 <div class="flex-1">
@@ -351,17 +348,12 @@
                             
                             <div id="${cardId}" class="mission-detail mt-0">
                                 <div class="p-3 bg-gray-800 rounded-b-lg">
-                                    <div class="grid grid-cols-2 gap-2 text-sm mb-2">
-                                        <div class="text-gray-400">🔢 梯次: <span class="text-orange-400">${batch}</span></div>
-                                        <div class="text-gray-400">👤 發起: <span class="text-white">${reporter}</span></div>
-                                    </div>
                                     <div class="text-sm text-gray-400 mb-2">
-                                        <span class="block mb-1">📝 任務摘要:</span>
+                                        <span class="block mb-1 font-bold text-gray-500">📝 任務摘要:</span>
                                         <span class="text-gray-300 bg-gray-900 p-2 rounded block text-xs leading-relaxed">
                                             ${desc}
                                         </span>
                                     </div>
-                                    
                                     ${logsHtml}
                                 </div>
                             </div>
@@ -373,11 +365,11 @@
                 console.error(e);
                 alert("讀取失敗: " + e.message);
             } finally {
-                // ✅ 3. 任務結束，山豬退場
                 toggleLoader(false);
             }
-        } 
+        }
                 
+
         // 切換展開/收合的小工具
         function toggleDetail(id) {
             const el = document.getElementById(id);
