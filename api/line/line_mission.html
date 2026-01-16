@@ -61,6 +61,18 @@
         }
         .bg-blue { background-color: #2196F3; }
         .bg-orange { background-color: #FF9800; }
+        /* --- 4. 任務摘要折疊效果 --- */
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3; /* 實際運作靠這行 */
+            line-clamp: 3;         /* 🔥 新增這行：單純為了讓編輯器閉嘴 */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        /* 讓展開收合有滑順的動畫 */
+        .transition-height {
+            transition: max-height 0.3s ease-in-out;
+        }
     </style>
 </head>
 <body class="p-4">
@@ -254,7 +266,7 @@
 
 
         // --- 頁面 2: 任務查詢 ---
-        // --- 功能 3: 互動式任務看板 (無限回報版) ---
+        // --- 功能 3: 互動式任務看板 (可折疊摘要版) ---
         async function showQueryPage() {
             document.getElementById('view-query').classList.remove('hidden');
             toggleLoader(true, "正在連線戰情中心...");
@@ -269,6 +281,9 @@
                 } else {
                     data.forEach(task => {
                         const cardId = `mission-${Math.random().toString(36).substr(2, 9)}`;
+                        // 🔥 新增：摘要專用的 ID
+                        const summaryId = `summary-${cardId}`;
+                        
                         const div = document.createElement('div');
                         div.className = "card";
                         div.style.borderLeftColor = "#2196F3"; 
@@ -279,19 +294,17 @@
                         let timeDisplay = "時間未定";
                         if (task.start_time) timeDisplay = task.start_time.replace('T', ' ').substring(0, 16);
 
-                        // --- 處理回報紀錄 ---
+                        // --- 處理回報紀錄 (保持不變) ---
                         let logsHtml = '';
                         const logs = task.progress_logs || []; 
 
                         if (logs.length > 0) {
-                            // 🔥 修改標題：顯示「完整紀錄」
-                            // 🔥 增加 max-h-96 (原本 60 太矮)，讓視窗可以高一點，但保留捲軸
                             logsHtml = `<div class="mt-3 pt-3 border-t border-gray-600">
-                                        <p class="text-xs text-gray-400 mb-2 flex items-center justify-between">
+                                          <p class="text-xs text-gray-400 mb-2 flex items-center justify-between">
                                             <span>📡 現場回報日誌 (完整紀錄)</span>
                                             <span class="text-gray-500 text-[10px]">▼ 時間倒序</span>
-                                        </p>
-                                        <div class="space-y-2 max-h-96 overflow-y-auto pr-1 custom-scrollbar">`; 
+                                          </p>
+                                          <div class="space-y-2 max-h-96 overflow-y-auto pr-1 custom-scrollbar">`; 
                             
                             logs.forEach(log => {
                                 let statusColor = "text-gray-400";
@@ -349,9 +362,14 @@
                                 <div class="p-3 bg-gray-800 rounded-b-lg">
                                     <div class="text-sm text-gray-400 mb-2">
                                         <span class="block mb-1 font-bold text-gray-500">📝 任務摘要:</span>
-                                        <span class="text-gray-300 bg-gray-900 p-2 rounded block text-xs leading-relaxed">
+                                        
+                                        <div id="${summaryId}" class="text-gray-300 bg-gray-900 p-2 rounded text-xs leading-relaxed line-clamp-3">
                                             ${desc}
-                                        </span>
+                                        </div>
+                                        
+                                        <button onclick="toggleSummary('${summaryId}', this)" class="text-blue-400 text-xs mt-1 w-full text-center hover:text-blue-300 focus:outline-none py-1">
+                                            展開全文 ▼
+                                        </button>
                                     </div>
                                     ${logsHtml}
                                 </div>
@@ -366,7 +384,24 @@
             } finally {
                 toggleLoader(false);
             }
-        }      
+        }
+
+        // --- 新增工具：切換摘要展開/收合 ---
+        function toggleSummary(id, btn) {
+            // 阻止冒泡，避免觸發卡片收合
+            event.stopPropagation();
+            
+            const el = document.getElementById(id);
+            if (el.classList.contains('line-clamp-3')) {
+                // 展開
+                el.classList.remove('line-clamp-3');
+                btn.innerText = "收合摘要 ▲";
+            } else {
+                // 收合
+                el.classList.add('line-clamp-3');
+                btn.innerText = "展開全文 ▼";
+            }
+        }
 
         // 切換展開/收合的小工具
         function toggleDetail(id) {
