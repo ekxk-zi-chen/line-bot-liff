@@ -16,28 +16,6 @@
         .loader { border: 4px solid #333; border-top: 4px solid #4CAF50; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .hidden { display: none !important; }
-        /* 骨架屏呼吸動畫 */
-        .skeleton-pulse {
-            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
-        }
-        /* 模擬文字條 */
-        .skeleton-text {
-            height: 16px;
-            background-color: #4a4a4a;
-            border-radius: 4px;
-            margin-bottom: 8px;
-        }
-        .skeleton-title {
-            height: 24px;
-            width: 60%;
-            background-color: #5a5a5a;
-            border-radius: 4px;
-            margin-bottom: 12px;
-        }
         /* --- 1. 山豬特搜載入動畫 --- */
         #boar-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -135,7 +113,7 @@
         let userId = "";
         let displayName = "";
 
-        // --- 功能 1: 山豬特搜動畫控制 ---
+        // --- 核心功能: 山豬特搜動畫控制 ---
         let loaderInterval;
         function toggleLoader(show, text = "資料處理中...") {
             const overlay = document.getElementById('boar-overlay');
@@ -146,57 +124,31 @@
                 overlay.classList.remove('hidden');
                 textDiv.innerText = text;
                 
-                // 定義山豬的動作 (你可以把 emoji 換成圖片 URL)
-                // 範例：['<img src="run.gif">', '<img src="map.gif">', ...]
-                const actions = ['🐗 🔍', '🐗 🗺️', '🐗 🚑', '🐗 📡']; 
+                // 🔥 升級版動作序列：擬人化山豬特搜
+                const actions = [
+                    '🐗💨 (出勤中...)', 
+                    '🐗🗺️ (定位中...)', 
+                    '🐗👀 (搜索中...)', 
+                    '🐗🚑 (後送中...)', 
+                    '🐗📡 (通訊中...)'
+                ]; 
                 let idx = 0;
                 
-                // 清除舊的動畫以防重疊
+                // 清除舊動畫
                 if (loaderInterval) clearInterval(loaderInterval);
                 
-                // 啟動循環動畫
+                // 啟動循環 (每 0.6 秒換一個動作，讓它看起來很忙)
                 loaderInterval = setInterval(() => {
-                    anim.innerHTML = actions[idx];
+                    anim.innerText = actions[idx].split(' ')[0]; // 只取圖案
+                    // 如果你想連文字一起變，可以用 innerText = actions[idx]
                     idx = (idx + 1) % actions.length;
-                }, 800); // 每 0.8 秒換一個動作
+                }, 600); 
             } else {
                 overlay.classList.add('hidden');
                 if (loaderInterval) clearInterval(loaderInterval);
             }
         }
-        // --- 工具：顯示骨架屏 (假裝載入中) ---
-        function showSkeleton(containerId, count = 3) {
-            const container = document.getElementById(containerId);
-            let html = '';
-            
-            // 隨機產生幾句「特搜感」的載入文字
-            const loadingTexts = [
-                "正在建立加密連線...",
-                "同步 Supabase 資料庫...",
-                "正在解密任務檔案...",
-                "衛星訊號校正中..."
-            ];
-            const randomText = loadingTexts[Math.floor(Math.random() * loadingTexts.length)];
 
-            // 顯示載入狀態文字
-            html += `<p class="text-center text-xs text-green-400 mb-4 animate-pulse">${randomText}</p>`;
-
-            // 生成假卡片
-            for (let i = 0; i < count; i++) {
-                html += `
-                    <div class="card skeleton-pulse" style="border-left-color: #555;">
-                        <div class="skeleton-title"></div>
-                        <div class="skeleton-text" style="width: 80%;"></div>
-                        <div class="skeleton-text" style="width: 40%;"></div>
-                        <div class="flex gap-2 mt-4">
-                            <div class="skeleton-text" style="height: 40px; width: 100%; border-radius: 8px;"></div>
-                            <div class="skeleton-text" style="height: 40px; width: 100%; border-radius: 8px;"></div>
-                        </div>
-                    </div>
-                `;
-            }
-            container.innerHTML = html;
-        }
         // 初始化 LIFF
         async function main() {
             try {
@@ -239,32 +191,42 @@
         async function showReportPage() {
             document.getElementById('view-report').classList.remove('hidden');
             
-            // 🔥 修改這裡：用骨架屏取代轉圈圈
-            showSkeleton('report-list', 3);
+            // ❌ 刪除這行 (拔掉魚骨)
+            // showSkeleton('report-list', 3);
 
-            const data = await callGasApi({ action: 'get_my_assignments', userId: userId });
-            const listDiv = document.getElementById('report-list');
-            listDiv.innerHTML = "";
+            // ✅ 新增這行 (呼叫山豬)
+            toggleLoader(true, "正在同步任務回報紀錄..."); 
 
-            if (!data || data.length === 0) {
-                listDiv.innerHTML = "<p class='text-center text-gray-500'>💤 目前沒有指派給您的任務</p>";
-                return;
+            try {
+                const data = await callGasApi({ action: 'get_my_assignments', userId: userId });
+                const listDiv = document.getElementById('report-list');
+                listDiv.innerHTML = "";
+
+                if (!data || data.length === 0) {
+                    listDiv.innerHTML = "<p class='text-center text-gray-500'>💤 目前沒有指派給您的任務</p>";
+                } else {
+                    data.forEach(task => {
+                        // ... (原本產生卡片的程式碼保持不變) ...
+                        const div = document.createElement('div');
+                        div.className = "card";
+                        div.innerHTML = `
+                            <h3 class="font-bold text-lg">${task.mission_title}</h3>
+                            <p class="text-sm text-gray-300 mb-2">梯次: ${task.batch_no} | ${task.assignment_note || ''}</p>
+                            <input type="text" id="note-${task.assignment_id}" class="w-full p-2 bg-gray-700 rounded text-white mb-2" placeholder="輸入回報內容 (例如: 抵達)">
+                            <div class="flex gap-2">
+                                <button onclick="submitReport(${task.assignment_id}, '${task.mission_id}', false)" class="btn btn-blue flex-1">僅回報</button>
+                                <button onclick="submitReport(${task.assignment_id}, '${task.mission_id}', true)" class="btn btn-green flex-1">任務完成</button>
+                            </div>
+                        `;
+                        listDiv.appendChild(div);
+                    });
+                }
+            } catch (e) {
+                alert("讀取失敗: " + e.message);
+            } finally {
+                // ✅ 任務結束，山豬退場
+                toggleLoader(false);
             }
-
-            data.forEach(task => {
-                const div = document.createElement('div');
-                div.className = "card";
-                div.innerHTML = `
-                    <h3 class="font-bold text-lg">${task.mission_title}</h3>
-                    <p class="text-sm text-gray-300 mb-2">梯次: ${task.batch_no} | ${task.assignment_note || ''}</p>
-                    <input type="text" id="note-${task.assignment_id}" class="w-full p-2 bg-gray-700 rounded text-white mb-2" placeholder="輸入回報內容 (例如: 抵達)">
-                    <div class="flex gap-2">
-                        <button onclick="submitReport(${task.assignment_id}, '${task.mission_id}', false)" class="btn btn-blue flex-1">僅回報</button>
-                        <button onclick="submitReport(${task.assignment_id}, '${task.mission_id}', true)" class="btn btn-green flex-1">任務完成</button>
-                    </div>
-                `;
-                listDiv.appendChild(div);
-            });
         }
 
         async function submitReport(assignmentId, missionId, isFinished) {
@@ -290,66 +252,69 @@
             liff.closeWindow(); // 關閉視窗
         }
 
+
         // --- 頁面 2: 任務查詢 ---
-        // --- 功能 3: 互動式任務看板 ---
         async function showQueryPage() {
             document.getElementById('view-query').classList.remove('hidden');
-            // 使用骨架屏 (沿用之前的)
-            showSkeleton('query-list', 4);
+            
+            // ❌ 刪除這行 (拔掉魚骨)
+            // showSkeleton('query-list', 4);
 
-            const data = await callGasApi({ action: 'get_public_missions', userId: userId });
-            const listDiv = document.getElementById('query-list');
-            listDiv.innerHTML = "";
+            // ✅ 新增這行 (呼叫山豬)
+            toggleLoader(true, "正在連線戰情中心...");
 
-            if (!data || data.length === 0) {
-                listDiv.innerHTML = "<p class='text-center text-gray-500'>📭 目前無進行中任務</p>";
-                return;
+            try {
+                const data = await callGasApi({ action: 'get_public_missions', userId: userId });
+                const listDiv = document.getElementById('query-list');
+                listDiv.innerHTML = "";
+
+                if (!data || data.length === 0) {
+                    listDiv.innerHTML = "<p class='text-center text-gray-500'>📭 目前無進行中任務</p>";
+                } else {
+                    // ... (原本產生互動式看板的程式碼保持不變) ...
+                    data.forEach(task => {
+                        const cardId = `mission-${Math.random().toString(36).substr(2, 9)}`;
+                        const div = document.createElement('div');
+                        div.className = "card";
+                        div.style.borderLeftColor = "#2196F3"; 
+                        div.style.cursor = "pointer";
+                        
+                        div.innerHTML = `
+                            <div onclick="toggleDetail('${cardId}')" class="flex justify-between items-center">
+                                <div>
+                                    <h3 class="font-bold text-lg">${task.title}</h3>
+                                    <p class="text-sm text-gray-400">🕒 ${task.start_time.split('T')[0]}</p>
+                                </div>
+                                <div class="text-2xl text-gray-500 transition-transform duration-300" id="icon-${cardId}">▼</div>
+                            </div>
+                            <div id="${cardId}" class="mission-detail mt-2">
+                                <div class="detail-row">
+                                    <span>📅 啟動時間:</span>
+                                    <span>${task.start_time.replace('T', ' ').substring(0, 16)}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>🔢 梯次:</span>
+                                    <span class="badge bg-orange">${task.batch_no || '第1梯次'}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>👤 回報人:</span>
+                                    <span>${task.reporter || task.commander || '未標註'}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>📝 摘要:</span>
+                                    <span>${task.description || task.note || '尚無詳細描述'}</span>
+                                </div>
+                            </div>
+                        `;
+                        listDiv.appendChild(div);
+                    });
+                }
+            } catch (e) {
+                alert("讀取失敗: " + e.message);
+            } finally {
+                // ✅ 任務結束，山豬退場
+                toggleLoader(false);
             }
-
-            data.forEach(task => {
-                // 假設 task 結構包含: title, start_time, batch (梯次), reporter (回報人), details
-                // 如果後端還沒給這麼多，會顯示 '無資料'
-                
-                const cardId = `mission-${Math.random().toString(36).substr(2, 9)}`;
-                const div = document.createElement('div');
-                div.className = "card";
-                div.style.borderLeftColor = "#2196F3"; // 藍色代表查詢
-                div.style.cursor = "pointer";
-                
-                // 卡片 HTML 結構
-                div.innerHTML = `
-                    <div onclick="toggleDetail('${cardId}')" class="flex justify-between items-center">
-                        <div>
-                            <h3 class="font-bold text-lg">${task.title}</h3>
-                            <p class="text-sm text-gray-400">🕒 ${task.start_time.split('T')[0]}</p>
-                        </div>
-                        <div class="text-2xl text-gray-500 transition-transform duration-300" id="icon-${cardId}">▼</div>
-                    </div>
-                    
-                    <div id="${cardId}" class="mission-detail mt-2">
-                        <div class="detail-row">
-                            <span>📅 啟動時間:</span>
-                            <span>${task.start_time.replace('T', ' ').substring(0, 16)}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span>🔢 梯次:</span>
-                            <span class="badge bg-orange">${task.batch_no || '第1梯次'}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span>👤 指揮官/回報人:</span>
-                            <span>${task.reporter || task.commander || '未標註'}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span>📝 任務摘要:</span>
-                            <span>${task.description || task.note || '尚無詳細描述'}</span>
-                        </div>
-                        <div class="p-2">
-                            <button class="btn btn-blue btn-sm" onclick="alert('開啟地圖功能開發中...')">🗺️ 查看任務地圖</button>
-                        </div>
-                    </div>
-                `;
-                listDiv.appendChild(div);
-            });
         }
                 
         // 切換展開/收合的小工具
