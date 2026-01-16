@@ -256,22 +256,23 @@
         // --- 頁面 2: 任務查詢 ---
         async function showQueryPage() {
             document.getElementById('view-query').classList.remove('hidden');
-            
-            // ❌ 刪除這行 (拔掉魚骨)
+            // 使用骨架屏 (這行要刪掉，我們現在是用山豬)
             // showSkeleton('query-list', 4);
 
-            // ✅ 新增這行 (呼叫山豬)
-            toggleLoader(true, "正在連線戰情中心...");
+            // ✅ 呼叫山豬
+            toggleLoader(true, "正在查找任務資料...");
 
             try {
                 const data = await callGasApi({ action: 'get_public_missions', userId: userId });
                 const listDiv = document.getElementById('query-list');
                 listDiv.innerHTML = "";
 
+                // 🛑 除錯用：如果資料怪怪的，把這行取消註解，它會跳出視窗告訴你抓到了什麼
+                alert("抓到的資料範例: " + JSON.stringify(data[0]));
+
                 if (!data || data.length === 0) {
                     listDiv.innerHTML = "<p class='text-center text-gray-500'>📭 目前無進行中任務</p>";
                 } else {
-                    // ... (原本產生互動式看板的程式碼保持不變) ...
                     data.forEach(task => {
                         const cardId = `mission-${Math.random().toString(36).substr(2, 9)}`;
                         const div = document.createElement('div');
@@ -279,37 +280,63 @@
                         div.style.borderLeftColor = "#2196F3"; 
                         div.style.cursor = "pointer";
                         
+                        // 🔥 關鍵修正：欄位名稱對應 (Fallback 機制)
+                        // 嘗試讀取 mission_title (你原本的), 如果沒有就讀 title (通用), 再沒有就顯示未知
+                        const title = task.mission_title || task.title || "未命名任務";
+                        
+                        // 時間處理 (防呆)
+                        let timeDisplay = "時間未定";
+                        const rawTime = task.mission_date || task.start_time || task.created_at;
+                        if (rawTime) {
+                            timeDisplay = rawTime.replace('T', ' ').substring(0, 16);
+                        }
+
+                        // 梯次與回報人 (如果你的 API 有回傳 assignment 陣列，這裡需要進階處理)
+                        // 暫時先抓第一層，如果沒有則顯示預設值
+                        const batch = task.batch_no || "梯次未定";
+                        const reporter = task.reporter || task.created_by || "特搜中心";
+                        const desc = task.mission_description || task.description || "尚無詳細描述";
+
                         div.innerHTML = `
                             <div onclick="toggleDetail('${cardId}')" class="flex justify-between items-center">
                                 <div>
-                                    <h3 class="font-bold text-lg">${task.title}</h3>
-                                    <p class="text-sm text-gray-400">🕒 ${task.start_time.split('T')[0]}</p>
+                                    <h3 class="font-bold text-lg">${title}</h3>
+                                    <p class="text-sm text-gray-400">🕒 ${timeDisplay}</p>
                                 </div>
                                 <div class="text-2xl text-gray-500 transition-transform duration-300" id="icon-${cardId}">▼</div>
                             </div>
+                            
                             <div id="${cardId}" class="mission-detail mt-2">
                                 <div class="detail-row">
                                     <span>📅 啟動時間:</span>
-                                    <span>${task.start_time.replace('T', ' ').substring(0, 16)}</span>
+                                    <span>${timeDisplay}</span>
                                 </div>
                                 <div class="detail-row">
-                                    <span>🔢 梯次:</span>
-                                    <span class="badge bg-orange">${task.batch_no || '第1梯次'}</span>
+                                    <span>🔢 梯次/狀態:</span>
+                                    <span class="badge bg-orange">${batch}</span>
                                 </div>
                                 <div class="detail-row">
-                                    <span>👤 回報人:</span>
-                                    <span>${task.reporter || task.commander || '未標註'}</span>
+                                    <span>👤 發起/回報:</span>
+                                    <span>${reporter}</span>
                                 </div>
                                 <div class="detail-row">
-                                    <span>📝 摘要:</span>
-                                    <span>${task.description || task.note || '尚無詳細描述'}</span>
+                                    <span>📝 任務摘要:</span>
+                                    <span>${desc}</span>
                                 </div>
+                                ${task.participants ? `
+                                <div class="detail-row" style="display:block">
+                                    <div class="mb-1">👥 參與人員 (${task.participants.length}):</div>
+                                    <div class="flex flex-wrap gap-1">
+                                        ${task.participants.map(p => `<span class="badge bg-blue">${p.display_name || p.user_id}</span>`).join('')}
+                                    </div>
+                                </div>` : ''}
                             </div>
                         `;
                         listDiv.appendChild(div);
                     });
                 }
             } catch (e) {
+                console.error(e);
                 alert("讀取失敗: " + e.message);
             } finally {
                 // ✅ 任務結束，山豬退場
