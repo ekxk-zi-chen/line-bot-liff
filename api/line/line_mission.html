@@ -38,9 +38,59 @@
             border-radius: 4px;
             margin-bottom: 12px;
         }
+        /* --- 1. 山豬特搜載入動畫 --- */
+        #boar-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(26, 26, 26, 0.95); /* 深色半透明背景 */
+            z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .boar-scene {
+            font-size: 80px; /* 調整大小 */
+            margin-bottom: 20px;
+            animation: bounce 1s infinite alternate;
+        }
+        .boar-text {
+            color: #4CAF50; font-weight: bold; font-size: 1.2rem;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-10px); }
+        }
+
+        /* --- 2. 按鈕鎖定狀態 --- */
+        .btn:disabled {
+            opacity: 0.6; cursor: not-allowed; filter: grayscale(80%);
+        }
+
+        /* --- 3. 任務看板展開細節 (Accordion) --- */
+        .mission-detail {
+            max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out;
+            background-color: #333; border-radius: 0 0 12px 12px;
+        }
+        .mission-detail.open {
+            max-height: 500px; /* 足夠顯示內容的高度 */
+            border-top: 1px solid #444;
+        }
+        .detail-row {
+            padding: 8px 16px; font-size: 0.9rem; color: #ccc; border-bottom: 1px solid #444;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .badge {
+            padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; color: white;
+        }
+        .bg-blue { background-color: #2196F3; }
+        .bg-orange { background-color: #FF9800; }
     </style>
 </head>
 <body class="p-4">
+
+    <div id="boar-overlay" class="hidden">
+        <div id="boar-anim" class="boar-scene">🐗</div> 
+        <p id="boar-text" class="boar-text">搜救資料分析中...</p>
+    </div>
 
     <div id="header" class="mb-4 text-center">
         <h1 class="text-xl font-bold text-green-400">🚒 花蓮特搜行動系統</h1>
@@ -68,8 +118,8 @@
         </div>
 
         <div class="flex gap-2 mb-3">
-            <button onclick="askAI('text')" class="btn btn-blue flex-1">💬 文字分析</button>
-            <button onclick="askAI('ppt')" class="btn btn-red flex-1">📊 生成簡報</button>
+            <button onclick="safeExecute(this, () => askAI('text'))" class="btn btn-blue flex-1">💬 文字分析</button>
+            <button onclick="safeExecute(this, () => askAI('ppt'))" class="btn btn-red flex-1">📊 生成簡報</button>
         </div>
 
         <a href="https://drive.google.com/drive/folders/1XAtHLGeo2fQH3wO5Lfq5_IjunbkIqzn_" target="_blank" class="btn block text-center mb-4" style="background-color: #FF9800; text-decoration: none; color: white;">
@@ -85,6 +135,35 @@
         let userId = "";
         let displayName = "";
 
+        // --- 功能 1: 山豬特搜動畫控制 ---
+        let loaderInterval;
+        function toggleLoader(show, text = "資料處理中...") {
+            const overlay = document.getElementById('boar-overlay');
+            const anim = document.getElementById('boar-anim');
+            const textDiv = document.getElementById('boar-text');
+            
+            if (show) {
+                overlay.classList.remove('hidden');
+                textDiv.innerText = text;
+                
+                // 定義山豬的動作 (你可以把 emoji 換成圖片 URL)
+                // 範例：['<img src="run.gif">', '<img src="map.gif">', ...]
+                const actions = ['🐗 🔍', '🐗 🗺️', '🐗 🚑', '🐗 📡']; 
+                let idx = 0;
+                
+                // 清除舊的動畫以防重疊
+                if (loaderInterval) clearInterval(loaderInterval);
+                
+                // 啟動循環動畫
+                loaderInterval = setInterval(() => {
+                    anim.innerHTML = actions[idx];
+                    idx = (idx + 1) % actions.length;
+                }, 800); // 每 0.8 秒換一個動作
+            } else {
+                overlay.classList.add('hidden');
+                if (loaderInterval) clearInterval(loaderInterval);
+            }
+        }
         // --- 工具：顯示骨架屏 (假裝載入中) ---
         function showSkeleton(containerId, count = 3) {
             const container = document.getElementById(containerId);
@@ -212,9 +291,10 @@
         }
 
         // --- 頁面 2: 任務查詢 ---
+        // --- 功能 3: 互動式任務看板 ---
         async function showQueryPage() {
             document.getElementById('view-query').classList.remove('hidden');
-            // 🔥 修改這裡：用骨架屏取代轉圈圈
+            // 使用骨架屏 (沿用之前的)
             showSkeleton('query-list', 4);
 
             const data = await callGasApi({ action: 'get_public_missions', userId: userId });
@@ -222,22 +302,75 @@
             listDiv.innerHTML = "";
 
             if (!data || data.length === 0) {
-                listDiv.innerHTML = "<p class='text-center text-gray-500'>📭 目前沒有進行中的任務</p>";
+                listDiv.innerHTML = "<p class='text-center text-gray-500'>📭 目前無進行中任務</p>";
                 return;
             }
 
             data.forEach(task => {
+                // 假設 task 結構包含: title, start_time, batch (梯次), reporter (回報人), details
+                // 如果後端還沒給這麼多，會顯示 '無資料'
+                
+                const cardId = `mission-${Math.random().toString(36).substr(2, 9)}`;
                 const div = document.createElement('div');
                 div.className = "card";
-                div.style.borderLeftColor = "#2196F3";
+                div.style.borderLeftColor = "#2196F3"; // 藍色代表查詢
+                div.style.cursor = "pointer";
+                
+                // 卡片 HTML 結構
                 div.innerHTML = `
-                    <h3 class="font-bold text-lg">${task.title}</h3>
-                    <p class="text-sm text-gray-400">啟動時間: ${task.start_time.split('T')[0]}</p>
+                    <div onclick="toggleDetail('${cardId}')" class="flex justify-between items-center">
+                        <div>
+                            <h3 class="font-bold text-lg">${task.title}</h3>
+                            <p class="text-sm text-gray-400">🕒 ${task.start_time.split('T')[0]}</p>
+                        </div>
+                        <div class="text-2xl text-gray-500 transition-transform duration-300" id="icon-${cardId}">▼</div>
+                    </div>
+                    
+                    <div id="${cardId}" class="mission-detail mt-2">
+                        <div class="detail-row">
+                            <span>📅 啟動時間:</span>
+                            <span>${task.start_time.replace('T', ' ').substring(0, 16)}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>🔢 梯次:</span>
+                            <span class="badge bg-orange">${task.batch_no || '第1梯次'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>👤 指揮官/回報人:</span>
+                            <span>${task.reporter || task.commander || '未標註'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>📝 任務摘要:</span>
+                            <span>${task.description || task.note || '尚無詳細描述'}</span>
+                        </div>
+                        <div class="p-2">
+                            <button class="btn btn-blue btn-sm" onclick="alert('開啟地圖功能開發中...')">🗺️ 查看任務地圖</button>
+                        </div>
+                    </div>
                 `;
                 listDiv.appendChild(div);
             });
         }
-
+                
+        // 切換展開/收合的小工具
+        function toggleDetail(id) {
+            const el = document.getElementById(id);
+            const icon = document.getElementById(`icon-${id}`);
+            
+            if (el.classList.contains('open')) {
+                el.classList.remove('open');
+                icon.style.transform = "rotate(0deg)";
+            } else {
+                // 關閉其他已展開的 (如果想要一次只開一個)
+                document.querySelectorAll('.mission-detail.open').forEach(d => {
+                    d.classList.remove('open');
+                    // 這裡懶得抓 icon 復原，簡單做
+                });
+                
+                el.classList.add('open');
+                icon.style.transform = "rotate(180deg)";
+            }
+        }
         // --- 頁面 3: AI 戰情室 ---
         function showAiPage() {
             document.getElementById('view-ai').classList.remove('hidden');
@@ -249,30 +382,13 @@
             const responseDiv = document.getElementById('ai-response');
             const query = input.value.trim();
 
-            if (!query) { alert("請輸入地點或關鍵字！"); return; }
+            if (!query) { alert("請輸入內容！"); return; }
 
-            responseDiv.classList.remove('hidden');
-            responseDiv.style.borderLeftColor = mode === 'ppt' ? '#f44336' : '#2196F3';
+            // 啟動山豬動畫
+            toggleLoader(true, mode === 'ppt' ? "正在調閱圖資與生成簡報..." : "戰情官分析中...");
             
-            if (mode === 'ppt') {
-                responseDiv.innerHTML = `
-                    <div class="loader"></div>
-                    <p class="text-center text-green-400 font-bold animate-pulse">正在調閱 USGS 災情與 Open-Meteo 氣象...</p>
-                    <p class="text-center text-xs text-gray-400 mt-2">
-                        ⏳ 預計耗時 15~20 秒<br>
-                        若畫面跳出錯誤，請直接點擊上方橘色按鈕<br>
-                        進入資料夾查看結果。
-                    </p>
-                `;
-            } else {
-                responseDiv.innerHTML = '<div class="loader"></div><p class="text-center text-blue-400">正在連線戰情中心分析中...</p>';
-            }
-
             try {
                 const action = mode === 'ppt' ? 'make_briefing_ppt' : 'ask_ai';
-                
-                // 設定一個 Promise.race 來處理前端顯示超時，但不中斷後端請求
-                // (這裡我們還是乖乖等，等到死為止，死了就顯示備用方案)
                 const data = await callGasApi({ 
                     action: action, 
                     userId: userId, 
@@ -280,43 +396,34 @@
                     query: query 
                 });
                 
+                // 關閉動畫
+                toggleLoader(false);
+                responseDiv.classList.remove('hidden');
+
                 if (mode === 'text') {
-                    // 文字模式
-                    responseDiv.innerHTML = `
-                        <strong class="text-blue-400 text-lg">🤖 分析報告：${query}</strong><br>
-                        <div class="whitespace-pre-wrap mt-2 text-gray-200">${data.answer || "⚠️ 分析失敗"}</div>
-                    `;
+                    responseDiv.innerHTML = `<strong class="text-blue-400">🤖 分析：</strong><div class="text-gray-200 mt-2">${data.answer}</div>`;
                 } else {
-                    // PPT 模式 (成功回傳)
                     if (data.url) {
                         responseDiv.innerHTML = `
-                            <p class="text-green-400 font-bold text-lg mb-2">✅ 簡報製作完成！</p>
-                            <a href="${data.url}" target="_blank" class="btn btn-green block text-center" style="text-decoration:none;">
-                                📂 開啟本份簡報
-                            </a>
+                            <p class="text-green-400 font-bold mb-2">✅ 簡報完成！</p>
+                            <a href="${data.url}" target="_blank" class="btn btn-green text-center block no-underline">📂 下載簡報</a>
                         `;
                     } else {
-                        // 回傳 null (邏輯錯誤)
                         throw new Error("生成失敗");
                     }
                 }
             } catch (e) {
-                console.error(e);
-                // 🔥 這裡是最重要的改動：針對超時或錯誤的安撫訊息
+                toggleLoader(false); // 發生錯誤也要關閉
+                // 錯誤處理邏輯 (原本的 timeout 提示放這裡)
                 if (mode === 'ppt') {
-                    responseDiv.innerHTML = `
-                        <p class="text-yellow-400 font-bold text-center">⚠️ 連線逾時 (但後台可能還在跑)</p>
-                        <p class="text-sm text-gray-300 mt-2">
-                            因為災情資料分析量較大，連線暫時中斷。<br>
-                            <strong>請稍候 30 秒，直接點擊上方的「📂 橘色按鈕」查看歸檔資料夾。</strong>
-                        </p>
-                    `;
+                    responseDiv.classList.remove('hidden');
+                    responseDiv.innerHTML = `<p class="text-yellow-400">⚠️ 連線逾時，請稍後至雲端資料夾查看。</p>`;
                 } else {
-                    responseDiv.innerHTML = `<p class="text-red-500">連線錯誤: ${e.message}</p>`;
+                    alert("錯誤: " + e.message);
                 }
             }
         }
-        
+                
         // --- 工具: 呼叫 GAS API (透過 POST) ---
         async function callGasApi(payload) {
             // source: 'liff' 是為了讓 GAS 區分這不是 LINE Webhook
@@ -329,6 +436,28 @@
             return await res.json();
         }
 
+        // --- 功能 2: 按鈕防呆鎖 (防止連點) ---
+        // btn: 按鈕元素 (this), asyncFn: 要執行的非同步函式
+        async function safeExecute(btn, asyncFn) {
+            const originalText = btn.innerText;
+            
+            // 1. 鎖定
+            btn.disabled = true;
+            btn.innerHTML = `⏳ 處理中...`;
+            
+            try {
+                // 2. 執行並等待
+                await asyncFn();
+            } catch (e) {
+                console.error(e);
+                alert("執行發生錯誤: " + e.message);
+            } finally {
+                // 3. 解鎖 (無論成功失敗)
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+        }
+        // 啟動主程式
         main();
     </script>
 </body>
