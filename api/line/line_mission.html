@@ -254,7 +254,7 @@
 
 
         // --- 頁面 2: 任務查詢 ---
-        // --- 功能 3: 互動式任務看板 (最終完成版 - 含回報紀錄) ---
+        // --- 功能 3: 互動式任務看板 (無限回報版) ---
         async function showQueryPage() {
             document.getElementById('view-query').classList.remove('hidden');
             toggleLoader(true, "正在連線戰情中心...");
@@ -284,16 +284,17 @@
                         const logs = task.progress_logs || []; 
 
                         if (logs.length > 0) {
+                            // 🔥 修改標題：顯示「完整紀錄」
+                            // 🔥 增加 max-h-96 (原本 60 太矮)，讓視窗可以高一點，但保留捲軸
                             logsHtml = `<div class="mt-3 pt-3 border-t border-gray-600">
                                         <p class="text-xs text-gray-400 mb-2 flex items-center justify-between">
-                                            <span>📡 現場回報日誌 (近50筆)</span>
-                                            <span class="text-gray-500 text-[10px]">▼ 依時間倒序</span>
+                                            <span>📡 現場回報日誌 (完整紀錄)</span>
+                                            <span class="text-gray-500 text-[10px]">▼ 時間倒序</span>
                                         </p>
-                                        <div class="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">`; // 加入捲軸
+                                        <div class="space-y-2 max-h-96 overflow-y-auto pr-1 custom-scrollbar">`; 
                             
                             logs.forEach(log => {
-                                // 狀態顏色判斷 (根據你的資料庫值: '已完成' 或 '進行中')
-                                let statusColor = "text-gray-400"; // 預設
+                                let statusColor = "text-gray-400";
                                 let statusIcon = "⚪";
                                 let borderClass = "border-gray-500";
 
@@ -303,15 +304,13 @@
                                     borderClass = "border-green-600";
                                 } else if (log.status === '進行中') {
                                     statusColor = "text-blue-400";
-                                    statusIcon = "🔵"; // 進行中用藍色
+                                    statusIcon = "🔵"; 
                                     borderClass = "border-blue-600";
                                 } else {
-                                    // 其他狀況 (如救援中、待命)
                                     statusColor = "text-yellow-400";
                                     statusIcon = "🟡";
                                 }
 
-                                // 🔥 梯次顯示 (如果有抓到)
                                 const batchBadge = log.batch_num !== '未知' 
                                     ? `<span class="bg-gray-600 text-white px-1 rounded ml-2">第${log.batch_num}梯</span>` 
                                     : '';
@@ -367,8 +366,7 @@
             } finally {
                 toggleLoader(false);
             }
-        }
-                
+        }      
 
         // 切換展開/收合的小工具
         function toggleDetail(id) {
