@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>精密羅盤定位 v4.0</title>
+<title>精密羅盤定位 v4.1</title>
 <style>
-  /* 全局設定：禁止選取文字，純黑背景，高對比 */
+  /* 全局設定 */
   body { 
     margin: 0; background: #000; color: #fff; 
-    font-family: "SF Mono", "Roboto Mono", monospace; /* 強制等寬字體，數字不跳動 */
+    font-family: "SF Mono", "Roboto Mono", monospace; 
     overflow: hidden; display: flex; flex-direction: column; height: 100vh; 
     user-select: none; -webkit-user-select: none;
   }
@@ -19,7 +19,7 @@
     background: radial-gradient(circle at center, #1a1a1a 0%, #000 85%);
   }
 
-  /* 上方瞄準器 */
+  /* 瞄準器 */
   #aiming-sight {
     position: absolute; top: 0; left: 50%; transform: translateX(-50%);
     z-index: 50; display: flex; flex-direction: column; align-items: center; pointer-events: none;
@@ -27,51 +27,42 @@
   #aim-arrowhead { width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 20px solid #0ff; filter: drop-shadow(0 0 5px #0ff); }
   #aim-line { width: 2px; height: 40vh; background: linear-gradient(to bottom, #0ff 0%, transparent 100%); opacity: 0.5; }
   
-  /* 轉盤外框 (不動) */
+  /* 轉盤結構 */
   #dial-ring {
     width: 290px; height: 290px;
     border-radius: 50%; border: 2px solid #333;
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    box-shadow: inset 0 0 20px #000;
-    pointer-events: none;
+    box-shadow: inset 0 0 20px #000; pointer-events: none;
   }
-
-  /* 轉動的刻度盤 */
   #dial {
-    width: 290px; height: 290px; 
-    position: relative; 
-    /* 這裡不用 transition，全靠 JS 高頻更新 */
-    will-change: transform; 
+    width: 290px; height: 290px; position: relative; will-change: transform; 
   }
   
-  /* 刻度線 */
-  .mark { position: absolute; left: 50%; top: 0; width: 1px; height: 8px; background: #555; transform-origin: 50% 145px; } /* 半徑要精準 */
+  /* 刻度 */
+  .mark { position: absolute; left: 50%; top: 0; width: 1px; height: 8px; background: #555; transform-origin: 50% 145px; }
   .mark.major { height: 12px; width: 2px; background: #aaa; }
-  .mark.cardinal { height: 15px; width: 3px; background: #fff; } /* 0,90,180,270 */
+  .mark.cardinal { height: 15px; width: 3px; background: #fff; }
   
-  /* 刻度文字 */
   .label { 
-    position: absolute; left: 50%; top: 20px; 
-    transform-origin: 50% 125px; 
+    position: absolute; left: 50%; top: 20px; transform-origin: 50% 125px; 
     font-weight: bold; font-size: 14px; width: 40px; text-align: center; margin-left: -20px; color: #888; 
   }
   .label-cardinal { font-size: 18px; color: #fff; top: 18px; }
-  .label-zero { color: #f33; } /* 0度紅色 */
+  .label-zero { color: #f33; } 
 
-  /* 中央紅線 (讀數基準) */
+  /* 紅線指針 */
   #pointer-fixed {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -158px); /* 精確對準圓周 */
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -158px);
     width: 0; height: 0;
     border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 15px solid #f22; 
     z-index: 20; filter: drop-shadow(0 2px 2px #000);
   }
 
-  /* 數字讀數 (Raw Data) */
+  /* 讀數 */
   #readout {
     position: absolute; bottom: 15px; left: 0; right: 0; text-align: center;
     font-size: 48px; font-weight: 700; color: #0ff; 
-    text-shadow: 0 0 10px rgba(0,255,255,0.3);
-    letter-spacing: 1px;
+    text-shadow: 0 0 10px rgba(0,255,255,0.3); letter-spacing: 1px;
   }
   #readout small { font-size: 20px; color: #666; margin-left: 5px; font-weight: normal;}
 
@@ -80,10 +71,8 @@
     padding: 10px; background: #111; border-top: 1px solid #333; 
     max-height: 45vh; overflow-y: auto; z-index: 60; 
   }
-  
   .row { display: flex; gap: 8px; margin-bottom: 8px; align-items: stretch;}
   
-  /* 按鈕樣式 */
   button { 
     flex: 1; padding: 14px; font-size: 16px; border: none; border-radius: 4px; 
     background: #222; color: #ddd; font-weight: bold; border: 1px solid #444; 
@@ -93,22 +82,34 @@
   button.active { background: #0056b3; border-color: #007bff; color: #fff; }
   button.calc { background: #1c7430; border-color: #28a745; color: #fff; }
   
-  /* 誤差設定 */
   .err-box { display: flex; align-items: center; background: #000; padding: 0 10px; border: 1px solid #444; border-radius: 4px;}
   .err-input { width: 50px; background: transparent; color: #fa0; border: none; text-align: center; font-size: 18px; font-weight: bold; font-family: inherit; }
-  
-  /* 鎖定列表 */
+
+  /* --- 列表樣式修正 (重點) --- */
   .record { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; background: #1a1a1a; padding: 6px; border-radius: 4px; border: 1px solid #333; }
-  .deg-disp { 
-    width: 80px; text-align: right; color: #0ff; font-size: 18px; font-weight: bold; 
-    background: #000; border: 1px solid #333; padding: 4px; border-radius: 3px;
-  }
-  /* 讓這個輸入框看起來像純文字顯示，但點了可以改 */
-  input.deg-edit { 
-    width: 100%; height: 100%; background: transparent; border: none; color: inherit; 
-    text-align: center; font-family: inherit; font-size: inherit; font-weight: inherit; padding: 0; margin: 0;
-  }
   
+  /* 這就是那個不見的框框，現在加回來了 */
+  .deg-wrapper {
+    width: 85px; /* 固定寬度 */
+    height: 40px;
+  }
+  input.deg-input {
+    width: 100%; height: 100%;
+    background: #000;           /* 黑色背景 */
+    border: 1px solid #666;     /* 灰色邊框，看得很清楚 */
+    color: #0ff;                /* 青色字體 */
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    font-family: inherit;
+    border-radius: 4px;
+    padding: 0;
+  }
+  input.deg-input:focus {
+    border-color: #0ff; outline: none; background: #111;
+  }
+
+  /* 其他輸入框 */
   .inputs-group { flex: 1; display: flex; flex-direction: column; gap: 4px; }
   .inputs-row { display: flex; gap: 4px; }
   input.text-in { background: #080808; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 3px; font-size: 14px; font-family: inherit; }
@@ -126,7 +127,6 @@
     display: flex; flex-direction: column; padding: 10px;
   }
   .map-btn { pointer-events: auto; background: rgba(0,0,0,0.7); border: 1px solid #666; color: #fff; margin: 5px; backdrop-filter: blur(4px); }
-  #close-res { position: absolute; top: 15px; left: 15px; border-radius: 20px; padding: 8px 20px; background: #c22; border: none; font-weight: bold; box-shadow: 0 4px 10px #000; }
   #res-readout {
     pointer-events: auto; margin-top: auto; margin-bottom: 20px; align-self: center;
     background: rgba(0,20,0,0.9); padding: 15px; border-radius: 8px; border: 1px solid #0f0;
@@ -140,16 +140,14 @@
 <div id="compass-container">
   <div id="aiming-sight"><div id="aim-arrowhead"></div><div id="aim-line"></div></div>
   <div id="pointer-fixed"></div>
-  
-  <div id="dial-ring"></div> <div id="dial">
-     </div>
-  
+  <div id="dial-ring"></div>
+  <div id="dial"></div>
   <div id="readout">0.00<small>°</small></div>
 </div>
 
 <div id="controls">
   <div class="row">
-    <button id="permBtn" onclick="reqPerm()">啟動羅盤 (iOS點此)</button>
+    <button id="permBtn" onclick="reqPerm()">啟動羅盤 (iOS)</button>
     <button class="active" onclick="lockTarget()">📍 鎖定目標</button>
   </div>
   
@@ -168,7 +166,7 @@
 <div id="result-overlay">
   <canvas id="cv"></canvas>
   <div id="map-ui">
-    <button id="close-res" class="map-btn" onclick="closeResult()">✕ 關閉</button>
+    <button class="map-btn" style="position:absolute;top:15px;left:15px;border-radius:20px;padding:8px 20px;background:#c22;border:none;font-weight:bold" onclick="closeResult()">✕ 關閉</button>
     <div style="position:absolute; top:70px; right:10px; display:flex; flex-direction:column;">
       <button class="map-btn" style="width:44px;height:44px;font-size:24px;border-radius:8px;" onclick="adjustZoom(1.5)">+</button>
       <button class="map-btn" style="width:44px;height:44px;font-size:20px;border-radius:8px;" onclick="resetView()">⟲</button>
@@ -179,32 +177,24 @@
 </div>
 
 <script>
-// --- A. 羅盤核心：絕對精準繪製 ---
+// --- A. 羅盤核心 ---
 const dial = document.getElementById('dial');
-
 function createDial() {
   dial.innerHTML = '';
-  // 為了精確，我們只畫必要的線
   for(let i=0; i<360; i++) {
-    // 只有每度才畫線，避免過多DOM
-    if (i % 2 !== 0) continue; // 偶數畫線，奇數跳過 (視覺上已足夠，提升性能)
-    
+    if (i % 2 !== 0) continue;
     const isCardinal = (i % 90 === 0);
     const isMajor = (i % 10 === 0);
-    
     const mk = document.createElement('div');
     mk.className = isCardinal ? 'mark cardinal' : (isMajor ? 'mark major' : 'mark');
     mk.style.transform = `translateX(-50%) rotate(${i}deg)`;
     dial.appendChild(mk);
 
-    // 文字標籤：每30度一個
     if (i % 30 === 0) {
       const lb = document.createElement('div');
       lb.className = isCardinal ? 'label label-cardinal' : 'label';
-      if (i===0) lb.classList.add('label-zero'); // 0度紅色
-      
+      if (i===0) lb.classList.add('label-zero');
       let txt = i.toString();
-      // 確保 0 度在正中間
       lb.innerHTML = `<div style="transform: rotate(${-i}deg)">${txt}</div>`;
       lb.style.transform = `translateX(-50%) rotate(${i}deg)`;
       dial.appendChild(lb);
@@ -213,49 +203,35 @@ function createDial() {
 }
 createDial();
 
-// --- B. 感測器邏輯：直接與平滑分離 ---
-let currentHeading = 0;       // 最新的原始數據 (Float)
-let displayHeading = 0;       // 用於轉盤動畫的數值
+let currentHeading = 0;
+let displayHeading = 0;
 
 function handleOrientation(e) {
-  // iOS 使用 webkitCompassHeading (0=北, 順時針)
-  // Android 使用 alpha (0=開機方向 or 北, 逆時針) -> 轉成 (360-alpha)
   let heading = 0;
   if (e.webkitCompassHeading) {
     heading = e.webkitCompassHeading;
   } else if (e.alpha !== null) {
-    heading = 360 - e.alpha; // 簡易轉換，Android實機可能有差異，但使用者要求跟從機子
+    heading = 360 - e.alpha; 
   }
   
-  // 1. 數字顯示：立即更新，無緩衝，保留兩位小數 (解決數字跳動問題)
   currentHeading = heading;
-  // 防止 360.00 的顯示，強制 mod 360
   let textVal = currentHeading % 360; 
   if(textVal < 0) textVal += 360;
-  
   document.getElementById('readout').innerHTML = `${textVal.toFixed(2)}<small>°</small>`;
 }
 
-// 獨立的動畫循環 (60fps) 處理轉盤，避免 CSS transition 的延遲
 function animateDial() {
   requestAnimationFrame(animateDial);
-  
-  // 解決 359 -> 0 的旋轉路徑問題
   let target = currentHeading;
   let current = displayHeading % 360;
   if (current < 0) current += 360;
-  
   let diff = target - current;
   if (diff > 180) diff -= 360;
   if (diff < -180) diff += 360;
-  
-  // Lerp 係數：0.3 (反應非常快) -> 解決 "數字跳轉盤慢" 的問題
-  displayHeading += diff * 0.3;
-  
-  // 轉盤要反向轉，指針才像是固定向北
+  displayHeading += diff * 0.3; // 快速反應
   dial.style.transform = `rotate(${-displayHeading}deg)`;
 }
-animateDial(); // 啟動
+animateDial();
 
 function reqPerm() {
   if (typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -272,23 +248,17 @@ function reqPerm() {
   }
 }
 
-// --- C. 鎖定與資料管理 ---
+// --- B. 列表功能 (修正框框問題) ---
 const list = document.getElementById('list');
 let points = [];
 
 function lockTarget() {
   if(points.length >= 3) { alert("最多三個參考點"); return; }
-  
   const id = Date.now();
-  // 鎖定當下的 Raw Value
   const val = currentHeading; 
-  // 預設空的 name, lat, lon
   points.push({ id, b: val, name: '', lat: '', lon: '' });
-  
   renderList();
   if(navigator.vibrate) navigator.vibrate(30);
-  
-  // 自動聚焦名稱框
   setTimeout(() => {
     const input = document.querySelector(`input[data-focus="${id}"]`);
     if(input) input.focus();
@@ -299,7 +269,6 @@ function updatePt(id, key, val) {
   const p = points.find(x=>x.id===id);
   if(p) p[key] = val;
 }
-
 function removePt(id) {
   points = points.filter(x=>x.id!==id);
   renderList();
@@ -307,19 +276,18 @@ function removePt(id) {
 
 function renderList() {
   list.innerHTML = '';
-  // 最新的在上面
   [...points].reverse().forEach(p => {
-    // 這裡角度使用 input 讓使用者可以點進去改
-    // toFixed(2) 顯示，但編輯時是數字
     const div = document.createElement('div');
     div.className = 'record';
     div.innerHTML = `
-      <div class="deg-disp">
-        <input class="deg-edit" type="number" step="0.01" value="${parseFloat(p.b).toFixed(2)}" 
-        onchange="updatePt(${p.id}, 'b', this.value)">
+      <div class="deg-wrapper">
+        <input class="deg-input" type="number" step="0.01" 
+               value="${parseFloat(p.b).toFixed(2)}" 
+               onchange="updatePt(${p.id}, 'b', this.value)">
       </div>
+      
       <div class="inputs-group">
-        <input class="text-in" data-focus="${p.id}" placeholder="目標名稱 (例如: 玉山)" value="${p.name}" 
+        <input class="text-in" data-focus="${p.id}" placeholder="名稱 (例如: 玉山)" value="${p.name}" 
                oninput="updatePt(${p.id}, 'name', this.value)" style="font-weight:bold; color:#0ff;">
         <div class="inputs-row">
           <input class="text-in" type="number" step="0.0001" placeholder="緯度 Lat" value="${p.lat}" oninput="updatePt(${p.id}, 'lat', this.value)">
@@ -332,13 +300,12 @@ function renderList() {
   });
 }
 
-// --- D. 計算與地圖繪製 (Canvas) ---
+// --- C. 計算與繪圖 ---
 const cv = document.getElementById('cv');
 const ctx = cv.getContext('2d');
 const R = 6371000;
 const rad = d => d * Math.PI / 180;
 
-// ENU 轉換 (不含磁偏角)
 function ll2enu(lat, lon, refLat, refLon) {
   const dLat = rad(lat - refLat);
   const dLon = rad(lon - refLon);
@@ -350,29 +317,18 @@ function enu2ll(x, y, refLat, refLon) {
   return [lat, lon];
 }
 
-// 核心估算
 function estimateLocation(mnts) {
-  let x=0, y=0;
-  mnts.forEach(m => { x+=m.x; y+=m.y; });
-  x /= mnts.length; y /= mnts.length;
-  
-  // 迭代收斂
+  let x=0, y=0; mnts.forEach(m => { x+=m.x; y+=m.y; }); x /= mnts.length; y /= mnts.length;
   for(let i=0; i<30; i++) {
     let gx=0, gy=0;
     mnts.forEach(m => {
-      // 這裡直接用輸入的 bearing，不加任何偏移
-      // 因為是 "Bearing to Mountain"，所以 back azimuth 是 +180
       const b = rad(Number(m.b) + 180); 
       const vx = Math.sin(b), vy = Math.cos(b);
       const dx = x - m.x, dy = y - m.y;
-      // 投影長度
       const p = dx*vx + dy*vy;
-      // 梯度下降
-      gx += dx - p*vx;
-      gy += dy - p*vy;
+      gx += dx - p*vx; gy += dy - p*vy;
     });
-    x -= gx * 0.1;
-    y -= gy * 0.1;
+    x -= gx * 0.1; y -= gy * 0.1;
   }
   return [x,y];
 }
@@ -381,129 +337,80 @@ function simulateCloud(mnts, errorDeg) {
   let pts = [];
   for(let i=0; i<150; i++) {
     const noisyMnts = mnts.map(m => ({
-      ...m,
-      b: Number(m.b) + (Math.random()*2 - 1) * errorDeg
+      ...m, b: Number(m.b) + (Math.random()*2 - 1) * errorDeg
     }));
     pts.push(estimateLocation(noisyMnts));
   }
   return pts;
 }
 
-// 地圖視圖變數
 let gMnts=[], gPts=[], gCenter=[0,0], gRefLat=0, gRefLon=0;
 let gZoom=1.0, gPanX=0, gPanY=0;
 
 function runCalculation() {
   const valid = points.filter(p => p.lat && p.lon && !isNaN(p.lat) && !isNaN(p.lon));
   if(valid.length < 2) { alert("請至少輸入 2 個已知點的座標"); return; }
-  
   document.getElementById('result-overlay').style.display='flex';
   
-  // 1. 建立基準點 (Reference)
   gRefLat = valid.reduce((s,p)=>s+Number(p.lat),0)/valid.length;
   gRefLon = valid.reduce((s,p)=>s+Number(p.lon),0)/valid.length;
   
-  // 2. 轉換座標
   gMnts = valid.map(p => {
     const [xx, yy] = ll2enu(p.lat, p.lon, gRefLat, gRefLon);
     return { x:xx, y:yy, b:Number(p.b), name:p.name };
   });
   
-  // 3. 蒙地卡羅模擬
   const errVal = parseFloat(document.getElementById('err-val').value) || 1.0;
   gPts = simulateCloud(gMnts, errVal);
   
-  // 4. 計算平均中心
-  let sx=0, sy=0;
-  gPts.forEach(p=>{sx+=p[0]; sy+=p[1]});
+  let sx=0, sy=0; gPts.forEach(p=>{sx+=p[0]; sy+=p[1]});
   gCenter = [sx/gPts.length, sy/gPts.length];
   
   resetView();
-  
-  // 顯示結果
-  const ll = enu2ll(gCenter[0], gCenter[1], gRefRefLat=gRefLat, gRefLon);
+  const ll = enu2ll(gCenter[0], gCenter[1], gRefLat, gRefLon);
   document.getElementById('res-readout').innerHTML = 
     `我的推算位置<br><span class="coord-big">${ll[0].toFixed(5)}, ${ll[1].toFixed(5)}</span>`;
 }
 
-// 繪圖
 function draw() {
   cv.width = window.innerWidth; cv.height = window.innerHeight;
   ctx.clearRect(0,0,cv.width,cv.height);
-  
   if(!gMnts.length) return;
   
-  const cx = cv.width/2; 
-  const cy = cv.height/2;
-  
-  // 計算自動縮放基礎
-  // 找出包含所有點的最大範圍
+  const cx = cv.width/2; const cy = cv.height/2;
   let all = [...gPts, ...gMnts.map(m=>[m.x,m.y])];
   let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
   all.forEach(p=>{
     if(p[0]<minX) minX=p[0]; if(p[0]>maxX) maxX=p[0];
     if(p[1]<minY) minY=p[1]; if(p[1]>maxY) maxY=p[1];
   });
-  const w = Math.max(maxX-minX, 50);
-  const h = Math.max(maxY-minY, 50);
-  // 基礎比例：讓所有東西佔畫面 60%
+  const w = Math.max(maxX-minX, 50); const h = Math.max(maxY-minY, 50);
   const baseScale = Math.min(cv.width/w, cv.height/h) * 0.6;
   const scale = baseScale * gZoom;
+  const map = (x, y) => [ cx + gPanX + (x - gCenter[0]) * scale, cy + gPanY - (y - gCenter[1]) * scale ];
   
-  // 映射函數 (以 gCenter 為畫面中心)
-  const map = (x, y) => [
-    cx + gPanX + (x - gCenter[0]) * scale,
-    cy + gPanY - (y - gCenter[1]) * scale // Y軸翻轉
-  ];
-  
-  // 1. 畫粒子雲
+  // 畫粒子
   ctx.fillStyle = "rgba(0,255,255,0.4)";
-  gPts.forEach(p => {
-    const [px, py] = map(p[0], p[1]);
-    ctx.fillRect(px, py, 2, 2);
-  });
+  gPts.forEach(p => { const [px, py] = map(p[0], p[1]); ctx.fillRect(px, py, 2, 2); });
   
-  // 2. 畫山頭與扇形
+  // 畫山
   const errRad = rad(parseFloat(document.getElementById('err-val').value)||1);
   gMnts.forEach((m, i) => {
     const [mx, my] = map(m.x, m.y);
-    
-    // 繪製扇形 (反向角度)
-    // 羅盤 0=北(Y+), 90=東(X+). Canvas 0=X+, 90=Y+
-    // Canvas Angle = (Compass - 90) * -1 ??? 
-    // 不，最簡單是 Compass 0 = Canvas -90 (Up). 
-    // Bearing to Mountain is B. Back Azimuth is B+180.
-    // Canvas 0 is Right. Up is -90.
-    // Angle = (B + 180) - 90 = B + 90 (radians)
     const angle = rad(m.b + 180 - 90); 
     const L = Math.max(cv.width, cv.height) * 1.5;
     
-    // 光束
-    ctx.beginPath();
-    ctx.moveTo(mx, my);
-    ctx.arc(mx, my, L, angle - errRad, angle + errRad);
-    ctx.fillStyle = `hsla(${i*50}, 80%, 60%, 0.1)`;
-    ctx.fill();
+    ctx.beginPath(); ctx.moveTo(mx, my); ctx.arc(mx, my, L, angle - errRad, angle + errRad);
+    ctx.fillStyle = `hsla(${i*50}, 80%, 60%, 0.1)`; ctx.fill();
     
-    // 中心線
-    ctx.beginPath();
-    ctx.moveTo(mx, my);
-    ctx.lineTo(mx + Math.cos(angle)*L, my + Math.sin(angle)*L);
-    ctx.strokeStyle = `hsla(${i*50}, 80%, 60%, 0.6)`;
-    ctx.setLineDash([4, 4]);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(angle)*L, my + Math.sin(angle)*L);
+    ctx.strokeStyle = `hsla(${i*50}, 80%, 60%, 0.6)`; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
     
-    // 山頭點
-    ctx.beginPath(); ctx.arc(mx, my, 6, 0, Math.PI*2);
-    ctx.fillStyle = `hsl(${i*50}, 80%, 60%)`; ctx.fill();
-    
-    // 名稱
-    ctx.fillStyle = "#fff"; ctx.font = "bold 14px monospace";
-    ctx.fillText(m.name || (i+1), mx+10, my+4);
+    ctx.beginPath(); ctx.arc(mx, my, 6, 0, Math.PI*2); ctx.fillStyle = `hsl(${i*50}, 80%, 60%)`; ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.font = "bold 14px monospace"; ctx.fillText(m.name || (i+1), mx+10, my+4);
   });
   
-  // 3. 畫自己 (永遠在中心 + Pan)
+  // 畫自己
   const [ux, uy] = map(gCenter[0], gCenter[1]);
   ctx.strokeStyle = "#0f0"; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.arc(ux, uy, 12, 0, Math.PI*2); ctx.stroke();
@@ -512,36 +419,19 @@ function draw() {
   ctx.fillStyle="#0f0"; ctx.fillText("YOU", ux+15, uy-15);
 }
 
-// 視圖控制
 function resetView() { gZoom=1.0; gPanX=0; gPanY=0; draw(); }
 function adjustZoom(f) { gZoom *= f; draw(); }
 function closeResult() { document.getElementById('result-overlay').style.display='none'; }
 
-// 拖曳事件
 let isDrag=false, startX=0, startY=0, lastX=0, lastY=0;
 const overlay = document.getElementById('result-overlay');
-
 overlay.addEventListener('mousedown', e => { isDrag=true; startX=e.clientX; startY=e.clientY; lastX=gPanX; lastY=gPanY; });
 overlay.addEventListener('touchstart', e => { isDrag=true; startX=e.touches[0].clientX; startY=e.touches[0].clientY; lastX=gPanX; lastY=gPanY; }, {passive:false});
-
-window.addEventListener('mousemove', e => {
-  if(!isDrag) return;
-  gPanX = lastX + (e.clientX - startX);
-  gPanY = lastY + (e.clientY - startY);
-  draw();
-});
-window.addEventListener('touchmove', e => {
-  if(!isDrag) return;
-  e.preventDefault();
-  gPanX = lastX + (e.touches[0].clientX - startX);
-  gPanY = lastY + (e.touches[0].clientY - startY);
-  draw();
-}, {passive:false});
-
+window.addEventListener('mousemove', e => { if(!isDrag) return; gPanX = lastX + (e.clientX - startX); gPanY = lastY + (e.clientY - startY); draw(); });
+window.addEventListener('touchmove', e => { if(!isDrag) return; e.preventDefault(); gPanX = lastX + (e.touches[0].clientX - startX); gPanY = lastY + (e.touches[0].clientY - startY); draw(); }, {passive:false});
 window.addEventListener('mouseup', () => isDrag=false);
 window.addEventListener('touchend', () => isDrag=false);
 window.onresize = draw;
-
 </script>
 </body>
 </html>
