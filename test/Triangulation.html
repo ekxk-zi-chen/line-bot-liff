@@ -1,308 +1,571 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>精密羅盤定位 v6.1 (精修版)</title>
-<style>
-  /* --- 1. 全局基礎 (高對比黑底) --- */
-  body { 
-    margin: 0; background: #000; color: #fff; 
-    font-family: "SF Mono", "Roboto Mono", monospace; 
-    overflow: hidden; display: flex; flex-direction: column; height: 100vh; 
-    user-select: none; -webkit-user-select: none;
-  }
-  
-  /* --- 2. 羅盤區 (視覺核心) --- */
-  #compass-container {
-    flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden;
-    background: radial-gradient(circle at center, #2a2a2a 0%, #000 85%);
-  }
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>精密羅盤定位 v6.1 (精修版)</title>
+  <style>
+    /* --- 1. 全局基礎 (高對比黑底) --- */
+    body {
+      margin: 0;
+      background: #000;
+      color: #fff;
+      font-family: "SF Mono", "Roboto Mono", monospace;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      user-select: none;
+      -webkit-user-select: none;
+    }
 
-  /* 瞄準線 */
-  #aiming-sight {
-    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-    z-index: 50; display: flex; flex-direction: column; align-items: center; pointer-events: none;
-    filter: drop-shadow(0 0 8px cyan);
-  }
-  #aim-arrowhead { width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 20px solid #0ff; }
-  #aim-line { width: 2px; height: 40vh; background: linear-gradient(to bottom, #0ff 0%, transparent 100%); opacity: 0.6; }
-  
-  /* --- 3. 轉盤結構 --- */
-  #dial-ring {
-    width: 290px; height: 290px;
-    border-radius: 50%; border: 4px solid #333;
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    box-shadow: 0 0 30px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,1);
-    pointer-events: none; z-index: 10;
-  }
+    /* --- 2. 羅盤區 (視覺核心) --- */
+    #compass-container {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: radial-gradient(circle at center, #2a2a2a 0%, #000 85%);
+    }
 
-  #dial {
-    width: 290px; height: 290px; 
-    position: relative; 
-    will-change: transform; /* 硬體加速 */
-  }
-  
-  /* --- 4. 精細刻度與數字 --- */
-  .mark { 
-    position: absolute; left: 50%; top: 0; 
-    width: 1px; height: 8px; background: #666; 
-    transform-origin: 50% 145px;
-  }
-  .mark.major { height: 12px; width: 2px; background: #aaa; }
-  .mark.cardinal { height: 18px; width: 4px; background: #fff; box-shadow: 0 0 5px rgba(255,255,255,0.5); }
-  
-  .label { 
-    position: absolute; top: 24px; left: 50%; 
-    width: 40px; margin-left: -20px;
-    text-align: center; font-weight: bold; font-size: 14px; color: #888;
-    transform-origin: 50% 121px; line-height: 1;
-  }
-  .label-cardinal { font-size: 20px; color: #fff; top: 22px; transform-origin: 50% 123px; text-shadow: 0 0 5px #000; }
-  .label-zero { color: #f33; text-shadow: 0 0 8px rgba(255,0,0,0.6); }
+    /* 瞄準線 */
+    #aiming-sight {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      pointer-events: none;
+      filter: drop-shadow(0 0 8px cyan);
+    }
 
-  /* 中央指針 */
-  #pointer-fixed {
-    position: absolute; top: 50%; left: 50%; 
-    transform: translate(-50%, -158px);
-    width: 0; height: 0;
-    border-left: 9px solid transparent; border-right: 9px solid transparent; border-top: 16px solid #f22; 
-    z-index: 20; filter: drop-shadow(0 2px 4px #000);
-  }
+    #aim-arrowhead {
+      width: 0;
+      height: 0;
+      border-left: 12px solid transparent;
+      border-right: 12px solid transparent;
+      border-bottom: 20px solid #0ff;
+    }
 
-  /* 讀數顯示 */
-  #readout {
-    position: absolute; bottom: 20px; left: 0; right: 0; text-align: center;
-    font-size: 56px; font-weight: 700; color: #0ff; 
-    text-shadow: 0 0 20px rgba(0,255,255,0.4); letter-spacing: 2px;
-  }
-  #readout small { font-size: 24px; color: #666; margin-left: 8px; font-weight: normal;}
+    #aim-line {
+      width: 2px;
+      height: 40vh;
+      background: linear-gradient(to bottom, #0ff 0%, transparent 100%);
+      opacity: 0.6;
+    }
 
-  /* --- 5. 操作面板 --- */
-  #controls { 
-    padding: 12px; background: #111; border-top: 1px solid #333; 
-    max-height: 45vh; overflow-y: auto; z-index: 60; 
-    box-shadow: 0 -10px 30px rgba(0,0,0,0.8);
-  }
-  .row { display: flex; gap: 8px; margin-bottom: 8px; align-items: stretch;}
-  
-  button { 
-    flex: 1; padding: 14px; font-size: 16px; border: none; border-radius: 6px; 
-    background: #2a2a2a; color: #ddd; font-weight: bold; border: 1px solid #444; font-family: inherit;
-    transition: background 0.2s;
-  }
-  button:active { background: #444; transform: scale(0.98); }
-  button.active { background: #0062cc; border-color: #005cbf; color: #fff; box-shadow: 0 0 15px rgba(0,100,255,0.3); }
-  button.calc { background: #1e7e34; border-color: #1c7430; color: #fff; box-shadow: 0 0 15px rgba(40,167,69,0.3); }
-  
-  /* 誤差設定 */
-  .err-box { display: flex; align-items: center; background: #000; padding: 0 10px; border: 1px solid #444; border-radius: 6px;}
-  .err-input { width: 50px; background: transparent; color: #fa0; border: none; text-align: center; font-size: 18px; font-weight: bold; font-family: inherit; }
+    /* --- 3. 轉盤結構 --- */
+    #dial-ring {
+      width: 290px;
+      height: 290px;
+      border-radius: 50%;
+      border: 4px solid #333;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(0, 0, 0, 1);
+      pointer-events: none;
+      z-index: 10;
+    }
 
-  /* --- 列表樣式 (本次修改重點) --- */
-  .record { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; background: #1a1a1a; padding: 6px; border-radius: 6px; border: 1px solid #333; }
-  
-  .deg-wrapper { 
-    width: 80px; height: 42px; 
-    flex-shrink: 0; /* 不准扁掉 */
-    border: 1px solid #555; border-radius: 4px; background: #000;
-  }
-  
-  input.deg-input {
-    width: 100%; height: 100%; background: transparent; border: none; color: #0ff; text-align: center; font-size: 18px; font-weight: bold; font-family: inherit; padding: 0;
-  }
-  input.deg-input:focus { background: #111; color: #fff; outline: none; }
-  
-  /* 中間輸入框組，會自動佔滿剩餘空間 */
-  .inputs-group { flex: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
-  .inputs-row { display: flex; gap: 4px; }
-  
-  input.text-in { 
-    background: #0a0a0a; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 3px; font-size: 14px; font-family: inherit; 
-    width: 100%; box-sizing: border-box; font-weight: bold;
-  }
-  input.text-in:focus { border-color: #0ff; outline: none; background: #000; }
-  
-  /* --- 修改：刪除按鈕變小變窄 --- */
-  .del-btn { 
-    width: 28px; /* 變窄 (原本40) */
-    height: 42px; /* 高度對齊左邊的度數框 */
-    flex-shrink: 0; /* 不准扁掉 */
-    background: #822; color: #fff; border: none; border-radius: 4px; 
-    font-weight: bold; 
-    font-size: 16px; /* 字體變小 (原本20) */
-    display: flex; align-items: center; justify-content: center; 
-    padding: 0;
-  }
+    #dial {
+      width: 290px;
+      height: 290px;
+      position: relative;
+      will-change: transform;
+      /* 硬體加速 */
+    }
 
-  /* --- 6. 地圖層 --- */
-  #result-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100;
-    display: none; touch-action: none; animation: fadeIn 0.3s;
-  }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    /* --- 4. 精細刻度與數字 --- */
+    .mark {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      width: 1px;
+      height: 8px;
+      background: #666;
+      transform-origin: 50% 145px;
+    }
 
-  #map-ui {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
-    display: flex; flex-direction: column; padding: 15px;
-  }
-  .map-btn { pointer-events: auto; background: rgba(20,20,20,0.8); border: 1px solid #666; color: #fff; margin: 5px; backdrop-filter: blur(5px); box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-  
-  #res-readout {
-    pointer-events: auto; margin-top: auto; margin-bottom: 30px; align-self: center;
-    background: rgba(0,30,0,0.95); padding: 20px; border-radius: 12px; border: 1px solid #0f0;
-    text-align: center; color: #0f0; font-size: 14px; box-shadow: 0 0 25px rgba(0,255,0,0.2);
-  }
-  .coord-big { font-size: 24px; color: #fff; font-weight: bold; display: block; margin-top: 8px; user-select: text; -webkit-user-select: text;}
-</style>
+    .mark.major {
+      height: 12px;
+      width: 2px;
+      background: #aaa;
+    }
+
+    .mark.cardinal {
+      height: 18px;
+      width: 4px;
+      background: #fff;
+      box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+    }
+
+    .label {
+      position: absolute;
+      top: 24px;
+      left: 50%;
+      width: 40px;
+      margin-left: -20px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 14px;
+      color: #888;
+      transform-origin: 50% 121px;
+      line-height: 1;
+    }
+
+    .label-cardinal {
+      font-size: 20px;
+      color: #fff;
+      top: 22px;
+      transform-origin: 50% 123px;
+      text-shadow: 0 0 5px #000;
+    }
+
+    .label-zero {
+      color: #f33;
+      text-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+    }
+
+    /* 中央指針 */
+    #pointer-fixed {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -158px);
+      width: 0;
+      height: 0;
+      border-left: 9px solid transparent;
+      border-right: 9px solid transparent;
+      border-top: 16px solid #f22;
+      z-index: 20;
+      filter: drop-shadow(0 2px 4px #000);
+    }
+
+    /* 讀數顯示 */
+    #readout {
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 56px;
+      font-weight: 700;
+      color: #0ff;
+      text-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+      letter-spacing: 2px;
+    }
+
+    #readout small {
+      font-size: 24px;
+      color: #666;
+      margin-left: 8px;
+      font-weight: normal;
+    }
+
+    /* --- 5. 操作面板 --- */
+    #controls {
+      padding: 12px;
+      background: #111;
+      border-top: 1px solid #333;
+      max-height: 45vh;
+      overflow-y: auto;
+      z-index: 60;
+      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8);
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: stretch;
+    }
+
+    button {
+      flex: 1;
+      padding: 14px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      background: #2a2a2a;
+      color: #ddd;
+      font-weight: bold;
+      border: 1px solid #444;
+      font-family: inherit;
+      transition: background 0.2s;
+    }
+
+    button:active {
+      background: #444;
+      transform: scale(0.98);
+    }
+
+    button.active {
+      background: #0062cc;
+      border-color: #005cbf;
+      color: #fff;
+      box-shadow: 0 0 15px rgba(0, 100, 255, 0.3);
+    }
+
+    button.calc {
+      background: #1e7e34;
+      border-color: #1c7430;
+      color: #fff;
+      box-shadow: 0 0 15px rgba(40, 167, 69, 0.3);
+    }
+
+    /* 誤差設定 */
+    .err-box {
+      display: flex;
+      align-items: center;
+      background: #000;
+      padding: 0 10px;
+      border: 1px solid #444;
+      border-radius: 6px;
+    }
+
+    .err-input {
+      width: 50px;
+      background: transparent;
+      color: #fa0;
+      border: none;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      font-family: inherit;
+    }
+
+    /* --- 列表樣式 (本次修改重點) --- */
+    .record {
+      display: flex;
+      align-items: stretch;
+      gap: 1px;
+      /* 關鍵：縫隙只留 1px */
+      margin-bottom: 5px;
+      background: #1a1a1a;
+      padding: 2px;
+      /* 關鍵：內距縮到最小 */
+      border-radius: 4px;
+      border: 1px solid #333;
+    }
+
+    .deg-wrapper {
+      width: 72px;
+      /* 原本 80 -> 72 */
+      flex-shrink: 0;
+      border: 1px solid #555;
+      border-radius: 2px;
+      background: #000;
+    }
+
+    input.deg-input {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      border: none;
+      color: #0ff;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      font-family: inherit;
+      padding: 0;
+    }
+
+    input.deg-input:focus {
+      background: #111;
+      color: #fff;
+      outline: none;
+    }
+
+    /* 輸入框群組 */
+    .inputs-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      overflow: hidden;
+    }
+
+    .inputs-row {
+      display: flex;
+      gap: 1px;
+    }
+
+    input.text-in {
+      background: #0a0a0a;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 4px 2px;
+      /* 壓榨空間 */
+      border-radius: 2px;
+      font-size: 13px;
+      /* 字體微縮 */
+      font-family: inherit;
+      width: 100%;
+      box-sizing: border-box;
+      font-weight: bold;
+    }
+
+    input.text-in:focus {
+      border-color: #0ff;
+      outline: none;
+      background: #000;
+    }
+
+    /* --- 修改：刪除按鈕變小變窄 --- */
+    .del-btn {
+      width: 18px;
+      /* 極窄 */
+      flex-shrink: 0;
+      background: #822;
+      color: #fff;
+      border: none;
+      border-radius: 2px;
+      font-weight: bold;
+      font-size: 12px;
+      /* 字變小 */
+      padding: 0;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* --- 6. 地圖層 --- */
+    #result-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      z-index: 100;
+      display: none;
+      touch-action: none;
+      animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    #map-ui {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      padding: 15px;
+    }
+
+    .map-btn {
+      pointer-events: auto;
+      background: rgba(20, 20, 20, 0.8);
+      border: 1px solid #666;
+      color: #fff;
+      margin: 5px;
+      backdrop-filter: blur(5px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    #res-readout {
+      pointer-events: auto;
+      margin-top: auto;
+      margin-bottom: 30px;
+      align-self: center;
+      background: rgba(0, 30, 0, 0.95);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #0f0;
+      text-align: center;
+      color: #0f0;
+      font-size: 14px;
+      box-shadow: 0 0 25px rgba(0, 255, 0, 0.2);
+    }
+
+    .coord-big {
+      font-size: 24px;
+      color: #fff;
+      font-weight: bold;
+      display: block;
+      margin-top: 8px;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+  </style>
 </head>
+
 <body>
 
-<div id="compass-container">
-  <div id="aiming-sight"><div id="aim-arrowhead"></div><div id="aim-line"></div></div>
-  <div id="pointer-fixed"></div>
-  
-  <div id="dial-ring"></div>
-  
-  <div id="dial">
+  <div id="compass-container">
+    <div id="aiming-sight">
+      <div id="aim-arrowhead"></div>
+      <div id="aim-line"></div>
     </div>
-  
-  <div id="readout">0.00<small>°</small></div>
-</div>
+    <div id="pointer-fixed"></div>
 
-<div id="controls">
-  <div class="row">
-    <button id="permBtn" onclick="reqPerm()">啟動羅盤 (iOS)</button>
-    <button class="active" onclick="lockTarget()">📍 鎖定目標</button>
-  </div>
-  <div id="list"></div>
-  <div class="row">
-    <div class="err-box">
-      <span style="color:#888; font-size:12px; margin-right:5px;">誤差±</span>
-      <input type="number" id="err-val" class="err-input" value="1.0" step="0.5">
-      <span style="color:#888; font-size:12px;">°</span>
+    <div id="dial-ring"></div>
+
+    <div id="dial">
     </div>
-    <button class="calc" onclick="runCalculation()">🚀 計算位置</button>
-  </div>
-</div>
 
-<div id="result-overlay">
-  <canvas id="cv"></canvas>
-  <div id="map-ui">
-    <button class="map-btn" style="position:absolute;top:15px;left:15px;border-radius:20px;padding:10px 25px;background:#c22;border:none;font-weight:bold" onclick="closeResult()">✕ 關閉</button>
-    <div style="position:absolute; top:80px; right:10px; display:flex; flex-direction:column;">
-      <button class="map-btn" style="width:48px;height:48px;font-size:26px;border-radius:8px;" onclick="adjustZoom(1.5)">+</button>
-      <button class="map-btn" style="width:48px;height:48px;font-size:20px;border-radius:8px;" onclick="resetView()">⟲</button>
-      <button class="map-btn" style="width:48px;height:48px;font-size:26px;border-radius:8px;" onclick="adjustZoom(0.66)">-</button>
+    <div id="readout">0.00<small>°</small></div>
+  </div>
+
+  <div id="controls">
+    <div class="row">
+      <button id="permBtn" onclick="reqPerm()">啟動羅盤 (iOS)</button>
+      <button class="active" onclick="lockTarget()">📍 鎖定目標</button>
     </div>
-    <div id="res-readout">尚未計算</div>
+    <div id="list"></div>
+    <div class="row">
+      <div class="err-box">
+        <span style="color:#888; font-size:12px; margin-right:5px;">誤差±</span>
+        <input type="number" id="err-val" class="err-input" value="1.0" step="0.5">
+        <span style="color:#888; font-size:12px;">°</span>
+      </div>
+      <button class="calc" onclick="runCalculation()">🚀 計算位置</button>
+    </div>
   </div>
-</div>
 
-<script>
-// --- A. 羅盤生成 ---
-const dial = document.getElementById('dial');
-function createDial() {
-  dial.innerHTML = '';
-  for(let i=0; i<360; i++) {
-    if (i % 2 !== 0) continue;
-    const isCardinal = (i % 90 === 0);
-    const isMajor = (i % 10 === 0);
-    
-    const mk = document.createElement('div');
-    mk.className = isCardinal ? 'mark cardinal' : (isMajor ? 'mark major' : 'mark');
-    mk.style.transform = `translateX(-50%) rotate(${i}deg)`;
-    dial.appendChild(mk);
+  <div id="result-overlay">
+    <canvas id="cv"></canvas>
+    <div id="map-ui">
+      <button class="map-btn"
+        style="position:absolute;top:15px;left:15px;border-radius:20px;padding:10px 25px;background:#c22;border:none;font-weight:bold"
+        onclick="closeResult()">✕ 關閉</button>
+      <div style="position:absolute; top:80px; right:10px; display:flex; flex-direction:column;">
+        <button class="map-btn" style="width:48px;height:48px;font-size:26px;border-radius:8px;"
+          onclick="adjustZoom(1.5)">+</button>
+        <button class="map-btn" style="width:48px;height:48px;font-size:20px;border-radius:8px;"
+          onclick="resetView()">⟲</button>
+        <button class="map-btn" style="width:48px;height:48px;font-size:26px;border-radius:8px;"
+          onclick="adjustZoom(0.66)">-</button>
+      </div>
+      <div id="res-readout">尚未計算</div>
+    </div>
+  </div>
 
-    if (i % 30 === 0) {
-      const lb = document.createElement('div');
-      lb.className = isCardinal ? 'label label-cardinal' : 'label';
-      if(i === 0) lb.classList.add('label-zero');
-      const txt = i.toString();
-      lb.innerHTML = `<div style="transform: rotate(${-i}deg)">${txt}</div>`;
-      lb.style.transform = `rotate(${i}deg)`;
-      dial.appendChild(lb);
+  <script>
+    // --- A. 羅盤生成 ---
+    const dial = document.getElementById('dial');
+    function createDial() {
+      dial.innerHTML = '';
+      for (let i = 0; i < 360; i++) {
+        if (i % 2 !== 0) continue;
+        const isCardinal = (i % 90 === 0);
+        const isMajor = (i % 10 === 0);
+
+        const mk = document.createElement('div');
+        mk.className = isCardinal ? 'mark cardinal' : (isMajor ? 'mark major' : 'mark');
+        mk.style.transform = `translateX(-50%) rotate(${i}deg)`;
+        dial.appendChild(mk);
+
+        if (i % 30 === 0) {
+          const lb = document.createElement('div');
+          lb.className = isCardinal ? 'label label-cardinal' : 'label';
+          if (i === 0) lb.classList.add('label-zero');
+          const txt = i.toString();
+          lb.innerHTML = `<div style="transform: rotate(${-i}deg)">${txt}</div>`;
+          lb.style.transform = `rotate(${i}deg)`;
+          dial.appendChild(lb);
+        }
+      }
     }
-  }
-}
-createDial();
+    createDial();
 
-// --- B. 感測器邏輯 (Raw Data) ---
-let currentHeading = 0;
-let displayHeading = 0;
+    // --- B. 感測器邏輯 (Raw Data) ---
+    let currentHeading = 0;
+    let displayHeading = 0;
 
-function handleOrientation(e) {
-  let heading = 0;
-  if (e.webkitCompassHeading) {
-    heading = e.webkitCompassHeading;
-  } else if (e.alpha !== null) {
-    heading = 360 - e.alpha; 
-  }
-  currentHeading = heading;
-  let textVal = currentHeading % 360; 
-  if(textVal < 0) textVal += 360;
-  document.getElementById('readout').innerHTML = `${textVal.toFixed(2)}<small>°</small>`;
-}
+    function handleOrientation(e) {
+      let heading = 0;
+      if (e.webkitCompassHeading) {
+        heading = e.webkitCompassHeading;
+      } else if (e.alpha !== null) {
+        heading = 360 - e.alpha;
+      }
+      currentHeading = heading;
+      let textVal = currentHeading % 360;
+      if (textVal < 0) textVal += 360;
+      document.getElementById('readout').innerHTML = `${textVal.toFixed(2)}<small>°</small>`;
+    }
 
-function animateDial() {
-  requestAnimationFrame(animateDial);
-  let target = currentHeading;
-  let current = displayHeading % 360;
-  if (current < 0) current += 360;
-  let diff = target - current;
-  if (diff > 180) diff -= 360;
-  if (diff < -180) diff += 360;
-  displayHeading += diff * 0.3; 
-  dial.style.transform = `rotate(${-displayHeading}deg)`;
-}
-animateDial();
+    function animateDial() {
+      requestAnimationFrame(animateDial);
+      let target = currentHeading;
+      let current = displayHeading % 360;
+      if (current < 0) current += 360;
+      let diff = target - current;
+      if (diff > 180) diff -= 360;
+      if (diff < -180) diff += 360;
+      displayHeading += diff * 0.3;
+      dial.style.transform = `rotate(${-displayHeading}deg)`;
+    }
+    animateDial();
 
-function reqPerm() {
-  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-    DeviceOrientationEvent.requestPermission().then(r => {
-      if(r==='granted') { 
-        window.addEventListener('deviceorientation', handleOrientation, true); 
-        document.getElementById('permBtn').style.display='none';
-      } else { alert('權限被拒'); }
-    }).catch(err => { console.error(err); alert('無法取得權限 (HTTPS?)'); });
-  } else {
-    window.addEventListener('deviceorientation', handleOrientation, true);
-    document.getElementById('permBtn').style.display='none';
-  }
-}
+    function reqPerm() {
+      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission().then(r => {
+          if (r === 'granted') {
+            window.addEventListener('deviceorientation', handleOrientation, true);
+            document.getElementById('permBtn').style.display = 'none';
+          } else { alert('權限被拒'); }
+        }).catch(err => { console.error(err); alert('無法取得權限 (HTTPS?)'); });
+      } else {
+        window.addEventListener('deviceorientation', handleOrientation, true);
+        document.getElementById('permBtn').style.display = 'none';
+      }
+    }
 
-// --- C. 鎖定與列表 ---
-const list = document.getElementById('list');
-let points = [];
+    // --- C. 鎖定與列表 ---
+    const list = document.getElementById('list');
+    let points = [];
 
-function lockTarget() {
-  if(points.length >= 3) { alert("最多三個參考點"); return; }
-  const id = Date.now();
-  const val = currentHeading; 
-  points.push({ id, b: val, name: '', lat: '', lon: '' });
-  renderList();
-  if(navigator.vibrate) navigator.vibrate(30);
-  setTimeout(() => {
-    const input = document.querySelector(`input[data-focus="${id}"]`);
-    if(input) input.focus();
-  }, 50);
-}
+    function lockTarget() {
+      if (points.length >= 3) { alert("最多三個參考點"); return; }
+      const id = Date.now();
+      const val = currentHeading;
+      points.push({ id, b: val, name: '', lat: '', lon: '' });
+      renderList();
+      if (navigator.vibrate) navigator.vibrate(30);
+      setTimeout(() => {
+        const input = document.querySelector(`input[data-focus="${id}"]`);
+        if (input) input.focus();
+      }, 50);
+    }
 
-function updatePt(id, key, val) {
-  const p = points.find(x=>x.id===id);
-  if(p) p[key] = val;
-}
-function removePt(id) {
-  points = points.filter(x=>x.id!==id);
-  renderList();
-}
+    function updatePt(id, key, val) {
+      const p = points.find(x => x.id === id);
+      if (p) p[key] = val;
+    }
+    function removePt(id) {
+      points = points.filter(x => x.id !== id);
+      renderList();
+    }
 
-function renderList() {
-  list.innerHTML = '';
-  [...points].reverse().forEach(p => {
-    const div = document.createElement('div');
-    div.className = 'record';
-    div.innerHTML = `
+    function renderList() {
+      list.innerHTML = '';
+      [...points].reverse().forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'record';
+        div.innerHTML = `
       <div class="deg-wrapper">
         <input class="deg-input" type="number" step="0.01" 
                value="${parseFloat(p.b).toFixed(2)}" 
@@ -319,138 +582,139 @@ function renderList() {
       </div>
       <button class="del-btn" onclick="removePt(${p.id})">✕</button>
     `;
-    list.appendChild(div);
-  });
-}
+        list.appendChild(div);
+      });
+    }
 
-// --- D. 計算與地圖 ---
-const cv = document.getElementById('cv');
-const ctx = cv.getContext('2d');
-const R = 6371000;
-const rad = d => d * Math.PI / 180;
+    // --- D. 計算與地圖 ---
+    const cv = document.getElementById('cv');
+    const ctx = cv.getContext('2d');
+    const R = 6371000;
+    const rad = d => d * Math.PI / 180;
 
-function ll2enu(lat, lon, refLat, refLon) {
-  const dLat = rad(lat - refLat);
-  const dLon = rad(lon - refLon);
-  return [R * dLon * Math.cos(rad(refLat)), R * dLat];
-}
-function enu2ll(x, y, refLat, refLon) {
-  const lat = refLat + (y / R) * (180 / Math.PI);
-  const lon = refLon + (x / (R * Math.cos(rad(refLat)))) * (180 / Math.PI);
-  return [lat, lon];
-}
+    function ll2enu(lat, lon, refLat, refLon) {
+      const dLat = rad(lat - refLat);
+      const dLon = rad(lon - refLon);
+      return [R * dLon * Math.cos(rad(refLat)), R * dLat];
+    }
+    function enu2ll(x, y, refLat, refLon) {
+      const lat = refLat + (y / R) * (180 / Math.PI);
+      const lon = refLon + (x / (R * Math.cos(rad(refLat)))) * (180 / Math.PI);
+      return [lat, lon];
+    }
 
-function estimateLocation(mnts) {
-  let x=0, y=0; mnts.forEach(m => { x+=m.x; y+=m.y; }); x /= mnts.length; y /= mnts.length;
-  for(let i=0; i<30; i++) {
-    let gx=0, gy=0;
-    mnts.forEach(m => {
-      const b = rad(Number(m.b) + 180); 
-      const vx = Math.sin(b), vy = Math.cos(b);
-      const dx = x - m.x, dy = y - m.y;
-      const p = dx*vx + dy*vy;
-      gx += dx - p*vx; gy += dy - p*vy;
-    });
-    x -= gx * 0.1; y -= gy * 0.1;
-  }
-  return [x,y];
-}
+    function estimateLocation(mnts) {
+      let x = 0, y = 0; mnts.forEach(m => { x += m.x; y += m.y; }); x /= mnts.length; y /= mnts.length;
+      for (let i = 0; i < 30; i++) {
+        let gx = 0, gy = 0;
+        mnts.forEach(m => {
+          const b = rad(Number(m.b) + 180);
+          const vx = Math.sin(b), vy = Math.cos(b);
+          const dx = x - m.x, dy = y - m.y;
+          const p = dx * vx + dy * vy;
+          gx += dx - p * vx; gy += dy - p * vy;
+        });
+        x -= gx * 0.1; y -= gy * 0.1;
+      }
+      return [x, y];
+    }
 
-function simulateCloud(mnts, errorDeg) {
-  let pts = [];
-  for(let i=0; i<150; i++) {
-    const noisyMnts = mnts.map(m => ({
-      ...m, b: Number(m.b) + (Math.random()*2 - 1) * errorDeg
-    }));
-    pts.push(estimateLocation(noisyMnts));
-  }
-  return pts;
-}
+    function simulateCloud(mnts, errorDeg) {
+      let pts = [];
+      for (let i = 0; i < 150; i++) {
+        const noisyMnts = mnts.map(m => ({
+          ...m, b: Number(m.b) + (Math.random() * 2 - 1) * errorDeg
+        }));
+        pts.push(estimateLocation(noisyMnts));
+      }
+      return pts;
+    }
 
-let gMnts=[], gPts=[], gCenter=[0,0], gRefLat=0, gRefLon=0;
-let gZoom=1.0, gPanX=0, gPanY=0;
+    let gMnts = [], gPts = [], gCenter = [0, 0], gRefLat = 0, gRefLon = 0;
+    let gZoom = 1.0, gPanX = 0, gPanY = 0;
 
-function runCalculation() {
-  const valid = points.filter(p => p.lat && p.lon && !isNaN(p.lat) && !isNaN(p.lon));
-  if(valid.length < 2) { alert("請至少輸入 2 個已知點的座標"); return; }
-  document.getElementById('result-overlay').style.display='flex';
-  
-  gRefLat = valid.reduce((s,p)=>s+Number(p.lat),0)/valid.length;
-  gRefLon = valid.reduce((s,p)=>s+Number(p.lon),0)/valid.length;
-  gMnts = valid.map(p => {
-    const [xx, yy] = ll2enu(p.lat, p.lon, gRefLat, gRefLon);
-    return { x:xx, y:yy, b:Number(p.b), name:p.name };
-  });
-  
-  const errVal = parseFloat(document.getElementById('err-val').value) || 1.0;
-  gPts = simulateCloud(gMnts, errVal);
-  
-  let sx=0, sy=0; gPts.forEach(p=>{sx+=p[0]; sy+=p[1]});
-  gCenter = [sx/gPts.length, sy/gPts.length];
-  
-  resetView();
-  const ll = enu2ll(gCenter[0], gCenter[1], gRefLat, gRefLon);
-  document.getElementById('res-readout').innerHTML = 
-    `我的推算位置<br><span class="coord-big">${ll[0].toFixed(5)}, ${ll[1].toFixed(5)}</span>`;
-}
+    function runCalculation() {
+      const valid = points.filter(p => p.lat && p.lon && !isNaN(p.lat) && !isNaN(p.lon));
+      if (valid.length < 2) { alert("請至少輸入 2 個已知點的座標"); return; }
+      document.getElementById('result-overlay').style.display = 'flex';
 
-function draw() {
-  cv.width = window.innerWidth; cv.height = window.innerHeight;
-  ctx.clearRect(0,0,cv.width,cv.height);
-  if(!gMnts.length) return;
-  
-  const cx = cv.width/2; const cy = cv.height/2;
-  let all = [...gPts, ...gMnts.map(m=>[m.x,m.y])];
-  let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
-  all.forEach(p=>{
-    if(p[0]<minX) minX=p[0]; if(p[0]>maxX) maxX=p[0];
-    if(p[1]<minY) minY=p[1]; if(p[1]>maxY) maxY=p[1];
-  });
-  const w = Math.max(maxX-minX, 50); const h = Math.max(maxY-minY, 50);
-  const baseScale = Math.min(cv.width/w, cv.height/h) * 0.6;
-  const scale = baseScale * gZoom;
-  const map = (x, y) => [ cx + gPanX + (x - gCenter[0]) * scale, cy + gPanY - (y - gCenter[1]) * scale ];
-  
-  ctx.fillStyle = "rgba(0,255,255,0.4)";
-  gPts.forEach(p => { const [px, py] = map(p[0], p[1]); ctx.fillRect(px, py, 2, 2); });
-  
-  const errRad = rad(parseFloat(document.getElementById('err-val').value)||1);
-  gMnts.forEach((m, i) => {
-    const [mx, my] = map(m.x, m.y);
-    const angle = rad(m.b + 180 - 90); 
-    const L = Math.max(cv.width, cv.height) * 1.5;
-    
-    ctx.beginPath(); ctx.moveTo(mx, my); ctx.arc(mx, my, L, angle - errRad, angle + errRad);
-    ctx.fillStyle = `hsla(${i*50}, 80%, 60%, 0.1)`; ctx.fill();
-    
-    ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(angle)*L, my + Math.sin(angle)*L);
-    ctx.strokeStyle = `hsla(${i*50}, 80%, 60%, 0.6)`; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
-    
-    ctx.beginPath(); ctx.arc(mx, my, 6, 0, Math.PI*2); ctx.fillStyle = `hsl(${i*50}, 80%, 60%)`; ctx.fill();
-    ctx.fillStyle = "#fff"; ctx.font = "bold 14px monospace"; ctx.fillText(m.name || (i+1), mx+10, my+4);
-  });
-  
-  const [ux, uy] = map(gCenter[0], gCenter[1]);
-  ctx.strokeStyle = "#0f0"; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(ux, uy, 12, 0, Math.PI*2); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(ux-20, uy); ctx.lineTo(ux+20, uy); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(ux, uy-20); ctx.lineTo(ux, uy+20); ctx.stroke();
-  ctx.fillStyle="#0f0"; ctx.fillText("YOU", ux+15, uy-15);
-}
+      gRefLat = valid.reduce((s, p) => s + Number(p.lat), 0) / valid.length;
+      gRefLon = valid.reduce((s, p) => s + Number(p.lon), 0) / valid.length;
+      gMnts = valid.map(p => {
+        const [xx, yy] = ll2enu(p.lat, p.lon, gRefLat, gRefLon);
+        return { x: xx, y: yy, b: Number(p.b), name: p.name };
+      });
 
-function resetView() { gZoom=1.0; gPanX=0; gPanY=0; draw(); }
-function adjustZoom(f) { gZoom *= f; draw(); }
-function closeResult() { document.getElementById('result-overlay').style.display='none'; }
+      const errVal = parseFloat(document.getElementById('err-val').value) || 1.0;
+      gPts = simulateCloud(gMnts, errVal);
 
-let isDrag=false, startX=0, startY=0, lastX=0, lastY=0;
-const overlay = document.getElementById('result-overlay');
-overlay.addEventListener('mousedown', e => { isDrag=true; startX=e.clientX; startY=e.clientY; lastX=gPanX; lastY=gPanY; });
-overlay.addEventListener('touchstart', e => { isDrag=true; startX=e.touches[0].clientX; startY=e.touches[0].clientY; lastX=gPanX; lastY=gPanY; }, {passive:false});
-window.addEventListener('mousemove', e => { if(!isDrag) return; gPanX = lastX + (e.clientX - startX); gPanY = lastY + (e.clientY - startY); draw(); });
-window.addEventListener('touchmove', e => { if(!isDrag) return; e.preventDefault(); gPanX = lastX + (e.touches[0].clientX - startX); gPanY = lastY + (e.touches[0].clientY - startY); draw(); }, {passive:false});
-window.addEventListener('mouseup', () => isDrag=false);
-window.addEventListener('touchend', () => isDrag=false);
-window.onresize = draw;
-</script>
+      let sx = 0, sy = 0; gPts.forEach(p => { sx += p[0]; sy += p[1] });
+      gCenter = [sx / gPts.length, sy / gPts.length];
+
+      resetView();
+      const ll = enu2ll(gCenter[0], gCenter[1], gRefLat, gRefLon);
+      document.getElementById('res-readout').innerHTML =
+        `我的推算位置<br><span class="coord-big">${ll[0].toFixed(5)}, ${ll[1].toFixed(5)}</span>`;
+    }
+
+    function draw() {
+      cv.width = window.innerWidth; cv.height = window.innerHeight;
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      if (!gMnts.length) return;
+
+      const cx = cv.width / 2; const cy = cv.height / 2;
+      let all = [...gPts, ...gMnts.map(m => [m.x, m.y])];
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      all.forEach(p => {
+        if (p[0] < minX) minX = p[0]; if (p[0] > maxX) maxX = p[0];
+        if (p[1] < minY) minY = p[1]; if (p[1] > maxY) maxY = p[1];
+      });
+      const w = Math.max(maxX - minX, 50); const h = Math.max(maxY - minY, 50);
+      const baseScale = Math.min(cv.width / w, cv.height / h) * 0.6;
+      const scale = baseScale * gZoom;
+      const map = (x, y) => [cx + gPanX + (x - gCenter[0]) * scale, cy + gPanY - (y - gCenter[1]) * scale];
+
+      ctx.fillStyle = "rgba(0,255,255,0.4)";
+      gPts.forEach(p => { const [px, py] = map(p[0], p[1]); ctx.fillRect(px, py, 2, 2); });
+
+      const errRad = rad(parseFloat(document.getElementById('err-val').value) || 1);
+      gMnts.forEach((m, i) => {
+        const [mx, my] = map(m.x, m.y);
+        const angle = rad(m.b + 180 - 90);
+        const L = Math.max(cv.width, cv.height) * 1.5;
+
+        ctx.beginPath(); ctx.moveTo(mx, my); ctx.arc(mx, my, L, angle - errRad, angle + errRad);
+        ctx.fillStyle = `hsla(${i * 50}, 80%, 60%, 0.1)`; ctx.fill();
+
+        ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(angle) * L, my + Math.sin(angle) * L);
+        ctx.strokeStyle = `hsla(${i * 50}, 80%, 60%, 0.6)`; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+
+        ctx.beginPath(); ctx.arc(mx, my, 6, 0, Math.PI * 2); ctx.fillStyle = `hsl(${i * 50}, 80%, 60%)`; ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.font = "bold 14px monospace"; ctx.fillText(m.name || (i + 1), mx + 10, my + 4);
+      });
+
+      const [ux, uy] = map(gCenter[0], gCenter[1]);
+      ctx.strokeStyle = "#0f0"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(ux, uy, 12, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ux - 20, uy); ctx.lineTo(ux + 20, uy); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ux, uy - 20); ctx.lineTo(ux, uy + 20); ctx.stroke();
+      ctx.fillStyle = "#0f0"; ctx.fillText("YOU", ux + 15, uy - 15);
+    }
+
+    function resetView() { gZoom = 1.0; gPanX = 0; gPanY = 0; draw(); }
+    function adjustZoom(f) { gZoom *= f; draw(); }
+    function closeResult() { document.getElementById('result-overlay').style.display = 'none'; }
+
+    let isDrag = false, startX = 0, startY = 0, lastX = 0, lastY = 0;
+    const overlay = document.getElementById('result-overlay');
+    overlay.addEventListener('mousedown', e => { isDrag = true; startX = e.clientX; startY = e.clientY; lastX = gPanX; lastY = gPanY; });
+    overlay.addEventListener('touchstart', e => { isDrag = true; startX = e.touches[0].clientX; startY = e.touches[0].clientY; lastX = gPanX; lastY = gPanY; }, { passive: false });
+    window.addEventListener('mousemove', e => { if (!isDrag) return; gPanX = lastX + (e.clientX - startX); gPanY = lastY + (e.clientY - startY); draw(); });
+    window.addEventListener('touchmove', e => { if (!isDrag) return; e.preventDefault(); gPanX = lastX + (e.touches[0].clientX - startX); gPanY = lastY + (e.touches[0].clientY - startY); draw(); }, { passive: false });
+    window.addEventListener('mouseup', () => isDrag = false);
+    window.addEventListener('touchend', () => isDrag = false);
+    window.onresize = draw;
+  </script>
 </body>
+
 </html>
