@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>精密羅盤定位 v5.1 (修正穩定版)</title>
+<title>精密羅盤定位 v5.2 (度數框修復版)</title>
 <style>
   /* --- 1. 基礎設定 --- */
   body { 
@@ -19,7 +19,7 @@
     background: radial-gradient(circle at center, #222 0%, #000 90%);
   }
 
-  /* 瞄準線 (置頂) */
+  /* 瞄準線 */
   #aiming-sight {
     position: absolute; top: 0; left: 50%; transform: translateX(-50%);
     z-index: 50; display: flex; flex-direction: column; align-items: center; pointer-events: none;
@@ -27,8 +27,7 @@
   #aim-arrowhead { width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 20px solid #0ff; filter: drop-shadow(0 0 5px #0ff); }
   #aim-line { width: 2px; height: 40vh; background: linear-gradient(to bottom, #0ff 0%, transparent 100%); opacity: 0.6; }
   
-  /* --- 3. 轉盤結構 (穩定寫法) --- */
-  /* 固定外環 */
+  /* --- 3. 轉盤結構 --- */
   #dial-ring {
     width: 300px; height: 300px;
     border-radius: 50%; border: 2px solid #333;
@@ -36,55 +35,40 @@
     box-shadow: inset 0 0 20px #000; pointer-events: none;
   }
 
-  /* 旋轉內盤 */
   #dial {
     width: 300px; height: 300px; 
     position: relative; 
-    will-change: transform; /* 硬體加速 */
+    will-change: transform; 
   }
   
-  /* --- 4. 刻度與數字 (校正核心) --- */
-  /* 圓盤大小 300x300，半徑 150 */
-  
-  /* 刻度線 */
+  /* --- 4. 刻度與數字 --- */
   .mark { 
     position: absolute; left: 50%; top: 0; 
     width: 1px; height: 10px; background: #666; 
-    /* 這裡設 150px 是因為圓半徑是 150，這樣旋轉軸心就在圓心 */
     transform-origin: 50% 150px; 
   }
   .mark.major { height: 15px; width: 2px; background: #bbb; }
   .mark.cardinal { height: 20px; width: 4px; background: #fff; }
   
-  /* 數字標籤 */
   .label { 
-    position: absolute; 
-    top: 25px; /* 距離頂部邊緣 25px */
-    left: 50%; 
-    width: 60px; /* 固定寬度，避免文字長短不一造成偏移 */
-    margin-left: -30px; /* 寬度的一半 (負值)，這是最穩的置中法 */
-    text-align: center;
-    font-weight: bold; font-size: 16px; color: #888;
-    
-    /* 計算圓心：圓半徑 150。現在 top 是 25。
-       所以旋轉軸心距離文字頂部是 150 - 25 = 125px */
-    transform-origin: 50% 125px; 
-    line-height: 1;
+    position: absolute; top: 25px; left: 50%; 
+    width: 60px; margin-left: -30px; 
+    text-align: center; font-weight: bold; font-size: 16px; color: #888;
+    transform-origin: 50% 125px; line-height: 1;
   }
-  
   .label-cardinal { font-size: 24px; color: #fff; top: 22px; transform-origin: 50% 128px; }
-  .label-zero { color: #f33; } /* 0度紅色 */
+  .label-zero { color: #f33; }
 
-  /* 中央紅線指針 */
+  /* 指針 */
   #pointer-fixed {
     position: absolute; top: 50%; left: 50%; 
-    transform: translate(-50%, -165px); /* 對準最上方刻度 */
+    transform: translate(-50%, -165px);
     width: 0; height: 0;
     border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 18px solid #f22; 
     z-index: 20; filter: drop-shadow(0 2px 2px #000);
   }
 
-  /* 讀數顯示 */
+  /* 讀數 */
   #readout {
     position: absolute; bottom: 20px; left: 0; right: 0; text-align: center;
     font-size: 52px; font-weight: 700; color: #0ff; 
@@ -110,20 +94,31 @@
   .err-box { display: flex; align-items: center; background: #000; padding: 0 10px; border: 1px solid #444; border-radius: 4px;}
   .err-input { width: 50px; background: transparent; color: #fa0; border: none; text-align: center; font-size: 18px; font-weight: bold; font-family: inherit; }
 
-  /* 列表樣式 */
+  /* 列表樣式 (修復重點) */
   .record { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; background: #1a1a1a; padding: 6px; border-radius: 4px; border: 1px solid #333; }
-  .deg-wrapper { width: 85px; height: 40px; }
+  
+  /* --- 這裡加了 flex-shrink: 0 防止被壓扁 --- */
+  .deg-wrapper { 
+    width: 85px; 
+    height: 40px; 
+    flex-shrink: 0; /* 關鍵：禁止壓縮！ */
+  }
+  
   input.deg-input {
     width: 100%; height: 100%; background: #000; border: 1px solid #666; color: #0ff; 
     text-align: center; font-size: 18px; font-weight: bold; font-family: inherit; border-radius: 4px; padding: 0;
   }
   input.deg-input:focus { border-color: #0ff; outline: none; background: #111; }
   
-  .inputs-group { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .inputs-group { flex: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden; /* 防止撐開父層 */ }
   .inputs-row { display: flex; gap: 4px; }
-  input.text-in { background: #080808; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 3px; font-size: 14px; font-family: inherit; }
+  input.text-in { 
+    background: #080808; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 3px; font-size: 14px; font-family: inherit; 
+    width: 100%; box-sizing: border-box; /* 確保 padding 不會撐大 */
+  }
   input.text-in:focus { border-color: #0ff; outline: none; }
-  .del-btn { width: 36px; background: #822; color: #fff; border: none; border-radius: 3px; font-weight: bold; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+  
+  .del-btn { width: 36px; background: #822; color: #fff; border: none; border-radius: 3px; font-weight: bold; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
   /* --- 6. 地圖層 --- */
   #result-overlay {
@@ -148,12 +143,8 @@
 <div id="compass-container">
   <div id="aiming-sight"><div id="aim-arrowhead"></div><div id="aim-line"></div></div>
   <div id="pointer-fixed"></div>
-  
   <div id="dial-ring"></div>
-  
-  <div id="dial">
-    </div>
-  
+  <div id="dial"></div>
   <div id="readout">Wait...</div>
 </div>
 
@@ -189,46 +180,32 @@
 <script>
 // --- A. 羅盤生成 (穩定版) ---
 const dial = document.getElementById('dial');
-
 function createDial() {
   dial.innerHTML = '';
-  // 建立 360 度刻度
   for(let i=0; i<360; i++) {
-    // 為了效能，只畫偶數刻度
     if (i % 2 !== 0) continue;
-    
     const isCardinal = (i % 90 === 0);
     const isMajor = (i % 10 === 0);
     
-    // 1. 畫刻度線
     const mk = document.createElement('div');
     mk.className = isCardinal ? 'mark cardinal' : (isMajor ? 'mark major' : 'mark');
     mk.style.transform = `translateX(-50%) rotate(${i}deg)`;
     dial.appendChild(mk);
 
-    // 2. 畫數字 (每 30 度)
     if (i % 30 === 0) {
       const lb = document.createElement('div');
       lb.className = isCardinal ? 'label label-cardinal' : 'label';
       if(i === 0) lb.classList.add('label-zero');
-      
       const txt = i.toString();
-      // 內層 div 負責反向旋轉文字，保持直立
       lb.innerHTML = `<div style="transform: rotate(${-i}deg)">${txt}</div>`;
-      
-      // 外層 div 負責定位到圓周上
-      // translateX(-50%) 已經在 CSS 的 margin-left:-30px 做掉了，這裡只要旋轉
       lb.style.transform = `rotate(${i}deg)`;
-      
       dial.appendChild(lb);
     }
   }
 }
-// 立即執行生成
 createDial();
 
-
-// --- B. 感測器邏輯 (Raw Data) ---
+// --- B. 感測器邏輯 ---
 let currentHeading = 0;
 let displayHeading = 0;
 
@@ -239,31 +216,21 @@ function handleOrientation(e) {
   } else if (e.alpha !== null) {
     heading = 360 - e.alpha; 
   }
-  
   currentHeading = heading;
-  
-  // 數字讀數：立即更新，確保使用者覺得有反應
   let textVal = currentHeading % 360; 
   if(textVal < 0) textVal += 360;
   document.getElementById('readout').innerHTML = `${textVal.toFixed(2)}<small>°</small>`;
 }
 
-// 動畫循環 (平滑轉盤)
 function animateDial() {
   requestAnimationFrame(animateDial);
-  
   let target = currentHeading;
   let current = displayHeading % 360;
   if (current < 0) current += 360;
-  
   let diff = target - current;
-  // 處理 359->0 的跨越問題
   if (diff > 180) diff -= 360;
   if (diff < -180) diff += 360;
-  
-  displayHeading += diff * 0.3; // 靈敏度 0.3
-  
-  // 轉盤反轉
+  displayHeading += diff * 0.3; 
   dial.style.transform = `rotate(${-displayHeading}deg)`;
 }
 animateDial();
@@ -274,15 +241,9 @@ function reqPerm() {
       if(r==='granted') { 
         window.addEventListener('deviceorientation', handleOrientation, true); 
         document.getElementById('permBtn').style.display='none';
-      } else {
-        alert('權限被拒');
-      }
-    }).catch(err => {
-      console.error(err);
-      alert('無法取得權限，請確認是用 HTTPS');
-    });
+      } else { alert('權限被拒'); }
+    }).catch(err => { console.error(err); alert('無法取得權限，請確認 HTTPS'); });
   } else {
-    // Android 或一般瀏覽器
     window.addEventListener('deviceorientation', handleOrientation, true);
     document.getElementById('permBtn').style.display='none';
   }
@@ -299,7 +260,6 @@ function lockTarget() {
   points.push({ id, b: val, name: '', lat: '', lon: '' });
   renderList();
   if(navigator.vibrate) navigator.vibrate(30);
-  
   setTimeout(() => {
     const input = document.querySelector(`input[data-focus="${id}"]`);
     if(input) input.focus();
