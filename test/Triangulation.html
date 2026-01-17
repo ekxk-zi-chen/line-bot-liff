@@ -4,9 +4,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>精密羅盤定位 v6.1 (精修版)</title>
+  <title>精密羅盤定位 v6.2 (歸零功能版)</title>
   <style>
-    /* --- 1. 全局基礎 (高對比黑底) --- */
+    /* --- 1. 全局基礎 --- */
     body {
       margin: 0;
       background: #000;
@@ -20,7 +20,7 @@
       -webkit-user-select: none;
     }
 
-    /* --- 2. 羅盤區 (視覺核心) --- */
+    /* --- 2. 羅盤區 --- */
     #compass-container {
       flex: 1;
       position: relative;
@@ -29,6 +29,29 @@
       justify-content: center;
       overflow: hidden;
       background: radial-gradient(circle at center, #2a2a2a 0%, #000 85%);
+    }
+
+    /* 右上角歸零按鈕 (新增) */
+    #reset-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid #0ff;
+      color: #0ff;
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+      font-family: inherit;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+      cursor: pointer;
+    }
+    #reset-btn:active {
+      background: #0ff;
+      color: #000;
     }
 
     /* 瞄準線 */
@@ -80,10 +103,9 @@
       height: 290px;
       position: relative;
       will-change: transform;
-      /* 硬體加速 */
     }
 
-    /* --- 4. 精細刻度與數字 --- */
+    /* --- 4. 精細刻度 --- */
     .mark {
       position: absolute;
       left: 50%;
@@ -199,7 +221,6 @@
       font-weight: bold;
       border: 1px solid #444;
       font-family: inherit;
-      transition: background 0.2s;
     }
 
     button:active {
@@ -211,17 +232,14 @@
       background: #0062cc;
       border-color: #005cbf;
       color: #fff;
-      box-shadow: 0 0 15px rgba(0, 100, 255, 0.3);
     }
 
     button.calc {
       background: #1e7e34;
       border-color: #1c7430;
       color: #fff;
-      box-shadow: 0 0 15px rgba(40, 167, 69, 0.3);
     }
 
-    /* 誤差設定 */
     .err-box {
       display: flex;
       align-items: center;
@@ -242,27 +260,23 @@
       font-family: inherit;
     }
 
-    /* --- 列表樣式 (本次修改重點) --- */
+    /* 列表樣式 */
     .record {
       position: relative;
-      /* 關鍵：讓X按鈕可以對齊這裡 */
       display: flex;
       align-items: stretch;
       gap: 0;
-      /* 完全無縫隙 */
       margin-bottom: 6px;
       background: #1a1a1a;
       border: 1px solid #333;
       border-radius: 4px;
       padding: 2px;
       padding-right: 18px;
-      /* 右邊只留 18px 給 X，其他全給輸入框 */
       overflow: hidden;
     }
 
     .deg-wrapper {
       width: 68px;
-      /* 再縮窄一點 */
       flex-shrink: 0;
       background: #000;
       border-right: 1px solid #444;
@@ -281,21 +295,12 @@
       padding: 0;
     }
 
-    input.deg-input:focus {
-      background: #111;
-      color: #fff;
-      outline: none;
-    }
-
-    /* 輸入框群組 */
     .inputs-group {
       flex: 1;
-      /* 吃掉剩下所有空間 */
       display: flex;
       flex-direction: column;
       gap: 1px;
       min-width: 0;
-      /* 防止被內容撐開 */
     }
 
     .inputs-row {
@@ -308,13 +313,11 @@
       border: none;
       color: #fff;
       padding: 0 4px;
-      /* 極限內距 */
       font-size: 13px;
       font-family: inherit;
       font-weight: bold;
       width: 100%;
       height: 26px;
-      /* 固定高度 */
     }
 
     input.text-in:focus {
@@ -323,32 +326,22 @@
       background: #000;
     }
 
-    /* --- 修改：刪除按鈕變小變窄 --- */
     .del-btn {
       position: absolute;
       right: 0;
       top: 0;
       bottom: 0;
-      /* 拉滿整個高度 */
       width: 18px;
-      /* 寬度鎖死 */
       background: #611;
       color: #aaa;
       border: none;
       border-left: 1px solid #444;
       font-size: 10px;
-      /* 字體極小 */
       padding: 0;
-      margin: 0;
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 5;
-    }
-
-    .del-btn:active {
-      background: #f00;
-      color: #fff;
     }
 
     /* --- 6. 地圖層 --- */
@@ -362,17 +355,6 @@
       z-index: 100;
       display: none;
       touch-action: none;
-      animation: fadeIn 0.3s;
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-
-      to {
-        opacity: 1;
-      }
     }
 
     #map-ui {
@@ -419,7 +401,6 @@
       display: block;
       margin-top: 8px;
       user-select: text;
-      -webkit-user-select: text;
     }
   </style>
 </head>
@@ -427,17 +408,15 @@
 <body>
 
   <div id="compass-container">
+    <button id="reset-btn" onclick="resetNorth()">N 歸零</button>
+
     <div id="aiming-sight">
       <div id="aim-arrowhead"></div>
       <div id="aim-line"></div>
     </div>
     <div id="pointer-fixed"></div>
-
     <div id="dial-ring"></div>
-
-    <div id="dial">
-    </div>
-
+    <div id="dial"></div>
     <div id="readout">0.00<small>°</small></div>
   </div>
 
@@ -503,21 +482,34 @@
     }
     createDial();
 
-    // --- B. 感測器邏輯 (Raw Data) ---
-    let currentHeading = 0;
-    let displayHeading = 0;
+    // --- B. 感測器邏輯 (含歸零功能) ---
+    let rawHeading = 0;       // 原始硬體數據
+    let headingOffset = 0;    // 歸零偏差值
+    let currentHeading = 0;   // 修正後的顯示數據
+    let displayHeading = 0;   // 動畫用
 
     function handleOrientation(e) {
-      let heading = 0;
+      let h = 0;
       if (e.webkitCompassHeading) {
-        heading = e.webkitCompassHeading;
+        h = e.webkitCompassHeading;
       } else if (e.alpha !== null) {
-        heading = 360 - e.alpha;
+        h = 360 - e.alpha;
       }
-      currentHeading = heading;
-      let textVal = currentHeading % 360;
-      if (textVal < 0) textVal += 360;
-      document.getElementById('readout').innerHTML = `${textVal.toFixed(2)}<small>°</small>`;
+      
+      rawHeading = h;
+      
+      // 計算修正後的角度：(原始 - 偏移 + 360) % 360
+      let corrected = (rawHeading - headingOffset + 360) % 360;
+      
+      currentHeading = corrected;
+      document.getElementById('readout').innerHTML = `${currentHeading.toFixed(2)}<small>°</small>`;
+    }
+
+    // 歸零功能：把當前朝向設為 0 度
+    function resetNorth() {
+      headingOffset = rawHeading; // 將當前的原始值設為偏移基準
+      // 震動回饋
+      if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
     }
 
     function animateDial() {
@@ -554,6 +546,7 @@
     function lockTarget() {
       if (points.length >= 3) { alert("最多三個參考點"); return; }
       const id = Date.now();
+      // 鎖定的是「修正後」的角度
       const val = currentHeading;
       points.push({ id, b: val, name: '', lat: '', lon: '' });
       renderList();
