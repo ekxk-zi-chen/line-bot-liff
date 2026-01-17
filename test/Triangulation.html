@@ -3,100 +3,96 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>精密羅盤定位 v5.0 (完美圓心版)</title>
+<title>精密羅盤定位 v5.1 (修正穩定版)</title>
 <style>
-  /* --- 基礎設定 --- */
+  /* --- 1. 基礎設定 --- */
   body { 
     margin: 0; background: #000; color: #fff; 
-    font-family: "SF Mono", "Roboto Mono", monospace; /* 等寬字體確保數字不跳動 */
+    font-family: "SF Mono", "Roboto Mono", monospace; 
     overflow: hidden; display: flex; flex-direction: column; height: 100vh; 
     user-select: none; -webkit-user-select: none;
   }
   
-  /* --- 羅盤容器 --- */
+  /* --- 2. 羅盤容器 --- */
   #compass-container {
     flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden;
-    background: radial-gradient(circle at center, #1a1a1a 0%, #000 85%);
+    background: radial-gradient(circle at center, #222 0%, #000 90%);
   }
 
-  /* 瞄準線 */
+  /* 瞄準線 (置頂) */
   #aiming-sight {
     position: absolute; top: 0; left: 50%; transform: translateX(-50%);
     z-index: 50; display: flex; flex-direction: column; align-items: center; pointer-events: none;
   }
   #aim-arrowhead { width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 20px solid #0ff; filter: drop-shadow(0 0 5px #0ff); }
-  #aim-line { width: 2px; height: 40vh; background: linear-gradient(to bottom, #0ff 0%, transparent 100%); opacity: 0.5; }
+  #aim-line { width: 2px; height: 40vh; background: linear-gradient(to bottom, #0ff 0%, transparent 100%); opacity: 0.6; }
   
-  /* --- 轉盤核心 (幾何修正重點) --- */
-  #dial-wrapper {
-    width: 290px; height: 290px;
-    position: relative;
-    border-radius: 50%;
-    border: 2px solid #333; /* 靜態外框 */
-    box-shadow: inset 0 0 30px #000;
+  /* --- 3. 轉盤結構 (穩定寫法) --- */
+  /* 固定外環 */
+  #dial-ring {
+    width: 300px; height: 300px;
+    border-radius: 50%; border: 2px solid #333;
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    box-shadow: inset 0 0 20px #000; pointer-events: none;
   }
 
+  /* 旋轉內盤 */
   #dial {
-    width: 100%; height: 100%;
-    position: relative;
+    width: 300px; height: 300px; 
+    position: relative; 
     will-change: transform; /* 硬體加速 */
   }
   
-  /* 幾何修正核心：
-     所有元素的基準點都在中心 (top:50%, left:50%)
-     寬高設為0，用 translate 推出去，確保半徑絕對一致
-  */
+  /* --- 4. 刻度與數字 (校正核心) --- */
+  /* 圓盤大小 300x300，半徑 150 */
   
   /* 刻度線 */
-  .mark {
-    position: absolute; top: 50%; left: 50%;
-    width: 2px; background: #555;
-    /* 這裡的高度其實是線條長度 */
-    transform-origin: top center; /* 從中心點開始畫 */
+  .mark { 
+    position: absolute; left: 50%; top: 0; 
+    width: 1px; height: 10px; background: #666; 
+    /* 這裡設 150px 是因為圓半徑是 150，這樣旋轉軸心就在圓心 */
+    transform-origin: 50% 150px; 
   }
+  .mark.major { height: 15px; width: 2px; background: #bbb; }
+  .mark.cardinal { height: 20px; width: 4px; background: #fff; }
   
-  /* 數字標籤容器 */
-  .label-container {
-    position: absolute; top: 50%; left: 50%;
-    width: 0; height: 0; /* 關鍵：幾何歸零 */
-    display: flex; justify-content: center; align-items: center;
-  }
-  
-  /* 數字本體 */
-  .label-text {
-    font-weight: bold; font-size: 14px; color: #888;
-    white-space: nowrap;
+  /* 數字標籤 */
+  .label { 
+    position: absolute; 
+    top: 25px; /* 距離頂部邊緣 25px */
+    left: 50%; 
+    width: 60px; /* 固定寬度，避免文字長短不一造成偏移 */
+    margin-left: -30px; /* 寬度的一半 (負值)，這是最穩的置中法 */
     text-align: center;
+    font-weight: bold; font-size: 16px; color: #888;
+    
+    /* 計算圓心：圓半徑 150。現在 top 是 25。
+       所以旋轉軸心距離文字頂部是 150 - 25 = 125px */
+    transform-origin: 50% 125px; 
+    line-height: 1;
   }
-  .label-cardinal { font-size: 18px; color: #fff; }
-  .label-zero { color: #f33; }
+  
+  .label-cardinal { font-size: 24px; color: #fff; top: 22px; transform-origin: 50% 128px; }
+  .label-zero { color: #f33; } /* 0度紅色 */
 
-  /* 中央紅線指針 (固定不動) */
+  /* 中央紅線指針 */
   #pointer-fixed {
     position: absolute; top: 50%; left: 50%; 
-    /* 修正：精確計算偏移量，確保針尖對準刻度邊緣 */
-    transform: translate(-50%, -158px); 
+    transform: translate(-50%, -165px); /* 對準最上方刻度 */
     width: 0; height: 0;
-    border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 15px solid #f22; 
+    border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 18px solid #f22; 
     z-index: 20; filter: drop-shadow(0 2px 2px #000);
   }
-  
-  /* 中心點裝飾 (驗證圓心用) */
-  #center-dot {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 6px; height: 6px; background: #333; border-radius: 50%; border: 1px solid #555;
-    z-index: 5;
-  }
 
-  /* 數字讀數 */
+  /* 讀數顯示 */
   #readout {
     position: absolute; bottom: 20px; left: 0; right: 0; text-align: center;
-    font-size: 48px; font-weight: 700; color: #0ff; 
-    text-shadow: 0 0 10px rgba(0,255,255,0.3); letter-spacing: 1px;
+    font-size: 52px; font-weight: 700; color: #0ff; 
+    text-shadow: 0 0 15px rgba(0,255,255,0.4); letter-spacing: 2px;
   }
-  #readout small { font-size: 20px; color: #666; margin-left: 5px; font-weight: normal;}
+  #readout small { font-size: 24px; color: #888; margin-left: 5px; font-weight: normal;}
 
-  /* --- 控制區 --- */
+  /* --- 5. 操作區 --- */
   #controls { 
     padding: 10px; background: #111; border-top: 1px solid #333; 
     max-height: 45vh; overflow-y: auto; z-index: 60; 
@@ -111,7 +107,6 @@
   button.active { background: #0056b3; border-color: #007bff; color: #fff; }
   button.calc { background: #1c7430; border-color: #28a745; color: #fff; }
   
-  /* 誤差框 */
   .err-box { display: flex; align-items: center; background: #000; padding: 0 10px; border: 1px solid #444; border-radius: 4px;}
   .err-input { width: 50px; background: transparent; color: #fa0; border: none; text-align: center; font-size: 18px; font-weight: bold; font-family: inherit; }
 
@@ -128,9 +123,9 @@
   .inputs-row { display: flex; gap: 4px; }
   input.text-in { background: #080808; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 3px; font-size: 14px; font-family: inherit; }
   input.text-in:focus { border-color: #0ff; outline: none; }
-  .del-btn { width: 36px; background: #822; color: #fff; border: none; border-radius: 3px; font-weight: bold; font-size: 18px; }
+  .del-btn { width: 36px; background: #822; color: #fff; border: none; border-radius: 3px; font-weight: bold; font-size: 18px; display: flex; align-items: center; justify-content: center; }
 
-  /* --- 地圖層 --- */
+  /* --- 6. 地圖層 --- */
   #result-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100;
     display: none; touch-action: none; 
@@ -154,11 +149,12 @@
   <div id="aiming-sight"><div id="aim-arrowhead"></div><div id="aim-line"></div></div>
   <div id="pointer-fixed"></div>
   
-  <div id="dial-wrapper">
-    <div id="center-dot"></div> <div id="dial"></div>
-  </div>
+  <div id="dial-ring"></div>
   
-  <div id="readout">0.00<small>°</small></div>
+  <div id="dial">
+    </div>
+  
+  <div id="readout">Wait...</div>
 </div>
 
 <div id="controls">
@@ -191,73 +187,48 @@
 </div>
 
 <script>
-// --- A. 幾何完美的羅盤生成 ---
+// --- A. 羅盤生成 (穩定版) ---
 const dial = document.getElementById('dial');
 
 function createDial() {
   dial.innerHTML = '';
-  // 半徑設定：圓盤寬度 290，半徑 145
-  const radius = 145; 
-  
+  // 建立 360 度刻度
   for(let i=0; i<360; i++) {
-    // 1. 刻度線
-    // 只畫偶數刻度，減少 DOM
-    if (i % 2 === 0) {
-      const isCardinal = (i % 90 === 0);
-      const isMajor = (i % 10 === 0);
-      
-      const mk = document.createElement('div');
-      mk.className = isCardinal ? 'mark cardinal' : (isMajor ? 'mark major' : 'mark');
-      
-      // 設定線條長度
-      mk.style.height = isCardinal ? '15px' : (isMajor ? '12px' : '8px');
-      mk.style.width = isCardinal ? '3px' : (isMajor ? '2px' : '1px');
-      
-      // 關鍵幾何：先轉角度，再往外推 (translateY 負值代表往上推)
-      // 使用 transform-origin: center center (預設)
-      // 公式: rotate(deg) translateY(-radius)
-      // 注意：這樣推會把元素的中心推到圓周。我們希望元素的"頂端"貼齊圓周，
-      // 但 CSS 畫線通常從中心定位。
-      // 改良法：絕對圓心定位法
-      
-      // 這裡我們用最穩定的方法：transform: rotate() 然後 translateY
-      // translateY 的距離 = 半徑 - 線長的一半 (如果想貼邊)
-      // 但為了簡單對齊，我們讓線的頂端頂住圓框
-      const offset = radius - (parseFloat(mk.style.height)/2);
-      mk.style.transform = `rotate(${i}deg) translateY(-${offset}px)`;
-      
-      dial.appendChild(mk);
-    }
+    // 為了效能，只畫偶數刻度
+    if (i % 2 !== 0) continue;
+    
+    const isCardinal = (i % 90 === 0);
+    const isMajor = (i % 10 === 0);
+    
+    // 1. 畫刻度線
+    const mk = document.createElement('div');
+    mk.className = isCardinal ? 'mark cardinal' : (isMajor ? 'mark major' : 'mark');
+    mk.style.transform = `translateX(-50%) rotate(${i}deg)`;
+    dial.appendChild(mk);
 
-    // 2. 數字標籤 (每30度)
+    // 2. 畫數字 (每 30 度)
     if (i % 30 === 0) {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'label-container';
+      const lb = document.createElement('div');
+      lb.className = isCardinal ? 'label label-cardinal' : 'label';
+      if(i === 0) lb.classList.add('label-zero');
       
-      const txtDiv = document.createElement('div');
-      txtDiv.className = isCardinal ? 'label-text label-cardinal' : 'label-text';
-      if(i === 0) txtDiv.classList.add('label-zero');
+      const txt = i.toString();
+      // 內層 div 負責反向旋轉文字，保持直立
+      lb.innerHTML = `<div style="transform: rotate(${-i}deg)">${txt}</div>`;
       
-      // 數字內容
-      txtDiv.innerText = i.toString();
+      // 外層 div 負責定位到圓周上
+      // translateX(-50%) 已經在 CSS 的 margin-left:-30px 做掉了，這裡只要旋轉
+      lb.style.transform = `rotate(${i}deg)`;
       
-      // 幾何修正：
-      // 1. wrapper 在圓心 (0,0)
-      // 2. 旋轉 i 度指向正確方位
-      // 3. translateY 往外推 (距離比刻度更裡面一點，例如 125px)
-      // 4. 反向旋轉 -i 度，讓文字保持水平直立
-      const textRadius = 122; // 調整這個數值可以改變數字離圓心的距離
-      
-      wrapper.style.transform = `rotate(${i}deg) translateY(-${textRadius}px) rotate(${-i}deg)`;
-      
-      wrapper.appendChild(txtDiv);
-      dial.appendChild(wrapper);
+      dial.appendChild(lb);
     }
   }
 }
+// 立即執行生成
 createDial();
 
-// --- B. 傳感器邏輯 ---
+
+// --- B. 感測器邏輯 (Raw Data) ---
 let currentHeading = 0;
 let displayHeading = 0;
 
@@ -270,27 +241,29 @@ function handleOrientation(e) {
   }
   
   currentHeading = heading;
+  
+  // 數字讀數：立即更新，確保使用者覺得有反應
   let textVal = currentHeading % 360; 
   if(textVal < 0) textVal += 360;
-  
-  // 顯示 Raw Data，完全不修飾，反應最快
   document.getElementById('readout').innerHTML = `${textVal.toFixed(2)}<small>°</small>`;
 }
 
-// 轉盤動畫 (平滑)
+// 動畫循環 (平滑轉盤)
 function animateDial() {
   requestAnimationFrame(animateDial);
+  
   let target = currentHeading;
   let current = displayHeading % 360;
   if (current < 0) current += 360;
   
   let diff = target - current;
+  // 處理 359->0 的跨越問題
   if (diff > 180) diff -= 360;
   if (diff < -180) diff += 360;
   
-  // 0.3 的係數讓轉盤跟手性很好，但又不至於閃爍
-  displayHeading += diff * 0.3; 
+  displayHeading += diff * 0.3; // 靈敏度 0.3
   
+  // 轉盤反轉
   dial.style.transform = `rotate(${-displayHeading}deg)`;
 }
 animateDial();
@@ -301,10 +274,15 @@ function reqPerm() {
       if(r==='granted') { 
         window.addEventListener('deviceorientation', handleOrientation, true); 
         document.getElementById('permBtn').style.display='none';
+      } else {
+        alert('權限被拒');
       }
-      else alert('權限被拒');
-    }).catch(console.error);
+    }).catch(err => {
+      console.error(err);
+      alert('無法取得權限，請確認是用 HTTPS');
+    });
   } else {
+    // Android 或一般瀏覽器
     window.addEventListener('deviceorientation', handleOrientation, true);
     document.getElementById('permBtn').style.display='none';
   }
@@ -321,6 +299,7 @@ function lockTarget() {
   points.push({ id, b: val, name: '', lat: '', lon: '' });
   renderList();
   if(navigator.vibrate) navigator.vibrate(30);
+  
   setTimeout(() => {
     const input = document.querySelector(`input[data-focus="${id}"]`);
     if(input) input.focus();
@@ -361,7 +340,7 @@ function renderList() {
   });
 }
 
-// --- D. 演算法與地圖 (不變) ---
+// --- D. 計算與地圖 ---
 const cv = document.getElementById('cv');
 const ctx = cv.getContext('2d');
 const R = 6371000;
@@ -410,7 +389,7 @@ let gZoom=1.0, gPanX=0, gPanY=0;
 
 function runCalculation() {
   const valid = points.filter(p => p.lat && p.lon && !isNaN(p.lat) && !isNaN(p.lon));
-  if(valid.length < 2) { alert("請輸入至少 2 個點"); return; }
+  if(valid.length < 2) { alert("請至少輸入 2 個已知點的座標"); return; }
   document.getElementById('result-overlay').style.display='flex';
   
   gRefLat = valid.reduce((s,p)=>s+Number(p.lat),0)/valid.length;
