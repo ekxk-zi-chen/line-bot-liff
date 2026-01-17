@@ -3,487 +3,545 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>手機羅盤三角定位 v3.0</title>
+<title>精密羅盤定位 v4.0</title>
 <style>
-  body { margin: 0; background: #000; color: #eee; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
+  /* 全局設定：禁止選取文字，純黑背景，高對比 */
+  body { 
+    margin: 0; background: #000; color: #fff; 
+    font-family: "SF Mono", "Roboto Mono", monospace; /* 強制等寬字體，數字不跳動 */
+    overflow: hidden; display: flex; flex-direction: column; height: 100vh; 
+    user-select: none; -webkit-user-select: none;
+  }
   
   /* --- 羅盤區 --- */
   #compass-container {
     flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden;
-    background: radial-gradient(circle at center, #222 0%, #000 90%);
+    background: radial-gradient(circle at center, #1a1a1a 0%, #000 85%);
   }
 
-  /* 瞄準器 */
+  /* 上方瞄準器 */
   #aiming-sight {
-    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
     z-index: 50; display: flex; flex-direction: column; align-items: center; pointer-events: none;
-    filter: drop-shadow(0 0 5px cyan);
   }
-  #aim-arrowhead { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 15px solid cyan; }
-  #aim-line { width: 2px; height: 40px; background: cyan; }
+  #aim-arrowhead { width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 20px solid #0ff; filter: drop-shadow(0 0 5px #0ff); }
+  #aim-line { width: 2px; height: 40vh; background: linear-gradient(to bottom, #0ff 0%, transparent 100%); opacity: 0.5; }
   
-  /* 轉盤 (移除 transition 以便 JS 精確控制) */
-  #dial {
-    width: 280px; height: 280px; 
-    border: 4px solid #444; border-radius: 50%; position: relative; 
-    box-shadow: 0 0 60px rgba(0,0,0,1), inset 0 0 30px rgba(0,0,0,0.9);
-    background: #111;
-    margin-top: 20px;
-    will-change: transform; /* 硬體加速優化 */
-  }
-  
-  /* 刻度與文字 */
-  .mark { position: absolute; left: 50%; top: 0; width: 2px; height: 10px; background: #555; transform-origin: 50% 140px; }
-  .mark.major { height: 15px; width: 3px; background: #ddd; }
-  
-  .label { 
-    position: absolute; left: 50%; top: 22px; 
-    transform-origin: 50% 118px; 
-    font-weight: bold; font-size: 16px; width: 40px; text-align: center; margin-left: -20px; color: #999; 
-    line-height: 1;
-  }
-  .north-zero { color: #f44; font-size: 22px; } /* 0度特別色 */
-  
-  /* 羅盤上的讀數紅線 */
-  #pointer-arrow {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -160px);
-    width: 0; height: 0;
-    border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 15px solid #f33; 
-    z-index: 20;
+  /* 轉盤外框 (不動) */
+  #dial-ring {
+    width: 290px; height: 290px;
+    border-radius: 50%; border: 2px solid #333;
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    box-shadow: inset 0 0 20px #000;
+    pointer-events: none;
   }
 
-  /* 數值顯示 */
-  #readout {
-    position: absolute; bottom: 10px; left: 0; right: 0; text-align: center;
-    font-size: 42px; font-weight: bold; color: cyan; text-shadow: 0 0 10px rgba(0,255,255,0.4);
-    font-family: monospace; letter-spacing: -2px;
+  /* 轉動的刻度盤 */
+  #dial {
+    width: 290px; height: 290px; 
+    position: relative; 
+    /* 這裡不用 transition，全靠 JS 高頻更新 */
+    will-change: transform; 
   }
   
+  /* 刻度線 */
+  .mark { position: absolute; left: 50%; top: 0; width: 1px; height: 8px; background: #555; transform-origin: 50% 145px; } /* 半徑要精準 */
+  .mark.major { height: 12px; width: 2px; background: #aaa; }
+  .mark.cardinal { height: 15px; width: 3px; background: #fff; } /* 0,90,180,270 */
+  
+  /* 刻度文字 */
+  .label { 
+    position: absolute; left: 50%; top: 20px; 
+    transform-origin: 50% 125px; 
+    font-weight: bold; font-size: 14px; width: 40px; text-align: center; margin-left: -20px; color: #888; 
+  }
+  .label-cardinal { font-size: 18px; color: #fff; top: 18px; }
+  .label-zero { color: #f33; } /* 0度紅色 */
+
+  /* 中央紅線 (讀數基準) */
+  #pointer-fixed {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -158px); /* 精確對準圓周 */
+    width: 0; height: 0;
+    border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 15px solid #f22; 
+    z-index: 20; filter: drop-shadow(0 2px 2px #000);
+  }
+
+  /* 數字讀數 (Raw Data) */
+  #readout {
+    position: absolute; bottom: 15px; left: 0; right: 0; text-align: center;
+    font-size: 48px; font-weight: 700; color: #0ff; 
+    text-shadow: 0 0 10px rgba(0,255,255,0.3);
+    letter-spacing: 1px;
+  }
+  #readout small { font-size: 20px; color: #666; margin-left: 5px; font-weight: normal;}
+
   /* --- 操作區 --- */
   #controls { 
-    padding: 10px; background: #151515; border-top: 1px solid #333; 
+    padding: 10px; background: #111; border-top: 1px solid #333; 
     max-height: 45vh; overflow-y: auto; z-index: 60; 
   }
-  .btn-row { display: flex; gap: 8px; margin-bottom: 8px; }
-  button { 
-    flex: 1; padding: 12px; font-size: 16px; border: none; border-radius: 6px; 
-    background: #333; color: #ccc; font-weight: bold; border: 1px solid #444; 
-  }
-  button:active { background: #555; }
-  button.active { background: #0062cc; border-color: #005cbf; color: white; }
-  button.calc { background: #1e7e34; border-color: #1c7430; color: white; }
   
-  /* 設定列 */
-  .setting-row { display: flex; align-items: center; justify-content: space-between; background: #222; padding: 8px 12px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #333; }
-  .err-input { width: 60px; background: #000; color: #fa0; border: 1px solid #555; padding: 4px; text-align: center; font-size: 16px; font-weight: bold; border-radius: 4px; }
-
-  /* 列表樣式 */
-  .record { display: flex; align-items: center; gap: 5px; margin-bottom: 6px; background: #252525; padding: 5px; border-radius: 4px; border: 1px solid #333; }
+  .row { display: flex; gap: 8px; margin-bottom: 8px; align-items: stretch;}
+  
+  /* 按鈕樣式 */
+  button { 
+    flex: 1; padding: 14px; font-size: 16px; border: none; border-radius: 4px; 
+    background: #222; color: #ddd; font-weight: bold; border: 1px solid #444; 
+    font-family: inherit;
+  }
+  button:active { background: #444; transform: translateY(1px); }
+  button.active { background: #0056b3; border-color: #007bff; color: #fff; }
+  button.calc { background: #1c7430; border-color: #28a745; color: #fff; }
+  
+  /* 誤差設定 */
+  .err-box { display: flex; align-items: center; background: #000; padding: 0 10px; border: 1px solid #444; border-radius: 4px;}
+  .err-input { width: 50px; background: transparent; color: #fa0; border: none; text-align: center; font-size: 18px; font-weight: bold; font-family: inherit; }
+  
+  /* 鎖定列表 */
+  .record { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; background: #1a1a1a; padding: 6px; border-radius: 4px; border: 1px solid #333; }
+  .deg-disp { 
+    width: 80px; text-align: right; color: #0ff; font-size: 18px; font-weight: bold; 
+    background: #000; border: 1px solid #333; padding: 4px; border-radius: 3px;
+  }
+  /* 讓這個輸入框看起來像純文字顯示，但點了可以改 */
+  input.deg-edit { 
+    width: 100%; height: 100%; background: transparent; border: none; color: inherit; 
+    text-align: center; font-family: inherit; font-size: inherit; font-weight: inherit; padding: 0; margin: 0;
+  }
+  
   .inputs-group { flex: 1; display: flex; flex-direction: column; gap: 4px; }
   .inputs-row { display: flex; gap: 4px; }
-  input { background: #111; border: 1px solid #444; color: #fff; padding: 6px; border-radius: 3px; font-size: 14px; }
-  input:focus { border-color: cyan; outline: none; }
-  input.deg-input { width: 70px; text-align: center; font-weight: bold; color: cyan; font-family: monospace; font-size: 16px; border: 1px solid #333; background: #000; }
-  .del { width: 30px; flex: none; align-self: stretch; background: #a33; color: white; border: none; border-radius: 3px; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+  input.text-in { background: #080808; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 3px; font-size: 14px; font-family: inherit; }
+  input.text-in:focus { border-color: #0ff; outline: none; }
+  
+  .del-btn { width: 36px; background: #822; color: #fff; border: none; border-radius: 3px; font-weight: bold; font-size: 18px; display: flex; align-items: center; justify-content: center; }
 
-  /* --- 結果地圖圖層 --- */
+  /* --- 地圖層 --- */
   #result-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100;
-    display: none; flex-direction: column;
-    /* 這裡很關鍵，防止移動地圖時整個網頁被下拉 */
-    touch-action: none; 
+    display: none; touch-action: none; 
   }
-  #cv { cursor: grab; }
-  #cv:active { cursor: grabbing; }
-
   #map-ui {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
-    display: flex; flex-direction: column; justify-content: space-between; padding: 10px; box-sizing: border-box;
+    display: flex; flex-direction: column; padding: 10px;
   }
-  .map-ctrl {
-    pointer-events: auto; background: rgba(30,30,30,0.8); color: white; border: 1px solid #555;
-    width: 44px; height: 44px; font-size: 22px; font-weight: bold; border-radius: 8px; margin: 5px;
-    backdrop-filter: blur(4px); box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+  .map-btn { pointer-events: auto; background: rgba(0,0,0,0.7); border: 1px solid #666; color: #fff; margin: 5px; backdrop-filter: blur(4px); }
+  #close-res { position: absolute; top: 15px; left: 15px; border-radius: 20px; padding: 8px 20px; background: #c22; border: none; font-weight: bold; box-shadow: 0 4px 10px #000; }
+  #res-readout {
+    pointer-events: auto; margin-top: auto; margin-bottom: 20px; align-self: center;
+    background: rgba(0,20,0,0.9); padding: 15px; border-radius: 8px; border: 1px solid #0f0;
+    text-align: center; color: #0f0; font-size: 14px; box-shadow: 0 0 20px rgba(0,0,0,0.8);
   }
-  #close-res { 
-    pointer-events: auto; position: absolute; top: 15px; left: 15px; 
-    background: #c33; color: white; padding: 8px 20px; border-radius: 20px; border: none; font-weight: bold; 
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-  }
-  #zoom-controls {
-    position: absolute; top: 70px; right: 10px; display: flex; flex-direction: column;
-  }
-  #res-text {
-    pointer-events: auto; margin-bottom: 20px; background: rgba(0,20,0,0.9); padding: 12px; border-radius: 8px;
-    color: lime; text-align: center; font-family: monospace; border: 1px solid #0f0; font-size: 15px;
-    box-shadow: 0 0 15px rgba(0,0,0,0.8);
-  }
+  .coord-big { font-size: 20px; color: #fff; font-weight: bold; display: block; margin-top: 5px; user-select: text; -webkit-user-select: text;}
 </style>
 </head>
 <body>
 
 <div id="compass-container">
   <div id="aiming-sight"><div id="aim-arrowhead"></div><div id="aim-line"></div></div>
-  <div id="pointer-arrow"></div>
-  <div id="dial"><div style="position:absolute;top:50%;left:50%;width:4px;height:4px;background:#333;border-radius:50%;transform:translate(-50%,-50%)"></div></div>
-  <div id="readout">Wait...</div>
+  <div id="pointer-fixed"></div>
+  
+  <div id="dial-ring"></div> <div id="dial">
+     </div>
+  
+  <div id="readout">0.00<small>°</small></div>
 </div>
 
 <div id="controls">
-  <div class="btn-row">
-    <button onclick="reqPerm()" id="permBtn">開啟羅盤 (iOS)</button>
-    <button onclick="lockCurrent()" class="active">📍 鎖定目標</button>
+  <div class="row">
+    <button id="permBtn" onclick="reqPerm()">啟動羅盤 (iOS點此)</button>
+    <button class="active" onclick="lockTarget()">📍 鎖定目標</button>
   </div>
   
   <div id="list"></div>
 
-  <div class="setting-row">
-    <span style="color:#aaa; font-size:14px;">定位容許誤差 (±度)</span>
-    <input type="number" id="err-val" class="err-input" value="2.0" step="0.5">
-  </div>
-
-  <div class="btn-row">
-    <button onclick="runCalculation()" class="calc">🚀 計算我的位置</button>
+  <div class="row">
+    <div class="err-box">
+      <span style="color:#888; font-size:12px; margin-right:5px;">誤差±</span>
+      <input type="number" id="err-val" class="err-input" value="1.0" step="0.5">
+      <span style="color:#888; font-size:12px;">°</span>
+    </div>
+    <button class="calc" onclick="runCalculation()">🚀 計算位置</button>
   </div>
 </div>
 
 <div id="result-overlay">
   <canvas id="cv"></canvas>
   <div id="map-ui">
-    <button id="close-res" onclick="closeResult()">✕ 關閉</button>
-    <div id="zoom-controls">
-      <button class="map-ctrl" onclick="adjustZoom(1.2)">+</button>
-      <button class="map-ctrl" onclick="resetView()">⟲</button>
-      <button class="map-ctrl" onclick="adjustZoom(0.8)">-</button>
+    <button id="close-res" class="map-btn" onclick="closeResult()">✕ 關閉</button>
+    <div style="position:absolute; top:70px; right:10px; display:flex; flex-direction:column;">
+      <button class="map-btn" style="width:44px;height:44px;font-size:24px;border-radius:8px;" onclick="adjustZoom(1.5)">+</button>
+      <button class="map-btn" style="width:44px;height:44px;font-size:20px;border-radius:8px;" onclick="resetView()">⟲</button>
+      <button class="map-btn" style="width:44px;height:44px;font-size:24px;border-radius:8px;" onclick="adjustZoom(0.66)">-</button>
     </div>
-    <div style="flex:1"></div>
-    <div id="res-text"></div>
+    <div id="res-readout">尚未計算</div>
   </div>
 </div>
 
 <script>
-// --- 1. 羅盤繪製與平滑邏輯 ---
+// --- A. 羅盤核心：絕對精準繪製 ---
 const dial = document.getElementById('dial');
 
-// 繪製刻度
-for(let i=0; i<360; i+=2) { 
-  const isMajor = (i % 10 === 0);
-  const isLabel = (i % 30 === 0);
-  
-  if(isMajor || i%2===0) {
-    const mk = document.createElement('div');
-    mk.className = isMajor ? 'mark major' : 'mark';
-    mk.style.transform = `translateX(-50%) rotate(${i}deg)`;
-    if(!isMajor) { mk.style.height='6px'; mk.style.opacity='0.4'; }
-    dial.appendChild(mk);
-  }
-
-  if(isLabel) {
-    const lb = document.createElement('div');
-    lb.className = i===0 ? 'label north-zero' : 'label';
-    let txt = i.toString(); // 統一改成數字，連0度也是顯示0
+function createDial() {
+  dial.innerHTML = '';
+  // 為了精確，我們只畫必要的線
+  for(let i=0; i<360; i++) {
+    // 只有每度才畫線，避免過多DOM
+    if (i % 2 !== 0) continue; // 偶數畫線，奇數跳過 (視覺上已足夠，提升性能)
     
-    // 文字自轉修正，保持直立
-    lb.innerHTML = `<div style="transform: rotate(${-i}deg)">${txt}</div>`;
-    lb.style.transform = `translateX(-50%) rotate(${i}deg)`;
-    dial.appendChild(lb);
+    const isCardinal = (i % 90 === 0);
+    const isMajor = (i % 10 === 0);
+    
+    const mk = document.createElement('div');
+    mk.className = isCardinal ? 'mark cardinal' : (isMajor ? 'mark major' : 'mark');
+    mk.style.transform = `translateX(-50%) rotate(${i}deg)`;
+    dial.appendChild(mk);
+
+    // 文字標籤：每30度一個
+    if (i % 30 === 0) {
+      const lb = document.createElement('div');
+      lb.className = isCardinal ? 'label label-cardinal' : 'label';
+      if (i===0) lb.classList.add('label-zero'); // 0度紅色
+      
+      let txt = i.toString();
+      // 確保 0 度在正中間
+      lb.innerHTML = `<div style="transform: rotate(${-i}deg)">${txt}</div>`;
+      lb.style.transform = `translateX(-50%) rotate(${i}deg)`;
+      dial.appendChild(lb);
+    }
   }
 }
+createDial();
 
-// 變數：平滑動畫控制
-let currentRawHeading = 0; // 傳感器原始值 (0-360)
-let smoothedRotation = 0;  // 用於 CSS 的累積旋轉值 (可超過360或負數)
+// --- B. 感測器邏輯：直接與平滑分離 ---
+let currentHeading = 0;       // 最新的原始數據 (Float)
+let displayHeading = 0;       // 用於轉盤動畫的數值
 
 function handleOrientation(e) {
-  let compass = e.webkitCompassHeading || (e.alpha !== null ? (360 - e.alpha) : 0);
-  currentRawHeading = compass; // 只負責更新目標值，動畫由 loop 處理
+  // iOS 使用 webkitCompassHeading (0=北, 順時針)
+  // Android 使用 alpha (0=開機方向 or 北, 逆時針) -> 轉成 (360-alpha)
+  let heading = 0;
+  if (e.webkitCompassHeading) {
+    heading = e.webkitCompassHeading;
+  } else if (e.alpha !== null) {
+    heading = 360 - e.alpha; // 簡易轉換，Android實機可能有差異，但使用者要求跟從機子
+  }
+  
+  // 1. 數字顯示：立即更新，無緩衝，保留兩位小數 (解決數字跳動問題)
+  currentHeading = heading;
+  // 防止 360.00 的顯示，強制 mod 360
+  let textVal = currentHeading % 360; 
+  if(textVal < 0) textVal += 360;
+  
+  document.getElementById('readout').innerHTML = `${textVal.toFixed(2)}<small>°</small>`;
 }
 
-// 動畫循環 (解決抖動與 359->0 問題)
-function animationLoop() {
-  requestAnimationFrame(animationLoop);
-
-  // 1. 取得目標角度 (0-360)
-  const target = currentRawHeading;
-
-  // 2. 計算目前的「視覺角度」在 0-360 的餘數位置
-  // 這樣我們可以算出它跟目標差多遠
-  let currentMod = smoothedRotation % 360;
-  if (currentMod < 0) currentMod += 360; // 處理負數餘數
-
-  // 3. 計算最短路徑誤差 (Delta)
-  let delta = target - currentMod;
+// 獨立的動畫循環 (60fps) 處理轉盤，避免 CSS transition 的延遲
+function animateDial() {
+  requestAnimationFrame(animateDial);
   
-  // 修正跨越 0/360 的邊界問題
-  // 如果誤差大於 180，代表走另一邊更近
-  if (delta > 180) delta -= 360;
-  if (delta < -180) delta += 360;
-
-  // 4. 平滑移動 (Lerp): 每次只移動差距的 15%
-  // 數值越大越快但越抖，越小越滑但有延遲。0.15 是很好的平衡點
-  smoothedRotation += delta * 0.15;
-
-  // 5. 更新 DOM
-  // 反向旋轉 (-smoothedRotation) 因為這是背景盤面
-  dial.style.transform = `rotate(${-smoothedRotation}deg)`;
+  // 解決 359 -> 0 的旋轉路徑問題
+  let target = currentHeading;
+  let current = displayHeading % 360;
+  if (current < 0) current += 360;
   
-  // 數值顯示：直接顯示 Raw Data 以求最快反應，或顯示 smoothedRotation % 360
-  // 為了讓您覺得「刻度有在動數值才變」，這裡顯示原始值其實比較好
-  // 加上 toFixed(2) 滿足精確度需求
-  document.getElementById('readout').innerText = `${currentRawHeading.toFixed(2)}°`;
+  let diff = target - current;
+  if (diff > 180) diff -= 360;
+  if (diff < -180) diff += 360;
+  
+  // Lerp 係數：0.3 (反應非常快) -> 解決 "數字跳轉盤慢" 的問題
+  displayHeading += diff * 0.3;
+  
+  // 轉盤要反向轉，指針才像是固定向北
+  dial.style.transform = `rotate(${-displayHeading}deg)`;
 }
-// 啟動動畫循環
-animationLoop();
-
+animateDial(); // 啟動
 
 function reqPerm() {
   if (typeof DeviceOrientationEvent.requestPermission === 'function') {
     DeviceOrientationEvent.requestPermission().then(r => {
-      if (r==='granted') { window.addEventListener('deviceorientation', handleOrientation, true); document.getElementById('permBtn').style.display='none'; }
-      else alert('權限被拒絕');
+      if(r==='granted') { 
+        window.addEventListener('deviceorientation', handleOrientation, true); 
+        document.getElementById('permBtn').style.display='none';
+      }
+      else alert('權限被拒');
     }).catch(console.error);
   } else {
-    window.addEventListener('deviceorientation', handleOrientation, true); document.getElementById('permBtn').style.display='none';
+    window.addEventListener('deviceorientation', handleOrientation, true);
+    document.getElementById('permBtn').style.display='none';
   }
 }
 
-// --- 2. 列表與鎖定邏輯 ---
+// --- C. 鎖定與資料管理 ---
 const list = document.getElementById('list');
 let points = [];
 
-function lockCurrent() {
-  if(points.length >= 3) { alert("最多三個點"); return; }
+function lockTarget() {
+  if(points.length >= 3) { alert("最多三個參考點"); return; }
+  
   const id = Date.now();
-  points.push({ id, b: currentRawHeading.toFixed(2), lat: '', lon: '', name: '' });
+  // 鎖定當下的 Raw Value
+  const val = currentHeading; 
+  // 預設空的 name, lat, lon
+  points.push({ id, b: val, name: '', lat: '', lon: '' });
+  
   renderList();
-  if(navigator.vibrate) navigator.vibrate(50);
-  setTimeout(() => { 
-    const inputs = document.querySelectorAll(`input[data-id="${id}"]`);
-    if(inputs[0]) inputs[0].focus();
-  }, 100);
+  if(navigator.vibrate) navigator.vibrate(30);
+  
+  // 自動聚焦名稱框
+  setTimeout(() => {
+    const input = document.querySelector(`input[data-focus="${id}"]`);
+    if(input) input.focus();
+  }, 50);
 }
 
-function updatePoint(id, field, val) {
-  const p = points.find(x=>x.id === id);
-  if(p) p[field] = val;
+function updatePt(id, key, val) {
+  const p = points.find(x=>x.id===id);
+  if(p) p[key] = val;
 }
 
-function removePoint(id) {
-  points = points.filter(x=>x.id !== id);
+function removePt(id) {
+  points = points.filter(x=>x.id!==id);
   renderList();
 }
 
 function renderList() {
   list.innerHTML = '';
-  [...points].reverse().forEach((p) => {
-    const el = document.createElement('div');
-    el.className = 'record';
-    el.innerHTML = `
-      <input class="deg-input" type="number" step="0.01" value="${p.b}" 
-             onchange="updatePoint(${p.id}, 'b', this.value)">
+  // 最新的在上面
+  [...points].reverse().forEach(p => {
+    // 這裡角度使用 input 讓使用者可以點進去改
+    // toFixed(2) 顯示，但編輯時是數字
+    const div = document.createElement('div');
+    div.className = 'record';
+    div.innerHTML = `
+      <div class="deg-disp">
+        <input class="deg-edit" type="number" step="0.01" value="${parseFloat(p.b).toFixed(2)}" 
+        onchange="updatePt(${p.id}, 'b', this.value)">
+      </div>
       <div class="inputs-group">
-        <input data-id="${p.id}" placeholder="名稱" value="${p.name}" 
-               oninput="updatePoint(${p.id}, 'name', this.value)" style="font-weight:bold;">
+        <input class="text-in" data-focus="${p.id}" placeholder="目標名稱 (例如: 玉山)" value="${p.name}" 
+               oninput="updatePt(${p.id}, 'name', this.value)" style="font-weight:bold; color:#0ff;">
         <div class="inputs-row">
-          <input placeholder="緯度" type="number" step="0.0001" value="${p.lat}" 
-                 oninput="updatePoint(${p.id}, 'lat', this.value)" style="flex:1">
-          <input placeholder="經度" type="number" step="0.0001" value="${p.lon}" 
-                 oninput="updatePoint(${p.id}, 'lon', this.value)" style="flex:1">
+          <input class="text-in" type="number" step="0.0001" placeholder="緯度 Lat" value="${p.lat}" oninput="updatePt(${p.id}, 'lat', this.value)">
+          <input class="text-in" type="number" step="0.0001" placeholder="經度 Lon" value="${p.lon}" oninput="updatePt(${p.id}, 'lon', this.value)">
         </div>
       </div>
-      <button class="del" onclick="removePoint(${p.id})">✕</button>
+      <button class="del-btn" onclick="removePt(${p.id})">✕</button>
     `;
-    list.appendChild(el);
+    list.appendChild(div);
   });
 }
 
-// --- 3. 定位演算法與地圖繪製 ---
-const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
-const R = 6371000, rad = d => d * Math.PI / 180;
-let refLat = 0, refLon = 0;
+// --- D. 計算與地圖繪製 (Canvas) ---
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const R = 6371000;
+const rad = d => d * Math.PI / 180;
 
-function ll2enu(lat,lon){
-  const dLat=rad(lat-refLat),dLon=rad(lon-refLon);
-  return [R*dLon*Math.cos(rad(refLat)), R*dLat];
+// ENU 轉換 (不含磁偏角)
+function ll2enu(lat, lon, refLat, refLon) {
+  const dLat = rad(lat - refLat);
+  const dLon = rad(lon - refLon);
+  return [R * dLon * Math.cos(rad(refLat)), R * dLat];
 }
-function enu2ll(x,y){
-  return [
-    refLat + y/R*180/Math.PI,
-    refLon + x/(R*Math.cos(rad(refLat)))*180/Math.PI
-  ];
+function enu2ll(x, y, refLat, refLon) {
+  const lat = refLat + (y / R) * (180 / Math.PI);
+  const lon = refLon + (x / (R * Math.cos(rad(refLat)))) * (180 / Math.PI);
+  return [lat, lon];
 }
 
-function estimate(mnts){
-  let x=0,y=0; mnts.forEach(m=>{x+=m.x;y+=m.y}); x/=mnts.length; y/=mnts.length;
-  for(let i=0;i<50;i++){ 
-    let gx=0,gy=0; 
-    mnts.forEach(m=>{
-      const back=rad(Number(m.b)+180);
-      const vx=Math.sin(back),vy=Math.cos(back);
-      const dx=x-m.x,dy=y-m.y;
-      const p=dx*vx+dy*vy;
-      gx+=dx-p*vx; gy+=dy-p*vy;
+// 核心估算
+function estimateLocation(mnts) {
+  let x=0, y=0;
+  mnts.forEach(m => { x+=m.x; y+=m.y; });
+  x /= mnts.length; y /= mnts.length;
+  
+  // 迭代收斂
+  for(let i=0; i<30; i++) {
+    let gx=0, gy=0;
+    mnts.forEach(m => {
+      // 這裡直接用輸入的 bearing，不加任何偏移
+      // 因為是 "Bearing to Mountain"，所以 back azimuth 是 +180
+      const b = rad(Number(m.b) + 180); 
+      const vx = Math.sin(b), vy = Math.cos(b);
+      const dx = x - m.x, dy = y - m.y;
+      // 投影長度
+      const p = dx*vx + dy*vy;
+      // 梯度下降
+      gx += dx - p*vx;
+      gy += dy - p*vy;
     });
-    x-=gx*0.05; y-=gy*0.05; 
+    x -= gx * 0.1;
+    y -= gy * 0.1;
   }
   return [x,y];
 }
 
-function simulate(mnts,err){
-  let pts=[]; 
-  for(let i=0;i<200;i++){
-    const noisy = mnts.map(m=>({...m, b:Number(m.b) + (Math.random()*2-1)*err}));
-    pts.push(estimate(noisy));
+function simulateCloud(mnts, errorDeg) {
+  let pts = [];
+  for(let i=0; i<150; i++) {
+    const noisyMnts = mnts.map(m => ({
+      ...m,
+      b: Number(m.b) + (Math.random()*2 - 1) * errorDeg
+    }));
+    pts.push(estimateLocation(noisyMnts));
   }
   return pts;
 }
 
-// --- 地圖互動控制變數 ---
-let globalMnts = [], globalPts = [], globalCenter = [0,0];
-let userZoom = 1.0;
-let panX = 0, panY = 0; // 拖曳偏移量
+// 地圖視圖變數
+let gMnts=[], gPts=[], gCenter=[0,0], gRefLat=0, gRefLon=0;
+let gZoom=1.0, gPanX=0, gPanY=0;
 
-function draw(){
-  cv.width = window.innerWidth; 
-  cv.height = window.innerHeight;
-  ctx.clearRect(0,0,cv.width,cv.height);
-
-  if(!globalMnts.length) return;
-
-  // 自動計算合適比例
-  let allPoints = [globalCenter, ...globalMnts.map(m=>[m.x,m.y])];
-  let xs = allPoints.map(p=>p[0]), ys = allPoints.map(p=>p[1]);
-  let w = Math.max(Math.max(...xs)-Math.min(...xs), 100);
-  let h = Math.max(Math.max(...ys)-Math.min(...ys), 100);
-  const baseScale = Math.min(cv.width/(w*1.4), cv.height/(h*1.4));
-  const finalScale = baseScale * userZoom;
-
-  const cx = cv.width / 2;
-  const cy = cv.height / 2;
-  
-  // 座標映射：加上 panX, panY 偏移
-  const map = (p) => [
-    cx + panX + (p[0] - globalCenter[0]) * finalScale,
-    cy + panY - (p[1] - globalCenter[1]) * finalScale
-  ];
-
-  // 1. 粒子雲
-  ctx.fillStyle="rgba(0,255,255,0.4)"; 
-  globalPts.forEach(p=>{ 
-    const q=map(p); 
-    if(q[0]>0 && q[0]<cv.width && q[1]>0 && q[1]<cv.height) ctx.fillRect(q[0],q[1],2,2); 
-  });
-
-  // 2. 山頭與射線
-  globalMnts.forEach((m,i)=>{
-    const p=map([m.x,m.y]);
-    
-    // 角度修正
-    const b = rad(Number(m.b) + 180 - 90); 
-    const L = Math.max(cv.width,cv.height) * 2;
-    
-    // 讀取使用者設定的誤差範圍來畫扇形
-    const userErrDeg = parseFloat(document.getElementById('err-val').value) || 2;
-    const err = rad(userErrDeg);
-
-    ctx.fillStyle=`hsla(${i*60},80%,50%,0.15)`; 
-    ctx.beginPath(); ctx.moveTo(p[0],p[1]); ctx.arc(p[0],p[1],L,b-err,b+err); ctx.fill();
-    
-    ctx.strokeStyle=`hsla(${i*60},80%,50%,0.8)`; ctx.lineWidth=1; ctx.setLineDash([5,5]);
-    ctx.beginPath(); ctx.moveTo(p[0],p[1]); ctx.lineTo(p[0]+Math.cos(b)*L, p[1]+Math.sin(b)*L); ctx.stroke();
-    ctx.setLineDash([]);
-
-    ctx.fillStyle=`hsl(${i*60},80%,50%)`; ctx.beginPath(); ctx.arc(p[0],p[1],6,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle="#fff"; ctx.font="bold 14px sans-serif"; 
-    ctx.shadowColor="black"; ctx.shadowBlur=4;
-    ctx.fillText(m.name||('P'+(i+1)), p[0]+10, p[1]+5);
-    ctx.shadowBlur=0;
-  });
-
-  // 3. 使用者中心
-  const c = map(globalCenter);
-  ctx.strokeStyle="#0f0"; ctx.lineWidth=2;
-  ctx.beginPath(); ctx.arc(c[0],c[1],12,0,Math.PI*2); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(c[0]-20,c[1]); ctx.lineTo(c[0]+20,c[1]); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(c[0],c[1]-20); ctx.lineTo(c[0],c[1]+20); ctx.stroke();
-  
-  ctx.fillStyle="#0f0"; ctx.font="16px monospace"; 
-  ctx.fillText("YOU", c[0]+15, c[1]-15);
-}
-
-// --- 互動控制邏輯 ---
-function adjustZoom(factor) { userZoom *= factor; draw(); }
-function resetView() { userZoom = 1.0; panX = 0; panY = 0; draw(); }
-
-function runCalculation(){
-  const valid = points.filter(p => p.lat && p.lon);
-  if(valid.length < 2){ alert("請至少鎖定 2 個座標點"); return; }
+function runCalculation() {
+  const valid = points.filter(p => p.lat && p.lon && !isNaN(p.lat) && !isNaN(p.lon));
+  if(valid.length < 2) { alert("請至少輸入 2 個已知點的座標"); return; }
   
   document.getElementById('result-overlay').style.display='flex';
   
-  globalMnts = valid.map(p => ({ lat: +p.lat, lon: +p.lon, b: +p.b, name: p.name }));
-  refLat = globalMnts.reduce((s,m)=>s+m.lat,0)/globalMnts.length;
-  refLon = globalMnts.reduce((s,m)=>s+m.lon,0)/globalMnts.length;
-  globalMnts.forEach(m => { [m.x,m.y] = ll2enu(m.lat, m.lon); });
-
-  // 傳入使用者自訂誤差
-  const errVal = parseFloat(document.getElementById('err-val').value) || 2;
-  globalPts = simulate(globalMnts, errVal);
+  // 1. 建立基準點 (Reference)
+  gRefLat = valid.reduce((s,p)=>s+Number(p.lat),0)/valid.length;
+  gRefLon = valid.reduce((s,p)=>s+Number(p.lon),0)/valid.length;
   
-  globalCenter = globalPts.reduce((s,p)=>[s[0]+p[0],s[1]+p[1]],[0,0]).map(v=>v/globalPts.length);
+  // 2. 轉換座標
+  gMnts = valid.map(p => {
+    const [xx, yy] = ll2enu(p.lat, p.lon, gRefLat, gRefLon);
+    return { x:xx, y:yy, b:Number(p.b), name:p.name };
+  });
+  
+  // 3. 蒙地卡羅模擬
+  const errVal = parseFloat(document.getElementById('err-val').value) || 1.0;
+  gPts = simulateCloud(gMnts, errVal);
+  
+  // 4. 計算平均中心
+  let sx=0, sy=0;
+  gPts.forEach(p=>{sx+=p[0]; sy+=p[1]});
+  gCenter = [sx/gPts.length, sy/gPts.length];
   
   resetView();
   
-  const finalLL = enu2ll(globalCenter[0], globalCenter[1]);
-  document.getElementById('res-text').innerHTML = 
-    `我的位置<br><span style="color:white;font-size:1.4em;user-select:all">${finalLL[0].toFixed(5)}, ${finalLL[1].toFixed(5)}</span>`;
+  // 顯示結果
+  const ll = enu2ll(gCenter[0], gCenter[1], gRefRefLat=gRefLat, gRefLon);
+  document.getElementById('res-readout').innerHTML = 
+    `我的推算位置<br><span class="coord-big">${ll[0].toFixed(5)}, ${ll[1].toFixed(5)}</span>`;
 }
 
-function closeResult(){
-  document.getElementById('result-overlay').style.display='none';
-}
-
-// --- 拖曳事件處理 ---
-let isDragging = false;
-let startX, startY;
-let lastPanX, lastPanY;
-
-cv.addEventListener('mousedown', startDrag);
-cv.addEventListener('touchstart', startDrag, {passive: false});
-
-window.addEventListener('mousemove', doDrag);
-window.addEventListener('touchmove', doDrag, {passive: false});
-
-window.addEventListener('mouseup', stopDrag);
-window.addEventListener('touchend', stopDrag);
-
-function startDrag(e) {
-  isDragging = true;
-  const evt = e.touches ? e.touches[0] : e;
-  startX = evt.clientX;
-  startY = evt.clientY;
-  lastPanX = panX;
-  lastPanY = panY;
-}
-
-function doDrag(e) {
-  if(!isDragging) return;
-  const evt = e.touches ? e.touches[0] : e;
-  const dx = evt.clientX - startX;
-  const dy = evt.clientY - startY;
+// 繪圖
+function draw() {
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  ctx.clearRect(0,0,cv.width,cv.height);
   
-  panX = lastPanX + dx;
-  panY = lastPanY + dy;
+  if(!gMnts.length) return;
+  
+  const cx = cv.width/2; 
+  const cy = cv.height/2;
+  
+  // 計算自動縮放基礎
+  // 找出包含所有點的最大範圍
+  let all = [...gPts, ...gMnts.map(m=>[m.x,m.y])];
+  let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+  all.forEach(p=>{
+    if(p[0]<minX) minX=p[0]; if(p[0]>maxX) maxX=p[0];
+    if(p[1]<minY) minY=p[1]; if(p[1]>maxY) maxY=p[1];
+  });
+  const w = Math.max(maxX-minX, 50);
+  const h = Math.max(maxY-minY, 50);
+  // 基礎比例：讓所有東西佔畫面 60%
+  const baseScale = Math.min(cv.width/w, cv.height/h) * 0.6;
+  const scale = baseScale * gZoom;
+  
+  // 映射函數 (以 gCenter 為畫面中心)
+  const map = (x, y) => [
+    cx + gPanX + (x - gCenter[0]) * scale,
+    cy + gPanY - (y - gCenter[1]) * scale // Y軸翻轉
+  ];
+  
+  // 1. 畫粒子雲
+  ctx.fillStyle = "rgba(0,255,255,0.4)";
+  gPts.forEach(p => {
+    const [px, py] = map(p[0], p[1]);
+    ctx.fillRect(px, py, 2, 2);
+  });
+  
+  // 2. 畫山頭與扇形
+  const errRad = rad(parseFloat(document.getElementById('err-val').value)||1);
+  gMnts.forEach((m, i) => {
+    const [mx, my] = map(m.x, m.y);
+    
+    // 繪製扇形 (反向角度)
+    // 羅盤 0=北(Y+), 90=東(X+). Canvas 0=X+, 90=Y+
+    // Canvas Angle = (Compass - 90) * -1 ??? 
+    // 不，最簡單是 Compass 0 = Canvas -90 (Up). 
+    // Bearing to Mountain is B. Back Azimuth is B+180.
+    // Canvas 0 is Right. Up is -90.
+    // Angle = (B + 180) - 90 = B + 90 (radians)
+    const angle = rad(m.b + 180 - 90); 
+    const L = Math.max(cv.width, cv.height) * 1.5;
+    
+    // 光束
+    ctx.beginPath();
+    ctx.moveTo(mx, my);
+    ctx.arc(mx, my, L, angle - errRad, angle + errRad);
+    ctx.fillStyle = `hsla(${i*50}, 80%, 60%, 0.1)`;
+    ctx.fill();
+    
+    // 中心線
+    ctx.beginPath();
+    ctx.moveTo(mx, my);
+    ctx.lineTo(mx + Math.cos(angle)*L, my + Math.sin(angle)*L);
+    ctx.strokeStyle = `hsla(${i*50}, 80%, 60%, 0.6)`;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // 山頭點
+    ctx.beginPath(); ctx.arc(mx, my, 6, 0, Math.PI*2);
+    ctx.fillStyle = `hsl(${i*50}, 80%, 60%)`; ctx.fill();
+    
+    // 名稱
+    ctx.fillStyle = "#fff"; ctx.font = "bold 14px monospace";
+    ctx.fillText(m.name || (i+1), mx+10, my+4);
+  });
+  
+  // 3. 畫自己 (永遠在中心 + Pan)
+  const [ux, uy] = map(gCenter[0], gCenter[1]);
+  ctx.strokeStyle = "#0f0"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(ux, uy, 12, 0, Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ux-20, uy); ctx.lineTo(ux+20, uy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ux, uy-20); ctx.lineTo(ux, uy+20); ctx.stroke();
+  ctx.fillStyle="#0f0"; ctx.fillText("YOU", ux+15, uy-15);
+}
+
+// 視圖控制
+function resetView() { gZoom=1.0; gPanX=0; gPanY=0; draw(); }
+function adjustZoom(f) { gZoom *= f; draw(); }
+function closeResult() { document.getElementById('result-overlay').style.display='none'; }
+
+// 拖曳事件
+let isDrag=false, startX=0, startY=0, lastX=0, lastY=0;
+const overlay = document.getElementById('result-overlay');
+
+overlay.addEventListener('mousedown', e => { isDrag=true; startX=e.clientX; startY=e.clientY; lastX=gPanX; lastY=gPanY; });
+overlay.addEventListener('touchstart', e => { isDrag=true; startX=e.touches[0].clientX; startY=e.touches[0].clientY; lastX=gPanX; lastY=gPanY; }, {passive:false});
+
+window.addEventListener('mousemove', e => {
+  if(!isDrag) return;
+  gPanX = lastX + (e.clientX - startX);
+  gPanY = lastY + (e.clientY - startY);
   draw();
-  
-  if(e.cancelable) e.preventDefault(); // 防止手機下拉刷新
-}
+});
+window.addEventListener('touchmove', e => {
+  if(!isDrag) return;
+  e.preventDefault();
+  gPanX = lastX + (e.touches[0].clientX - startX);
+  gPanY = lastY + (e.touches[0].clientY - startY);
+  draw();
+}, {passive:false});
 
-function stopDrag() {
-  isDragging = false;
-}
-
+window.addEventListener('mouseup', () => isDrag=false);
+window.addEventListener('touchend', () => isDrag=false);
 window.onresize = draw;
+
 </script>
 </body>
 </html>
