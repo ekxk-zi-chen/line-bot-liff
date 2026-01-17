@@ -244,25 +244,28 @@
 
     /* --- 列表樣式 (本次修改重點) --- */
     .record {
+      position: relative;
+      /* 關鍵：讓X按鈕可以對齊這裡 */
       display: flex;
       align-items: stretch;
-      gap: 1px;
-      /* 關鍵：縫隙只留 1px */
-      margin-bottom: 5px;
+      gap: 0;
+      /* 完全無縫隙 */
+      margin-bottom: 6px;
       background: #1a1a1a;
-      padding: 2px;
-      /* 關鍵：內距縮到最小 */
-      border-radius: 4px;
       border: 1px solid #333;
+      border-radius: 4px;
+      padding: 2px;
+      padding-right: 18px;
+      /* 右邊只留 18px 給 X，其他全給輸入框 */
+      overflow: hidden;
     }
 
     .deg-wrapper {
-      width: 72px;
-      /* 原本 80 -> 72 */
+      width: 68px;
+      /* 再縮窄一點 */
       flex-shrink: 0;
-      border: 1px solid #555;
-      border-radius: 2px;
       background: #000;
+      border-right: 1px solid #444;
     }
 
     input.deg-input {
@@ -287,10 +290,12 @@
     /* 輸入框群組 */
     .inputs-group {
       flex: 1;
+      /* 吃掉剩下所有空間 */
       display: flex;
       flex-direction: column;
       gap: 1px;
-      overflow: hidden;
+      min-width: 0;
+      /* 防止被內容撐開 */
     }
 
     .inputs-row {
@@ -300,17 +305,16 @@
 
     input.text-in {
       background: #0a0a0a;
-      border: 1px solid #444;
+      border: none;
       color: #fff;
-      padding: 4px 2px;
-      /* 壓榨空間 */
-      border-radius: 2px;
+      padding: 0 4px;
+      /* 極限內距 */
       font-size: 13px;
-      /* 字體微縮 */
       font-family: inherit;
-      width: 100%;
-      box-sizing: border-box;
       font-weight: bold;
+      width: 100%;
+      height: 26px;
+      /* 固定高度 */
     }
 
     input.text-in:focus {
@@ -321,21 +325,30 @@
 
     /* --- 修改：刪除按鈕變小變窄 --- */
     .del-btn {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      /* 拉滿整個高度 */
       width: 18px;
-      /* 極窄 */
-      flex-shrink: 0;
-      background: #822;
-      color: #fff;
+      /* 寬度鎖死 */
+      background: #611;
+      color: #aaa;
       border: none;
-      border-radius: 2px;
-      font-weight: bold;
-      font-size: 12px;
-      /* 字變小 */
+      border-left: 1px solid #444;
+      font-size: 10px;
+      /* 字體極小 */
       padding: 0;
       margin: 0;
       display: flex;
       align-items: center;
       justify-content: center;
+      z-index: 5;
+    }
+
+    .del-btn:active {
+      background: #f00;
+      color: #fff;
     }
 
     /* --- 6. 地圖層 --- */
