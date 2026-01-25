@@ -171,7 +171,7 @@
                 已選 <span id="export-count" class="text-yellow-400 font-bold text-lg">0</span> 項
             </div>
             <div class="flex gap-2">
-                <button onclick="selectAllVisible()" class="bg-gray-700 text-white px-3 py-1 rounded text-xs">全選此頁</button>
+                <button id="btn-select-all" onclick="toggleSelectAll()" class="bg-gray-700 text-white px-3 py-1 rounded text-xs hover:bg-gray-600 transition">全選此頁</button>
                 <button onclick="confirmExport()" class="bg-purple-600 text-white px-4 py-1 rounded font-bold shadow">
                     📥 產生報表
                 </button>
@@ -708,9 +708,12 @@
             // ... (過濾與排序邏輯保持不變，照舊) ...
             let filteredData = equipmentCache.filter(eq => {
                 const matchCategory = currentCategory === 'All' || eq.category === currentCategory;
+                // 2. 關鍵字過濾 (支援：名稱 OR 型號 OR 借用人)
                 const matchSearch = (eq.name && eq.name.toLowerCase().includes(searchText)) || 
-                                    (eq.model && eq.model.toLowerCase().includes(searchText));
-                
+                                    (eq.model && eq.model.toLowerCase().includes(searchText)) ||
+                                    // 🔥 新增：搜尋借用人 (只要其中一筆借用紀錄符合就算)
+                                    (eq.active_loans && eq.active_loans.some(l => l.borrower.toLowerCase().includes(searchText)));
+
                 let matchStatus = true;
                 const isBorrowed = eq.available_qty < eq.total_qty;
                 if (statusFilter === 'Borrowed') matchStatus = isBorrowed;
@@ -802,6 +805,8 @@
             });
 
             listDiv.innerHTML = htmlContent;
+            // 🔥 新增這行：每次渲染後，檢查一下全選按鈕的文字要不要變
+            updateSelectAllButtonState();
         }
         
         // --- 新增工具函式：展開/收合借用名單 ---
@@ -1160,19 +1165,52 @@
             }
             updateExportCount();
         }
-
-        // 3. 全選「目前顯示」的項目 (依照過濾結果)
-        function selectAllVisible() {
-            // 這裡必須重新執行一次過濾邏輯，找出目前畫面上有的 ID
-            // 簡單做法：直接抓 DOM 裡的 checkbox
+        
+        // --- 3. 智慧全選/取消全選 ---
+        function toggleSelectAll() {
+            // 找出目前畫面上「可見」且「有勾選框」的項目
             const checkboxes = document.querySelectorAll('#equipment-list input[type="checkbox"]');
-            checkboxes.forEach(cb => {
-                // 從 onclick 屬性中解析出 ID: toggleSelect('uuid...')
-                const id = cb.getAttribute('onchange').match(/'([^']+)'/)[1];
-                selectedItems.add(id);
-            });
-            renderEquipmentList(); // 重繪讓勾選框變亮
+            const visibleIds = Array.from(checkboxes).map(cb => cb.getAttribute('onchange').match(/'([^']+)'/)[1]);
+            
+            if (visibleIds.length === 0) return;
+
+            // 檢查：是不是所有可見的都已經被選了？
+            const allSelected = visibleIds.every(id => selectedItems.has(id));
+
+            if (allSelected) {
+                // 如果已經全選 -> 全部取消 (只取消目前看到的)
+                visibleIds.forEach(id => selectedItems.delete(id));
+            } else {
+                // 如果還沒全選 -> 全部勾選
+                visibleIds.forEach(id => selectedItems.add(id));
+            }
+
+            renderEquipmentList(); // 重繪
             updateExportCount();
+        }
+
+        // --- 輔助：更新全選按鈕文字 ---
+        function updateSelectAllButtonState() {
+            if (!isExportMode) return;
+
+            const btn = document.getElementById('btn-select-all');
+            const checkboxes = document.querySelectorAll('#equipment-list input[type="checkbox"]');
+            if (checkboxes.length === 0) {
+                btn.innerText = "全選此頁";
+                return;
+            }
+
+            const visibleIds = Array.from(checkboxes).map(cb => cb.getAttribute('onchange').match(/'([^']+)'/)[1]);
+            const allSelected = visibleIds.every(id => selectedItems.has(id));
+
+            // 如果全部都選了，按鈕變文字提示「取消全選」
+            if (allSelected) {
+                btn.innerText = "取消全選";
+                btn.classList.replace('bg-gray-700', 'bg-red-600'); // 變紅色提示取消
+            } else {
+                btn.innerText = "全選此頁";
+                btn.classList.replace('bg-red-600', 'bg-gray-700');
+            }
         }
 
         // 4. 更新已選數量
