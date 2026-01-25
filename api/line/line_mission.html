@@ -253,19 +253,26 @@
                 document.getElementById('user-info').innerText = `隊員：${displayName}`;
 
                 // 根據 URL 參數判斷要顯示哪一頁
+
                 const urlParams = new URLSearchParams(window.location.search);
-                const path = urlParams.get('path'); // 會抓到 'report', 'query', 或 'ai'
+                const path = urlParams.get('path'); // 會抓到 'report', 'query', 'ai', 或 'equipment'
 
-                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('loader').classList.add('hidden'); // 關閉轉圈圈
 
+                // 🔥 修改這裡：加入裝備頁面的判斷
                 if (path === 'report') {
                     showReportPage();
                 } else if (path === 'query') {
                     showQueryPage();
                 } else if (path === 'ai') {
                     showAiPage();
+                } else if (path === 'equipment') {
+                    // ✅ 新增這一段
+                    document.getElementById('view-equipment').classList.remove('hidden');
+                    // 預設載入「全部」分類
+                    loadEquipment('All'); 
                 } else {
-                    // 預設顯示查詢
+                    // 預設顯示查詢 (或是你可以改成預設顯示裝備)
                     showQueryPage();
                 }
 
