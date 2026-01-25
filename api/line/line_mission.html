@@ -203,6 +203,10 @@
             </div>
             
             <div class="flex gap-2 mt-6">
+                <button id="btn-delete-eq" onclick="deleteEquipment()" class="hidden bg-red-600 text-white px-3 py-2 rounded font-bold hover:bg-red-700">
+                    🗑️
+                </button>
+                
                 <button onclick="closeModal('edit-eq-modal')" class="flex-1 bg-gray-600 text-white py-2 rounded">取消</button>
                 <button onclick="submitEquipmentEdit()" class="flex-1 bg-yellow-600 text-white py-2 rounded font-bold">儲存</button>
             </div>
@@ -983,23 +987,32 @@
             modal.classList.add('flex');
             
             document.getElementById('edit-mode').value = mode;
+            const delBtn = document.getElementById('btn-delete-eq'); // 抓取刪除按鈕
             
             if(mode === 'create') {
                 document.getElementById('edit-modal-title').innerText = "➕ 新增裝備";
+                // 清空欄位... (略)
                 document.getElementById('edit-eq-id').value = "";
                 document.getElementById('eq-name').value = "";
-                document.getElementById('eq-category').value = ""; // 🔥 留白讓使用者選或填
+                document.getElementById('eq-category').value = "";
                 document.getElementById('eq-model').value = "";
                 document.getElementById('eq-location').value = "";
                 document.getElementById('eq-total').value = 1;
+                
+                // 🔥 新增模式：隱藏刪除按鈕
+                delBtn.classList.add('hidden'); 
             } else {
                 document.getElementById('edit-modal-title').innerText = "⚙️ 編輯裝備";
+                // 填入資料... (略)
                 document.getElementById('edit-eq-id').value = id;
                 document.getElementById('eq-name').value = name;
-                document.getElementById('eq-category').value = cat; // 填入舊分類
+                document.getElementById('eq-category').value = cat;
                 document.getElementById('eq-model').value = model || "";
                 document.getElementById('eq-location').value = loc || "";
                 document.getElementById('eq-total').value = total;
+                
+                // 🔥 編輯模式：顯示刪除按鈕
+                delBtn.classList.remove('hidden'); 
             }
         }
 
@@ -1037,6 +1050,46 @@
                 alert("錯誤: " + e.message); 
             } finally { 
                 toggleLoader(false); 
+            }
+        }
+
+        // 11. 刪除裝備 (雙重確認)
+        async function deleteEquipment() {
+            const id = document.getElementById('edit-eq-id').value;
+            const name = document.getElementById('eq-name').value;
+
+            // 第一次確認
+            if (!confirm(`⚠️ 警告：確定要刪除「${name}」嗎？`)) return;
+
+            // 第二次確認 (防止手殘)
+            if (!confirm(`🚨 請再次確認：\n刪除後該裝備將無法借用，且會從列表中消失。\n\n真的要刪除嗎？`)) return;
+
+            toggleLoader(true, "刪除資料中...");
+            closeModal('edit-eq-modal');
+
+            try {
+                // 直接呼叫 manage_equipment，動作改為 'delete'
+                const res = await callGasApi({
+                    action: 'manage_equipment',
+                    userId: userId,
+                    displayName: displayName,
+                    mode: 'delete', // 🔥 關鍵動作
+                    eqId: id,
+                    name: name, // 雖然刪除不用名字，但為了符合 API 格式還是傳一下
+                    category: '',
+                    totalQty: 0
+                });
+
+                if (res.success) {
+                    alert("🗑️ " + res.message);
+                    fetchEquipmentData(false); // 刷新列表
+                } else {
+                    alert("❌ 刪除失敗: " + res.message);
+                }
+            } catch (e) {
+                alert("錯誤: " + e.message);
+            } finally {
+                toggleLoader(false);
             }
         }
 
