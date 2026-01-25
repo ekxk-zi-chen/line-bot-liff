@@ -688,23 +688,19 @@
             renderEquipmentList();
         }
 
-        // 4. 渲染列表 (核心：包含搜尋過濾 + HTML生成)
+        // 4. 渲染列表 (核心：包含搜尋過濾 + HTML生成 + UI優化)
         function renderEquipmentList() {
             const listDiv = document.getElementById('equipment-list');
-            // 抓取搜尋框的文字 (轉小寫方便比對)
             const searchInput = document.getElementById('eq-search');
             const searchText = searchInput ? searchInput.value.toLowerCase() : "";
             
-            // 步驟 A: 過濾資料 (分類 + 搜尋關鍵字)
             const filteredData = equipmentCache.filter(eq => {
                 const matchCategory = currentCategory === 'All' || eq.category === currentCategory;
-                // 比對名稱 OR 型號
                 const matchSearch = (eq.name && eq.name.toLowerCase().includes(searchText)) || 
                                     (eq.model && eq.model.toLowerCase().includes(searchText));
                 return matchCategory && matchSearch;
             });
 
-            // 步驟 B: 生成 HTML (字串拼接優化效能)
             if (filteredData.length === 0) {
                 listDiv.innerHTML = "<p class='text-center text-gray-500 mt-4'>沒有符合的裝備</p>";
                 return;
@@ -713,54 +709,89 @@
             let htmlContent = '';
             
             filteredData.forEach(eq => {
-                // 計算狀態
                 const isFull = eq.available_qty === eq.total_qty;
                 const isEmpty = eq.available_qty === 0;
                 
+                // 狀態燈號
                 let statusBadge = isFull 
                     ? `<span class="text-green-400 font-bold text-sm">🟢 在隊 (${eq.available_qty})</span>` 
                     : (isEmpty ? `<span class="text-red-400 font-bold text-sm">🔴 全部借出</span>` 
                                : `<span class="text-blue-400 font-bold text-sm">🔵 部分借出 (${eq.available_qty}/${eq.total_qty})</span>`);
 
-                // 借用人名單 (如果有 active_loans)
+                // --- 🔥 優化 3: 借用人名單 (預設收合 + 按鈕展開) ---
                 let loansHtml = '';
                 if (eq.active_loans && eq.active_loans.length > 0) {
-                    loansHtml = `<div class="mt-2 pt-2 border-t border-gray-600 bg-gray-900 rounded p-2">
-                                    <p class="text-xs text-gray-400 mb-1">📋 借用中:</p>`;
+                    const collapseId = `loans-${eq.id}`;
+                    const count = eq.active_loans.length;
+                    
+                    // 標題列 (點擊可展開)
+                    loansHtml = `
+                        <div class="mt-3 pt-2 border-t border-gray-600">
+                            <button onclick="toggleLoanList('${collapseId}')" class="w-full flex justify-between items-center text-xs text-gray-400 hover:text-white p-1">
+                                <span>📋 借用中 (${count} 筆)</span>
+                                <span>▼</span>
+                            </button>
+                            <div id="${collapseId}" class="hidden space-y-2 mt-1 bg-gray-900 rounded p-2">`;
+                    
+                    // 借用列表內容
                     eq.active_loans.forEach(loan => {
                         loansHtml += `
-                            <div class="flex justify-between items-center text-sm mb-1 text-gray-300">
-                                <span>👤 ${loan.borrower} <span class="text-yellow-500">x${loan.qty}</span></span>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xs text-gray-500">${loan.date}</span>
-                                    <button onclick="returnItem('${loan.loan_id}', '${loan.borrower}')" class="bg-green-700 px-2 py-0.5 rounded text-xs text-white hover:bg-green-600">歸還</button>
+                            <div class="flex justify-between items-center text-sm mb-1 text-gray-300 border-b border-gray-800 pb-1 last:border-0">
+                                <div class="flex flex-col">
+                                    <span class="font-bold">👤 ${loan.borrower} <span class="text-yellow-500">x${loan.qty}</span></span>
+                                    <span class="text-[10px] text-gray-500">${loan.date}</span>
                                 </div>
+                                <button onclick="returnItem('${loan.loan_id}', '${loan.borrower}')" class="bg-green-700 text-white px-4 py-2 rounded shadow active:bg-green-800 transition">
+                                    歸還
+                                </button>
                             </div>`;
                     });
-                    loansHtml += `</div>`;
+                    loansHtml += `</div></div>`;
                 }
 
                 // 拼接 HTML 卡片
                 htmlContent += `
-                    <div class="card bg-gray-800 p-4 rounded-lg border-l-4 ${isEmpty ? "border-red-500" : "border-green-500"}">
-                        <div class="flex justify-between items-start">
+                    <div class="card bg-gray-800 p-4 rounded-lg border-l-4 ${isEmpty ? "border-red-500" : "border-green-500"} shadow-md">
+                        <div class="flex justify-between items-start mb-2">
                             <div>
-                                <h3 class="text-lg font-bold text-white">${eq.name} <span class="text-xs text-gray-400 font-normal">${eq.model || ''}</span></h3>
-                                <p class="text-xs text-gray-400">📍 ${eq.location || '未標註'} <span class="ml-2 px-1 rounded bg-gray-700 text-xs">${eq.category}</span></p>
+                                <h3 class="text-lg font-bold text-white leading-tight">${eq.name}</h3>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-xs text-gray-400 bg-gray-700 px-1 rounded">${eq.model || '無型號'}</span>
+                                    <span class="text-xs text-gray-400">📍 ${eq.location || '未標註'}</span>
+                                </div>
                             </div>
-                            <button onclick="openEditModal('update', '${eq.id}', '${eq.name}', '${eq.category}', '${eq.model}', '${eq.location}', ${eq.total_qty})" class="text-gray-500 text-xs p-2">⚙️</button>
+                            
+                            <div class="flex gap-2">
+                                <button onclick="fetchItemHistory('${eq.id}', '${eq.name}')" class="text-blue-400 hover:text-blue-300 p-1" title="查看歷史">
+                                    📜
+                                </button>
+                                <button onclick="openEditModal('update', '${eq.id}', '${eq.name}', '${eq.category}', '${eq.model}', '${eq.location}', ${eq.total_qty})" class="text-gray-500 hover:text-white p-1">
+                                    ⚙️
+                                </button>
+                            </div>
                         </div>
                         
-                        <div class="mt-2 flex justify-between items-center">
+                        <div class="flex justify-between items-center mt-3">
                             ${statusBadge}
-                            ${!isEmpty ? `<button onclick="openLoanModal('${eq.id}', '${eq.name}', ${eq.available_qty})" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-500">借出</button>` : ''}
+                            ${!isEmpty ? `<button onclick="openLoanModal('${eq.id}', '${eq.name}', ${eq.available_qty})" class="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-bold shadow hover:bg-blue-500">借出</button>` : ''}
                         </div>
+                        
                         ${loansHtml}
                     </div>
                 `;
             });
 
             listDiv.innerHTML = htmlContent;
+        }
+
+        // --- 新增工具函式：展開/收合借用名單 ---
+        function toggleLoanList(id) {
+            const el = document.getElementById(id);
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
         }
 
         // 5. 歷史紀錄功能 (呼叫後端 get_loan_history)
@@ -809,6 +840,52 @@
             }
         }
 
+        // 5. 單項裝備歷史紀錄 (點擊卡片右上角📜觸發)
+        async function fetchItemHistory(eqId, eqName) {
+            const modal = document.getElementById('history-modal');
+            const list = document.getElementById('history-list');
+            const title = modal.querySelector('h3'); // 抓標題元素
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            title.innerText = `📜 ${eqName} 的歷史紀錄`; // 顯示裝備名稱
+            list.innerHTML = '<div class="loader"></div>';
+
+            try {
+                // 🔥 呼叫後端：這次多帶一個 eqId 參數
+                const data = await callGasApi({ 
+                    action: 'get_loan_history', 
+                    userId: userId,
+                    eqId: eqId  // 指定查這項裝備
+                });
+
+                if (!data || data.length === 0) {
+                    list.innerHTML = "<p class='text-center text-gray-500 mt-10'>此裝備尚無借還紀錄</p>";
+                } else {
+                    let html = '';
+                    data.forEach(log => {
+                        const isReturn = log.status === '已歸還';
+                        const colorClass = isReturn ? 'border-green-500' : 'border-blue-500';
+                        const icon = isReturn ? '✅' : '📤';
+                        
+                        html += `
+                            <div class="bg-gray-700 p-3 rounded border-l-4 ${colorClass} text-sm">
+                                <div class="flex justify-between font-bold text-gray-200">
+                                    <span>${icon} ${log.status}</span> <span>${log.borrower}</span>
+                                </div>
+                                <div class="flex justify-between text-gray-400 mt-1 text-xs">
+                                    <span>數量: ${log.qty}</span>
+                                    <span>${log.time}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    list.innerHTML = html;
+                }
+            } catch (e) {
+                list.innerHTML = `<p class="text-red-400 text-center mt-10">無法讀取: ${e.message}</p>`;
+            }
+        }
         // 6. 開啟借出視窗
         function openLoanModal(id, name, maxQty) {
             document.getElementById('loan-modal').classList.remove('hidden');
@@ -933,7 +1010,7 @@
             try {
                 const res = await callGasApi(payload);
                 if(res.success) {
-                    alert(res.message);
+                    // alert(res.message);
                     fetchEquipmentData(false); // 靜默更新快取
                 } else {
                     alert("❌ 失敗: " + res.message);
