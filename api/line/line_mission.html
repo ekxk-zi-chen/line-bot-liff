@@ -713,7 +713,16 @@
                 });
                 if(res.success) {
                     alert("✅ 借出成功！");
-                    loadEquipment(document.querySelector('.bg-yellow-600.btn-filter').innerText); // 重新整理
+                    
+                    // --- 🔥 修改開始 ---
+                    // 嘗試抓取目前選中的分類按鈕
+                    const activeBtn = document.querySelector('.bg-yellow-600.btn-filter');
+                    // 如果抓到了就用按鈕的文字，抓不到就預設用 'All'
+                    const currentCategory = activeBtn ? activeBtn.innerText : 'All'; 
+                    
+                    loadEquipment(currentCategory); 
+                    // --- 🔥 修改結束 ---
+
                 } else {
                     alert("❌ 失敗: " + res.message);
                 }
@@ -734,7 +743,14 @@
                 });
                 if(res.success) {
                     alert("✅ 歸還確認完畢！");
-                    loadEquipment(document.querySelector('.bg-yellow-600.btn-filter').innerText); // 重新整理
+                    
+                    // --- 🔥 修改開始 ---
+                    const activeBtn = document.querySelector('.bg-yellow-600.btn-filter');
+                    const currentCategory = activeBtn ? activeBtn.innerText : 'All';
+                    
+                    loadEquipment(currentCategory);
+                    // --- 🔥 修改結束 ---
+
                 } else {
                     alert("❌ 失敗: " + res.message);
                 }
