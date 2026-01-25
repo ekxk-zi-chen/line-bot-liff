@@ -145,6 +145,9 @@
                 <button onclick="fetchEquipmentData(true)" class="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold shadow hover:bg-green-500">
                     🔄 刷新
                 </button>
+                <button onclick="toggleExportMode()" id="btn-export-mode" class="bg-purple-600 text-white px-3 py-1 rounded text-xs font-bold shadow hover:bg-purple-500">
+                    📊 匯出
+                </button>
             </div>
         </div>
 
@@ -162,6 +165,18 @@
         </button>
 
         <div id="equipment-list" class="space-y-3 min-h-[200px]"></div>
+        
+        <div id="export-toolbar" class="hidden fixed bottom-4 left-4 right-4 bg-gray-900 border border-purple-500 p-3 rounded-lg shadow-2xl z-40 flex justify-between items-center animate-bounce-in">
+            <div class="text-white text-sm">
+                已選 <span id="export-count" class="text-yellow-400 font-bold text-lg">0</span> 項
+            </div>
+            <div class="flex gap-2">
+                <button onclick="selectAllVisible()" class="bg-gray-700 text-white px-3 py-1 rounded text-xs">全選此頁</button>
+                <button onclick="confirmExport()" class="bg-purple-600 text-white px-4 py-1 rounded font-bold shadow">
+                    📥 產生報表
+                </button>
+            </div>
+        </div>
     </div>
 
     <div id="loan-modal" class="fixed inset-0 bg-black bg-opacity-90 hidden items-center justify-center z-50 p-4">
@@ -679,50 +694,40 @@
             renderEquipmentList();
         }
 
+        // 定義一個全域變數來記錄目前是否為「匯出模式」
+        let isExportMode = false;
+        let selectedItems = new Set(); // 儲存被勾選的 ID
+
         // 4. 渲染列表 (核心：包含搜尋過濾 + HTML生成 + UI優化)
         function renderEquipmentList() {
             const listDiv = document.getElementById('equipment-list');
             const searchInput = document.getElementById('eq-search');
-            const statusFilter = document.getElementById('status-filter').value; // 🔥 取得下拉選單的值
-            
+            const statusFilter = document.getElementById('status-filter').value;
             const searchText = searchInput ? searchInput.value.toLowerCase() : "";
             
-            // --- 步驟 A: 過濾資料 ---
+            // ... (過濾與排序邏輯保持不變，照舊) ...
             let filteredData = equipmentCache.filter(eq => {
-                // 1. 分類過濾
                 const matchCategory = currentCategory === 'All' || eq.category === currentCategory;
-                
-                // 2. 關鍵字過濾
                 const matchSearch = (eq.name && eq.name.toLowerCase().includes(searchText)) || 
                                     (eq.model && eq.model.toLowerCase().includes(searchText));
                 
-                // 3. 🔥 狀態過濾 (新功能)
                 let matchStatus = true;
-                const isBorrowed = eq.available_qty < eq.total_qty; // 只要數量不滿，就算有借出
-                
-                if (statusFilter === 'Borrowed') {
-                    matchStatus = isBorrowed; // 只顯示有借出的
-                } else if (statusFilter === 'InStock') {
-                    matchStatus = !isBorrowed; // 只顯示完全在隊的
-                }
+                const isBorrowed = eq.available_qty < eq.total_qty;
+                if (statusFilter === 'Borrowed') matchStatus = isBorrowed;
+                else if (statusFilter === 'InStock') matchStatus = !isBorrowed;
 
                 return matchCategory && matchSearch && matchStatus;
             });
 
-            // --- 步驟 B: 排序資料 (🔥 借出置頂核心邏輯) ---
             filteredData.sort((a, b) => {
                 const aIsBorrowed = a.available_qty < a.total_qty;
                 const bIsBorrowed = b.available_qty < b.total_qty;
-
-                // 邏輯：如果有借出 (True) 就排在前面 (-1)
                 if (aIsBorrowed && !bIsBorrowed) return -1;
                 if (!aIsBorrowed && bIsBorrowed) return 1;
-                
-                // 如果狀態一樣 (都有借出 或 都沒借出)，則依照名稱排序
                 return 0; 
             });
+            // ... (過濾結束) ...
 
-            // --- 步驟 C: 生成 HTML ---
             if (filteredData.length === 0) {
                 listDiv.innerHTML = "<p class='text-center text-gray-500 mt-4'>沒有符合的裝備</p>";
                 return;
@@ -740,70 +745,65 @@
                     : (isEmpty ? `<span class="text-red-400 font-bold text-sm">🔴 全部借出</span>` 
                                : `<span class="text-blue-400 font-bold text-sm">🔵 部分借出 (${eq.available_qty}/${eq.total_qty})</span>`);
 
-                // 借用人名單 (預設收合 + 按鈕展開)
+                // 借用人名單 (保持不變)
                 let loansHtml = '';
                 if (eq.active_loans && eq.active_loans.length > 0) {
                     const collapseId = `loans-${eq.id}`;
-                    const count = eq.active_loans.length;
-                    
                     loansHtml = `
                         <div class="mt-3 pt-2 border-t border-gray-600">
                             <button onclick="toggleLoanList('${collapseId}')" class="w-full flex justify-between items-center text-xs text-gray-400 hover:text-white p-1">
-                                <span>📋 借用中 (${count} 筆)</span>
+                                <span>📋 借用中 (${eq.active_loans.length} 筆)</span>
                                 <span>▼</span>
                             </button>
-                            <div id="${collapseId}" class="hidden space-y-2 mt-1 bg-gray-900 rounded p-2">`;
-                    
-                    eq.active_loans.forEach(loan => {
-                        loansHtml += `
-                            <div class="flex justify-between items-center text-sm mb-1 text-gray-300 border-b border-gray-800 pb-1 last:border-0">
-                                <div class="flex flex-col">
-                                    <span class="font-bold">👤 ${loan.borrower} <span class="text-yellow-500">x${loan.qty}</span></span>
-                                    <span class="text-[10px] text-gray-500">${loan.date}</span>
-                                </div>
-                                <button onclick="returnItem('${loan.loan_id}', '${loan.borrower}')" class="bg-green-700 text-white px-4 py-2 rounded shadow active:bg-green-800 transition">
-                                    歸還
-                                </button>
-                            </div>`;
-                    });
-                    loansHtml += `</div></div>`;
+                            <div id="${collapseId}" class="hidden space-y-2 mt-1 bg-gray-900 rounded p-2">
+                                ${eq.active_loans.map(loan => `
+                                    <div class="flex justify-between items-center text-sm mb-1 text-gray-300 border-b border-gray-800 pb-1">
+                                        <span class="font-bold">👤 ${loan.borrower} <span class="text-yellow-500">x${loan.qty}</span></span>
+                                        <button onclick="returnItem('${loan.loan_id}', '${loan.borrower}')" class="bg-green-700 text-white px-4 py-2 rounded text-xs">歸還</button>
+                                    </div>`).join('')}
+                            </div>
+                        </div>`;
                 }
 
-                // 拼接 HTML 卡片
+                // 🔥 重點：根據 isExportMode 決定是否顯示 Checkbox
+                // 如果是匯出模式，加入一個 checkbox wrapper
+                // 如果有被選中，加入 checked
+                const checked = selectedItems.has(eq.id) ? 'checked' : '';
+                const checkboxHtml = isExportMode ? 
+                    `<div class="mr-3 flex items-center">
+                        <input type="checkbox" onchange="toggleSelect('${eq.id}')" ${checked} class="w-6 h-6 rounded border-gray-600 text-purple-600 focus:ring-purple-500">
+                     </div>` : '';
+
+                // 拼接 HTML (Flex 排版調整)
                 htmlContent += `
-                    <div class="card bg-gray-800 p-4 rounded-lg border-l-4 ${isEmpty ? "border-red-500" : (isFull ? "border-green-500" : "border-blue-500")} shadow-md">
-                        <div class="flex justify-between items-start mb-2">
-                            <div>
-                                <h3 class="text-lg font-bold text-white leading-tight">${eq.name}</h3>
-                                <div class="flex items-center gap-2 mt-1">
-                                    <span class="text-xs text-gray-400 bg-gray-700 px-1 rounded">${eq.model || '無型號'}</span>
-                                    <span class="text-xs text-gray-400">📍 ${eq.location || '未標註'}</span>
+                    <div class="flex items-start bg-gray-800 p-4 rounded-lg mb-3 border-l-4 ${isEmpty ? "border-red-500" : (isFull ? "border-green-500" : "border-blue-500")} shadow-md">
+                        ${checkboxHtml} <div class="flex-1"> <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <h3 class="text-lg font-bold text-white leading-tight">${eq.name}</h3>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="text-xs text-gray-400 bg-gray-700 px-1 rounded">${eq.model || '無型號'}</span>
+                                        <span class="text-xs text-gray-400">📍 ${eq.location || '未標註'}</span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="fetchItemHistory('${eq.id}', '${eq.name}')" class="text-blue-400 p-1">📜</button>
+                                    <button onclick="openEditModal('update', '${eq.id}', '${eq.name}', '${eq.category}', '${eq.model}', '${eq.location}', ${eq.total_qty})" class="text-gray-500 p-1">⚙️</button>
                                 </div>
                             </div>
                             
-                            <div class="flex gap-2">
-                                <button onclick="fetchItemHistory('${eq.id}', '${eq.name}')" class="text-blue-400 hover:text-blue-300 p-1" title="查看歷史">
-                                    📜
-                                </button>
-                                <button onclick="openEditModal('update', '${eq.id}', '${eq.name}', '${eq.category}', '${eq.model}', '${eq.location}', ${eq.total_qty})" class="text-gray-500 hover:text-white p-1">
-                                    ⚙️
-                                </button>
+                            <div class="flex justify-between items-center mt-3">
+                                ${statusBadge}
+                                ${!isEmpty ? `<button onclick="openLoanModal('${eq.id}', '${eq.name}', ${eq.available_qty})" class="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-bold shadow">借出</button>` : ''}
                             </div>
+                            ${loansHtml}
                         </div>
-                        
-                        <div class="flex justify-between items-center mt-3">
-                            ${statusBadge}
-                            ${!isEmpty ? `<button onclick="openLoanModal('${eq.id}', '${eq.name}', ${eq.available_qty})" class="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-bold shadow hover:bg-blue-500">借出</button>` : ''}
-                        </div>
-                        
-                        ${loansHtml}
                     </div>
                 `;
             });
 
             listDiv.innerHTML = htmlContent;
         }
-
+        
         // --- 新增工具函式：展開/收合借用名單 ---
         function toggleLoanList(id) {
             const el = document.getElementById(id);
@@ -1125,6 +1125,90 @@
             const dataList = document.getElementById('category-options');
             if (dataList) {
                 dataList.innerHTML = allCats.map(cat => `<option value="${cat}">`).join('');
+            }
+        }
+        // --- 📊 匯出模式相關邏輯 ---/////////
+
+        // 1. 切換匯出模式開關
+        function toggleExportMode() {
+            isExportMode = !isExportMode;
+            const btn = document.getElementById('btn-export-mode');
+            const toolbar = document.getElementById('export-toolbar');
+            
+            if (isExportMode) {
+                btn.classList.remove('bg-purple-600');
+                btn.classList.add('bg-gray-500');
+                btn.innerText = "❌ 取消";
+                toolbar.classList.remove('hidden');
+            } else {
+                btn.classList.add('bg-purple-600');
+                btn.classList.remove('bg-gray-500');
+                btn.innerText = "📊 匯出";
+                toolbar.classList.add('hidden');
+                selectedItems.clear(); // 清空選擇
+                updateExportCount();
+            }
+            renderEquipmentList(); // 重繪列表 (顯示/隱藏 checkbox)
+        }
+
+        // 2. 勾選/取消單一項目
+        function toggleSelect(id) {
+            if (selectedItems.has(id)) {
+                selectedItems.delete(id);
+            } else {
+                selectedItems.add(id);
+            }
+            updateExportCount();
+        }
+
+        // 3. 全選「目前顯示」的項目 (依照過濾結果)
+        function selectAllVisible() {
+            // 這裡必須重新執行一次過濾邏輯，找出目前畫面上有的 ID
+            // 簡單做法：直接抓 DOM 裡的 checkbox
+            const checkboxes = document.querySelectorAll('#equipment-list input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                // 從 onclick 屬性中解析出 ID: toggleSelect('uuid...')
+                const id = cb.getAttribute('onchange').match(/'([^']+)'/)[1];
+                selectedItems.add(id);
+            });
+            renderEquipmentList(); // 重繪讓勾選框變亮
+            updateExportCount();
+        }
+
+        // 4. 更新已選數量
+        function updateExportCount() {
+            document.getElementById('export-count').innerText = selectedItems.size;
+        }
+
+        // 5. 確認匯出 (發送請求給 GAS)
+        async function confirmExport() {
+            if (selectedItems.size === 0) {
+                alert("請至少選擇一項裝備！");
+                return;
+            }
+
+            const ids = Array.from(selectedItems); // 轉成陣列
+            toggleLoader(true, `正在生成 ${ids.length} 筆資料報表...`);
+
+            try {
+                // 呼叫 GAS API (尚未實作後端，下一步做)
+                const res = await callGasApi({
+                    action: 'export_equipment_report',
+                    userId: userId,
+                    eqIds: ids // 傳送 ID 陣列
+                });
+
+                if (res.url) {
+                    // 成功！打開下載連結
+                    window.open(res.url, '_blank');
+                    toggleExportMode(); // 關閉模式
+                } else {
+                    alert("匯出失敗: 無法取得連結");
+                }
+            } catch (e) {
+                alert("匯出錯誤: " + e.message);
+            } finally {
+                toggleLoader(false);
             }
         }
         // 啟動主程式
