@@ -145,13 +145,7 @@
                    class="w-full bg-gray-700 text-white p-2 rounded mb-2 border border-gray-600 focus:border-yellow-500 outline-none" 
                    placeholder="🔍 搜尋裝備名稱、型號...">
             
-            <div class="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
-                <button onclick="switchCategory('All')" class="btn-filter filter-active bg-yellow-600 text-white px-3 py-1 rounded-full text-sm whitespace-nowrap">全部</button>
-                <button onclick="switchCategory('管理')" class="btn-filter bg-gray-700 text-gray-300 px-3 py-1 rounded-full text-sm whitespace-nowrap">管理</button>
-                <button onclick="switchCategory('搜索')" class="btn-filter bg-gray-700 text-gray-300 px-3 py-1 rounded-full text-sm whitespace-nowrap">搜索</button>
-                <button onclick="switchCategory('救援')" class="btn-filter bg-gray-700 text-gray-300 px-3 py-1 rounded-full text-sm whitespace-nowrap">救援</button>
-                <button onclick="switchCategory('醫療')" class="btn-filter bg-gray-700 text-gray-300 px-3 py-1 rounded-full text-sm whitespace-nowrap">醫療</button>
-                <button onclick="switchCategory('後勤')" class="btn-filter bg-gray-700 text-gray-300 px-3 py-1 rounded-full text-sm whitespace-nowrap">後勤</button>
+            <div id="category-filter-container" class="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
             </div>
         </div>
 
@@ -189,13 +183,9 @@
             <input type="hidden" id="edit-eq-id">
             <input type="hidden" id="edit-mode"> <div class="space-y-3">
                 <input type="text" id="eq-name" class="input-dark" placeholder="器材名稱 (必填)">
-                <select id="eq-category" class="input-dark">
-                    <option value="管理">管理組</option>
-                    <option value="搜索">搜索組</option>
-                    <option value="救援">救援組</option>
-                    <option value="醫療">醫療組</option>
-                    <option value="後勤">後勤組</option>
-                </select>
+                <input type="text" id="eq-category" list="category-options" class="input-dark" placeholder="選擇分類或輸入新分類 (必填)">
+                <datalist id="category-options">
+                    </datalist>
                 <input type="text" id="eq-model" class="input-dark" placeholder="型號 (選填)">
                 <input type="text" id="eq-location" class="input-dark" placeholder="存放位置">
                 <div class="flex items-center gap-2">
@@ -657,6 +647,8 @@
                     equipmentCache = [];
                 } else {
                     equipmentCache = data; // ✅ 更新快取
+                    // 🔥 加入這一行：資料更新後，重新計算有哪些分類
+                    renderCategoryUI();
                     renderEquipmentList(); // 🎬 重新渲染畫面
                     // if(showLoading) alert("✅ 資料已同步最新狀態");
                 }
@@ -673,18 +665,10 @@
         function switchCategory(category) {
             currentCategory = category;
             
-            // 更新按鈕樣式
-            document.querySelectorAll('.btn-filter').forEach(btn => {
-                if(btn.innerText === category) {
-                    btn.classList.remove('bg-gray-700', 'text-gray-300');
-                    btn.classList.add('bg-yellow-600', 'text-white');
-                } else {
-                    btn.classList.add('bg-gray-700', 'text-gray-300');
-                    btn.classList.remove('bg-yellow-600', 'text-white');
-                }
-            });
-
-            // 重新渲染列表 (因為分類變了)
+            // 重新渲染 UI (這樣按鈕顏色才會變)
+            renderCategoryUI();
+            
+            // 重新渲染列表
             renderEquipmentList();
         }
 
@@ -974,6 +958,7 @@
                 document.getElementById('eq-model').value = "";
                 document.getElementById('eq-location').value = "";
                 document.getElementById('eq-total').value = 1;
+                document.getElementById('eq-category').value = ""; // 新增時留白，讓他選或打字
             } else {
                 document.getElementById('edit-modal-title').innerText = "⚙️ 編輯裝備";
                 document.getElementById('edit-eq-id').value = id;
@@ -982,6 +967,7 @@
                 document.getElementById('eq-model').value = model || "";
                 document.getElementById('eq-location').value = loc || "";
                 document.getElementById('eq-total').value = total;
+                document.getElementById('eq-category').value = cat; // 編輯時填入原本的分類
             }
         }
 
@@ -1025,6 +1011,38 @@
         function closeModal(id) {
             document.getElementById(id).classList.add('hidden');
             document.getElementById(id).classList.remove('flex');
+        }
+
+        // --- 🔥 新功能: 動態產生分類按鈕與選單 ---
+        function renderCategoryUI() {
+            // 1. 找出目前所有的分類 (從快取資料中萃取)
+            // 預設五大組 (確保就算沒裝備，這五個也在)
+            const defaultCats = ['管理', '搜索', '救援', '醫療', '後勤'];
+            // 從現有資料抓取不重複的分類
+            const existCats = equipmentCache.map(eq => eq.category);
+            // 合併並去除重複
+            const allCats = [...new Set([...defaultCats, ...existCats])];
+
+            // 2. 渲染上方「過濾按鈕」
+            const container = document.getElementById('category-filter-container');
+            let btnHtml = '';
+            
+            // 先加「全部」按鈕
+            const allActiveClass = currentCategory === 'All' ? 'bg-yellow-600 text-white' : 'bg-gray-700 text-gray-300';
+            btnHtml += `<button onclick="switchCategory('All')" class="btn-filter ${allActiveClass} px-3 py-1 rounded-full text-sm whitespace-nowrap transition-colors">全部</button>`;
+
+            // 再加其他分類按鈕
+            allCats.forEach(cat => {
+                const activeClass = currentCategory === cat ? 'bg-yellow-600 text-white' : 'bg-gray-700 text-gray-300';
+                btnHtml += `<button onclick="switchCategory('${cat}')" class="btn-filter ${activeClass} px-3 py-1 rounded-full text-sm whitespace-nowrap transition-colors">${cat}</button>`;
+            });
+            container.innerHTML = btnHtml;
+
+            // 3. 渲染新增視窗的「下拉選單 (Datalist)」
+            const dataList = document.getElementById('category-options');
+            if(dataList) {
+                dataList.innerHTML = allCats.map(cat => `<option value="${cat}">`).join('');
+            }
         }
         // 啟動主程式
         main();
