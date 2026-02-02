@@ -257,7 +257,6 @@
                     
                     <button onclick="fetchEquipmentData(true)" class="text-xs text-green-400 border border-green-400 px-2 py-1 rounded">🔄</button>
                     
-                    <button onclick="toggleExportMode()" id="btn-export-mode" class="text-xs text-purple-400 border border-purple-400 px-2 py-1 rounded">📊</button>
                 </div>
             </div>
 
@@ -273,10 +272,16 @@
         </div>
 
         <div id="content-area">
-            <button id="btn-add-eq" onclick="openEditModal('create')" class="hidden w-full bg-yellow-600/20 text-yellow-400 border border-yellow-600 py-2 rounded mb-3 text-sm font-bold hover:bg-yellow-600 hover:text-white transition">
-                ➕ 新增裝備
-            </button>
-            
+            <div class="flex gap-2 mb-2">
+                <button onclick="toggleExportMode()" id="btn-export-mode" class="flex-1 bg-purple-600/90 text-white py-2 rounded-lg font-bold text-sm shadow transition-all hover:bg-purple-600 flex items-center justify-center gap-1">
+                    <span>📊</span> 批量/匯出
+                </button>
+                
+                <button id="btn-add-eq" onclick="openEditModal('create')" class="hidden w-1/4 bg-yellow-600 text-white border border-yellow-500 py-2 rounded-lg font-bold text-sm shadow hover:bg-yellow-500 transition-all whitespace-nowrap">
+                    +新增
+                </button>
+            </div>
+
             <div id="equipment-list" class="space-y-2 pb-20"></div>
         </div>
         
