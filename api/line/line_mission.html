@@ -242,7 +242,7 @@
                 <div class="flex items-center gap-2">
                     <h2 class="text-base font-bold text-yellow-400">🎒 裝備</h2>
                     <button onclick="toggleFilterPanel()" id="btn-toggle-filter" class="text-xs bg-gray-800 text-gray-400 border border-gray-600 px-2 py-1 rounded flex items-center gap-1 transition-colors">
-                        <span>▼</span> 收合
+                        <span>🔍</span> 篩選
                     </button>
                 </div>
                 
@@ -261,7 +261,7 @@
                 </div>
             </div>
 
-            <div id="collapsible-filters" class="transition-all duration-300 overflow-hidden" style="max-height: 500px;">
+            <div id="collapsible-filters" class="transition-all duration-300 overflow-hidden" style="max-height: 0px; opacity: 0;">
                 <div class="px-4 pb-2">
                     <input type="text" id="eq-search" oninput="renderEquipmentList()" class="input-dark w-full text-xs" placeholder="🔍 搜尋裝備名稱、型號...">
                 </div>
@@ -317,7 +317,7 @@
     <script>
         const GAS_API_URL = "https://line-bot-liff-lovat.vercel.app/api/webhook";
         let userId="", displayName="", equipmentCache=[], currentCategory='All', currentLocation='All', currentNote='All', isExportMode=false, selectedItems=new Set(), loaderInterval;
-        let isUserAdmin = false; // 🔥 [新增] 預設非管理員
+        let isUserAdmin = false; // 🔥 [修正] 權限旗標 (預設 false)
 
         // --- 全域工具函數 (讓 task.js 也能用) ---
         function toggleLoader(show, text="處理中...") {
@@ -344,7 +344,7 @@
                 userId = profile.userId; displayName = profile.displayName;
                 document.getElementById('user-info').innerText = `隊員：${displayName}`;
                 
-                checkAdminRole(); // 🔥 [新增] 檢查權限
+                checkAdminRole(); // 🔥 [修正] 檢查權限
 
                 const path = new URLSearchParams(window.location.search).get('path');
                 document.getElementById('loader').classList.add('hidden'); 
@@ -356,7 +356,7 @@
             } catch (err) { alert("LIFF 錯誤: " + err); }
         }
 
-        // 🔥 [新增] 權限檢查函數
+        // 🔥 [修正] 權限檢查函數
         async function checkAdminRole() {
             try {
                 const res = await callGasApi({ action: 'check_user_role', userId: userId });
@@ -391,7 +391,7 @@
                 if(equipmentCache.length === 0) document.getElementById('equipment-list').innerHTML = "<p class='text-center text-gray-500'>查無裝備</p>";
                 else { 
                     renderCategoryUI(); 
-                    renderLocationUI(); // 🔥 [新增] 這一行
+                    renderLocationUI(); 
                     renderNoteUI(); 
                     renderEquipmentList(); 
                 }
@@ -407,7 +407,7 @@
                 // 1. 分類
                 const matchCat = currentCategory === 'All' || eq.category === currentCategory;
                 
-                // 🔥 2. [新增] 位置過濾
+                // 2. 位置過濾
                 const matchLoc = currentLocation === 'All' || eq.location === currentLocation;
 
                 // 3. 搜尋
@@ -424,7 +424,6 @@
                     else matchNote = eq.active_loans.some(l => (currentNote==='未分類' ? (!l.note||l.note.trim()==='') : l.note===currentNote));
                 }
 
-                // 🔥 記得把 matchLoc 加進去回傳
                 return matchCat && matchLoc && matchSearch && matchStatus && matchNote;
             });
             filtered.sort((a, b) => (a.available_qty < a.total_qty ? -1 : 1));
@@ -441,7 +440,7 @@
                 if (eq.active_loans && eq.active_loans.length > 0) {
                     loansHtml = `<div class="mt-2 pt-2 border-t border-gray-600 space-y-1">`;
                     eq.active_loans.forEach(l => {
-                        // 🔥 [修改] 歸還按鈕：只給管理員看
+                        // 🔥 [修正] 歸還按鈕：只給管理員看
                         const returnBtn = isUserAdmin ? `<button onclick="openSingleReturnModal('${eq.id}', '${l.loan_id}', ${l.qty}, '${l.borrower}')" class="bg-green-700 text-white px-2 py-1 rounded text-[10px]">歸還</button>` : '';
                         
                         loansHtml += `<div class="flex justify-between items-center text-xs text-gray-300">
@@ -454,10 +453,10 @@
                 const checked = selectedItems.has(eq.id) ? 'checked' : '';
                 const checkHtml = isExportMode ? `<div class="mr-3 flex items-center"><input type="checkbox" onchange="toggleSelect('${eq.id}')" ${checked} class="w-6 h-6"></div>` : '';
 
-                // 🔥 [修改] 借出按鈕：只給管理員看
+                // 🔥 [修正] 借出按鈕：只給管理員看
                 const borrowBtn = (!isEmpty && isUserAdmin) ? `<button onclick="openSingleBorrowModal('${eq.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold">借出</button>` : '';
                 
-                // 🔥 [修改] 編輯按鈕：只給管理員看
+                // 🔥 [修正] 編輯按鈕：只給管理員看
                 const editBtn = isUserAdmin ? `<button onclick="openEditModal('update', '${eq.id}')" class="text-gray-500 p-1">⚙️</button>` : '';
 
                 html += `<div class="flex items-start bg-gray-800 p-4 rounded-lg mb-3 border-l-4 ${isEmpty ? "border-red-500" : (isFull ? "border-green-500" : "border-blue-500")}">
@@ -566,7 +565,7 @@
             container.innerHTML = html;
         }
 
-        // 🔥 [新增] 切換位置函數
+        // 🔥 [修正] 切換位置函數
         function switchLocation(loc) { currentLocation = loc; renderLocationUI(); renderEquipmentList(); }
 
         // 渲染備註按鈕 (包含自動重置邏輯)
@@ -575,7 +574,7 @@
             const notes = new Set(); 
             equipmentCache.forEach(e => e.active_loans?.forEach(l => notes.add(l.note?.trim() || '未分類')));
             
-            // 🔥 [新增] 自動重置邏輯
+            // 🔥 [修正] 自動重置邏輯
             // 如果目前有選某個備註，但這個備註已經不在新的清單裡 (代表該用途的裝備都還光了)
             // 就強制切換回 'All'，並重新刷新列表
             if (currentNote !== 'All' && !notes.has(currentNote)) {
@@ -626,7 +625,7 @@
             renderNoteUI(); 
             renderEquipmentList(); 
             
-            // 🔥 [新增] 選完後自動收合篩選面板
+            // 🔥 [修正] 選完後自動收合篩選面板
             toggleFilterPanel(); 
         }
         function openEditModal(mode,id,name,cat,model,loc,total) {
