@@ -289,7 +289,7 @@
             const notes = new Set(); equipmentCache.forEach(e => e.active_loans?.forEach(l => notes.add(l.note?.trim() || '未分類')));
             const div = document.getElementById('note-filter-container');
             if(notes.size===0) { div.classList.add('hidden'); return; } div.classList.remove('hidden');
-            div.innerHTML = `<button onclick="switchNote('All')" class="btn-filter ${currentNote==='All'?'active':''} px-3 py-1 rounded-full text-xs bg-gray-700 mr-2">全部</button>` + Array.from(notes).map(n=>`<button onclick="switchNote('${n}')" class="btn-filter ${currentNote===n?'active':''} px-3 py-1 rounded-full text-xs bg-gray-700 mr-2">${n}</button>`).join('');
+            div.innerHTML = `<button onclick="switchNote('All')" class="btn-filter ${currentNote==='All'?'active':''} px-3 py-1 rounded-full text-xs bg-gray-700 mr-2">全部(借出備註)</button>` + Array.from(notes).map(n=>`<button onclick="switchNote('${n}')" class="btn-filter ${currentNote===n?'active':''} px-3 py-1 rounded-full text-xs bg-gray-700 mr-2">${n}</button>`).join('');
         }
         function switchCategory(c) { currentCategory = c; renderCategoryUI(); renderEquipmentList(); }
         function switchNote(n) { currentNote = n; renderNoteUI(); renderEquipmentList(); }
