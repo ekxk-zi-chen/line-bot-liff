@@ -246,15 +246,20 @@
                     </button>
                 </div>
                 
-                <div class="flex gap-2">
-                    <select id="status-filter" onchange="renderEquipmentList()" class="bg-gray-800 text-gray-300 text-xs py-1 px-1 rounded border border-gray-700 outline-none max-w-[80px]">
+                <div class="flex gap-2 items-center">
+                    <select id="status-filter" onchange="renderEquipmentList()" class="bg-gray-800 text-gray-300 text-xs py-1 px-1 rounded border border-gray-700 outline-none max-w-[70px]">
                         <option value="All">全部</option>
                         <option value="Borrowed">借出</option>
                         <option value="InStock">在隊</option>
                     </select>
+
                     <button onclick="fetchHistory()" class="text-xs text-blue-400 border border-blue-400 px-2 py-1 rounded">📜</button>
                     <button onclick="fetchEquipmentData(true)" class="text-xs text-green-400 border border-green-400 px-2 py-1 rounded">🔄</button>
                     <button onclick="toggleExportMode()" id="btn-export-mode" class="text-xs text-purple-400 border border-purple-400 px-2 py-1 rounded">📊</button>
+                    
+                    <button id="btn-add-eq" onclick="openEditModal('create')" class="hidden text-xs text-yellow-400 border border-yellow-400 px-2 py-1 rounded hover:bg-yellow-400 hover:text-black transition">
+                        +新增
+                    </button>
                 </div>
             </div>
 
@@ -270,10 +275,6 @@
         </div>
 
         <div id="content-area">
-            <button onclick="openEditModal('create')" class="w-full bg-yellow-600/20 text-yellow-400 border border-yellow-600 py-2 rounded mb-3 text-sm font-bold hover:bg-yellow-600 hover:text-white transition">
-                ➕ 新增裝備
-            </button>
-            
             <div id="equipment-list" class="space-y-2 pb-20"></div>
         </div>
         
@@ -505,7 +506,7 @@
         function renderCategoryUI() {
             const cats = [...new Set(['管理','搜索','救援','醫療','後勤', ...equipmentCache.map(e=>e.category)])];
             // 使用 btn-chip 樣式
-            let html = `<button onclick="switchCategory('All')" class="btn-chip ${currentCategory==='All'?'active':''}">全部</button>`;
+            let html = `<button onclick="switchCategory('All')" class="btn-chip ${currentCategory==='All'?'active':''}">全部分組</button>`;
             cats.forEach(c => {
                 html += `<button onclick="switchCategory('${c}')" class="btn-chip ${currentCategory===c?'active':''}">${c}</button>`;
             });
