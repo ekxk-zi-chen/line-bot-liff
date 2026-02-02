@@ -242,7 +242,7 @@
                 <div class="flex items-center gap-2">
                     <h2 class="text-base font-bold text-yellow-400">🎒 裝備</h2>
                     <button onclick="toggleFilterPanel()" id="btn-toggle-filter" class="text-xs bg-gray-800 text-gray-400 border border-gray-600 px-2 py-1 rounded flex items-center gap-1 transition-colors">
-                        <span>▼</span> 收合
+                        <span>🔍</span> 篩選
                     </button>
                 </div>
                 
@@ -252,24 +252,21 @@
                         <option value="Borrowed">借出</option>
                         <option value="InStock">在隊</option>
                     </select>
-
                     <button onclick="fetchHistory()" class="text-xs text-blue-400 border border-blue-400 px-2 py-1 rounded">📜</button>
-                    
                     <button onclick="fetchEquipmentData(true)" class="text-xs text-green-400 border border-green-400 px-2 py-1 rounded">🔄</button>
-                    
                     <button onclick="toggleExportMode()" id="btn-export-mode" class="text-xs text-purple-400 border border-purple-400 px-2 py-1 rounded">📊</button>
                 </div>
             </div>
 
-            <div id="collapsible-filters" class="transition-all duration-300 overflow-hidden" style="max-height: 500px;">
+            <div id="collapsible-filters" class="transition-all duration-300 overflow-hidden" style="max-height: 0px; opacity: 0;">
                 <div class="px-4 pb-2">
                     <input type="text" id="eq-search" oninput="renderEquipmentList()" class="input-dark w-full text-xs" placeholder="🔍 搜尋裝備名稱、型號...">
                 </div>
-                
                 <div id="category-filter-container" class="filter-row"></div>
                 <div id="location-filter-container" class="filter-row hidden"></div>
                 <div id="note-filter-container" class="filter-row hidden"></div>
-                <div class="h-2"></div> </div>
+                <div class="h-2"></div>
+            </div>
         </div>
 
         <div id="content-area">
@@ -534,12 +531,20 @@
         // 🔥 [新增] 切換位置函數
         function switchLocation(loc) { currentLocation = loc; renderLocationUI(); renderEquipmentList(); }
 
-        // 渲染備註按鈕
+        // 渲染備註按鈕 (包含自動重置邏輯)
         function renderNoteUI() {
             const container = document.getElementById('note-filter-container');
             const notes = new Set(); 
             equipmentCache.forEach(e => e.active_loans?.forEach(l => notes.add(l.note?.trim() || '未分類')));
             
+            // 🔥 [新增] 自動重置邏輯
+            // 如果目前有選某個備註，但這個備註已經不在新的清單裡 (代表該用途的裝備都還光了)
+            // 就強制切換回 'All'，並重新刷新列表
+            if (currentNote !== 'All' && !notes.has(currentNote)) {
+                currentNote = 'All';
+                renderEquipmentList(); // 重新過濾列表 (不然會顯示空白)
+            }
+
             if(notes.size === 0) { container.classList.add('hidden'); return; } 
             container.classList.remove('hidden');
 
@@ -549,6 +554,7 @@
             });
             container.innerHTML = html;
         }
+
         // 🔥 切換篩選面板展開/收合
         function toggleFilterPanel() {
             const panel = document.getElementById('collapsible-filters');
