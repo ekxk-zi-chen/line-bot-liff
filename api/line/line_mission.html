@@ -7,38 +7,211 @@
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 共用樣式 */
-        body { background-color: #1a1a1a; color: #e0e0e0; font-family: sans-serif; padding-bottom: 120px; }
-        .card { background-color: #2d2d2d; border-radius: 12px; padding: 16px; margin-bottom: 12px; border-left: 5px solid #4CAF50; }
-        .btn { width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; margin-top: 8px; cursor: pointer; transition: all 0.2s; }
+        /* =========================================
+           1. 全局佈局 (針對手機優化 - Sticky Layout)
+           ========================================= */
+        body { 
+            background-color: #1a1a1a; 
+            color: #e0e0e0; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            /* 關鍵：讓 body 變成一個滿屏的盒子，禁止外層捲動 */
+            height: 100vh; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column;
+            margin: 0;
+            padding: 0; /* 移除 body padding，改在內容區設定 */
+        }
+
+        /* 頂部固定區 (Header + 篩選器) */
+        #top-fixed-area {
+            flex-shrink: 0; /* 防止被壓縮 */
+            background-color: #1a1a1a;
+            z-index: 20;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); /* 底部陰影 */
+            padding-bottom: 8px;
+        }
+
+        /* 內容捲動區 (只有這裡可以滑動) */
+        #content-area {
+            flex-grow: 1; /* 佔滿剩餘空間 */
+            overflow-y: auto; /* 垂直捲動 */
+            padding: 16px; /* 原本 body 的 p-4 移到這裡 */
+            padding-bottom: 120px; /* 預留給底部工具列的空間 */
+            scroll-behavior: smooth;
+        }
+
+        /* =========================================
+           2. 新版膠囊篩選器 (Chip/Pill Styles)
+           ========================================= */
+        /* 橫向滑動容器 */
+        .filter-row {
+            display: flex;
+            gap: 8px; /* 按鈕間距 */
+            overflow-x: auto; /* 橫向捲動 */
+            padding: 4px 16px; /* 左右留白 */
+            white-space: nowrap;
+            /* 隱藏捲軸但保留功能 */
+            -ms-overflow-style: none;  /* IE/Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        .filter-row::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
+        }
+
+        /* 膠囊按鈕本體 */
+        .btn-chip {
+            background-color: #333;
+            color: #aaa;
+            padding: 6px 14px;
+            border-radius: 9999px; /* 圓形膠囊 */
+            font-size: 13px;
+            font-weight: 500;
+            border: 1px solid #444;
+            transition: all 0.2s;
+            flex-shrink: 0; /* 防止被擠壓 */
+        }
+        
+        /* 選中狀態 */
+        .btn-chip.active {
+            background-color: #ca8a04; /* 黃色 */
+            color: white;
+            border-color: #ca8a04;
+            box-shadow: 0 0 8px rgba(202, 138, 4, 0.4);
+        }
+
+        /* =========================================
+           3. 共用元件 (Legacy Components)
+           ========================================= */
+        .card { 
+            background-color: #2d2d2d; 
+            border-radius: 12px; 
+            padding: 16px; 
+            margin-bottom: 12px; 
+            border-left: 5px solid #4CAF50; 
+        }
+
+        /* 按鈕通用樣式 */
+        .btn { 
+            width: 100%; 
+            padding: 12px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            margin-top: 8px; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+        }
         .btn:active { transform: scale(0.98); }
         .btn-green { background-color: #4CAF50; color: white; border: none; }
         .btn-red { background-color: #f44336; color: white; border: none; }
         .btn-blue { background-color: #2196F3; color: white; border: none; }
+        
+        /* 舊版篩選按鈕 (若還有用到的話) */
+        .btn-filter { transition: all 0.2s; }
+        .btn-filter.active { background-color: #ca8a04; color: white; }
+
+        /* 輸入框優化 */
+        .input-dark { 
+            width: 100%; 
+            background-color: #374151; 
+            color: white; 
+            padding: 10px 14px; 
+            border-radius: 20px; /* 變圓一點比較好看 */
+            border: 1px solid #4b5563; 
+            outline: none; 
+            font-size: 14px;
+        }
+        .input-dark:focus { border-color: #f59e0b; background-color: #4b5563; }
+
+        /* 工具類 */
+        .hidden { display: none !important; }
         .loader { border: 4px solid #333; border-top: 4px solid #4CAF50; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .hidden { display: none !important; }
-        .input-dark { width: 100%; background-color: #374151; color: white; padding: 10px; border-radius: 6px; border: 1px solid #4b5563; outline: none; }
-        .input-dark:focus { border-color: #f59e0b; }
-        .btn-filter.active { background-color: #ca8a04; color: white; }
-        
-        /* 任務看板 CSS (配合 task.js) */
-        .mission-detail { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; background-color: #333; border-radius: 0 0 12px 12px; }
-        .mission-detail.open { max-height: 800px; border-top: 1px solid #444; }
-        .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-        
-        /* 捲軸與彈窗 */
+
+        /* =========================================
+           4. 任務看板專用 (Mission Board)
+           ========================================= */
+        .mission-detail { 
+            max-height: 0; 
+            overflow: hidden; 
+            transition: max-height 0.3s ease-out; 
+            background-color: #333; 
+            border-radius: 0 0 12px 12px; 
+        }
+        .mission-detail.open { 
+            max-height: 800px; 
+            border-top: 1px solid #444; 
+        }
+        .line-clamp-3 { 
+            display: -webkit-box; 
+            -webkit-line-clamp: 3; 
+            line-clamp: 3; 
+            -webkit-box-orient: vertical; 
+            overflow: hidden; 
+        }
+
+        /* =========================================
+           5. 捲軸與彈窗 (Modals & Scrollbars)
+           ========================================= */
+        /* 自定義捲軸 */
         .custom-scrollbar::-webkit-scrollbar { height: 4px; width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
-        .modal-overlay { position: fixed; inset: 0; background-color: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 50; padding: 1rem; }
-        .modal-overlay.flex { display: flex !important; }
-        .batch-table th { position: sticky; top: 0; background: #374151; color: #ddd; padding: 8px; text-align: left; }
-        .batch-table td { border-bottom: 1px solid #4b5563; padding: 8px; color: #eee; }
         
-        /* 山豬動畫 */
-        #boar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.9); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .boar-scene { font-size: 60px; margin-bottom: 20px; animation: bounce 1s infinite alternate; }
-        .boar-text { color: #4CAF50; font-weight: bold; font-size: 1.2rem; animation: pulse 1.5s infinite; }
+        /* 彈窗背景 */
+        .modal-overlay { 
+            position: fixed; 
+            inset: 0; 
+            background-color: rgba(0,0,0,0.9); 
+            display: none; 
+            align-items: center; 
+            justify-content: center; 
+            z-index: 50; 
+            padding: 1rem; 
+        }
+        .modal-overlay.flex { display: flex !important; }
+        
+        /* 批次操作表格 */
+        .batch-table th { 
+            position: sticky; 
+            top: 0; 
+            background: #374151; 
+            color: #ddd; 
+            padding: 8px; 
+            text-align: left; 
+        }
+        .batch-table td { 
+            border-bottom: 1px solid #4b5563; 
+            padding: 8px; 
+            color: #eee; 
+        }
+
+        /* =========================================
+           6. 山豬特搜動畫 (Loading Animation)
+           ========================================= */
+        #boar-overlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background-color: rgba(0, 0, 0, 0.9); 
+            z-index: 9999; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        .boar-scene { 
+            font-size: 60px; 
+            margin-bottom: 20px; 
+            animation: bounce 1s infinite alternate; 
+        }
+        .boar-text { 
+            color: #4CAF50; 
+            font-weight: bold; 
+            font-size: 1.2rem; 
+            animation: pulse 1.5s infinite; 
+        }
         @keyframes bounce { 0% { transform: translateY(0); } 100% { transform: translateY(-10px); } }
     </style>
 </head>
@@ -61,21 +234,44 @@
         <div id="ai-response" class="mt-4 p-4 bg-gray-800 rounded border-l-4 border-green-500 hidden"></div>
     </div>
     
-    <div id="view-equipment" class="hidden pb-20">
-        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
-            <div class="flex items-center gap-2 w-full sm:w-auto"><h2 class="text-lg font-bold text-yellow-400 whitespace-nowrap">🎒 裝備</h2><select id="status-filter" onchange="renderEquipmentList()" class="flex-1 sm:flex-none bg-gray-700 text-white text-sm py-2 px-2 rounded border border-gray-600 outline-none focus:border-yellow-500"><option value="All">全部顯示</option><option value="Borrowed">只看借出</option><option value="InStock">只看在隊</option></select></div>
-            <div class="flex gap-2 w-full sm:w-auto"><button onclick="fetchHistory()" class="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-sm font-bold shadow">📜 歷史</button><button onclick="fetchEquipmentData(true)" class="flex-1 bg-green-600 text-white px-3 py-2 rounded text-sm font-bold shadow">🔄 刷新</button><button onclick="toggleExportMode()" id="btn-export-mode" class="flex-1 bg-purple-600 text-white px-3 py-2 rounded text-sm font-bold shadow">📊 匯出</button></div>
-        </div>
-        <div class="bg-gray-800 p-2 rounded-lg mb-3 border border-gray-700">
-            <input type="text" id="eq-search" oninput="renderEquipmentList()" class="w-full bg-gray-700 text-white p-2 rounded mb-2 border border-gray-600 outline-none" placeholder="🔍 搜尋...">
-            <div id="category-filter-container" class="flex gap-2 overflow-x-auto pb-1 custom-scrollbar"></div>
-            
-            <div id="location-filter-container" class="flex gap-2 overflow-x-auto pb-1 mt-2 custom-scrollbar border-t border-gray-700 pt-2 hidden"></div>
+    <div id="view-equipment" class="hidden h-full flex flex-col">
+        
+        <div id="top-fixed-area" class="pb-2">
+            <div class="flex justify-between items-center px-4 py-2 bg-gray-900 border-b border-gray-800">
+                <div class="flex items-center gap-2">
+                    <h2 class="text-base font-bold text-yellow-400">🎒 裝備</h2>
+                    <select id="status-filter" onchange="renderEquipmentList()" class="bg-gray-800 text-gray-300 text-xs py-1 px-2 rounded border border-gray-700 outline-none">
+                        <option value="All">全部</option>
+                        <option value="Borrowed">出勤中</option>
+                        <option value="InStock">在隊</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="fetchHistory()" class="text-xs text-blue-400 font-bold border border-blue-400 px-2 py-1 rounded-full">📜</button>
+                    <button onclick="fetchEquipmentData(true)" class="text-xs text-green-400 font-bold border border-green-400 px-2 py-1 rounded-full">🔄</button>
+                    <button onclick="toggleExportMode()" id="btn-export-mode" class="text-xs text-purple-400 font-bold border border-purple-400 px-2 py-1 rounded-full">📊</button>
+                </div>
+            </div>
 
-            <div id="note-filter-container" class="flex gap-2 overflow-x-auto pb-1 mt-2 custom-scrollbar border-t border-gray-700 pt-2 hidden"></div>
+            <div class="px-4 py-2">
+                <input type="text" id="eq-search" oninput="renderEquipmentList()" 
+                       class="input-dark w-full" 
+                       placeholder="🔍 搜尋裝備...">
+            </div>
+            
+            <div id="category-filter-container" class="filter-row"></div>
+            <div id="location-filter-container" class="filter-row hidden"></div>
+            <div id="note-filter-container" class="filter-row hidden"></div>
         </div>
-        <button onclick="openEditModal('create')" class="w-full bg-yellow-600 text-white py-2 rounded mb-3 font-bold shadow-lg">➕ 新增</button>
-        <div id="equipment-list" class="space-y-3 min-h-[200px]"></div>
+
+        <div id="content-area">
+            <button onclick="openEditModal('create')" class="w-full bg-yellow-600/20 text-yellow-400 border border-yellow-600 py-2 rounded mb-3 text-sm font-bold hover:bg-yellow-600 hover:text-white transition">
+                ➕ 新增裝備
+            </button>
+            
+            <div id="equipment-list" class="space-y-2 pb-20"></div>
+        </div>
+        
         <div id="export-toolbar" class="hidden fixed bottom-4 left-4 right-4 bg-gray-900 border border-purple-500 p-3 rounded-lg shadow-2xl z-40 flex flex-col gap-3">
             <div class="flex justify-between items-center border-b border-gray-700 pb-2"><div class="text-white text-sm">已選 <span id="export-count" class="text-yellow-400 font-bold text-lg">0</span> 項</div><button id="btn-select-all" onclick="toggleSelectAll()" class="bg-gray-700 text-white px-3 py-1 rounded text-xs">全選</button></div>
             <div class="flex gap-2"><button onclick="openBatchBorrowModal()" class="flex-1 bg-blue-600 text-white py-2 rounded font-bold text-sm shadow">批量借出</button><button onclick="openBatchReturnModal()" class="flex-1 bg-green-600 text-white py-2 rounded font-bold text-sm shadow">批量歸還</button><button onclick="confirmExport()" class="flex-1 bg-purple-600 text-white py-2 rounded font-bold text-sm shadow">匯出</button></div>
@@ -300,26 +496,29 @@
         function toggleSelectAll() { const ids = Array.from(document.querySelectorAll('#equipment-list input[type="checkbox"]')).map(c => c.getAttribute('onchange').match(/'([^']+)'/)[1]); if (ids.every(id => selectedItems.has(id))) ids.forEach(id => selectedItems.delete(id)); else ids.forEach(id => selectedItems.add(id)); renderEquipmentList(); updateExportCount(); }
         function updateExportCount() { document.getElementById('export-count').innerText = selectedItems.size; }
         async function confirmExport() { if (selectedItems.size === 0) return alert("請選擇"); toggleLoader(true); try { const res = await callGasApi({ action: 'export_equipment_report', userId, eqIds: Array.from(selectedItems) }); if (res.url) window.open(res.url); else alert("失敗"); } catch (e) { alert(e.message); } finally { toggleLoader(false); } }
+        // 渲染分類按鈕
         function renderCategoryUI() {
             const cats = [...new Set(['管理','搜索','救援','醫療','後勤', ...equipmentCache.map(e=>e.category)])];
-            document.getElementById('category-filter-container').innerHTML = `<button onclick="switchCategory('All')" class="btn-filter ${currentCategory==='All'?'active':''} px-3 py-1 rounded-full text-sm bg-gray-700 mr-2">全部</button>` + cats.map(c=>`<button onclick="switchCategory('${c}')" class="btn-filter ${currentCategory===c?'active':''} px-3 py-1 rounded-full text-sm bg-gray-700 mr-2">${c}</button>`).join('');
+            // 使用 btn-chip 樣式
+            let html = `<button onclick="switchCategory('All')" class="btn-chip ${currentCategory==='All'?'active':''}">全部</button>`;
+            cats.forEach(c => {
+                html += `<button onclick="switchCategory('${c}')" class="btn-chip ${currentCategory===c?'active':''}">${c}</button>`;
+            });
+            document.getElementById('category-filter-container').innerHTML = html;
             document.getElementById('category-options').innerHTML = cats.map(c=>`<option value="${c}">`).join('');
         }
-        // 🔥 [新增] 渲染位置按鈕 (第二層)
+        // 渲染位置按鈕
         function renderLocationUI() {
             const container = document.getElementById('location-filter-container');
-            // 抓出所有不重複的位置，過濾掉空的
             const locs = new Set();
             equipmentCache.forEach(e => { if(e.location) locs.add(e.location); });
             
             if(locs.size === 0) { container.classList.add('hidden'); return; } 
             container.classList.remove('hidden');
 
-            // 產生按鈕 HTML
-            let html = `<button onclick="switchLocation('All')" class="btn-filter ${currentLocation==='All'?'active':''} px-3 py-1 rounded-full text-xs bg-gray-700 mr-2 whitespace-nowrap">全部(位置)</button>`;
-            
+            let html = `<button onclick="switchLocation('All')" class="btn-chip ${currentLocation==='All'?'active':''}">全部位置</button>`;
             Array.from(locs).sort().forEach(loc => {
-                html += `<button onclick="switchLocation('${loc}')" class="btn-filter ${currentLocation===loc?'active':''} px-3 py-1 rounded-full text-xs bg-gray-700 mr-2 whitespace-nowrap">${loc}</button>`;
+                html += `<button onclick="switchLocation('${loc}')" class="btn-chip ${currentLocation===loc?'active':''}">${loc}</button>`;
             });
             container.innerHTML = html;
         }
@@ -327,11 +526,20 @@
         // 🔥 [新增] 切換位置函數
         function switchLocation(loc) { currentLocation = loc; renderLocationUI(); renderEquipmentList(); }
 
+        // 渲染備註按鈕
         function renderNoteUI() {
-            const notes = new Set(); equipmentCache.forEach(e => e.active_loans?.forEach(l => notes.add(l.note?.trim() || '未分類')));
-            const div = document.getElementById('note-filter-container');
-            if(notes.size===0) { div.classList.add('hidden'); return; } div.classList.remove('hidden');
-            div.innerHTML = `<button onclick="switchNote('All')" class="btn-filter ${currentNote==='All'?'active':''} px-3 py-1 rounded-full text-xs bg-gray-700 mr-2">全部(借出備註)</button>` + Array.from(notes).map(n=>`<button onclick="switchNote('${n}')" class="btn-filter ${currentNote===n?'active':''} px-3 py-1 rounded-full text-xs bg-gray-700 mr-2">${n}</button>`).join('');
+            const container = document.getElementById('note-filter-container');
+            const notes = new Set(); 
+            equipmentCache.forEach(e => e.active_loans?.forEach(l => notes.add(l.note?.trim() || '未分類')));
+            
+            if(notes.size === 0) { container.classList.add('hidden'); return; } 
+            container.classList.remove('hidden');
+
+            let html = `<button onclick="switchNote('All')" class="btn-chip ${currentNote==='All'?'active':''}">全部用途</button>`;
+            Array.from(notes).sort().forEach(n => {
+                html += `<button onclick="switchNote('${n}')" class="btn-chip ${currentNote===n?'active':''}">${n}</button>`;
+            });
+            container.innerHTML = html;
         }
         function switchCategory(c) { currentCategory = c; renderCategoryUI(); renderEquipmentList(); }
         function switchNote(n) { currentNote = n; renderNoteUI(); renderEquipmentList(); }
