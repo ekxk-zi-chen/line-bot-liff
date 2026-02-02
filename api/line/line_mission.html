@@ -69,6 +69,9 @@
         <div class="bg-gray-800 p-2 rounded-lg mb-3 border border-gray-700">
             <input type="text" id="eq-search" oninput="renderEquipmentList()" class="w-full bg-gray-700 text-white p-2 rounded mb-2 border border-gray-600 outline-none" placeholder="🔍 搜尋...">
             <div id="category-filter-container" class="flex gap-2 overflow-x-auto pb-1 custom-scrollbar"></div>
+            
+            <div id="location-filter-container" class="flex gap-2 overflow-x-auto pb-1 mt-2 custom-scrollbar border-t border-gray-700 pt-2 hidden"></div>
+
             <div id="note-filter-container" class="flex gap-2 overflow-x-auto pb-1 mt-2 custom-scrollbar border-t border-gray-700 pt-2 hidden"></div>
         </div>
         <button onclick="openEditModal('create')" class="w-full bg-yellow-600 text-white py-2 rounded mb-3 font-bold shadow-lg">➕ 新增</button>
@@ -105,7 +108,7 @@
 
     <script>
         const GAS_API_URL = "https://line-bot-liff-lovat.vercel.app/api/webhook";
-        let userId="", displayName="", equipmentCache=[], currentCategory='All', currentNote='All', isExportMode=false, selectedItems=new Set(), loaderInterval;
+        let userId="", displayName="", equipmentCache=[], currentCategory='All', currentLocation='All', currentNote='All', isExportMode=false, selectedItems=new Set(), loaderInterval;
 
         // --- 全域工具函數 (讓 task.js 也能用) ---
         function toggleLoader(show, text="處理中...") {
@@ -156,7 +159,12 @@
                 const data = await callGasApi({ action: 'get_equipment_list', userId: userId, category: 'All' });
                 equipmentCache = (data && data.length > 0) ? data : [];
                 if(equipmentCache.length === 0) document.getElementById('equipment-list').innerHTML = "<p class='text-center text-gray-500'>查無裝備</p>";
-                else { renderCategoryUI(); renderNoteUI(); renderEquipmentList(); }
+                else { 
+                    renderCategoryUI(); 
+                    renderLocationUI(); // 🔥 [新增] 這一行
+                    renderNoteUI(); 
+                    renderEquipmentList(); 
+                }
             } catch (e) { alert(e.message); } finally { if (showLoading) toggleLoader(false); }
         }
 
@@ -166,16 +174,28 @@
             const statusFilter = document.getElementById('status-filter').value;
             
             let filtered = equipmentCache.filter(eq => {
+                // 1. 分類
                 const matchCat = currentCategory === 'All' || eq.category === currentCategory;
+                
+                // 🔥 2. [新增] 位置過濾
+                const matchLoc = currentLocation === 'All' || eq.location === currentLocation;
+
+                // 3. 搜尋
                 const matchSearch = (eq.name+eq.model).toLowerCase().includes(searchText) || (eq.active_loans && eq.active_loans.some(l => l.borrower.toLowerCase().includes(searchText)));
+                
+                // 4. 狀態
                 const isBorrowed = eq.available_qty < eq.total_qty;
                 let matchStatus = (statusFilter === 'Borrowed' ? isBorrowed : (statusFilter === 'InStock' ? !isBorrowed : true));
+                
+                // 5. 備註
                 let matchNote = true;
                 if (currentNote !== 'All') {
                     if (!eq.active_loans || eq.active_loans.length === 0) matchNote = false;
                     else matchNote = eq.active_loans.some(l => (currentNote==='未分類' ? (!l.note||l.note.trim()==='') : l.note===currentNote));
                 }
-                return matchCat && matchSearch && matchStatus && matchNote;
+
+                // 🔥 記得把 matchLoc 加進去回傳
+                return matchCat && matchLoc && matchSearch && matchStatus && matchNote;
             });
             filtered.sort((a, b) => (a.available_qty < a.total_qty ? -1 : 1));
 
@@ -285,6 +305,28 @@
             document.getElementById('category-filter-container').innerHTML = `<button onclick="switchCategory('All')" class="btn-filter ${currentCategory==='All'?'active':''} px-3 py-1 rounded-full text-sm bg-gray-700 mr-2">全部</button>` + cats.map(c=>`<button onclick="switchCategory('${c}')" class="btn-filter ${currentCategory===c?'active':''} px-3 py-1 rounded-full text-sm bg-gray-700 mr-2">${c}</button>`).join('');
             document.getElementById('category-options').innerHTML = cats.map(c=>`<option value="${c}">`).join('');
         }
+        // 🔥 [新增] 渲染位置按鈕 (第二層)
+        function renderLocationUI() {
+            const container = document.getElementById('location-filter-container');
+            // 抓出所有不重複的位置，過濾掉空的
+            const locs = new Set();
+            equipmentCache.forEach(e => { if(e.location) locs.add(e.location); });
+            
+            if(locs.size === 0) { container.classList.add('hidden'); return; } 
+            container.classList.remove('hidden');
+
+            // 產生按鈕 HTML
+            let html = `<button onclick="switchLocation('All')" class="btn-filter ${currentLocation==='All'?'active':''} px-3 py-1 rounded-full text-xs bg-gray-700 mr-2 whitespace-nowrap">全部(位置)</button>`;
+            
+            Array.from(locs).sort().forEach(loc => {
+                html += `<button onclick="switchLocation('${loc}')" class="btn-filter ${currentLocation===loc?'active':''} px-3 py-1 rounded-full text-xs bg-gray-700 mr-2 whitespace-nowrap">${loc}</button>`;
+            });
+            container.innerHTML = html;
+        }
+
+        // 🔥 [新增] 切換位置函數
+        function switchLocation(loc) { currentLocation = loc; renderLocationUI(); renderEquipmentList(); }
+
         function renderNoteUI() {
             const notes = new Set(); equipmentCache.forEach(e => e.active_loans?.forEach(l => notes.add(l.note?.trim() || '未分類')));
             const div = document.getElementById('note-filter-container');
