@@ -1,53 +1,44 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>花蓮特搜戰情中心</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-
     <style>
         /* =========================================
            1. 全局佈局 (針對手機優化 - Sticky Layout)
            ========================================= */
-        body {
-            background-color: #1a1a1a;
-            color: #e0e0e0;
+        body { 
+            background-color: #1a1a1a; 
+            color: #e0e0e0; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             /* 關鍵：讓 body 變成一個滿屏的盒子，禁止外層捲動 */
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
+            height: 100vh; 
+            overflow: hidden; 
+            display: flex; 
             flex-direction: column;
             margin: 0;
-            padding: 0;
+            padding: 0; /* 移除 body padding，改在內容區設定 */
         }
 
         /* 頂部固定區 (Header + 篩選器) */
         #top-fixed-area {
-            flex-shrink: 0;
-            /* 防止被壓縮 */
+            flex-shrink: 0; /* 防止被壓縮 */
             background-color: #1a1a1a;
             z-index: 20;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-            /* 底部陰影 */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); /* 底部陰影 */
             padding-bottom: 8px;
         }
 
         /* 內容捲動區 (只有這裡可以滑動) */
         #content-area {
-            flex-grow: 1;
-            /* 佔滿剩餘空間 */
-            overflow-y: auto;
-            /* 垂直捲動 */
-            padding: 16px;
-            padding-bottom: 120px;
-            /* 預留給底部工具列的空間 */
+            flex-grow: 1; /* 佔滿剩餘空間 */
+            overflow-y: auto; /* 垂直捲動 */
+            padding: 16px; /* 原本 body 的 p-4 移到這裡 */
+            padding-bottom: 120px; /* 預留給底部工具列的空間 */
             scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
-            /* iOS 滑動優化 */
         }
 
         /* =========================================
@@ -56,23 +47,16 @@
         /* 橫向滑動容器 */
         .filter-row {
             display: flex;
-            gap: 8px;
-            /* 按鈕間距 */
-            overflow-x: auto;
-            /* 橫向捲動 */
-            padding: 4px 16px;
-            /* 左右留白 */
+            gap: 8px; /* 按鈕間距 */
+            overflow-x: auto; /* 橫向捲動 */
+            padding: 4px 16px; /* 左右留白 */
             white-space: nowrap;
             /* 隱藏捲軸但保留功能 */
-            -ms-overflow-style: none;
-            /* IE/Edge */
-            scrollbar-width: none;
-            /* Firefox */
+            -ms-overflow-style: none;  /* IE/Edge */
+            scrollbar-width: none;  /* Firefox */
         }
-
         .filter-row::-webkit-scrollbar {
-            display: none;
-            /* Chrome/Safari */
+            display: none; /* Chrome/Safari */
         }
 
         /* 膠囊按鈕本體 */
@@ -80,20 +64,17 @@
             background-color: #333;
             color: #aaa;
             padding: 6px 14px;
-            border-radius: 9999px;
-            /* 圓形膠囊 */
+            border-radius: 9999px; /* 圓形膠囊 */
             font-size: 13px;
             font-weight: 500;
             border: 1px solid #444;
             transition: all 0.2s;
-            flex-shrink: 0;
-            /* 防止被擠壓 */
+            flex-shrink: 0; /* 防止被擠壓 */
         }
-
+        
         /* 選中狀態 */
         .btn-chip.active {
-            background-color: #ca8a04;
-            /* 黃色 */
+            background-color: #ca8a04; /* 黃色 */
             color: white;
             border-color: #ca8a04;
             box-shadow: 0 0 8px rgba(202, 138, 4, 0.4);
@@ -102,419 +83,292 @@
         /* =========================================
            3. 共用元件 (Legacy Components)
            ========================================= */
-        .card {
-            background-color: #2d2d2d;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            border-left: 5px solid #4CAF50;
+        .card { 
+            background-color: #2d2d2d; 
+            border-radius: 12px; 
+            padding: 16px; 
+            margin-bottom: 12px; 
+            border-left: 5px solid #4CAF50; 
         }
 
         /* 按鈕通用樣式 */
-        .btn {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: bold;
-            margin-top: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
+        .btn { 
+            width: 100%; 
+            padding: 12px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            margin-top: 8px; 
+            cursor: pointer; 
+            transition: all 0.2s; 
         }
-
-        .btn:active {
-            transform: scale(0.98);
-        }
-
-        .btn-green {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-        }
-
-        .btn-red {
-            background-color: #f44336;
-            color: white;
-            border: none;
-        }
-
-        .btn-blue {
-            background-color: #2196F3;
-            color: white;
-            border: none;
-        }
+        .btn:active { transform: scale(0.98); }
+        .btn-green { background-color: #4CAF50; color: white; border: none; }
+        .btn-red { background-color: #f44336; color: white; border: none; }
+        .btn-blue { background-color: #2196F3; color: white; border: none; }
+        
+        /* 舊版篩選按鈕 (若還有用到的話) */
+        .btn-filter { transition: all 0.2s; }
+        .btn-filter.active { background-color: #ca8a04; color: white; }
 
         /* 輸入框優化 */
-        .input-dark {
-            width: 100%;
-            background-color: #374151;
-            color: white;
-            padding: 10px 14px;
-            border-radius: 20px;
-            border: 1px solid #4b5563;
-            outline: none;
+        .input-dark { 
+            width: 100%; 
+            background-color: #374151; 
+            color: white; 
+            padding: 10px 14px; 
+            border-radius: 20px; /* 變圓一點比較好看 */
+            border: 1px solid #4b5563; 
+            outline: none; 
             font-size: 14px;
         }
-
-        .input-dark:focus {
-            border-color: #f59e0b;
-            background-color: #4b5563;
-        }
+        .input-dark:focus { border-color: #f59e0b; background-color: #4b5563; }
 
         /* 工具類 */
-        .hidden {
-            display: none !important;
-        }
-
-        .loader {
-            border: 4px solid #333;
-            border-top: 4px solid #4CAF50;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
+        .hidden { display: none !important; }
+        .loader { border: 4px solid #333; border-top: 4px solid #4CAF50; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* =========================================
            4. 任務看板專用 (Mission Board)
            ========================================= */
-        .mission-detail {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
-            background-color: #333;
-            border-radius: 0 0 12px 12px;
+        .mission-detail { 
+            max-height: 0; 
+            overflow: hidden; 
+            transition: max-height 0.3s ease-out; 
+            background-color: #333; 
+            border-radius: 0 0 12px 12px; 
         }
-
-        .mission-detail.open {
-            max-height: 800px;
-            border-top: 1px solid #444;
+        .mission-detail.open { 
+            max-height: 800px; 
+            border-top: 1px solid #444; 
         }
-
-        .line-clamp-3 {
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
+        .line-clamp-3 { 
+            display: -webkit-box; 
+            -webkit-line-clamp: 3; 
+            line-clamp: 3; 
+            -webkit-box-orient: vertical; 
+            overflow: hidden; 
         }
 
         /* =========================================
            5. 捲軸與彈窗 (Modals & Scrollbars)
            ========================================= */
-        .custom-scrollbar::-webkit-scrollbar {
-            height: 4px;
-            width: 4px;
+        /* 自定義捲軸 */
+        .custom-scrollbar::-webkit-scrollbar { height: 4px; width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
+        
+        /* 彈窗背景 */
+        .modal-overlay { 
+            position: fixed; 
+            inset: 0; 
+            background-color: rgba(0,0,0,0.9); 
+            display: none; 
+            align-items: center; 
+            justify-content: center; 
+            z-index: 50; 
+            padding: 1rem; 
         }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #555;
-            border-radius: 2px;
+        .modal-overlay.flex { display: flex !important; }
+        
+        /* 批次操作表格 */
+        .batch-table th { 
+            position: sticky; 
+            top: 0; 
+            background: #374151; 
+            color: #ddd; 
+            padding: 8px; 
+            text-align: left; 
         }
-
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background-color: rgba(0, 0, 0, 0.9);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 50;
-            padding: 1rem;
-        }
-
-        .modal-overlay.flex {
-            display: flex !important;
-        }
-
-        .batch-table th {
-            position: sticky;
-            top: 0;
-            background: #374151;
-            color: #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-
-        .batch-table td {
-            border-bottom: 1px solid #4b5563;
-            padding: 8px;
-            color: #eee;
+        .batch-table td { 
+            border-bottom: 1px solid #4b5563; 
+            padding: 8px; 
+            color: #eee; 
         }
 
         /* =========================================
-           6. 山豬特搜動畫
+           6. 山豬特搜動畫 (Loading Animation)
            ========================================= */
-        #boar-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+        #boar-overlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background-color: rgba(0, 0, 0, 0.9); 
+            z-index: 9999; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
         }
-
-        .boar-scene {
-            font-size: 60px;
-            margin-bottom: 20px;
-            animation: bounce 1s infinite alternate;
+        .boar-scene { 
+            font-size: 60px; 
+            margin-bottom: 20px; 
+            animation: bounce 1s infinite alternate; 
         }
-
-        .boar-text {
-            color: #4CAF50;
-            font-weight: bold;
-            font-size: 1.2rem;
-            animation: pulse 1.5s infinite;
+        .boar-text { 
+            color: #4CAF50; 
+            font-weight: bold; 
+            font-size: 1.2rem; 
+            animation: pulse 1.5s infinite; 
         }
-
-        @keyframes bounce {
-            0% {
-                transform: translateY(0);
-            }
-
-            100% {
-                transform: translateY(-10px);
-            }
-        }
+        @keyframes bounce { 0% { transform: translateY(0); } 100% { transform: translateY(-10px); } }
     </style>
 </head>
-
 <body class="p-4">
 
-    <div id="boar-overlay" class="hidden">
-        <div id="boar-anim" class="boar-scene">🐗</div>
-        <p id="boar-text" class="boar-text">資料處理中...</p>
-    </div>
-    <div id="header" class="mb-4 text-center">
-        <h1 class="text-xl font-bold text-green-400">🚒 花蓮特搜行動系統</h1>
-        <p id="user-info" class="text-sm text-gray-400">識別中...</p>
-    </div>
+    <div id="boar-overlay" class="hidden"><div id="boar-anim" class="boar-scene">🐗</div><p id="boar-text" class="boar-text">資料處理中...</p></div>
+    <div id="header" class="mb-4 text-center"><h1 class="text-xl font-bold text-green-400">🚒 花蓮特搜行動系統</h1><p id="user-info" class="text-sm text-gray-400">識別中...</p></div>
     <div id="loader" class="loader"></div>
-
-    <div id="view-report" class="hidden">
-        <h2 class="text-lg font-bold mb-2">📝 您的任務回報</h2>
-        <div id="report-list"></div>
-    </div>
-    <div id="view-query" class="hidden">
-        <h2 class="text-lg font-bold mb-2">🔍 進行中任務看板</h2>
-        <div id="query-list"></div>
-    </div>
-
+    
+    <div id="view-report" class="hidden"><h2 class="text-lg font-bold mb-2">📝 您的任務回報</h2><div id="report-list"></div></div>
+    <div id="view-query" class="hidden"><h2 class="text-lg font-bold mb-2">🔍 進行中任務看板</h2><div id="query-list"></div></div>
+    
     <div id="view-ai" class="hidden">
         <h2 class="text-lg font-bold mb-2">🤖 AI 戰情/簡報中心</h2>
         <div class="bg-gray-800 p-3 rounded mb-3 border border-gray-700">
-            <p class="text-sm text-gray-400 mb-1">請輸入目標</p><input type="text" id="ai-input" class="input-dark"
-                placeholder="例如: 土耳其...">
+            <p class="text-sm text-gray-400 mb-1">請輸入目標</p><input type="text" id="ai-input" class="input-dark" placeholder="例如: 土耳其...">
         </div>
-        <div class="flex gap-2 mb-3"><button onclick="safeExecute(this, () => askAI('text'))"
-                class="btn btn-blue flex-1">💬 分析</button><button onclick="safeExecute(this, () => askAI('ppt'))"
-                class="btn btn-red flex-1">📊 簡報</button></div>
-        <a href="https://drive.google.com/drive/folders/1XAtHLGeo2fQH3wO5Lfq5_IjunbkIqzn_" target="_blank"
-            class="btn block text-center mb-4" style="background-color: #FF9800; color: white;">📂 開啟歸檔</a>
+        <div class="flex gap-2 mb-3"><button onclick="safeExecute(this, () => askAI('text'))" class="btn btn-blue flex-1">💬 分析</button><button onclick="safeExecute(this, () => askAI('ppt'))" class="btn btn-red flex-1">📊 簡報</button></div>
+        <a href="https://drive.google.com/drive/folders/1XAtHLGeo2fQH3wO5Lfq5_IjunbkIqzn_" target="_blank" class="btn block text-center mb-4" style="background-color: #FF9800; color: white;">📂 開啟歸檔</a>
         <div id="ai-response" class="mt-4 p-4 bg-gray-800 rounded border-l-4 border-green-500 hidden"></div>
     </div>
-
+    
     <div id="view-equipment" class="hidden h-full flex flex-col">
-
+        
         <div id="top-fixed-area" class="pb-1 bg-gray-900 border-b border-gray-800">
-
+            
             <div class="flex justify-between items-center px-4 py-2">
                 <div class="flex items-center gap-2">
                     <h2 class="text-base font-bold text-yellow-400">🎒 裝備</h2>
-                    <button onclick="toggleFilterPanel()" id="btn-toggle-filter"
-                        class="text-xs bg-gray-800 text-gray-400 border border-gray-600 px-2 py-1 rounded flex items-center gap-1 transition-colors">
-                        <span>🔍</span> 篩選
+                    <button onclick="toggleFilterPanel()" id="btn-toggle-filter" class="text-xs bg-gray-800 text-gray-400 border border-gray-600 px-2 py-1 rounded flex items-center gap-1 transition-colors">
+                        <span>▼</span> 收合
                     </button>
                 </div>
-
-                <div class="flex gap-2 items-center">
-                    <select id="status-filter" onchange="renderEquipmentList()"
-                        class="bg-gray-800 text-gray-300 text-xs py-1 px-1 rounded border border-gray-700 outline-none max-w-[70px]">
+                
+                <div class="flex gap-2">
+                    <select id="status-filter" onchange="renderEquipmentList()" class="bg-gray-800 text-gray-300 text-xs py-1 px-1 rounded border border-gray-700 outline-none max-w-[80px]">
                         <option value="All">全部</option>
                         <option value="Borrowed">借出</option>
                         <option value="InStock">在隊</option>
                     </select>
-                    <button onclick="fetchHistory()"
-                        class="text-xs text-blue-400 border border-blue-400 px-2 py-1 rounded">📜</button>
-                    <button onclick="fetchEquipmentData(true)"
-                        class="text-xs text-green-400 border border-green-400 px-2 py-1 rounded">🔄</button>
-                    <button onclick="toggleExportMode()" id="btn-export-mode"
-                        class="text-xs text-purple-400 border border-purple-400 px-2 py-1 rounded">📊</button>
 
-                    <button id="btn-add-eq" onclick="openEditModal('create')"
-                        class="hidden text-xs text-yellow-400 border border-yellow-400 px-2 py-1 rounded hover:bg-yellow-400 hover:text-black transition">
-                        +新增
-                    </button>
+                    <button onclick="fetchHistory()" class="text-xs text-blue-400 border border-blue-400 px-2 py-1 rounded">📜</button>
+                    
+                    <button onclick="fetchEquipmentData(true)" class="text-xs text-green-400 border border-green-400 px-2 py-1 rounded">🔄</button>
+                    
+                    <button onclick="toggleExportMode()" id="btn-export-mode" class="text-xs text-purple-400 border border-purple-400 px-2 py-1 rounded">📊</button>
                 </div>
             </div>
 
-            <div id="collapsible-filters" class="transition-all duration-300 overflow-hidden"
-                style="max-height: 0px; opacity: 0;">
+            <div id="collapsible-filters" class="transition-all duration-300 overflow-hidden" style="max-height: 500px;">
                 <div class="px-4 pb-2">
-                    <input type="text" id="eq-search" oninput="renderEquipmentList()" class="input-dark w-full text-xs"
-                        placeholder="🔍 搜尋裝備名稱、型號...">
+                    <input type="text" id="eq-search" oninput="renderEquipmentList()" class="input-dark w-full text-xs" placeholder="🔍 搜尋裝備名稱、型號...">
                 </div>
+                
                 <div id="category-filter-container" class="filter-row"></div>
                 <div id="location-filter-container" class="filter-row hidden"></div>
                 <div id="note-filter-container" class="filter-row hidden"></div>
-                <div class="h-2"></div>
-            </div>
+                <div class="h-2"></div> </div>
         </div>
 
         <div id="content-area">
+            <button id="btn-add-eq" onclick="openEditModal('create')" class="hidden w-full bg-yellow-600/20 text-yellow-400 border border-yellow-600 py-2 rounded mb-3 text-sm font-bold hover:bg-yellow-600 hover:text-white transition">
+                ➕ 新增裝備
+            </button>
+            
             <div id="equipment-list" class="space-y-2 pb-20"></div>
         </div>
-
-        <div id="export-toolbar"
-            class="hidden fixed bottom-4 left-4 right-4 bg-gray-900 border border-purple-500 p-3 rounded-lg shadow-2xl z-40 flex flex-col gap-3">
-            <div class="flex justify-between items-center border-b border-gray-700 pb-2">
-                <div class="text-white text-sm">已選 <span id="export-count"
-                        class="text-yellow-400 font-bold text-lg">0</span> 項</div>
-                <button id="btn-select-all" onclick="toggleSelectAll()"
-                    class="bg-gray-700 text-white px-3 py-1 rounded text-xs">全選</button>
-            </div>
+        
+        <div id="export-toolbar" class="hidden fixed bottom-4 left-4 right-4 bg-gray-900 border border-purple-500 p-3 rounded-lg shadow-2xl z-40 flex flex-col gap-3">
+            <div class="flex justify-between items-center border-b border-gray-700 pb-2"><div class="text-white text-sm">已選 <span id="export-count" class="text-yellow-400 font-bold text-lg">0</span> 項</div><button id="btn-select-all" onclick="toggleSelectAll()" class="bg-gray-700 text-white px-3 py-1 rounded text-xs">全選</button></div>
             <div class="flex gap-2">
-                <button id="btn-batch-borrow" onclick="openBatchBorrowModal()"
-                    class="hidden flex-1 bg-blue-600 text-white py-2 rounded font-bold text-sm shadow">批量借出</button>
-                <button id="btn-batch-return" onclick="openBatchReturnModal()"
-                    class="hidden flex-1 bg-green-600 text-white py-2 rounded font-bold text-sm shadow">批量歸還</button>
-                <button onclick="confirmExport()"
-                    class="flex-1 bg-purple-600 text-white py-2 rounded font-bold text-sm shadow">匯出</button>
+                <button id="btn-batch-borrow" onclick="openBatchBorrowModal()" class="hidden flex-1 bg-blue-600 text-white py-2 rounded font-bold text-sm shadow">批量借出</button>
+                <button id="btn-batch-return" onclick="openBatchReturnModal()" class="hidden flex-1 bg-green-600 text-white py-2 rounded font-bold text-sm shadow">批量歸還</button>
+                <button onclick="confirmExport()" class="flex-1 bg-purple-600 text-white py-2 rounded font-bold text-sm shadow">匯出</button>
             </div>
         </div>
     </div>
 
-    <div id="batch-borrow-modal" class="modal-overlay">
-        <div class="bg-gray-800 p-5 rounded-lg w-full max-w-md border border-blue-500 flex flex-col max-h-[90vh]">
-            <h3 class="text-xl font-bold mb-4 text-blue-400">📦 借出裝備</h3>
-            <div class="mb-3"><label class="block text-gray-400 text-sm mb-1">借用人 (必填)</label><input type="text"
-                    id="batch-borrower" class="input-dark"></div>
-            <div class="mb-3"><label class="block text-gray-400 text-sm mb-1">備註</label><input type="text"
-                    id="batch-note" list="note-suggestions" class="input-dark"></div>
-            <div
-                class="flex-1 overflow-y-auto custom-scrollbar mb-4 border-t border-b border-gray-700 py-2 bg-gray-900 px-2">
-                <table class="w-full text-sm text-left text-gray-400 batch-table">
-                    <thead>
-                        <tr>
-                            <th class="w-1/2">裝備</th>
-                            <th class="text-center">庫存</th>
-                            <th class="w-20 text-center">數量</th>
-                        </tr>
-                    </thead>
-                    <tbody id="batch-borrow-list"></tbody>
-                </table>
-            </div>
-            <div class="flex gap-2"><button onclick="closeModal('batch-borrow-modal')"
-                    class="flex-1 bg-gray-600 text-white py-2 rounded">取消</button><button onclick="submitBatchBorrow()"
-                    class="flex-1 bg-blue-600 text-white py-2 rounded font-bold">確認</button></div>
-        </div>
-    </div>
+    <div id="batch-borrow-modal" class="modal-overlay"><div class="bg-gray-800 p-5 rounded-lg w-full max-w-md border border-blue-500 flex flex-col max-h-[90vh]">
+        <h3 class="text-xl font-bold mb-4 text-blue-400">📦 借出裝備</h3>
+        <div class="mb-3"><label class="block text-gray-400 text-sm mb-1">借用人 (必填)</label><input type="text" id="batch-borrower" class="input-dark"></div>
+        <div class="mb-3"><label class="block text-gray-400 text-sm mb-1">備註</label><input type="text" id="batch-note" list="note-suggestions" class="input-dark"></div>
+        <div class="flex-1 overflow-y-auto custom-scrollbar mb-4 border-t border-b border-gray-700 py-2 bg-gray-900 px-2"><table class="w-full text-sm text-left text-gray-400 batch-table"><thead><tr><th class="w-1/2">裝備</th><th class="text-center">庫存</th><th class="w-20 text-center">數量</th></tr></thead><tbody id="batch-borrow-list"></tbody></table></div>
+        <div class="flex gap-2"><button onclick="closeModal('batch-borrow-modal')" class="flex-1 bg-gray-600 text-white py-2 rounded">取消</button><button onclick="submitBatchBorrow()" class="flex-1 bg-blue-600 text-white py-2 rounded font-bold">確認</button></div>
+    </div></div>
 
-    <div id="batch-return-modal" class="modal-overlay">
-        <div class="bg-gray-800 p-5 rounded-lg w-full max-w-md border border-green-500 flex flex-col max-h-[90vh]">
-            <h3 class="text-xl font-bold mb-2 text-green-400">♻️ 歸還裝備</h3>
-            <p class="text-xs text-gray-400 mb-4">請勾選並確認歸還數量。</p>
-            <div class="flex-1 overflow-y-auto custom-scrollbar mb-4 bg-gray-900 rounded p-2">
-                <div id="batch-return-list" class="space-y-3"></div>
-            </div>
-            <div class="flex gap-2"><button onclick="closeModal('batch-return-modal')"
-                    class="flex-1 bg-gray-600 text-white py-2 rounded">取消</button><button onclick="submitBatchReturn()"
-                    class="flex-1 bg-green-600 text-white py-2 rounded font-bold">確認</button></div>
-        </div>
-    </div>
+    <div id="batch-return-modal" class="modal-overlay"><div class="bg-gray-800 p-5 rounded-lg w-full max-w-md border border-green-500 flex flex-col max-h-[90vh]">
+        <h3 class="text-xl font-bold mb-2 text-green-400">♻️ 歸還裝備</h3>
+        <p class="text-xs text-gray-400 mb-4">請勾選並確認歸還數量。</p>
+        <div class="flex-1 overflow-y-auto custom-scrollbar mb-4 bg-gray-900 rounded p-2"><div id="batch-return-list" class="space-y-3"></div></div>
+        <div class="flex gap-2"><button onclick="closeModal('batch-return-modal')" class="flex-1 bg-gray-600 text-white py-2 rounded">取消</button><button onclick="submitBatchReturn()" class="flex-1 bg-green-600 text-white py-2 rounded font-bold">確認</button></div>
+    </div></div>
 
-    <div id="edit-eq-modal" class="modal-overlay">
-        <div class="bg-gray-800 p-5 rounded-lg w-full max-w-sm border border-yellow-600 h-3/4 overflow-y-auto">
-            <h3 id="edit-modal-title" class="text-xl font-bold mb-4 text-yellow-400">新增</h3><input type="hidden"
-                id="edit-eq-id"><input type="hidden" id="edit-mode">
-            <div class="space-y-3"><input type="text" id="eq-name" class="input-dark" placeholder="名稱"><input
-                    type="text" id="eq-category" list="category-options" class="input-dark" placeholder="分類"><datalist
-                    id="category-options"></datalist><input type="text" id="eq-model" class="input-dark"
-                    placeholder="型號"><input type="text" id="eq-location" class="input-dark" placeholder="位置">
-                <div class="flex items-center gap-2"><label class="text-gray-400 w-20">總量:</label><input type="number"
-                        id="eq-total" class="input-dark flex-1" value="1" min="1"></div>
-            </div>
-            <div class="flex gap-2 mt-6"><button id="btn-delete-eq" onclick="deleteEquipment()"
-                    class="hidden bg-red-600 text-white px-3 py-2 rounded font-bold">🗑️</button><button
-                    onclick="closeModal('edit-eq-modal')"
-                    class="flex-1 bg-gray-600 text-white py-2 rounded">取消</button><button
-                    onclick="submitEquipmentEdit()"
-                    class="flex-1 bg-yellow-600 text-white py-2 rounded font-bold">儲存</button></div>
-        </div>
-    </div>
+    <div id="edit-eq-modal" class="modal-overlay"><div class="bg-gray-800 p-5 rounded-lg w-full max-w-sm border border-yellow-600 h-3/4 overflow-y-auto">
+        <h3 id="edit-modal-title" class="text-xl font-bold mb-4 text-yellow-400">新增</h3><input type="hidden" id="edit-eq-id"><input type="hidden" id="edit-mode">
+        <div class="space-y-3"><input type="text" id="eq-name" class="input-dark" placeholder="名稱"><input type="text" id="eq-category" list="category-options" class="input-dark" placeholder="分類"><datalist id="category-options"></datalist><input type="text" id="eq-model" class="input-dark" placeholder="型號"><input type="text" id="eq-location" class="input-dark" placeholder="位置"><div class="flex items-center gap-2"><label class="text-gray-400 w-20">總量:</label><input type="number" id="eq-total" class="input-dark flex-1" value="1" min="1"></div></div>
+        <div class="flex gap-2 mt-6"><button id="btn-delete-eq" onclick="deleteEquipment()" class="hidden bg-red-600 text-white px-3 py-2 rounded font-bold">🗑️</button><button onclick="closeModal('edit-eq-modal')" class="flex-1 bg-gray-600 text-white py-2 rounded">取消</button><button onclick="submitEquipmentEdit()" class="flex-1 bg-yellow-600 text-white py-2 rounded font-bold">儲存</button></div>
+    </div></div>
 
-    <div id="history-modal" class="modal-overlay">
-        <div class="bg-gray-800 p-4 rounded-lg w-full max-w-md border border-blue-500 h-4/5 flex flex-col">
-            <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
-                <h3 class="text-xl font-bold text-blue-400">📜 歷史紀錄</h3><button onclick="closeModal('history-modal')"
-                    class="text-2xl text-gray-400">&times;</button>
-            </div>
-            <div id="history-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2"></div>
-        </div>
-    </div>
-    <datalist id="note-suggestions">
-        <option value="雪訓">
-        <option value="繩索訓練">
-        <option value="動員訓練">
-        <option value="山域搜救">
-    </datalist>
+    <div id="history-modal" class="modal-overlay"><div class="bg-gray-800 p-4 rounded-lg w-full max-w-md border border-blue-500 h-4/5 flex flex-col"><div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2"><h3 class="text-xl font-bold text-blue-400">📜 歷史紀錄</h3><button onclick="closeModal('history-modal')" class="text-2xl text-gray-400">&times;</button></div><div id="history-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2"></div></div></div>
+    <datalist id="note-suggestions"><option value="雪訓"><option value="繩索訓練"><option value="動員訓練"><option value="山域搜救"></datalist>
+
+    <script>
+        const GAS_API_URL = "https://line-bot-liff-lovat.vercel.app/api/webhook";
+        let userId="", displayName="", equipmentCache=[], currentCategory='All', currentLocation='All', currentNote='All', isExportMode=false, selectedItems=new Set(), loaderInterval;
+        let isUserAdmin = false; // 🔥 [新增] 預設非管理員
+
+        // --- 全域工具函數 (讓 task.js 也能用) ---
+        function toggleLoader(show, text="處理中...") {
+            const el = document.getElementById('boar-overlay'), txt = document.getElementById('boar-text'), anim = document.getElementById('boar-anim');
+            if(show) { el.classList.remove('hidden'); txt.innerText=text; const icons=['🐗💨','🐗📦','🐗📝','🐗✅']; let i=0; if(loaderInterval) clearInterval(loaderInterval); loaderInterval=setInterval(()=>{ anim.innerText=icons[i++%icons.length]; },500); }
+            else { el.classList.add('hidden'); if(loaderInterval) clearInterval(loaderInterval); }
+        }
+        async function callGasApi(payload) {
+            const res = await fetch(GAS_API_URL, { method:"POST", body:JSON.stringify({...payload, source:'liff'}) }); return await res.json();
+        }
+        function closeModal(id) { document.getElementById(id).classList.remove('flex'); document.getElementById(id).classList.add('hidden'); }
+        async function safeExecute(btn, fn) { btn.disabled=true; await fn(); btn.disabled=false; }
+    </script>
 
     <script src="mission_folder/task.js"></script>
 
     <script>
-        const GAS_API_URL = "https://line-bot-liff-lovat.vercel.app/api/webhook";
-        // 1. 全域變數新增 isUserAdmin (預設 false)
-        let userId = "", displayName = "", equipmentCache = [], currentCategory = 'All', currentLocation = 'All', currentNote = 'All', isExportMode = false, selectedItems = new Set(), loaderInterval;
-        let isUserAdmin = false; // 🔥 權限旗標 (預設 false)
-
+        // --- 主程式初始化 ---
         async function main() {
             try {
-                await liff.init({ liffId: "2008804963-FBGT1ktJ" });
+                await liff.init({ liffId: "2008804963-FBGT1ktJ" }); 
                 if (!liff.isLoggedIn()) { liff.login(); return; }
                 const profile = await liff.getProfile();
                 userId = profile.userId; displayName = profile.displayName;
                 document.getElementById('user-info').innerText = `隊員：${displayName}`;
-
-                checkAdminRole(); // 🔥 啟動時檢查權限
+                
+                checkAdminRole(); // 🔥 [新增] 檢查權限
 
                 const path = new URLSearchParams(window.location.search).get('path');
-                document.getElementById('loader').classList.add('hidden');
-
+                document.getElementById('loader').classList.add('hidden'); 
+                
                 if (path === 'report') showReportPage();
                 else if (path === 'query') showQueryPage();
                 else if (path === 'ai') showAiPage();
-                else loadEquipment();
+                else loadEquipment(); 
             } catch (err) { alert("LIFF 錯誤: " + err); }
         }
 
-        // 🔥 權限檢查函數
+        // 🔥 [新增] 權限檢查函數
         async function checkAdminRole() {
             try {
                 const res = await callGasApi({ action: 'check_user_role', userId: userId });
                 if (res && res.isAdmin) {
                     isUserAdmin = true; // 標記為管理員
-
-                    // 解除封印：顯示管理員專用按鈕
+                    
+                    // 解開按鈕封印 (移除 hidden class)
                     document.getElementById('btn-add-eq').classList.remove('hidden');
                     document.getElementById('btn-batch-borrow').classList.remove('hidden');
                     document.getElementById('btn-batch-return').classList.remove('hidden');
-
-                    // 重新渲染，把卡片上的按鈕秀出來
+                    
+                    // 如果列表已經渲染了，要重刷一次讓裡面的小按鈕出來
                     if (!document.getElementById('view-equipment').classList.contains('hidden')) {
                         renderEquipmentList();
                     }
@@ -523,43 +377,54 @@
         }
 
         // ============================================
-        // 裝備管理邏輯
+        // 裝備管理 (批次數量) - 留在主檔
         // ============================================
         function loadEquipment() {
             document.getElementById('view-equipment').classList.remove('hidden');
             if (equipmentCache.length === 0) fetchEquipmentData(true); else renderEquipmentList();
         }
-
         async function fetchEquipmentData(showLoading = false) {
             if (showLoading) toggleLoader(true, "盤點中...");
             try {
                 const data = await callGasApi({ action: 'get_equipment_list', userId: userId, category: 'All' });
                 equipmentCache = (data && data.length > 0) ? data : [];
-                if (equipmentCache.length === 0) document.getElementById('equipment-list').innerHTML = "<p class='text-center text-gray-500'>查無裝備</p>";
-                else {
-                    renderCategoryUI(); renderLocationUI(); renderNoteUI();
-                    renderEquipmentList();
+                if(equipmentCache.length === 0) document.getElementById('equipment-list').innerHTML = "<p class='text-center text-gray-500'>查無裝備</p>";
+                else { 
+                    renderCategoryUI(); 
+                    renderLocationUI(); // 🔥 [新增] 這一行
+                    renderNoteUI(); 
+                    renderEquipmentList(); 
                 }
             } catch (e) { alert(e.message); } finally { if (showLoading) toggleLoader(false); }
         }
 
-        // 🔥 列表渲染 (加入權限判斷)
         function renderEquipmentList() {
             const listDiv = document.getElementById('equipment-list');
             const searchText = document.getElementById('eq-search').value.toLowerCase();
             const statusFilter = document.getElementById('status-filter').value;
-
+            
             let filtered = equipmentCache.filter(eq => {
+                // 1. 分類
                 const matchCat = currentCategory === 'All' || eq.category === currentCategory;
+                
+                // 🔥 2. [新增] 位置過濾
                 const matchLoc = currentLocation === 'All' || eq.location === currentLocation;
-                const matchSearch = (eq.name + eq.model).toLowerCase().includes(searchText) || (eq.active_loans && eq.active_loans.some(l => l.borrower.toLowerCase().includes(searchText)));
+
+                // 3. 搜尋
+                const matchSearch = (eq.name+eq.model).toLowerCase().includes(searchText) || (eq.active_loans && eq.active_loans.some(l => l.borrower.toLowerCase().includes(searchText)));
+                
+                // 4. 狀態
                 const isBorrowed = eq.available_qty < eq.total_qty;
                 let matchStatus = (statusFilter === 'Borrowed' ? isBorrowed : (statusFilter === 'InStock' ? !isBorrowed : true));
+                
+                // 5. 備註
                 let matchNote = true;
                 if (currentNote !== 'All') {
                     if (!eq.active_loans || eq.active_loans.length === 0) matchNote = false;
-                    else matchNote = eq.active_loans.some(l => (currentNote === '未分類' ? (!l.note || l.note.trim() === '') : l.note === currentNote));
+                    else matchNote = eq.active_loans.some(l => (currentNote==='未分類' ? (!l.note||l.note.trim()==='') : l.note===currentNote));
                 }
+
+                // 🔥 記得把 matchLoc 加進去回傳
                 return matchCat && matchLoc && matchSearch && matchStatus && matchNote;
             });
             filtered.sort((a, b) => (a.available_qty < a.total_qty ? -1 : 1));
@@ -568,20 +433,17 @@
             filtered.forEach(eq => {
                 const isFull = eq.available_qty === eq.total_qty;
                 const isEmpty = eq.available_qty === 0;
-                const statusBadge = isFull ? `<span class="text-green-400 font-bold text-sm">🟢 在隊 (${eq.available_qty})</span>`
-                    : (isEmpty ? `<span class="text-red-400 font-bold text-sm">🔴 全部借出</span>`
-                        : `<span class="text-blue-400 font-bold text-sm">🔵 部分借出 (${eq.available_qty}/${eq.total_qty})</span>`);
+                const statusBadge = isFull ? `<span class="text-green-400 font-bold text-sm">🟢 在隊 (${eq.available_qty})</span>` 
+                    : (isEmpty ? `<span class="text-red-400 font-bold text-sm">🔴 全部借出</span>` 
+                    : `<span class="text-blue-400 font-bold text-sm">🔵 部分借出 (${eq.available_qty}/${eq.total_qty})</span>`);
 
-                // 🔥 借出清單 (資訊保留，但歸還按鈕看人給)
                 let loansHtml = '';
                 if (eq.active_loans && eq.active_loans.length > 0) {
                     loansHtml = `<div class="mt-2 pt-2 border-t border-gray-600 space-y-1">`;
                     eq.active_loans.forEach(l => {
-                        // ❌ 一般人：看不到按鈕
-                        // ✅ 管理員：看得到 <button>
+                        // 🔥 [修改] 歸還按鈕：只給管理員看
                         const returnBtn = isUserAdmin ? `<button onclick="openSingleReturnModal('${eq.id}', '${l.loan_id}', ${l.qty}, '${l.borrower}')" class="bg-green-700 text-white px-2 py-1 rounded text-[10px]">歸還</button>` : '';
-
-                        // 資訊 (User, Qty, Note) 永遠顯示
+                        
                         loansHtml += `<div class="flex justify-between items-center text-xs text-gray-300">
                                 <span>👤 ${l.borrower} <span class="text-yellow-400">x${l.qty}</span> <span class="text-blue-300">${l.note ? `#${l.note}` : ''}</span></span>
                                 ${returnBtn}
@@ -589,55 +451,220 @@
                     });
                     loansHtml += `</div>`;
                 }
-
                 const checked = selectedItems.has(eq.id) ? 'checked' : '';
                 const checkHtml = isExportMode ? `<div class="mr-3 flex items-center"><input type="checkbox" onchange="toggleSelect('${eq.id}')" ${checked} class="w-6 h-6"></div>` : '';
 
-                // 🔥 借出按鈕 (只有管理員看得到)
+                // 🔥 [修改] 借出按鈕：只給管理員看
                 const borrowBtn = (!isEmpty && isUserAdmin) ? `<button onclick="openSingleBorrowModal('${eq.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold">借出</button>` : '';
+                
+                // 🔥 [修改] 編輯按鈕：只給管理員看
                 const editBtn = isUserAdmin ? `<button onclick="openEditModal('update', '${eq.id}')" class="text-gray-500 p-1">⚙️</button>` : '';
 
                 html += `<div class="flex items-start bg-gray-800 p-4 rounded-lg mb-3 border-l-4 ${isEmpty ? "border-red-500" : (isFull ? "border-green-500" : "border-blue-500")}">
-                        ${checkHtml}<div class="flex-1"><div class="flex justify-between"><div><h3 class="font-bold text-white text-lg">${eq.name}</h3><div class="flex gap-2 text-xs text-gray-400 mt-1"><span>${eq.model || '-'}</span><span>📍${eq.location || '-'}</span></div></div><div class="flex gap-2"><button onclick="fetchItemHistory('${eq.id}')" class="text-blue-400 p-1">📜</button>${editBtn}</div></div>
+                        ${checkHtml}<div class="flex-1"><div class="flex justify-between"><div><h3 class="font-bold text-white text-lg">${eq.name}</h3><div class="flex gap-2 text-xs text-gray-400 mt-1"><span>${eq.model||'-'}</span><span>📍${eq.location||'-'}</span></div></div><div class="flex gap-2"><button onclick="fetchItemHistory('${eq.id}')" class="text-blue-400 p-1">📜</button>${editBtn}</div></div>
                         <div class="flex justify-between items-center mt-3">${statusBadge}${borrowBtn}</div>${loansHtml}</div></div>`;
             });
             listDiv.innerHTML = html || "<p class='text-center text-gray-500'>無符合裝備</p>";
             updateExportCount();
         }
 
-        // --- 其餘 JS 邏輯 (篩選/彈窗/AI) 保持不變 ---
-        function renderCategoryUI() { const c = [...new Set(['管理', '搜索', '救援', '醫療', '後勤', ...equipmentCache.map(e => e.category)])]; document.getElementById('category-filter-container').innerHTML = `<button onclick="switchCategory('All')" class="btn-chip ${currentCategory === 'All' ? 'active' : ''}">全部分組</button>` + c.map(i => `<button onclick="switchCategory('${i}')" class="btn-chip ${currentCategory === i ? 'active' : ''}">${i}</button>`).join(''); document.getElementById('category-options').innerHTML = c.map(i => `<option value="${i}">`).join('') }
-        function renderLocationUI() { const c = document.getElementById('location-filter-container'), s = new Set(); equipmentCache.forEach(e => { if (e.location) s.add(e.location) }); if (s.size === 0) { c.classList.add('hidden'); return } c.classList.remove('hidden'); c.innerHTML = `<button onclick="switchLocation('All')" class="btn-chip ${currentLocation === 'All' ? 'active' : ''}">全部位置</button>` + Array.from(s).sort().map(i => `<button onclick="switchLocation('${i}')" class="btn-chip ${currentLocation === i ? 'active' : ''}">${i}</button>`).join('') }
-        function renderNoteUI() { const c = document.getElementById('note-filter-container'), s = new Set(); equipmentCache.forEach(e => e.active_loans?.forEach(l => s.add(l.note?.trim() || '未分類'))); if (currentNote !== 'All' && !s.has(currentNote)) { currentNote = 'All'; renderEquipmentList() } if (s.size === 0) { c.classList.add('hidden'); return } c.classList.remove('hidden'); c.innerHTML = `<button onclick="switchNote('All')" class="btn-chip ${currentNote === 'All' ? 'active' : ''}">全部用途</button>` + Array.from(s).sort().map(i => `<button onclick="switchNote('${i}')" class="btn-chip ${currentNote === i ? 'active' : ''}">${i}</button>`).join('') }
-        function toggleFilterPanel() { const p = document.getElementById('collapsible-filters'), b = document.getElementById('btn-toggle-filter'); if (p.style.maxHeight === '0px') { p.style.maxHeight = '500px'; p.style.opacity = '1'; b.innerHTML = '<span>▼</span> 收合'; b.classList.add('text-yellow-400', 'border-yellow-600'); b.classList.remove('text-gray-400', 'border-gray-600') } else { p.style.maxHeight = '0px'; p.style.opacity = '0'; b.innerHTML = '<span>🔍</span> 篩選'; b.classList.remove('text-yellow-400', 'border-yellow-600'); b.classList.add('text-gray-400', 'border-gray-600') } }
-        function switchCategory(c) { currentCategory = c; renderCategoryUI(); renderEquipmentList() }
-        function switchLocation(l) { currentLocation = l; renderLocationUI(); renderEquipmentList() }
-        function switchNote(n) { currentNote = n; renderNoteUI(); renderEquipmentList(); toggleFilterPanel() }
-        function openSingleBorrowModal(id) { selectedItems.clear(); selectedItems.add(id); openBatchBorrowModal() }
-        function openBatchBorrowModal() { if (selectedItems.size === 0) return alert("請勾選"); document.getElementById('batch-borrow-modal').classList.add('flex'); document.getElementById('batch-borrower').value = ""; document.getElementById('batch-note').value = ""; const t = document.getElementById('batch-borrow-list'); t.innerHTML = ""; selectedItems.forEach(id => { const e = equipmentCache.find(x => x.id === id); if (e && e.available_qty > 0) t.innerHTML += `<tr class="border-b border-gray-700"><td class="px-2 py-2 text-white">${e.name}</td><td class="text-center text-gray-400">${e.available_qty}</td><td class="text-center"><input type="number" data-id="${e.id}" class="borrow-qty-input w-16 bg-gray-700 text-white p-1 rounded border border-gray-600 text-center" value="1" min="1" max="${e.available_qty}"></td></tr>` }) }
-        async function submitBatchBorrow() { const b = document.getElementById('batch-borrower').value, n = document.getElementById('batch-note').value; if (!b) return alert("請輸入借用人"); const r = []; document.querySelectorAll('.borrow-qty-input').forEach(i => { if (i.value > 0) r.push({ action: 'borrow_equipment', userId, displayName, eqId: i.dataset.id, borrower: b, qty: i.value, note: n }) }); if (r.length === 0) return; toggleLoader(true); closeModal('batch-borrow-modal'); try { await Promise.all(r.map(x => callGasApi(x))); alert("成功"); selectedItems.clear(); if (isExportMode) toggleExportMode(); fetchEquipmentData(false) } catch (e) { alert(e.message) } finally { toggleLoader(false) } }
-        function openSingleReturnModal(eqId, lid, qty, b) { document.getElementById('batch-return-modal').classList.add('flex'); const l = document.getElementById('batch-return-list'); l.innerHTML = ""; const e = equipmentCache.find(x => x.id === eqId); renderReturnItem(l, e ? e.name : '裝備', lid, qty, b) }
-        function openBatchReturnModal() { if (selectedItems.size === 0) return alert("請勾選"); document.getElementById('batch-return-modal').classList.add('flex'); const l = document.getElementById('batch-return-list'); l.innerHTML = ""; selectedItems.forEach(id => { const e = equipmentCache.find(x => x.id === id); if (e && e.active_loans) e.active_loans.forEach(k => renderReturnItem(l, e.name, k.loan_id, k.qty, k.borrower)) }); if (!l.innerHTML) return alert("無借出紀錄"), closeModal('batch-return-modal') }
-        function renderReturnItem(c, n, lid, max, b) { c.innerHTML += `<div class="flex items-center justify-between bg-gray-700 p-3 rounded border border-gray-600"><div class="flex items-center gap-3"><input type="checkbox" class="return-checkbox w-5 h-5" checked data-loan-id="${lid}"><div class="text-sm"><div class="text-white font-bold">${n}</div><div class="text-gray-300 text-xs">👤 ${b} (借: ${max})</div></div></div><div class="flex items-center gap-2"><label class="text-xs text-gray-400">歸還:</label><input type="number" class="return-qty-input w-16 bg-gray-800 text-white p-1 rounded border border-gray-500 text-center" value="${max}" min="1" max="${max}" data-loan-id="${lid}"></div></div>` }
-        async function submitBatchReturn() { const r = []; document.querySelectorAll('.return-checkbox:checked').forEach(c => { const lid = c.dataset.loanId, qty = document.querySelector(`.return-qty-input[data-loan-id="${lid}"]`).value; if (qty > 0) r.push({ action: 'return_equipment', userId, displayName, loanId: lid, returnQty: qty }) }); if (r.length === 0) return; toggleLoader(true); closeModal('batch-return-modal'); try { await Promise.all(r.map(x => callGasApi(x))); alert("成功"); selectedItems.clear(); if (isExportMode) toggleExportMode(); fetchEquipmentData(false) } catch (e) { alert(e.message) } finally { toggleLoader(false) } }
-        function toggleExportMode() { isExportMode = !isExportMode; document.getElementById('export-toolbar').classList.toggle('hidden'); document.getElementById('btn-export-mode').innerText = isExportMode ? "❌ 取消" : "📊 匯出"; renderEquipmentList() }
-        function toggleSelect(id) { if (selectedItems.has(id)) selectedItems.delete(id); else selectedItems.add(id); document.getElementById('export-count').innerText = selectedItems.size }
-        function toggleSelectAll() { const i = Array.from(document.querySelectorAll('#equipment-list input[type="checkbox"]')).map(c => c.getAttribute('onchange').match(/'([^']+)'/)[1]); if (i.every(x => selectedItems.has(x))) i.forEach(x => selectedItems.delete(x)); else i.forEach(x => selectedItems.add(x)); renderEquipmentList(); document.getElementById('export-count').innerText = selectedItems.size }
-        async function confirmExport() { if (selectedItems.size === 0) return alert("請選擇"); toggleLoader(true); try { const r = await callGasApi({ action: 'export_equipment_report', userId, eqIds: Array.from(selectedItems) }); if (r.url) window.open(r.url); else alert("失敗") } catch (e) { alert(e.message) } finally { toggleLoader(false) } }
-        function openEditModal(m, id) { document.getElementById('edit-eq-modal').classList.add('flex'); document.getElementById('edit-mode').value = m; let e = (m === 'update' && id) ? (equipmentCache.find(x => x.id === id) || {}) : {}; document.getElementById('edit-modal-title').innerText = m === 'create' ? "➕ 新增" : "⚙️ 編輯"; document.getElementById('edit-eq-id').value = id || ""; document.getElementById('eq-name').value = e.name || ""; document.getElementById('eq-category').value = e.category || ""; document.getElementById('eq-model').value = e.model || ""; document.getElementById('eq-location').value = e.location || ""; document.getElementById('eq-total').value = e.total_qty || 1; document.getElementById('btn-delete-eq').className = m === 'create' ? 'hidden' : 'bg-red-600 text-white px-3 py-2 rounded font-bold' }
-        async function submitEquipmentEdit() { const p = { action: 'manage_equipment', userId, displayName, mode: document.getElementById('edit-mode').value, eqId: document.getElementById('edit-eq-id').value, name: document.getElementById('eq-name').value, category: document.getElementById('eq-category').value, model: document.getElementById('eq-model').value, location: document.getElementById('eq-location').value, totalQty: document.getElementById('eq-total').value }; if (!p.name) return alert("名稱必填"); toggleLoader(true); closeModal('edit-eq-modal'); await callGasApi(p); fetchEquipmentData(false); toggleLoader(false) }
-        async function deleteEquipment() { if (confirm("確定刪除?")) { toggleLoader(true); closeModal('edit-eq-modal'); await callGasApi({ action: 'manage_equipment', userId, displayName, mode: 'delete', eqId: document.getElementById('edit-eq-id').value }); fetchEquipmentData(false); toggleLoader(false) } }
-        async function fetchHistory() { document.getElementById('history-modal').classList.add('flex'); document.getElementById('history-list').innerHTML = '<div class="loader"></div>'; const d = await callGasApi({ action: 'get_loan_history', userId }); document.getElementById('history-list').innerHTML = d.map(l => `<div class="bg-gray-700 p-3 mb-2 rounded border-l-4 ${l.status === '已歸還' ? 'border-green-500' : 'border-blue-500'} text-sm"><div class="flex justify-between font-bold"><span>${l.item_name}</span><span>${l.borrower}</span></div><div class="flex justify-between text-xs mt-1"><span>${l.status} x${l.qty}</span><span>${l.time}</span></div></div>`).join('') || "無紀錄" }
-        async function fetchItemHistory(id) { document.getElementById('history-modal').classList.add('flex'); document.getElementById('history-list').innerHTML = '<div class="loader"></div>'; const d = await callGasApi({ action: 'get_loan_history', userId, eqId: id }); document.getElementById('history-list').innerHTML = d.map(l => `<div class="bg-gray-700 p-3 mb-2 rounded border-l-4 ${l.status === '已歸還' ? 'border-green-500' : 'border-blue-500'} text-sm"><div class="flex justify-between font-bold"><span>${l.status}</span><span>${l.borrower}</span></div><div class="flex justify-between text-xs mt-1"><span>數量: ${l.qty}</span><span>${l.time}</span></div></div>`).join('') || "無紀錄" }
-        function showAiPage() { document.getElementById('view-ai').classList.remove('hidden') }
-        async function askAI(m) { const q = document.getElementById('ai-input').value; if (!q) return alert("請輸入"); toggleLoader(true); try { const r = await callGasApi({ action: m === 'ppt' ? 'make_briefing_ppt' : 'ask_ai', userId, question: q, query: q }); document.getElementById('ai-response').classList.remove('hidden'); document.getElementById('ai-response').innerHTML = m === 'ppt' ? `<a href="${r.url}" target="_blank" class="btn block text-center bg-green-600 p-2 rounded">下載簡報</a>` : r.answer } catch (e) { alert(e.message) } finally { toggleLoader(false) } }
-        async function safeExecute(b, f) { b.disabled = true; await f(); b.disabled = false }
-        function toggleLoader(s, t = "處理中...") { const e = document.getElementById('boar-overlay'), x = document.getElementById('boar-text'); if (s) { e.classList.remove('hidden'); x.innerText = t; let i = 0; if (loaderInterval) clearInterval(loaderInterval); loaderInterval = setInterval(() => { document.getElementById('boar-anim').innerText = ['🐗💨', '🐗📦', '🐗📝', '🐗✅'][i++ % 4] }, 500) } else { e.classList.add('hidden'); if (loaderInterval) clearInterval(loaderInterval) } }
-        async function callGasApi(p) { const r = await fetch(GAS_API_URL, { method: "POST", body: JSON.stringify({ ...p, source: 'liff' }) }); return await r.json() }
-        function closeModal(id) { document.getElementById(id).classList.remove('flex'); document.getElementById(id).classList.add('hidden') }
+        // 借出 (批次數量)
+        function openSingleBorrowModal(id) { selectedItems.clear(); selectedItems.add(id); openBatchBorrowModal(); }
+        function openBatchBorrowModal() {
+            if (selectedItems.size === 0) { alert("請先勾選裝備"); return; }
+            document.getElementById('batch-borrow-modal').classList.add('flex');
+            document.getElementById('batch-borrower').value = ""; document.getElementById('batch-note').value = "";
+            const tbody = document.getElementById('batch-borrow-list'); tbody.innerHTML = "";
+            selectedItems.forEach(id => {
+                const eq = equipmentCache.find(e => e.id === id);
+                if (eq && eq.available_qty > 0) {
+                    tbody.innerHTML += `<tr class="border-b border-gray-700"><td class="px-2 py-2 text-white">${eq.name}</td><td class="text-center text-gray-400">${eq.available_qty}</td><td class="text-center"><input type="number" data-id="${eq.id}" class="borrow-qty-input w-16 bg-gray-700 text-white p-1 rounded border border-gray-600 text-center" value="1" min="1" max="${eq.available_qty}"></td></tr>`;
+                }
+            });
+        }
+        async function submitBatchBorrow() {
+            const borrower = document.getElementById('batch-borrower').value;
+            const note = document.getElementById('batch-note').value;
+            if (!borrower) { alert("請輸入借用人"); return; }
+            const inputs = document.querySelectorAll('.borrow-qty-input');
+            const requests = [];
+            inputs.forEach(input => {
+                const qty = parseInt(input.value);
+                if (qty > 0) requests.push({ action: 'borrow_equipment', userId, displayName, eqId: input.dataset.id, borrower, qty, note });
+            });
+            if (requests.length === 0) return;
+            toggleLoader(true); closeModal('batch-borrow-modal');
+            try { await Promise.all(requests.map(req => callGasApi(req))); alert("借出成功"); selectedItems.clear(); if(isExportMode) toggleExportMode(); fetchEquipmentData(false); } catch (e) { alert(e.message); } finally { toggleLoader(false); }
+        }
+
+        // 歸還 (批次數量)
+        function openSingleReturnModal(eqId, loanId, qty, borrower) {
+            document.getElementById('batch-return-modal').classList.add('flex');
+            const listDiv = document.getElementById('batch-return-list'); listDiv.innerHTML = "";
+            const eq = equipmentCache.find(e => e.id === eqId);
+            renderReturnItem(listDiv, eq ? eq.name : '裝備', loanId, qty, borrower);
+        }
+        function openBatchReturnModal() {
+            if (selectedItems.size === 0) { alert("請先勾選歸還裝備"); return; }
+            document.getElementById('batch-return-modal').classList.add('flex');
+            const listDiv = document.getElementById('batch-return-list'); listDiv.innerHTML = "";
+            let hasLoan = false;
+            selectedItems.forEach(id => {
+                const eq = equipmentCache.find(e => e.id === id);
+                if (eq && eq.active_loans) eq.active_loans.forEach(l => { hasLoan=true; renderReturnItem(listDiv, eq.name, l.loan_id, l.qty, l.borrower); });
+            });
+            if (!hasLoan) { alert("無借出紀錄"); closeModal('batch-return-modal'); }
+        }
+        function renderReturnItem(container, eqName, loanId, maxQty, borrower) {
+            container.innerHTML += `<div class="flex items-center justify-between bg-gray-700 p-3 rounded border border-gray-600">
+                <div class="flex items-center gap-3"><input type="checkbox" class="return-checkbox w-5 h-5" checked data-loan-id="${loanId}"><div class="text-sm"><div class="text-white font-bold">${eqName}</div><div class="text-gray-300 text-xs">👤 ${borrower} (借: ${maxQty})</div></div></div>
+                <div class="flex items-center gap-2"><label class="text-xs text-gray-400">歸還:</label><input type="number" class="return-qty-input w-16 bg-gray-800 text-white p-1 rounded border border-gray-500 text-center" value="${maxQty}" min="1" max="${maxQty}" data-loan-id="${loanId}"></div></div>`;
+        }
+        async function submitBatchReturn() {
+            const checkboxes = document.querySelectorAll('.return-checkbox:checked');
+            if (checkboxes.length === 0) return alert("請勾選");
+            const requests = [];
+            checkboxes.forEach(cb => {
+                const loanId = cb.dataset.loanId;
+                const qty = parseInt(document.querySelector(`.return-qty-input[data-loan-id="${loanId}"]`).value);
+                if (qty > 0) requests.push({ action: 'return_equipment', userId, displayName, loanId, returnQty: qty });
+            });
+            toggleLoader(true); closeModal('batch-return-modal');
+            try { await Promise.all(requests.map(req => callGasApi(req))); alert("歸還成功"); selectedItems.clear(); if(isExportMode) toggleExportMode(); fetchEquipmentData(false); } catch (e) { alert(e.message); } finally { toggleLoader(false); }
+        }
+
+        // 其他工具
+        function toggleExportMode() { isExportMode = !isExportMode; document.getElementById('export-toolbar').classList.toggle('hidden'); document.getElementById('btn-export-mode').innerText = isExportMode ? "❌ 取消" : "📊 匯出"; renderEquipmentList(); }
+        function toggleSelect(id) { if (selectedItems.has(id)) selectedItems.delete(id); else selectedItems.add(id); updateExportCount(); }
+        function toggleSelectAll() { const ids = Array.from(document.querySelectorAll('#equipment-list input[type="checkbox"]')).map(c => c.getAttribute('onchange').match(/'([^']+)'/)[1]); if (ids.every(id => selectedItems.has(id))) ids.forEach(id => selectedItems.delete(id)); else ids.forEach(id => selectedItems.add(id)); renderEquipmentList(); updateExportCount(); }
+        function updateExportCount() { document.getElementById('export-count').innerText = selectedItems.size; }
+        async function confirmExport() { if (selectedItems.size === 0) return alert("請選擇"); toggleLoader(true); try { const res = await callGasApi({ action: 'export_equipment_report', userId, eqIds: Array.from(selectedItems) }); if (res.url) window.open(res.url); else alert("失敗"); } catch (e) { alert(e.message); } finally { toggleLoader(false); } }
+        // 渲染分類按鈕
+        function renderCategoryUI() {
+            const cats = [...new Set(['管理','搜索','救援','醫療','後勤', ...equipmentCache.map(e=>e.category)])];
+            // 使用 btn-chip 樣式
+            let html = `<button onclick="switchCategory('All')" class="btn-chip ${currentCategory==='All'?'active':''}">全部</button>`;
+            cats.forEach(c => {
+                html += `<button onclick="switchCategory('${c}')" class="btn-chip ${currentCategory===c?'active':''}">${c}</button>`;
+            });
+            document.getElementById('category-filter-container').innerHTML = html;
+            document.getElementById('category-options').innerHTML = cats.map(c=>`<option value="${c}">`).join('');
+        }
+        // 渲染位置按鈕
+        function renderLocationUI() {
+            const container = document.getElementById('location-filter-container');
+            const locs = new Set();
+            equipmentCache.forEach(e => { if(e.location) locs.add(e.location); });
+            
+            if(locs.size === 0) { container.classList.add('hidden'); return; } 
+            container.classList.remove('hidden');
+
+            let html = `<button onclick="switchLocation('All')" class="btn-chip ${currentLocation==='All'?'active':''}">全部位置</button>`;
+            Array.from(locs).sort().forEach(loc => {
+                html += `<button onclick="switchLocation('${loc}')" class="btn-chip ${currentLocation===loc?'active':''}">${loc}</button>`;
+            });
+            container.innerHTML = html;
+        }
+
+        // 🔥 [新增] 切換位置函數
+        function switchLocation(loc) { currentLocation = loc; renderLocationUI(); renderEquipmentList(); }
+
+        // 渲染備註按鈕 (包含自動重置邏輯)
+        function renderNoteUI() {
+            const container = document.getElementById('note-filter-container');
+            const notes = new Set(); 
+            equipmentCache.forEach(e => e.active_loans?.forEach(l => notes.add(l.note?.trim() || '未分類')));
+            
+            // 🔥 [新增] 自動重置邏輯
+            // 如果目前有選某個備註，但這個備註已經不在新的清單裡 (代表該用途的裝備都還光了)
+            // 就強制切換回 'All'，並重新刷新列表
+            if (currentNote !== 'All' && !notes.has(currentNote)) {
+                currentNote = 'All';
+                renderEquipmentList(); // 重新過濾列表 (不然會顯示空白)
+            }
+
+            if(notes.size === 0) { container.classList.add('hidden'); return; } 
+            container.classList.remove('hidden');
+
+            let html = `<button onclick="switchNote('All')" class="btn-chip ${currentNote==='All'?'active':''}">全部用途</button>`;
+            Array.from(notes).sort().forEach(n => {
+                html += `<button onclick="switchNote('${n}')" class="btn-chip ${currentNote===n?'active':''}">${n}</button>`;
+            });
+            container.innerHTML = html;
+        }
+
+        // 🔥 切換篩選面板展開/收合
+        function toggleFilterPanel() {
+            const panel = document.getElementById('collapsible-filters');
+            const btn = document.getElementById('btn-toggle-filter');
+            const icon = btn.querySelector('span');
+            
+            // 判斷目前是用 max-height 控制還是 class hidden
+            // 這裡我們用 style.maxHeight 來做動畫效果
+            if (panel.style.maxHeight === '0px') {
+                // 展開
+                panel.style.maxHeight = '500px'; // 足夠大的高度
+                panel.style.opacity = '1';
+                btn.innerHTML = '<span>▼</span> 收合';
+                btn.classList.add('text-yellow-400', 'border-yellow-600');
+                btn.classList.remove('text-gray-400', 'border-gray-600');
+            } else {
+                // 收合
+                panel.style.maxHeight = '0px';
+                panel.style.opacity = '0';
+                btn.innerHTML = '<span>🔍</span> 篩選'; // 收起來時變成搜尋圖示
+                btn.classList.remove('text-yellow-400', 'border-yellow-600');
+                btn.classList.add('text-gray-400', 'border-gray-600');
+            }
+        }
+
+        
+        function switchCategory(c) { currentCategory = c; renderCategoryUI(); renderEquipmentList(); }
+        // 切換備註過濾
+        function switchNote(n) { 
+            currentNote = n; 
+            renderNoteUI(); 
+            renderEquipmentList(); 
+            
+            // 🔥 [新增] 選完後自動收合篩選面板
+            toggleFilterPanel(); 
+        }
+        function openEditModal(mode,id,name,cat,model,loc,total) {
+            document.getElementById('edit-eq-modal').classList.add('flex'); document.getElementById('edit-mode').value = mode;
+            let eq = (mode === 'update' && id) ? (equipmentCache.find(e => e.id === id) || {}) : {};
+            document.getElementById('edit-modal-title').innerText = mode==='create'?"➕ 新增":"⚙️ 編輯";
+            document.getElementById('edit-eq-id').value=id||""; document.getElementById('eq-name').value=eq.name||""; 
+            document.getElementById('eq-category').value=eq.category||""; document.getElementById('eq-model').value=eq.model||"";
+            document.getElementById('eq-location').value=eq.location||""; document.getElementById('eq-total').value=eq.total_qty||1;
+            document.getElementById('btn-delete-eq').className = mode==='create' ? 'hidden' : 'bg-red-600 text-white px-3 py-2 rounded font-bold';
+        }
+        async function submitEquipmentEdit() {
+            const p = { action:'manage_equipment', userId, displayName, mode:document.getElementById('edit-mode').value, eqId:document.getElementById('edit-eq-id').value, name:document.getElementById('eq-name').value, category:document.getElementById('eq-category').value, model:document.getElementById('eq-model').value, location:document.getElementById('eq-location').value, totalQty:document.getElementById('eq-total').value };
+            if(!p.name) return alert("名稱必填"); toggleLoader(true); closeModal('edit-eq-modal'); await callGasApi(p); fetchEquipmentData(false); toggleLoader(false);
+        }
+        async function deleteEquipment() { if(confirm("確定刪除?")) { toggleLoader(true); closeModal('edit-eq-modal'); await callGasApi({action:'manage_equipment', userId, displayName, mode:'delete', eqId:document.getElementById('edit-eq-id').value}); fetchEquipmentData(false); toggleLoader(false); } }
+        async function fetchHistory() { 
+            document.getElementById('history-modal').classList.add('flex'); document.getElementById('history-list').innerHTML = '<div class="loader"></div>';
+            const data = await callGasApi({action:'get_loan_history', userId});
+            document.getElementById('history-list').innerHTML = data.map(l=>`<div class="bg-gray-700 p-3 mb-2 rounded border-l-4 ${l.status==='已歸還'?'border-green-500':'border-blue-500'} text-sm"><div class="flex justify-between font-bold"><span>${l.item_name}</span><span>${l.borrower}</span></div><div class="flex justify-between text-xs mt-1"><span>${l.status} x${l.qty}</span><span>${l.time}</span></div></div>`).join('') || "無紀錄";
+        }
+        async function fetchItemHistory(id) {
+            document.getElementById('history-modal').classList.add('flex'); document.getElementById('history-list').innerHTML = '<div class="loader"></div>';
+            const data = await callGasApi({action:'get_loan_history', userId, eqId:id});
+            document.getElementById('history-list').innerHTML = data.map(l=>`<div class="bg-gray-700 p-3 mb-2 rounded border-l-4 ${l.status==='已歸還'?'border-green-500':'border-blue-500'} text-sm"><div class="flex justify-between font-bold"><span>${l.status}</span><span>${l.borrower}</span></div><div class="flex justify-between text-xs mt-1"><span>數量: ${l.qty}</span><span>${l.time}</span></div></div>`).join('') || "無紀錄";
+        }
+
+        // AI
+        function showAiPage() { document.getElementById('view-ai').classList.remove('hidden'); }
+        async function askAI(mode) { 
+            const q = document.getElementById('ai-input').value; if(!q) return alert("請輸入"); toggleLoader(true);
+            try { const r = await callGasApi({action:mode==='ppt'?'make_briefing_ppt':'ask_ai', userId, question:q, query:q});
+            document.getElementById('ai-response').classList.remove('hidden');
+            document.getElementById('ai-response').innerHTML = mode==='ppt'?`<a href="${r.url}" target="_blank" class="btn block text-center bg-green-600 p-2 rounded">下載簡報</a>`:r.answer; } catch(e){alert(e.message)} finally{toggleLoader(false)}
+        }
+        async function safeExecute(btn, fn) { btn.disabled=true; await fn(); btn.disabled=false; }
 
         main();
     </script>
 </body>
-
 </html>
