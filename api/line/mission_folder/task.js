@@ -1,14 +1,13 @@
 /**
  * 檔案：mission_folder/task.js
- * 用途：處理「任務回報」與「任務看板」的所有邏輯
- * 依賴：主程式必須提供 toggleLoader, callGasApi, userId, liff
+ * 用途：負責「任務回報」與「任務看板」的邏輯
+ * 依賴：主程式必須提供 userId, callGasApi, toggleLoader
  */
 
 // ============================================
-// 🔥 1. 任務回報 (保留梯次、備註)
+// 🔥 1. 任務回報 (完整版：保留梯次、備註)
 // ============================================
 async function showReportPage() {
-    // 切換顯示區域
     document.getElementById('view-equipment').classList.add('hidden');
     document.getElementById('view-query').classList.add('hidden');
     document.getElementById('view-ai').classList.add('hidden');
@@ -19,12 +18,10 @@ async function showReportPage() {
         const data = await callGasApi({ action: 'get_my_assignments', userId: userId });
         const listDiv = document.getElementById('report-list');
         listDiv.innerHTML = "";
-        
         if (!data || data.length === 0) {
-            listDiv.innerHTML = "<p class='text-center text-gray-500'>💤 目前沒有指派給您的任務</p>";
+            listDiv.innerHTML = "<p class='text-center text-gray-500'>💤 無任務</p>";
         } else {
             data.forEach(task => {
-                // 建立完整卡片結構 (保留梯次、說明)
                 const div = document.createElement('div');
                 div.className = "card";
                 div.innerHTML = `
@@ -42,11 +39,7 @@ async function showReportPage() {
                 listDiv.appendChild(div);
             });
         }
-    } catch (e) { 
-        alert("錯誤: " + e.message); 
-    } finally { 
-        toggleLoader(false); 
-    }
+    } catch (e) { alert("錯誤: " + e.message); } finally { toggleLoader(false); }
 }
 
 async function submitReport(aid, mid, fin) {
@@ -54,30 +47,17 @@ async function submitReport(aid, mid, fin) {
     const msg = fin ? "確定回報任務完成嗎？" : "確定回報進度嗎？";
     if (!confirm(msg)) return;
     
-    // 呼叫主程式的 callGasApi
     toggleLoader(true, "回報傳送中...");
     try {
-        await callGasApi({
-            action: 'submit_report', 
-            userId: userId, 
-            assignmentId: aid, 
-            missionId: mid, 
-            isFinished: fin, 
-            note: note || (fin ? '任務完成' : '')
-        });
-        alert("✅ 回報成功"); 
-        liff.closeWindow();
-    } catch (e) {
-        alert("回報失敗: " + e.message);
-        toggleLoader(false);
-    }
+        await callGasApi({action:'submit_report', userId:userId, assignmentId:aid, missionId:mid, isFinished:fin, note:note || (fin ? '任務完成' : '')});
+        alert("成功"); liff.closeWindow();
+    } catch (e) { alert("失敗: " + e.message); } finally { toggleLoader(false); }
 }
 
 // ============================================
 // 🔥 2. 任務看板 (完整版：保留展開、日誌、折疊)
 // ============================================
 async function showQueryPage() {
-    // 切換顯示區域
     document.getElementById('view-equipment').classList.add('hidden');
     document.getElementById('view-report').classList.add('hidden');
     document.getElementById('view-ai').classList.add('hidden');
@@ -156,14 +136,10 @@ async function showQueryPage() {
                 listDiv.appendChild(div);
             });
         }
-    } catch (e) { 
-        alert("讀取失敗: " + e.message); 
-    } finally { 
-        toggleLoader(false); 
-    }
+    } catch (e) { alert("讀取失敗: " + e.message); } finally { toggleLoader(false); }
 }
 
-// 任務看板 UI 互動邏輯 (折疊/展開)
+// UI 互動邏輯 (折疊/展開)
 function toggleSummary(id, btn) {
     event.stopPropagation();
     const el = document.getElementById(id);
@@ -183,7 +159,6 @@ function toggleDetail(id) {
         el.classList.remove('open');
         icon.style.transform = "rotate(0deg)";
     } else {
-        // 關閉其他已展開的
         document.querySelectorAll('.mission-detail.open').forEach(d => {
             d.classList.remove('open');
             const otherIcon = document.getElementById(`icon-${d.id}`);
