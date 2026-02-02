@@ -7,14 +7,16 @@
     <title>花蓮特搜戰情中心</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
         /* =========================================
-           1. 全局佈局
+           1. 全局佈局 (針對手機優化 - Sticky Layout)
            ========================================= */
         body {
             background-color: #1a1a1a;
             color: #e0e0e0;
-            font-family: sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            /* 關鍵：讓 body 變成一個滿屏的盒子，禁止外層捲動 */
             height: 100vh;
             overflow: hidden;
             display: flex;
@@ -23,58 +25,125 @@
             padding: 0;
         }
 
+        /* 頂部固定區 (Header + 篩選器) */
         #top-fixed-area {
             flex-shrink: 0;
+            /* 防止被壓縮 */
             background-color: #1a1a1a;
             z-index: 20;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            /* 底部陰影 */
             padding-bottom: 8px;
         }
 
+        /* 內容捲動區 (只有這裡可以滑動) */
         #content-area {
             flex-grow: 1;
+            /* 佔滿剩餘空間 */
             overflow-y: auto;
+            /* 垂直捲動 */
             padding: 16px;
             padding-bottom: 120px;
+            /* 預留給底部工具列的空間 */
             scroll-behavior: smooth;
             -webkit-overflow-scrolling: touch;
+            /* iOS 滑動優化 */
         }
 
         /* =========================================
-           2. 篩選器與元件
+           2. 新版膠囊篩選器 (Chip/Pill Styles)
            ========================================= */
+        /* 橫向滑動容器 */
         .filter-row {
             display: flex;
             gap: 8px;
+            /* 按鈕間距 */
             overflow-x: auto;
+            /* 橫向捲動 */
             padding: 4px 16px;
+            /* 左右留白 */
             white-space: nowrap;
+            /* 隱藏捲軸但保留功能 */
             -ms-overflow-style: none;
+            /* IE/Edge */
             scrollbar-width: none;
+            /* Firefox */
         }
 
         .filter-row::-webkit-scrollbar {
             display: none;
+            /* Chrome/Safari */
         }
 
+        /* 膠囊按鈕本體 */
         .btn-chip {
             background-color: #333;
             color: #aaa;
             padding: 6px 14px;
             border-radius: 9999px;
+            /* 圓形膠囊 */
             font-size: 13px;
             font-weight: 500;
             border: 1px solid #444;
             transition: all 0.2s;
             flex-shrink: 0;
+            /* 防止被擠壓 */
         }
 
+        /* 選中狀態 */
         .btn-chip.active {
             background-color: #ca8a04;
+            /* 黃色 */
             color: white;
             border-color: #ca8a04;
+            box-shadow: 0 0 8px rgba(202, 138, 4, 0.4);
         }
 
+        /* =========================================
+           3. 共用元件 (Legacy Components)
+           ========================================= */
+        .card {
+            background-color: #2d2d2d;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 5px solid #4CAF50;
+        }
+
+        /* 按鈕通用樣式 */
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin-top: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-green {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+        }
+
+        .btn-red {
+            background-color: #f44336;
+            color: white;
+            border: none;
+        }
+
+        .btn-blue {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+        }
+
+        /* 輸入框優化 */
         .input-dark {
             width: 100%;
             background-color: #374151;
@@ -86,6 +155,12 @@
             font-size: 14px;
         }
 
+        .input-dark:focus {
+            border-color: #f59e0b;
+            background-color: #4b5563;
+        }
+
+        /* 工具類 */
         .hidden {
             display: none !important;
         }
@@ -111,16 +186,8 @@
         }
 
         /* =========================================
-           3. 任務看板與彈窗
+           4. 任務看板專用 (Mission Board)
            ========================================= */
-        .card {
-            background-color: #2d2d2d;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            border-left: 5px solid #4CAF50;
-        }
-
         .mission-detail {
             max-height: 0;
             overflow: hidden;
@@ -142,6 +209,19 @@
             overflow: hidden;
         }
 
+        /* =========================================
+           5. 捲軸與彈窗 (Modals & Scrollbars)
+           ========================================= */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 4px;
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 2px;
+        }
+
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -155,16 +235,6 @@
 
         .modal-overlay.flex {
             display: flex !important;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-            height: 4px;
-            width: 4px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #555;
-            border-radius: 2px;
         }
 
         .batch-table th {
@@ -183,7 +253,7 @@
         }
 
         /* =========================================
-           4. 動畫
+           6. 山豬特搜動畫
            ========================================= */
         #boar-overlay {
             position: fixed;
@@ -252,24 +322,26 @@
                 placeholder="例如: 土耳其...">
         </div>
         <div class="flex gap-2 mb-3"><button onclick="safeExecute(this, () => askAI('text'))"
-                class="w-full bg-blue-600 text-white py-2 rounded font-bold">💬 分析</button><button
-                onclick="safeExecute(this, () => askAI('ppt'))"
-                class="w-full bg-red-600 text-white py-2 rounded font-bold">📊 簡報</button></div>
+                class="btn btn-blue flex-1">💬 分析</button><button onclick="safeExecute(this, () => askAI('ppt'))"
+                class="btn btn-red flex-1">📊 簡報</button></div>
         <a href="https://drive.google.com/drive/folders/1XAtHLGeo2fQH3wO5Lfq5_IjunbkIqzn_" target="_blank"
-            class="block text-center bg-orange-500 text-white py-2 rounded font-bold no-underline mb-4">📂 開啟歸檔</a>
+            class="btn block text-center mb-4" style="background-color: #FF9800; color: white;">📂 開啟歸檔</a>
         <div id="ai-response" class="mt-4 p-4 bg-gray-800 rounded border-l-4 border-green-500 hidden"></div>
     </div>
 
     <div id="view-equipment" class="hidden h-full flex flex-col">
 
         <div id="top-fixed-area" class="pb-1 bg-gray-900 border-b border-gray-800">
+
             <div class="flex justify-between items-center px-4 py-2">
                 <div class="flex items-center gap-2">
                     <h2 class="text-base font-bold text-yellow-400">🎒 裝備</h2>
                     <button onclick="toggleFilterPanel()" id="btn-toggle-filter"
-                        class="text-xs bg-gray-800 text-gray-400 border border-gray-600 px-2 py-1 rounded flex items-center gap-1 transition-colors"><span>🔍</span>
-                        篩選</button>
+                        class="text-xs bg-gray-800 text-gray-400 border border-gray-600 px-2 py-1 rounded flex items-center gap-1 transition-colors">
+                        <span>🔍</span> 篩選
+                    </button>
                 </div>
+
                 <div class="flex gap-2 items-center">
                     <select id="status-filter" onchange="renderEquipmentList()"
                         class="bg-gray-800 text-gray-300 text-xs py-1 px-1 rounded border border-gray-700 outline-none max-w-[70px]">
@@ -283,15 +355,20 @@
                         class="text-xs text-green-400 border border-green-400 px-2 py-1 rounded">🔄</button>
                     <button onclick="toggleExportMode()" id="btn-export-mode"
                         class="text-xs text-purple-400 border border-purple-400 px-2 py-1 rounded">📊</button>
+
                     <button id="btn-add-eq" onclick="openEditModal('create')"
-                        class="hidden text-xs text-yellow-400 border border-yellow-400 px-2 py-1 rounded hover:bg-yellow-400 hover:text-black transition">+新增</button>
+                        class="hidden text-xs text-yellow-400 border border-yellow-400 px-2 py-1 rounded hover:bg-yellow-400 hover:text-black transition">
+                        +新增
+                    </button>
                 </div>
             </div>
 
             <div id="collapsible-filters" class="transition-all duration-300 overflow-hidden"
                 style="max-height: 0px; opacity: 0;">
-                <div class="px-4 pb-2"><input type="text" id="eq-search" oninput="renderEquipmentList()"
-                        class="input-dark w-full text-xs" placeholder="🔍 搜尋裝備名稱、型號..."></div>
+                <div class="px-4 pb-2">
+                    <input type="text" id="eq-search" oninput="renderEquipmentList()" class="input-dark w-full text-xs"
+                        placeholder="🔍 搜尋裝備名稱、型號...">
+                </div>
                 <div id="category-filter-container" class="filter-row"></div>
                 <div id="location-filter-container" class="filter-row hidden"></div>
                 <div id="note-filter-container" class="filter-row hidden"></div>
@@ -347,6 +424,7 @@
                     class="flex-1 bg-blue-600 text-white py-2 rounded font-bold">確認</button></div>
         </div>
     </div>
+
     <div id="batch-return-modal" class="modal-overlay">
         <div class="bg-gray-800 p-5 rounded-lg w-full max-w-md border border-green-500 flex flex-col max-h-[90vh]">
             <h3 class="text-xl font-bold mb-2 text-green-400">♻️ 歸還裝備</h3>
@@ -359,6 +437,7 @@
                     class="flex-1 bg-green-600 text-white py-2 rounded font-bold">確認</button></div>
         </div>
     </div>
+
     <div id="edit-eq-modal" class="modal-overlay">
         <div class="bg-gray-800 p-5 rounded-lg w-full max-w-sm border border-yellow-600 h-3/4 overflow-y-auto">
             <h3 id="edit-modal-title" class="text-xl font-bold mb-4 text-yellow-400">新增</h3><input type="hidden"
@@ -378,6 +457,7 @@
                     class="flex-1 bg-yellow-600 text-white py-2 rounded font-bold">儲存</button></div>
         </div>
     </div>
+
     <div id="history-modal" class="modal-overlay">
         <div class="bg-gray-800 p-4 rounded-lg w-full max-w-md border border-blue-500 h-4/5 flex flex-col">
             <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
@@ -398,6 +478,7 @@
 
     <script>
         const GAS_API_URL = "https://line-bot-liff-lovat.vercel.app/api/webhook";
+        // 1. 全域變數新增 isUserAdmin (預設 false)
         let userId = "", displayName = "", equipmentCache = [], currentCategory = 'All', currentLocation = 'All', currentNote = 'All', isExportMode = false, selectedItems = new Set(), loaderInterval;
         let isUserAdmin = false; // 🔥 權限旗標 (預設 false)
 
@@ -409,7 +490,7 @@
                 userId = profile.userId; displayName = profile.displayName;
                 document.getElementById('user-info').innerText = `隊員：${displayName}`;
 
-                checkAdminRole(); // 🔥 檢查權限
+                checkAdminRole(); // 🔥 啟動時檢查權限
 
                 const path = new URLSearchParams(window.location.search).get('path');
                 document.getElementById('loader').classList.add('hidden');
@@ -421,23 +502,29 @@
             } catch (err) { alert("LIFF 錯誤: " + err); }
         }
 
+        // 🔥 權限檢查函數
         async function checkAdminRole() {
             try {
                 const res = await callGasApi({ action: 'check_user_role', userId: userId });
                 if (res && res.isAdmin) {
-                    isUserAdmin = true;
-                    // 🔥 管理員才看得到這些按鈕
+                    isUserAdmin = true; // 標記為管理員
+
+                    // 解除封印：顯示管理員專用按鈕
                     document.getElementById('btn-add-eq').classList.remove('hidden');
                     document.getElementById('btn-batch-borrow').classList.remove('hidden');
                     document.getElementById('btn-batch-return').classList.remove('hidden');
+
                     // 重新渲染，把卡片上的按鈕秀出來
                     if (!document.getElementById('view-equipment').classList.contains('hidden')) {
                         renderEquipmentList();
                     }
                 }
-            } catch (e) { console.error("權限失敗", e); }
+            } catch (e) { console.error("權限檢查失敗", e); }
         }
 
+        // ============================================
+        // 裝備管理邏輯
+        // ============================================
         function loadEquipment() {
             document.getElementById('view-equipment').classList.remove('hidden');
             if (equipmentCache.length === 0) fetchEquipmentData(true); else renderEquipmentList();
@@ -449,10 +536,14 @@
                 const data = await callGasApi({ action: 'get_equipment_list', userId: userId, category: 'All' });
                 equipmentCache = (data && data.length > 0) ? data : [];
                 if (equipmentCache.length === 0) document.getElementById('equipment-list').innerHTML = "<p class='text-center text-gray-500'>查無裝備</p>";
-                else { renderCategoryUI(); renderLocationUI(); renderNoteUI(); renderEquipmentList(); }
+                else {
+                    renderCategoryUI(); renderLocationUI(); renderNoteUI();
+                    renderEquipmentList();
+                }
             } catch (e) { alert(e.message); } finally { if (showLoading) toggleLoader(false); }
         }
 
+        // 🔥 列表渲染 (加入權限判斷)
         function renderEquipmentList() {
             const listDiv = document.getElementById('equipment-list');
             const searchText = document.getElementById('eq-search').value.toLowerCase();
