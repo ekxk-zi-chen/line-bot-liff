@@ -2,10 +2,11 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>花蓮特搜戰情中心</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <style>
         /* =========================================
            1. 全局佈局 (針對手機優化 - Sticky Layout)
@@ -20,7 +21,7 @@
             display: flex; 
             flex-direction: column;
             margin: 0;
-            padding: 0; /* 移除 body padding，改在內容區設定 */
+            padding: 0; 
         }
 
         /* 頂部固定區 (Header + 篩選器) */
@@ -36,9 +37,10 @@
         #content-area {
             flex-grow: 1; /* 佔滿剩餘空間 */
             overflow-y: auto; /* 垂直捲動 */
-            padding: 16px; /* 原本 body 的 p-4 移到這裡 */
+            padding: 16px; 
             padding-bottom: 120px; /* 預留給底部工具列的空間 */
             scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch; /* iOS 滑動優化 */
         }
 
         /* =========================================
@@ -106,17 +108,13 @@
         .btn-red { background-color: #f44336; color: white; border: none; }
         .btn-blue { background-color: #2196F3; color: white; border: none; }
         
-        /* 舊版篩選按鈕 (若還有用到的話) */
-        .btn-filter { transition: all 0.2s; }
-        .btn-filter.active { background-color: #ca8a04; color: white; }
-
         /* 輸入框優化 */
         .input-dark { 
             width: 100%; 
             background-color: #374151; 
             color: white; 
             padding: 10px 14px; 
-            border-radius: 20px; /* 變圓一點比較好看 */
+            border-radius: 20px; 
             border: 1px solid #4b5563; 
             outline: none; 
             font-size: 14px;
@@ -153,65 +151,28 @@
         /* =========================================
            5. 捲軸與彈窗 (Modals & Scrollbars)
            ========================================= */
-        /* 自定義捲軸 */
         .custom-scrollbar::-webkit-scrollbar { height: 4px; width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
         
-        /* 彈窗背景 */
         .modal-overlay { 
-            position: fixed; 
-            inset: 0; 
-            background-color: rgba(0,0,0,0.9); 
-            display: none; 
-            align-items: center; 
-            justify-content: center; 
-            z-index: 50; 
-            padding: 1rem; 
+            position: fixed; inset: 0; background-color: rgba(0,0,0,0.9); 
+            display: none; align-items: center; justify-content: center; z-index: 50; padding: 1rem; 
         }
         .modal-overlay.flex { display: flex !important; }
         
-        /* 批次操作表格 */
-        .batch-table th { 
-            position: sticky; 
-            top: 0; 
-            background: #374151; 
-            color: #ddd; 
-            padding: 8px; 
-            text-align: left; 
-        }
-        .batch-table td { 
-            border-bottom: 1px solid #4b5563; 
-            padding: 8px; 
-            color: #eee; 
-        }
+        .batch-table th { position: sticky; top: 0; background: #374151; color: #ddd; padding: 8px; text-align: left; }
+        .batch-table td { border-bottom: 1px solid #4b5563; padding: 8px; color: #eee; }
 
         /* =========================================
-           6. 山豬特搜動畫 (Loading Animation)
+           6. 山豬特搜動畫
            ========================================= */
         #boar-overlay { 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            background-color: rgba(0, 0, 0, 0.9); 
-            z-index: 9999; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background-color: rgba(0, 0, 0, 0.9); z-index: 9999; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
         }
-        .boar-scene { 
-            font-size: 60px; 
-            margin-bottom: 20px; 
-            animation: bounce 1s infinite alternate; 
-        }
-        .boar-text { 
-            color: #4CAF50; 
-            font-weight: bold; 
-            font-size: 1.2rem; 
-            animation: pulse 1.5s infinite; 
-        }
+        .boar-scene { font-size: 60px; margin-bottom: 20px; animation: bounce 1s infinite alternate; }
+        .boar-text { color: #4CAF50; font-weight: bold; font-size: 1.2rem; animation: pulse 1.5s infinite; }
         @keyframes bounce { 0% { transform: translateY(0); } 100% { transform: translateY(-10px); } }
     </style>
 </head>
@@ -248,11 +209,8 @@
                 
                 <div class="flex gap-2 items-center">
                     <select id="status-filter" onchange="renderEquipmentList()" class="bg-gray-800 text-gray-300 text-xs py-1 px-1 rounded border border-gray-700 outline-none max-w-[70px]">
-                        <option value="All">全部</option>
-                        <option value="Borrowed">借出</option>
-                        <option value="InStock">在隊</option>
+                        <option value="All">全部</option><option value="Borrowed">借出</option><option value="InStock">在隊</option>
                     </select>
-
                     <button onclick="fetchHistory()" class="text-xs text-blue-400 border border-blue-400 px-2 py-1 rounded">📜</button>
                     <button onclick="fetchEquipmentData(true)" class="text-xs text-green-400 border border-green-400 px-2 py-1 rounded">🔄</button>
                     <button onclick="toggleExportMode()" id="btn-export-mode" class="text-xs text-purple-400 border border-purple-400 px-2 py-1 rounded">📊</button>
@@ -279,8 +237,15 @@
         </div>
         
         <div id="export-toolbar" class="hidden fixed bottom-4 left-4 right-4 bg-gray-900 border border-purple-500 p-3 rounded-lg shadow-2xl z-40 flex flex-col gap-3">
-            <div class="flex justify-between items-center border-b border-gray-700 pb-2"><div class="text-white text-sm">已選 <span id="export-count" class="text-yellow-400 font-bold text-lg">0</span> 項</div><button id="btn-select-all" onclick="toggleSelectAll()" class="bg-gray-700 text-white px-3 py-1 rounded text-xs">全選</button></div>
-            <div class="flex gap-2"><button onclick="openBatchBorrowModal()" class="flex-1 bg-blue-600 text-white py-2 rounded font-bold text-sm shadow">批量借出</button><button onclick="openBatchReturnModal()" class="flex-1 bg-green-600 text-white py-2 rounded font-bold text-sm shadow">批量歸還</button><button onclick="confirmExport()" class="flex-1 bg-purple-600 text-white py-2 rounded font-bold text-sm shadow">匯出</button></div>
+            <div class="flex justify-between items-center border-b border-gray-700 pb-2">
+                <div class="text-white text-sm">已選 <span id="export-count" class="text-yellow-400 font-bold text-lg">0</span> 項</div>
+                <button id="btn-select-all" onclick="toggleSelectAll()" class="bg-gray-700 text-white px-3 py-1 rounded text-xs">全選</button>
+            </div>
+            <div class="flex gap-2">
+                <button id="btn-batch-borrow" onclick="openBatchBorrowModal()" class="hidden flex-1 bg-blue-600 text-white py-2 rounded font-bold text-sm shadow">批量借出</button>
+                <button id="btn-batch-return" onclick="openBatchReturnModal()" class="hidden flex-1 bg-green-600 text-white py-2 rounded font-bold text-sm shadow">批量歸還</button>
+                <button onclick="confirmExport()" class="flex-1 bg-purple-600 text-white py-2 rounded font-bold text-sm shadow">匯出</button>
+            </div>
         </div>
     </div>
 
@@ -308,27 +273,14 @@
     <div id="history-modal" class="modal-overlay"><div class="bg-gray-800 p-4 rounded-lg w-full max-w-md border border-blue-500 h-4/5 flex flex-col"><div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2"><h3 class="text-xl font-bold text-blue-400">📜 歷史紀錄</h3><button onclick="closeModal('history-modal')" class="text-2xl text-gray-400">&times;</button></div><div id="history-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2"></div></div></div>
     <datalist id="note-suggestions"><option value="雪訓"><option value="繩索訓練"><option value="動員訓練"><option value="山域搜救"></datalist>
 
-    <script>
-        const GAS_API_URL = "https://line-bot-liff-lovat.vercel.app/api/webhook";
-        let userId="", displayName="", equipmentCache=[], currentCategory='All', currentLocation='All', currentNote='All', isExportMode=false, selectedItems=new Set(), loaderInterval;
-
-        // --- 全域工具函數 (讓 task.js 也能用) ---
-        function toggleLoader(show, text="處理中...") {
-            const el = document.getElementById('boar-overlay'), txt = document.getElementById('boar-text'), anim = document.getElementById('boar-anim');
-            if(show) { el.classList.remove('hidden'); txt.innerText=text; const icons=['🐗💨','🐗📦','🐗📝','🐗✅']; let i=0; if(loaderInterval) clearInterval(loaderInterval); loaderInterval=setInterval(()=>{ anim.innerText=icons[i++%icons.length]; },500); }
-            else { el.classList.add('hidden'); if(loaderInterval) clearInterval(loaderInterval); }
-        }
-        async function callGasApi(payload) {
-            const res = await fetch(GAS_API_URL, { method:"POST", body:JSON.stringify({...payload, source:'liff'}) }); return await res.json();
-        }
-        function closeModal(id) { document.getElementById(id).classList.remove('flex'); document.getElementById(id).classList.add('hidden'); }
-        async function safeExecute(btn, fn) { btn.disabled=true; await fn(); btn.disabled=false; }
-    </script>
-
     <script src="mission_folder/task.js"></script>
 
     <script>
-        // --- 主程式初始化 ---
+        const GAS_API_URL = "https://line-bot-liff-lovat.vercel.app/api/webhook";
+        // 1. 全域變數新增 isUserAdmin (預設 false)
+        let userId="", displayName="", equipmentCache=[], currentCategory='All', currentLocation='All', currentNote='All', isExportMode=false, selectedItems=new Set(), loaderInterval;
+        let isUserAdmin = false; // 🔥 權限旗標
+
         async function main() {
             try {
                 await liff.init({ liffId: "2008804963-FBGT1ktJ" }); 
@@ -337,10 +289,11 @@
                 userId = profile.userId; displayName = profile.displayName;
                 document.getElementById('user-info').innerText = `隊員：${displayName}`;
                 
+                checkAdminRole(); // 🔥 啟動時檢查權限
+
                 const path = new URLSearchParams(window.location.search).get('path');
                 document.getElementById('loader').classList.add('hidden'); 
                 
-                // 這裡的 showReportPage, showQueryPage 來自 task.js
                 if (path === 'report') showReportPage();
                 else if (path === 'query') showQueryPage();
                 else if (path === 'ai') showAiPage();
@@ -348,13 +301,34 @@
             } catch (err) { alert("LIFF 錯誤: " + err); }
         }
 
+        // 🔥 權限檢查函數
+        async function checkAdminRole() {
+            try {
+                const res = await callGasApi({ action: 'check_user_role', userId: userId });
+                if (res && res.isAdmin) {
+                    isUserAdmin = true; // 標記為管理員
+                    
+                    // 解除封印：顯示管理員專用按鈕
+                    document.getElementById('btn-add-eq').classList.remove('hidden');
+                    document.getElementById('btn-batch-borrow').classList.remove('hidden');
+                    document.getElementById('btn-batch-return').classList.remove('hidden');
+                    
+                    // 重新渲染列表 (這樣每張卡片上的按鈕才會出來)
+                    if (!document.getElementById('view-equipment').classList.contains('hidden')) {
+                        renderEquipmentList();
+                    }
+                }
+            } catch (e) { console.error("權限檢查失敗", e); }
+        }
+
         // ============================================
-        // 裝備管理 (批次數量) - 留在主檔
+        // 裝備管理邏輯
         // ============================================
         function loadEquipment() {
             document.getElementById('view-equipment').classList.remove('hidden');
             if (equipmentCache.length === 0) fetchEquipmentData(true); else renderEquipmentList();
         }
+        
         async function fetchEquipmentData(showLoading = false) {
             if (showLoading) toggleLoader(true, "盤點中...");
             try {
@@ -362,41 +336,29 @@
                 equipmentCache = (data && data.length > 0) ? data : [];
                 if(equipmentCache.length === 0) document.getElementById('equipment-list').innerHTML = "<p class='text-center text-gray-500'>查無裝備</p>";
                 else { 
-                    renderCategoryUI(); 
-                    renderLocationUI(); // 🔥 [新增] 這一行
-                    renderNoteUI(); 
+                    renderCategoryUI(); renderLocationUI(); renderNoteUI(); 
                     renderEquipmentList(); 
                 }
             } catch (e) { alert(e.message); } finally { if (showLoading) toggleLoader(false); }
         }
 
+        // 🔥 列表渲染 (加入權限判斷)
         function renderEquipmentList() {
             const listDiv = document.getElementById('equipment-list');
             const searchText = document.getElementById('eq-search').value.toLowerCase();
             const statusFilter = document.getElementById('status-filter').value;
             
             let filtered = equipmentCache.filter(eq => {
-                // 1. 分類
                 const matchCat = currentCategory === 'All' || eq.category === currentCategory;
-                
-                // 🔥 2. [新增] 位置過濾
                 const matchLoc = currentLocation === 'All' || eq.location === currentLocation;
-
-                // 3. 搜尋
                 const matchSearch = (eq.name+eq.model).toLowerCase().includes(searchText) || (eq.active_loans && eq.active_loans.some(l => l.borrower.toLowerCase().includes(searchText)));
-                
-                // 4. 狀態
                 const isBorrowed = eq.available_qty < eq.total_qty;
                 let matchStatus = (statusFilter === 'Borrowed' ? isBorrowed : (statusFilter === 'InStock' ? !isBorrowed : true));
-                
-                // 5. 備註
                 let matchNote = true;
                 if (currentNote !== 'All') {
                     if (!eq.active_loans || eq.active_loans.length === 0) matchNote = false;
                     else matchNote = eq.active_loans.some(l => (currentNote==='未分類' ? (!l.note||l.note.trim()==='') : l.note===currentNote));
                 }
-
-                // 🔥 記得把 matchLoc 加進去回傳
                 return matchCat && matchLoc && matchSearch && matchStatus && matchNote;
             });
             filtered.sort((a, b) => (a.available_qty < a.total_qty ? -1 : 1));
@@ -413,219 +375,144 @@
                 if (eq.active_loans && eq.active_loans.length > 0) {
                     loansHtml = `<div class="mt-2 pt-2 border-t border-gray-600 space-y-1">`;
                     eq.active_loans.forEach(l => {
+                        // 🔥 權限控制：只有管理員能看到歸還按鈕
+                        const returnBtn = isUserAdmin ? `<button onclick="openSingleReturnModal('${eq.id}', '${l.loan_id}', ${l.qty}, '${l.borrower}')" class="bg-green-700 text-white px-2 py-1 rounded text-[10px]">歸還</button>` : '';
                         loansHtml += `<div class="flex justify-between items-center text-xs text-gray-300">
                                 <span>👤 ${l.borrower} <span class="text-yellow-400">x${l.qty}</span> <span class="text-blue-300">${l.note ? `#${l.note}` : ''}</span></span>
-                                <button onclick="openSingleReturnModal('${eq.id}', '${l.loan_id}', ${l.qty}, '${l.borrower}')" class="bg-green-700 text-white px-2 py-1 rounded text-[10px]">歸還</button>
+                                ${returnBtn}
                             </div>`;
                     });
                     loansHtml += `</div>`;
                 }
+                
                 const checked = selectedItems.has(eq.id) ? 'checked' : '';
                 const checkHtml = isExportMode ? `<div class="mr-3 flex items-center"><input type="checkbox" onchange="toggleSelect('${eq.id}')" ${checked} class="w-6 h-6"></div>` : '';
 
+                // 🔥 權限控制：只有管理員能看到借出按鈕
+                const borrowBtn = (!isEmpty && isUserAdmin) ? `<button onclick="openSingleBorrowModal('${eq.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold">借出</button>` : '';
+
+                // 管理員可見編輯按鈕，一般人隱藏
+                const editBtn = isUserAdmin ? `<button onclick="openEditModal('update', '${eq.id}')" class="text-gray-500 p-1">⚙️</button>` : '';
+
                 html += `<div class="flex items-start bg-gray-800 p-4 rounded-lg mb-3 border-l-4 ${isEmpty ? "border-red-500" : (isFull ? "border-green-500" : "border-blue-500")}">
-                        ${checkHtml}<div class="flex-1"><div class="flex justify-between"><div><h3 class="font-bold text-white text-lg">${eq.name}</h3><div class="flex gap-2 text-xs text-gray-400 mt-1"><span>${eq.model||'-'}</span><span>📍${eq.location||'-'}</span></div></div><div class="flex gap-2"><button onclick="fetchItemHistory('${eq.id}')" class="text-blue-400 p-1">📜</button><button onclick="openEditModal('update', '${eq.id}')" class="text-gray-500 p-1">⚙️</button></div></div>
-                        <div class="flex justify-between items-center mt-3">${statusBadge}${!isEmpty ? `<button onclick="openSingleBorrowModal('${eq.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold">借出</button>` : ''}</div>${loansHtml}</div></div>`;
+                        ${checkHtml}<div class="flex-1"><div class="flex justify-between"><div><h3 class="font-bold text-white text-lg">${eq.name}</h3><div class="flex gap-2 text-xs text-gray-400 mt-1"><span>${eq.model||'-'}</span><span>📍${eq.location||'-'}</span></div></div><div class="flex gap-2"><button onclick="fetchItemHistory('${eq.id}')" class="text-blue-400 p-1">📜</button>${editBtn}</div></div>
+                        <div class="flex justify-between items-center mt-3">${statusBadge}${borrowBtn}</div>${loansHtml}</div></div>`;
             });
             listDiv.innerHTML = html || "<p class='text-center text-gray-500'>無符合裝備</p>";
             updateExportCount();
         }
 
-        // 借出 (批次數量)
-        function openSingleBorrowModal(id) { selectedItems.clear(); selectedItems.add(id); openBatchBorrowModal(); }
-        function openBatchBorrowModal() {
-            if (selectedItems.size === 0) { alert("請先勾選裝備"); return; }
-            document.getElementById('batch-borrow-modal').classList.add('flex');
-            document.getElementById('batch-borrower').value = ""; document.getElementById('batch-note').value = "";
-            const tbody = document.getElementById('batch-borrow-list'); tbody.innerHTML = "";
-            selectedItems.forEach(id => {
-                const eq = equipmentCache.find(e => e.id === id);
-                if (eq && eq.available_qty > 0) {
-                    tbody.innerHTML += `<tr class="border-b border-gray-700"><td class="px-2 py-2 text-white">${eq.name}</td><td class="text-center text-gray-400">${eq.available_qty}</td><td class="text-center"><input type="number" data-id="${eq.id}" class="borrow-qty-input w-16 bg-gray-700 text-white p-1 rounded border border-gray-600 text-center" value="1" min="1" max="${eq.available_qty}"></td></tr>`;
-                }
-            });
-        }
-        async function submitBatchBorrow() {
-            const borrower = document.getElementById('batch-borrower').value;
-            const note = document.getElementById('batch-note').value;
-            if (!borrower) { alert("請輸入借用人"); return; }
-            const inputs = document.querySelectorAll('.borrow-qty-input');
-            const requests = [];
-            inputs.forEach(input => {
-                const qty = parseInt(input.value);
-                if (qty > 0) requests.push({ action: 'borrow_equipment', userId, displayName, eqId: input.dataset.id, borrower, qty, note });
-            });
-            if (requests.length === 0) return;
-            toggleLoader(true); closeModal('batch-borrow-modal');
-            try { await Promise.all(requests.map(req => callGasApi(req))); alert("借出成功"); selectedItems.clear(); if(isExportMode) toggleExportMode(); fetchEquipmentData(false); } catch (e) { alert(e.message); } finally { toggleLoader(false); }
-        }
-
-        // 歸還 (批次數量)
-        function openSingleReturnModal(eqId, loanId, qty, borrower) {
-            document.getElementById('batch-return-modal').classList.add('flex');
-            const listDiv = document.getElementById('batch-return-list'); listDiv.innerHTML = "";
-            const eq = equipmentCache.find(e => e.id === eqId);
-            renderReturnItem(listDiv, eq ? eq.name : '裝備', loanId, qty, borrower);
-        }
-        function openBatchReturnModal() {
-            if (selectedItems.size === 0) { alert("請先勾選歸還裝備"); return; }
-            document.getElementById('batch-return-modal').classList.add('flex');
-            const listDiv = document.getElementById('batch-return-list'); listDiv.innerHTML = "";
-            let hasLoan = false;
-            selectedItems.forEach(id => {
-                const eq = equipmentCache.find(e => e.id === id);
-                if (eq && eq.active_loans) eq.active_loans.forEach(l => { hasLoan=true; renderReturnItem(listDiv, eq.name, l.loan_id, l.qty, l.borrower); });
-            });
-            if (!hasLoan) { alert("無借出紀錄"); closeModal('batch-return-modal'); }
-        }
-        function renderReturnItem(container, eqName, loanId, maxQty, borrower) {
-            container.innerHTML += `<div class="flex items-center justify-between bg-gray-700 p-3 rounded border border-gray-600">
-                <div class="flex items-center gap-3"><input type="checkbox" class="return-checkbox w-5 h-5" checked data-loan-id="${loanId}"><div class="text-sm"><div class="text-white font-bold">${eqName}</div><div class="text-gray-300 text-xs">👤 ${borrower} (借: ${maxQty})</div></div></div>
-                <div class="flex items-center gap-2"><label class="text-xs text-gray-400">歸還:</label><input type="number" class="return-qty-input w-16 bg-gray-800 text-white p-1 rounded border border-gray-500 text-center" value="${maxQty}" min="1" max="${maxQty}" data-loan-id="${loanId}"></div></div>`;
-        }
-        async function submitBatchReturn() {
-            const checkboxes = document.querySelectorAll('.return-checkbox:checked');
-            if (checkboxes.length === 0) return alert("請勾選");
-            const requests = [];
-            checkboxes.forEach(cb => {
-                const loanId = cb.dataset.loanId;
-                const qty = parseInt(document.querySelector(`.return-qty-input[data-loan-id="${loanId}"]`).value);
-                if (qty > 0) requests.push({ action: 'return_equipment', userId, displayName, loanId, returnQty: qty });
-            });
-            toggleLoader(true); closeModal('batch-return-modal');
-            try { await Promise.all(requests.map(req => callGasApi(req))); alert("歸還成功"); selectedItems.clear(); if(isExportMode) toggleExportMode(); fetchEquipmentData(false); } catch (e) { alert(e.message); } finally { toggleLoader(false); }
-        }
-
-        // 其他工具
-        function toggleExportMode() { isExportMode = !isExportMode; document.getElementById('export-toolbar').classList.toggle('hidden'); document.getElementById('btn-export-mode').innerText = isExportMode ? "❌ 取消" : "📊 匯出"; renderEquipmentList(); }
-        function toggleSelect(id) { if (selectedItems.has(id)) selectedItems.delete(id); else selectedItems.add(id); updateExportCount(); }
-        function toggleSelectAll() { const ids = Array.from(document.querySelectorAll('#equipment-list input[type="checkbox"]')).map(c => c.getAttribute('onchange').match(/'([^']+)'/)[1]); if (ids.every(id => selectedItems.has(id))) ids.forEach(id => selectedItems.delete(id)); else ids.forEach(id => selectedItems.add(id)); renderEquipmentList(); updateExportCount(); }
-        function updateExportCount() { document.getElementById('export-count').innerText = selectedItems.size; }
-        async function confirmExport() { if (selectedItems.size === 0) return alert("請選擇"); toggleLoader(true); try { const res = await callGasApi({ action: 'export_equipment_report', userId, eqIds: Array.from(selectedItems) }); if (res.url) window.open(res.url); else alert("失敗"); } catch (e) { alert(e.message); } finally { toggleLoader(false); } }
-        // 渲染分類按鈕
+        // 3層篩選 UI 渲染
         function renderCategoryUI() {
             const cats = [...new Set(['管理','搜索','救援','醫療','後勤', ...equipmentCache.map(e=>e.category)])];
-            // 使用 btn-chip 樣式
             let html = `<button onclick="switchCategory('All')" class="btn-chip ${currentCategory==='All'?'active':''}">全部分組</button>`;
-            cats.forEach(c => {
-                html += `<button onclick="switchCategory('${c}')" class="btn-chip ${currentCategory===c?'active':''}">${c}</button>`;
-            });
+            cats.forEach(c => html += `<button onclick="switchCategory('${c}')" class="btn-chip ${currentCategory===c?'active':''}">${c}</button>`);
             document.getElementById('category-filter-container').innerHTML = html;
             document.getElementById('category-options').innerHTML = cats.map(c=>`<option value="${c}">`).join('');
         }
-        // 渲染位置按鈕
         function renderLocationUI() {
             const container = document.getElementById('location-filter-container');
-            const locs = new Set();
-            equipmentCache.forEach(e => { if(e.location) locs.add(e.location); });
-            
-            if(locs.size === 0) { container.classList.add('hidden'); return; } 
-            container.classList.remove('hidden');
-
+            const locs = new Set(); equipmentCache.forEach(e => { if(e.location) locs.add(e.location); });
+            if(locs.size === 0) { container.classList.add('hidden'); return; } container.classList.remove('hidden');
             let html = `<button onclick="switchLocation('All')" class="btn-chip ${currentLocation==='All'?'active':''}">全部位置</button>`;
-            Array.from(locs).sort().forEach(loc => {
-                html += `<button onclick="switchLocation('${loc}')" class="btn-chip ${currentLocation===loc?'active':''}">${loc}</button>`;
-            });
+            Array.from(locs).sort().forEach(loc => html += `<button onclick="switchLocation('${loc}')" class="btn-chip ${currentLocation===loc?'active':''}">${loc}</button>`);
             container.innerHTML = html;
         }
-
-        // 🔥 [新增] 切換位置函數
-        function switchLocation(loc) { currentLocation = loc; renderLocationUI(); renderEquipmentList(); }
-
-        // 渲染備註按鈕 (包含自動重置邏輯)
         function renderNoteUI() {
             const container = document.getElementById('note-filter-container');
-            const notes = new Set(); 
-            equipmentCache.forEach(e => e.active_loans?.forEach(l => notes.add(l.note?.trim() || '未分類')));
-            
-            // 🔥 [新增] 自動重置邏輯
-            // 如果目前有選某個備註，但這個備註已經不在新的清單裡 (代表該用途的裝備都還光了)
-            // 就強制切換回 'All'，並重新刷新列表
-            if (currentNote !== 'All' && !notes.has(currentNote)) {
-                currentNote = 'All';
-                renderEquipmentList(); // 重新過濾列表 (不然會顯示空白)
-            }
-
-            if(notes.size === 0) { container.classList.add('hidden'); return; } 
-            container.classList.remove('hidden');
-
+            const notes = new Set(); equipmentCache.forEach(e => e.active_loans?.forEach(l => notes.add(l.note?.trim() || '未分類')));
+            if(currentNote!=='All' && !notes.has(currentNote)) { currentNote='All'; renderEquipmentList(); } // Auto reset
+            if(notes.size === 0) { container.classList.add('hidden'); return; } container.classList.remove('hidden');
             let html = `<button onclick="switchNote('All')" class="btn-chip ${currentNote==='All'?'active':''}">全部用途</button>`;
-            Array.from(notes).sort().forEach(n => {
-                html += `<button onclick="switchNote('${n}')" class="btn-chip ${currentNote===n?'active':''}">${n}</button>`;
-            });
+            Array.from(notes).sort().forEach(n => html += `<button onclick="switchNote('${n}')" class="btn-chip ${currentNote===n?'active':''}">${n}</button>`);
             container.innerHTML = html;
         }
-
-        // 🔥 切換篩選面板展開/收合
         function toggleFilterPanel() {
-            const panel = document.getElementById('collapsible-filters');
-            const btn = document.getElementById('btn-toggle-filter');
-            const icon = btn.querySelector('span');
-            
-            // 判斷目前是用 max-height 控制還是 class hidden
-            // 這裡我們用 style.maxHeight 來做動畫效果
+            const panel = document.getElementById('collapsible-filters'), btn = document.getElementById('btn-toggle-filter');
             if (panel.style.maxHeight === '0px') {
-                // 展開
-                panel.style.maxHeight = '500px'; // 足夠大的高度
-                panel.style.opacity = '1';
-                btn.innerHTML = '<span>▼</span> 收合';
-                btn.classList.add('text-yellow-400', 'border-yellow-600');
-                btn.classList.remove('text-gray-400', 'border-gray-600');
+                panel.style.maxHeight = '500px'; panel.style.opacity = '1';
+                btn.innerHTML = '<span>▼</span> 收合'; btn.classList.add('text-yellow-400','border-yellow-600'); btn.classList.remove('text-gray-400','border-gray-600');
             } else {
-                // 收合
-                panel.style.maxHeight = '0px';
-                panel.style.opacity = '0';
-                btn.innerHTML = '<span>🔍</span> 篩選'; // 收起來時變成搜尋圖示
-                btn.classList.remove('text-yellow-400', 'border-yellow-600');
-                btn.classList.add('text-gray-400', 'border-gray-600');
+                panel.style.maxHeight = '0px'; panel.style.opacity = '0';
+                btn.innerHTML = '<span>🔍</span> 篩選'; btn.classList.remove('text-yellow-400','border-yellow-600'); btn.classList.add('text-gray-400','border-gray-600');
             }
         }
-
-        
         function switchCategory(c) { currentCategory = c; renderCategoryUI(); renderEquipmentList(); }
-        // 切換備註過濾
-        function switchNote(n) { 
-            currentNote = n; 
-            renderNoteUI(); 
-            renderEquipmentList(); 
-            
-            // 🔥 [新增] 選完後自動收合篩選面板
-            toggleFilterPanel(); 
+        function switchLocation(l) { currentLocation = l; renderLocationUI(); renderEquipmentList(); }
+        function switchNote(n) { currentNote = n; renderNoteUI(); renderEquipmentList(); toggleFilterPanel(); }
+
+        // 借還操作
+        function openSingleBorrowModal(id) { selectedItems.clear(); selectedItems.add(id); openBatchBorrowModal(); }
+        function openBatchBorrowModal() {
+            if (selectedItems.size === 0) return alert("請勾選");
+            document.getElementById('batch-borrow-modal').classList.add('flex');
+            document.getElementById('batch-borrower').value=""; document.getElementById('batch-note').value="";
+            const tbody = document.getElementById('batch-borrow-list'); tbody.innerHTML = "";
+            selectedItems.forEach(id => {
+                const eq = equipmentCache.find(e => e.id === id);
+                if (eq && eq.available_qty > 0) tbody.innerHTML += `<tr class="border-b border-gray-700"><td class="px-2 py-2 text-white">${eq.name}</td><td class="text-center text-gray-400">${eq.available_qty}</td><td class="text-center"><input type="number" data-id="${eq.id}" class="borrow-qty-input w-16 bg-gray-700 text-white p-1 rounded border border-gray-600 text-center" value="1" min="1" max="${eq.available_qty}"></td></tr>`;
+            });
         }
+        async function submitBatchBorrow() {
+            const borrower = document.getElementById('batch-borrower').value, note = document.getElementById('batch-note').value;
+            if (!borrower) return alert("請輸入借用人");
+            const reqs = [];
+            document.querySelectorAll('.borrow-qty-input').forEach(i => { if(i.value>0) reqs.push({ action:'borrow_equipment', userId, displayName, eqId:i.dataset.id, borrower, qty:i.value, note }) });
+            if (reqs.length===0) return; toggleLoader(true); closeModal('batch-borrow-modal');
+            try { await Promise.all(reqs.map(r=>callGasApi(r))); alert("成功"); selectedItems.clear(); if(isExportMode)toggleExportMode(); fetchEquipmentData(false); } catch(e){alert(e.message)} finally{toggleLoader(false)}
+        }
+        function openSingleReturnModal(eqId, loanId, qty, borrower) {
+            document.getElementById('batch-return-modal').classList.add('flex');
+            document.getElementById('batch-return-list').innerHTML = "";
+            const eq = equipmentCache.find(e => e.id === eqId);
+            renderReturnItem(document.getElementById('batch-return-list'), eq?eq.name:'裝備', loanId, qty, borrower);
+        }
+        function openBatchReturnModal() {
+            if (selectedItems.size === 0) return alert("請勾選");
+            document.getElementById('batch-return-modal').classList.add('flex');
+            const list = document.getElementById('batch-return-list'); list.innerHTML = "";
+            selectedItems.forEach(id => { const eq = equipmentCache.find(e => e.id === id); if(eq && eq.active_loans) eq.active_loans.forEach(l => renderReturnItem(list, eq.name, l.loan_id, l.qty, l.borrower)); });
+        }
+        function renderReturnItem(c, n, lid, max, b) {
+            c.innerHTML += `<div class="flex items-center justify-between bg-gray-700 p-3 rounded border border-gray-600"><div class="flex items-center gap-3"><input type="checkbox" class="return-checkbox w-5 h-5" checked data-loan-id="${lid}"><div class="text-sm"><div class="text-white font-bold">${n}</div><div class="text-gray-300 text-xs">👤 ${b} (借: ${max})</div></div></div><div class="flex items-center gap-2"><label class="text-xs text-gray-400">歸還:</label><input type="number" class="return-qty-input w-16 bg-gray-800 text-white p-1 rounded border border-gray-500 text-center" value="${max}" min="1" max="${max}" data-loan-id="${lid}"></div></div>`;
+        }
+        async function submitBatchReturn() {
+            const reqs = [];
+            document.querySelectorAll('.return-checkbox:checked').forEach(cb => {
+                const lid = cb.dataset.loanId, qty = document.querySelector(`.return-qty-input[data-loan-id="${lid}"]`).value;
+                if(qty>0) reqs.push({ action:'return_equipment', userId, displayName, loanId:lid, returnQty:qty });
+            });
+            if (reqs.length===0) return; toggleLoader(true); closeModal('batch-return-modal');
+            try { await Promise.all(reqs.map(r=>callGasApi(r))); alert("成功"); selectedItems.clear(); if(isExportMode)toggleExportMode(); fetchEquipmentData(false); } catch(e){alert(e.message)} finally{toggleLoader(false)}
+        }
+
+        // 其他工具
+        function toggleExportMode() { isExportMode=!isExportMode; document.getElementById('export-toolbar').classList.toggle('hidden'); document.getElementById('btn-export-mode').innerText=isExportMode?"❌ 取消":"📊 匯出"; renderEquipmentList(); }
+        function toggleSelect(id) { if(selectedItems.has(id))selectedItems.delete(id);else selectedItems.add(id); updateExportCount(); }
+        function toggleSelectAll() { const ids=Array.from(document.querySelectorAll('#equipment-list input[type="checkbox"]')).map(c=>c.getAttribute('onchange').match(/'([^']+)'/)[1]); if(ids.every(id=>selectedItems.has(id))) ids.forEach(id=>selectedItems.delete(id)); else ids.forEach(id=>selectedItems.add(id)); renderEquipmentList(); updateExportCount(); }
+        function updateExportCount() { document.getElementById('export-count').innerText=selectedItems.size; }
+        async function confirmExport() { if(selectedItems.size===0)return alert("請選擇"); toggleLoader(true); try{const r=await callGasApi({action:'export_equipment_report',userId,eqIds:Array.from(selectedItems)}); if(r.url)window.open(r.url);else alert("失敗");}catch(e){alert(e.message)}finally{toggleLoader(false)} }
         function openEditModal(mode,id,name,cat,model,loc,total) {
-            document.getElementById('edit-eq-modal').classList.add('flex'); document.getElementById('edit-mode').value = mode;
-            let eq = (mode === 'update' && id) ? (equipmentCache.find(e => e.id === id) || {}) : {};
-            document.getElementById('edit-modal-title').innerText = mode==='create'?"➕ 新增":"⚙️ 編輯";
+            document.getElementById('edit-eq-modal').classList.add('flex'); document.getElementById('edit-mode').value=mode;
+            let eq = (mode==='update'&&id)?(equipmentCache.find(e=>e.id===id)||{}):{};
+            document.getElementById('edit-modal-title').innerText=mode==='create'?"➕ 新增":"⚙️ 編輯";
             document.getElementById('edit-eq-id').value=id||""; document.getElementById('eq-name').value=eq.name||""; 
             document.getElementById('eq-category').value=eq.category||""; document.getElementById('eq-model').value=eq.model||"";
             document.getElementById('eq-location').value=eq.location||""; document.getElementById('eq-total').value=eq.total_qty||1;
-            document.getElementById('btn-delete-eq').className = mode==='create' ? 'hidden' : 'bg-red-600 text-white px-3 py-2 rounded font-bold';
+            document.getElementById('btn-delete-eq').className=mode==='create'?'hidden':'bg-red-600 text-white px-3 py-2 rounded font-bold';
         }
         async function submitEquipmentEdit() {
-            const p = { action:'manage_equipment', userId, displayName, mode:document.getElementById('edit-mode').value, eqId:document.getElementById('edit-eq-id').value, name:document.getElementById('eq-name').value, category:document.getElementById('eq-category').value, model:document.getElementById('eq-model').value, location:document.getElementById('eq-location').value, totalQty:document.getElementById('eq-total').value };
-            if(!p.name) return alert("名稱必填"); toggleLoader(true); closeModal('edit-eq-modal'); await callGasApi(p); fetchEquipmentData(false); toggleLoader(false);
+            const p={action:'manage_equipment',userId,displayName,mode:document.getElementById('edit-mode').value,eqId:document.getElementById('edit-eq-id').value,name:document.getElementById('eq-name').value,category:document.getElementById('eq-category').value,model:document.getElementById('eq-model').value,location:document.getElementById('eq-location').value,totalQty:document.getElementById('eq-total').value};
+            if(!p.name)return alert("名稱必填"); toggleLoader(true); closeModal('edit-eq-modal'); await callGasApi(p); fetchEquipmentData(false); toggleLoader(false);
         }
-        async function deleteEquipment() { if(confirm("確定刪除?")) { toggleLoader(true); closeModal('edit-eq-modal'); await callGasApi({action:'manage_equipment', userId, displayName, mode:'delete', eqId:document.getElementById('edit-eq-id').value}); fetchEquipmentData(false); toggleLoader(false); } }
-        async function fetchHistory() { 
-            document.getElementById('history-modal').classList.add('flex'); document.getElementById('history-list').innerHTML = '<div class="loader"></div>';
-            const data = await callGasApi({action:'get_loan_history', userId});
-            document.getElementById('history-list').innerHTML = data.map(l=>`<div class="bg-gray-700 p-3 mb-2 rounded border-l-4 ${l.status==='已歸還'?'border-green-500':'border-blue-500'} text-sm"><div class="flex justify-between font-bold"><span>${l.item_name}</span><span>${l.borrower}</span></div><div class="flex justify-between text-xs mt-1"><span>${l.status} x${l.qty}</span><span>${l.time}</span></div></div>`).join('') || "無紀錄";
-        }
-        async function fetchItemHistory(id) {
-            document.getElementById('history-modal').classList.add('flex'); document.getElementById('history-list').innerHTML = '<div class="loader"></div>';
-            const data = await callGasApi({action:'get_loan_history', userId, eqId:id});
-            document.getElementById('history-list').innerHTML = data.map(l=>`<div class="bg-gray-700 p-3 mb-2 rounded border-l-4 ${l.status==='已歸還'?'border-green-500':'border-blue-500'} text-sm"><div class="flex justify-between font-bold"><span>${l.status}</span><span>${l.borrower}</span></div><div class="flex justify-between text-xs mt-1"><span>數量: ${l.qty}</span><span>${l.time}</span></div></div>`).join('') || "無紀錄";
-        }
-
-        // AI
-        function showAiPage() { document.getElementById('view-ai').classList.remove('hidden'); }
-        async function askAI(mode) { 
-            const q = document.getElementById('ai-input').value; if(!q) return alert("請輸入"); toggleLoader(true);
-            try { const r = await callGasApi({action:mode==='ppt'?'make_briefing_ppt':'ask_ai', userId, question:q, query:q});
-            document.getElementById('ai-response').classList.remove('hidden');
-            document.getElementById('ai-response').innerHTML = mode==='ppt'?`<a href="${r.url}" target="_blank" class="btn block text-center bg-green-600 p-2 rounded">下載簡報</a>`:r.answer; } catch(e){alert(e.message)} finally{toggleLoader(false)}
-        }
-        async function safeExecute(btn, fn) { btn.disabled=true; await fn(); btn.disabled=false; }
+        async function deleteEquipment() { if(confirm("確定刪除?")){toggleLoader(true); closeModal('edit-eq-modal'); await callGasApi({action:'manage_equipment',userId,displayName,mode:'delete',eqId:document.getElementById('edit-eq-id').value}); fetchEquipmentData(false); toggleLoader(false);} }
+        async function fetchHistory() { document.getElementById('history-modal').classList.add('flex'); document.getElementById('history-list').innerHTML='<div class="loader"></div>'; const d=await callGasApi({action:'get_loan_history',userId}); document.getElementById('history-list').innerHTML=d.map(l=>`<div class="bg-gray-700 p-3 mb-2 rounded border-l-4 ${l.status==='已歸還'?'border-green-500':'border-blue-500'} text-sm"><div class="flex justify-between font-bold"><span>${l.item_name}</span><span>${l.borrower}</span></div><div class="flex justify-between text-xs mt-1"><span>${l.status} x${l.qty}</span><span>${l.time}</span></div></div>`).join('')||"無紀錄"; }
+        async function fetchItemHistory(id) { document.getElementById('history-modal').classList.add('flex'); document.getElementById('history-list').innerHTML='<div class="loader"></div>'; const d=await callGasApi({action:'get_loan_history',userId,eqId:id}); document.getElementById('history-list').innerHTML=d.map(l=>`<div class="bg-gray-700 p-3 mb-2 rounded border-l-4 ${l.status==='已歸還'?'border-green-500':'border-blue-500'} text-sm"><div class="flex justify-between font-bold"><span>${l.status}</span><span>${l.borrower}</span></div><div class="flex justify-between text-xs mt-1"><span>數量: ${l.qty}</span><span>${l.time}</span></div></div>`).join('')||"無紀錄"; }
+        
+        // AI 與其他
+        function showAiPage(){document.getElementById('view-ai').classList.remove('hidden')}
+        async function askAI(mode){const q=document.getElementById('ai-input').value;if(!q)return alert("請輸入");toggleLoader(true);try{const r=await callGasApi({action:mode==='ppt'?'make_briefing_ppt':'ask_ai',userId,question:q,query:q});document.getElementById('ai-response').classList.remove('hidden');document.getElementById('ai-response').innerHTML=mode==='ppt'?`<a href="${r.url}" target="_blank" class="btn block text-center bg-green-600 p-2 rounded">下載簡報</a>`:r.answer}catch(e){alert(e.message)}finally{toggleLoader(false)}}
+        async function safeExecute(b,f){b.disabled=true;await f();b.disabled=false}
 
         main();
     </script>
