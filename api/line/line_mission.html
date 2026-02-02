@@ -236,32 +236,36 @@
     
     <div id="view-equipment" class="hidden h-full flex flex-col">
         
-        <div id="top-fixed-area" class="pb-2">
-            <div class="flex justify-between items-center px-4 py-2 bg-gray-900 border-b border-gray-800">
+        <div id="top-fixed-area" class="pb-1 bg-gray-900 border-b border-gray-800">
+            
+            <div class="flex justify-between items-center px-4 py-2">
                 <div class="flex items-center gap-2">
                     <h2 class="text-base font-bold text-yellow-400">🎒 裝備</h2>
-                    <select id="status-filter" onchange="renderEquipmentList()" class="bg-gray-800 text-gray-300 text-xs py-1 px-2 rounded border border-gray-700 outline-none">
+                    <button onclick="toggleFilterPanel()" id="btn-toggle-filter" class="text-xs bg-gray-800 text-gray-400 border border-gray-600 px-2 py-1 rounded flex items-center gap-1 transition-colors">
+                        <span>▼</span> 收合
+                    </button>
+                </div>
+                
+                <div class="flex gap-2">
+                    <select id="status-filter" onchange="renderEquipmentList()" class="bg-gray-800 text-gray-300 text-xs py-1 px-1 rounded border border-gray-700 outline-none max-w-[80px]">
                         <option value="All">全部</option>
-                        <option value="Borrowed">出勤中</option>
+                        <option value="Borrowed">借出</option>
                         <option value="InStock">在隊</option>
                     </select>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="fetchHistory()" class="text-xs text-blue-400 font-bold border border-blue-400 px-2 py-1 rounded-full">📜</button>
-                    <button onclick="fetchEquipmentData(true)" class="text-xs text-green-400 font-bold border border-green-400 px-2 py-1 rounded-full">🔄</button>
-                    <button onclick="toggleExportMode()" id="btn-export-mode" class="text-xs text-purple-400 font-bold border border-purple-400 px-2 py-1 rounded-full">📊</button>
+                    <button onclick="fetchHistory()" class="text-xs text-blue-400 border border-blue-400 px-2 py-1 rounded">📜</button>
+                    <button onclick="toggleExportMode()" class="text-xs text-purple-400 border border-purple-400 px-2 py-1 rounded">📊</button>
                 </div>
             </div>
 
-            <div class="px-4 py-2">
-                <input type="text" id="eq-search" oninput="renderEquipmentList()" 
-                       class="input-dark w-full" 
-                       placeholder="🔍 搜尋裝備...">
-            </div>
-            
-            <div id="category-filter-container" class="filter-row"></div>
-            <div id="location-filter-container" class="filter-row hidden"></div>
-            <div id="note-filter-container" class="filter-row hidden"></div>
+            <div id="collapsible-filters" class="transition-all duration-300 overflow-hidden" style="max-height: 500px;">
+                <div class="px-4 pb-2">
+                    <input type="text" id="eq-search" oninput="renderEquipmentList()" class="input-dark w-full text-xs" placeholder="🔍 搜尋裝備名稱、型號...">
+                </div>
+                
+                <div id="category-filter-container" class="filter-row"></div>
+                <div id="location-filter-container" class="filter-row hidden"></div>
+                <div id="note-filter-container" class="filter-row hidden"></div>
+                <div class="h-2"></div> </div>
         </div>
 
         <div id="content-area">
@@ -541,8 +545,42 @@
             });
             container.innerHTML = html;
         }
+        // 🔥 切換篩選面板展開/收合
+        function toggleFilterPanel() {
+            const panel = document.getElementById('collapsible-filters');
+            const btn = document.getElementById('btn-toggle-filter');
+            const icon = btn.querySelector('span');
+            
+            // 判斷目前是用 max-height 控制還是 class hidden
+            // 這裡我們用 style.maxHeight 來做動畫效果
+            if (panel.style.maxHeight === '0px') {
+                // 展開
+                panel.style.maxHeight = '500px'; // 足夠大的高度
+                panel.style.opacity = '1';
+                btn.innerHTML = '<span>▼</span> 收合';
+                btn.classList.add('text-yellow-400', 'border-yellow-600');
+                btn.classList.remove('text-gray-400', 'border-gray-600');
+            } else {
+                // 收合
+                panel.style.maxHeight = '0px';
+                panel.style.opacity = '0';
+                btn.innerHTML = '<span>🔍</span> 篩選'; // 收起來時變成搜尋圖示
+                btn.classList.remove('text-yellow-400', 'border-yellow-600');
+                btn.classList.add('text-gray-400', 'border-gray-600');
+            }
+        }
+
+        
         function switchCategory(c) { currentCategory = c; renderCategoryUI(); renderEquipmentList(); }
-        function switchNote(n) { currentNote = n; renderNoteUI(); renderEquipmentList(); }
+        // 切換備註過濾
+        function switchNote(n) { 
+            currentNote = n; 
+            renderNoteUI(); 
+            renderEquipmentList(); 
+            
+            // 🔥 [新增] 選完後自動收合篩選面板
+            toggleFilterPanel(); 
+        }
         function openEditModal(mode,id,name,cat,model,loc,total) {
             document.getElementById('edit-eq-modal').classList.add('flex'); document.getElementById('edit-mode').value = mode;
             let eq = (mode === 'update' && id) ? (equipmentCache.find(e => e.id === id) || {}) : {};
