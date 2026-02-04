@@ -47,13 +47,18 @@
         /* 橫向滑動容器 */
         .filter-row {
             display: flex;
-            gap: 8px; /* 按鈕間距 */
-            overflow-x: auto; /* 橫向捲動 */
-            padding: 4px 16px; /* 左右留白 */
+            gap: 8px;
+            overflow-x: auto;
+            padding: 4px 16px;
             white-space: nowrap;
-            /* 隱藏捲軸但保留功能 */
-            -ms-overflow-style: none;  /* IE/Edge */
-            scrollbar-width: none;  /* Firefox */
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            /* 🔥 新增這行：讓游標變成可以抓取的小手 */
+            cursor: grab;
+        }
+        /* 🔥 新增這個樣式：按下去的時候變成「緊握」的小手 */
+        .filter-row:active {
+            cursor: grabbing;
         }
         .filter-row::-webkit-scrollbar {
             display: none; /* Chrome/Safari */
@@ -682,6 +687,40 @@
         }
         async function safeExecute(btn, fn) { btn.disabled=true; await fn(); btn.disabled=false; }
 
+
+        // 🔥 [新增] 滑鼠拖曳捲動功能 (Drag to Scroll)
+        const sliders = document.querySelectorAll('.filter-row');
+        sliders.forEach(slider => {
+            let isDown = false;
+            let startX;
+            let scrollLeft;
+
+            slider.addEventListener('mousedown', (e) => {
+                isDown = true;
+                slider.classList.add('active');
+                startX = e.pageX - slider.offsetLeft;
+                scrollLeft = slider.scrollLeft;
+            });
+
+            slider.addEventListener('mouseleave', () => {
+                isDown = false;
+                slider.classList.remove('active');
+            });
+
+            slider.addEventListener('mouseup', () => {
+                isDown = false;
+                slider.classList.remove('active');
+            });
+
+            slider.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault(); // 防止選取文字
+                const x = e.pageX - slider.offsetLeft;
+                const walk = (x - startX) * 2; // *2 是滑動速度倍率，數字越大滑越快
+                slider.scrollLeft = scrollLeft - walk;
+            });
+        });
+        
         main();
     </script>
 </body>
