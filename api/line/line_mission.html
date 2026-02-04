@@ -554,16 +554,23 @@
             document.getElementById('category-filter-container').innerHTML = html;
             document.getElementById('category-options').innerHTML = cats.map(c=>`<option value="${c}">`).join('');
         }
-        // 渲染位置按鈕
+        // 🔥 [修改] 渲染位置按鈕 (加入連動邏輯)
         function renderLocationUI() {
             const container = document.getElementById('location-filter-container');
             const locs = new Set();
-            equipmentCache.forEach(e => { if(e.location) locs.add(e.location); });
+            
+            // 🚨 連動核心：如果目前有選分類，就只抓該分類下的位置；否則抓全部
+            const sourceData = currentCategory === 'All' 
+                ? equipmentCache 
+                : equipmentCache.filter(e => e.category === currentCategory);
+
+            sourceData.forEach(e => { if(e.location) locs.add(e.location); });
             
             if(locs.size === 0) { container.classList.add('hidden'); return; } 
             container.classList.remove('hidden');
 
             let html = `<button onclick="switchLocation('All')" class="btn-chip ${currentLocation==='All'?'active':''}">全部位置</button>`;
+            // 這裡保持排序，讓位置比較好找
             Array.from(locs).sort().forEach(loc => {
                 html += `<button onclick="switchLocation('${loc}')" class="btn-chip ${currentLocation===loc?'active':''}">${loc}</button>`;
             });
@@ -623,7 +630,14 @@
         }
 
         
-        function switchCategory(c) { currentCategory = c; renderCategoryUI(); renderEquipmentList(); }
+        // 🔥 [修改] 切換分類 (加入連動邏輯)
+        function switchCategory(c) { 
+            currentCategory = c; 
+            currentLocation = 'All'; // 🚨 重點：切換組別時，位置要歸零，不然會卡在舊位置搜不到東西
+            renderCategoryUI(); 
+            renderLocationUI();      // 🚨 重點：重新渲染位置按鈕 (觸發連動)
+            renderEquipmentList(); 
+        }
         // 切換備註過濾
         function switchNote(n) { 
             currentNote = n; 
