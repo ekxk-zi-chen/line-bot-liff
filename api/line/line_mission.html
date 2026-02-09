@@ -271,9 +271,14 @@
                 </div>
                 
                 <div id="category-filter-container" class="filter-row"></div>
+                
+                <div id="subcategory-filter-container" class="filter-row hidden"></div> 
+                
                 <div id="location-filter-container" class="filter-row hidden"></div>
+                
                 <div id="note-filter-container" class="filter-row hidden"></div>
-                <div class="h-2"></div> </div>
+                <div class="h-2"></div> 
+            </div>
         </div>
 
         <div id="content-area">
@@ -323,12 +328,20 @@
             <div class="space-y-3 mb-4">
                 <input type="text" id="eq-name" class="input-dark" placeholder="名稱 (例如: 主繩)">
                 
-                <input type="text" id="eq-category" list="category-options" class="input-dark" placeholder="分類 (例如: 救援組)">
-                <datalist id="category-options"></datalist>
+                <div class="flex gap-2">
+                    <div class="flex-1">
+                        <input type="text" id="eq-category" list="category-options" class="input-dark" placeholder="分類">
+                        <datalist id="category-options"></datalist>
+                    </div>
+                    <div class="flex-1">
+                        <input type="text" id="eq-sub-category" list="subcategory-options" class="input-dark" placeholder="細項">
+                        <datalist id="subcategory-options"></datalist>
+                    </div>
+                </div>
                 
                 <input type="text" id="eq-model" class="input-dark" placeholder="型號/規格">
                 
-                <input type="text" id="eq-location" list="location-options" class="input-dark" placeholder="存放位置 (例如: 1號車)">
+                <input type="text" id="eq-location" list="location-options" class="input-dark" placeholder="存放位置">
                 <datalist id="location-options"></datalist>
                 
                 <div class="flex items-center gap-2">
@@ -344,7 +357,14 @@
                 </div>
                 <div class="flex-1 overflow-y-auto custom-scrollbar bg-gray-900 rounded p-2">
                     <table class="w-full text-left batch-table">
-                        <thead><tr><th>名稱</th><th>分類</th><th>位置</th><th>量</th><th></th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>名稱</th>
+                                <th>細項</th> <th>位置</th>
+                                <th>量</th>
+                                <th></th>
+                            </tr>
+                        </thead>
                         <tbody id="pre-batch-list"></tbody>
                     </table>
                 </div>
@@ -366,7 +386,7 @@
 
     <script>
         const GAS_API_URL = "https://line-bot-liff-lovat.vercel.app/api/webhook";
-        let userId="", displayName="", equipmentCache=[], currentCategory='All', currentLocation='All', currentNote='All', isExportMode=false, selectedItems=new Set(), loaderInterval;
+        let userId="", displayName="", equipmentCache=[], currentCategory='All', currentSubCategory='All', currentLocation='All', currentNote='All', isExportMode=false, selectedItems=new Set(), loaderInterval;
         let isUserAdmin = false; // 🔥 [修正] 權限旗標 (預設 false)
         let pendingBatchItems = []; // 暫存新增的裝備列表
 
@@ -449,78 +469,84 @@
 
         // 🔥 [修改] 統一管理下拉選單 (增強版：連備註也會自動更新)
         function renderDatalists() {
-            // 1. 從現有裝備快取抓 分類 & 位置
             const cats = new Set(equipmentCache.map(e => e.category));
+            const subcats = new Set(equipmentCache.map(e => e.sub_category || '')); // 🔥 抓取細項
             const locs = new Set(equipmentCache.map(e => e.location));
             
-            // 🔥 3. [新增] 蒐集目前所有「借出中」的備註 (讓備註選單越來越聰明)
-            const notes = new Set(['出勤', '動員訓練']); // 預設選項
-            equipmentCache.forEach(e => {
-                if (e.active_loans) {
-                    e.active_loans.forEach(loan => {
-                        if (loan.note) notes.add(loan.note);
-                    });
-                }
-            });
+            const notes = new Set(['雪訓', '繩索訓練', '動員訓練', '山域搜救']);
+            equipmentCache.forEach(e => e.active_loans?.forEach(l => {if(l.note) notes.add(l.note)}));
 
-            // 2. 從「還沒送出的暫存區」也抓 (這樣剛打的馬上就能選！)
+            // 處理暫存區資料
             pendingBatchItems.forEach(i => {
                 if(i.category) cats.add(i.category);
+                if(i.subCategory) subcats.add(i.subCategory); // 🔥
                 if(i.location) locs.add(i.location);
             });
 
-            // 渲染上方分類按鈕 (連動原本的 UI)
-            const catArr = ['管理','搜索','救援','醫療','後勤', ...cats];
-            const uniqueCats = [...new Set(catArr)];
-            
+            // 渲染上方分類按鈕
+            const uniqueCats = ['管理','搜索','救援','醫療','後勤', ...cats];
             let html = `<button onclick="switchCategory('All')" class="btn-chip ${currentCategory==='All'?'active':''}">全部</button>`;
-            uniqueCats.forEach(c => {
-                html += `<button onclick="switchCategory('${c}')" class="btn-chip ${currentCategory===c?'active':''}">${c}</button>`;
-            });
+            [...new Set(uniqueCats)].forEach(c => { html += `<button onclick="switchCategory('${c}')" class="btn-chip ${currentCategory===c?'active':''}">${c}</button>`; });
             document.getElementById('category-filter-container').innerHTML = html;
 
-            // 4. 渲染輸入框的 Datalist
-            document.getElementById('category-options').innerHTML = uniqueCats.map(c=>`<option value="${c}">`).join('');
-            document.getElementById('location-options').innerHTML = Array.from(locs).sort().map(l=>`<option value="${l}">`).join('');
+            // 渲染 Datalist (輸入框的下拉選單)
+            document.getElementById('category-options').innerHTML = [...cats].map(c=>`<option value="${c}">`).join('');
+            document.getElementById('subcategory-options').innerHTML = [...subcats].map(s=>`<option value="${s}">`).join(''); // 🔥
+            document.getElementById('location-options').innerHTML = [...locs].sort().map(l=>`<option value="${l}">`).join('');
+            document.getElementById('note-suggestions').innerHTML = [...notes].sort().map(n=>`<option value="${n}">`).join('');
             
-            // 🔥 更新備註的下拉選單
-            document.getElementById('note-suggestions').innerHTML = Array.from(notes).sort().map(n=>`<option value="${n}">`).join('');
-            
-            // 更新連動的位置篩選
-            renderLocationUI();
+            renderSubCategoryUI(); // 🔥 新增：渲染細項按鈕
+            renderLocationUI();    // 渲染位置按鈕
             renderNoteUI();
         }
 
-        // 🔥 [新增] 加入暫存清單 (按鈕觸發)
+        // 🔥 [新增] 渲染細項按鈕 (連動邏輯: 只顯示該分類下的細項)
+        function renderSubCategoryUI() {
+            const container = document.getElementById('subcategory-filter-container');
+            const subcats = new Set();
+            
+            // 連動：只抓當前分類下的細項
+            const sourceData = currentCategory === 'All' ? equipmentCache : equipmentCache.filter(e => e.category === currentCategory);
+            sourceData.forEach(e => { if(e.sub_category) subcats.add(e.sub_category); });
+
+            if(subcats.size === 0) { container.classList.add('hidden'); return; }
+            container.classList.remove('hidden');
+
+            let html = `<button onclick="switchSubCategory('All')" class="btn-chip ${currentSubCategory==='All'?'active':''}">全部細項</button>`;
+            Array.from(subcats).sort().forEach(sc => {
+                html += `<button onclick="switchSubCategory('${sc}')" class="btn-chip ${currentSubCategory===sc?'active':''}">${sc}</button>`;
+            });
+            container.innerHTML = html;
+        }
+        // 🔥 [修改] 暫存時加入 subCategory
         function addToPreBatch() {
             const name = document.getElementById('eq-name').value;
             const cat = document.getElementById('eq-category').value;
+            const subcat = document.getElementById('eq-sub-category').value; // 🔥 讀取細項
             const model = document.getElementById('eq-model').value;
             const loc = document.getElementById('eq-location').value;
             const total = parseInt(document.getElementById('eq-total').value);
 
             if (!name || !cat) return alert("名稱和分類必填！");
 
-            // 加入陣列
-            pendingBatchItems.push({ name, category: cat, model, location: loc, totalQty: total });
+            pendingBatchItems.push({ name, category: cat, subCategory: subcat, model, location: loc, totalQty: total });
             
-            // 體驗優化：只清空名稱和型號，保留分類和位置 (方便連續輸入同組裝備)
             document.getElementById('eq-name').value = "";
             document.getElementById('eq-model').value = "";
             document.getElementById('eq-name').focus(); 
 
             renderPreBatchList();
-            renderDatalists(); // 👈 關鍵：這裡會立刻把新打的分類/位置加到下拉選單
+            renderDatalists(); 
         }
 
-        // 🔥 [新增] 渲染暫存表格
+
+        // 🔥 [修改] 渲染暫存表格 (多一欄)
         function renderPreBatchList() {
             const tbody = document.getElementById('pre-batch-list');
             tbody.innerHTML = pendingBatchItems.map((item, index) => `
                 <tr class="border-b border-gray-700">
                     <td>${item.name}</td>
-                    <td>${item.category}</td>
-                    <td>${item.location}</td>
+                    <td>${item.subCategory || '-'}</td> <td>${item.location}</td>
                     <td>${item.totalQty}</td>
                     <td class="text-right"><button onclick="removePreBatch(${index})" class="text-red-400">✕</button></td>
                 </tr>
@@ -532,19 +558,14 @@
             renderPreBatchList();
         }
 
-        // 🔥 [新增] 確認批量送出
+        // 🔥 [修改] 批量送出 (加入參數)
         async function submitBatchAdd() {
-            // 如果暫存區是空的，但輸入框有填，就直接送輸入框那筆
             const name = document.getElementById('eq-name').value;
-            if (pendingBatchItems.length === 0 && name) {
-                addToPreBatch(); 
-            }
-
+            if (pendingBatchItems.length === 0 && name) addToPreBatch(); 
             if (pendingBatchItems.length === 0) return alert("請先加入裝備到清單");
 
             toggleLoader(true, "批量建立中...");
             try {
-                // 為了不改後端，我們前端跑迴圈一筆一筆送 (Parallel)
                 const promises = pendingBatchItems.map(item => 
                     callGasApi({
                         action: 'manage_equipment',
@@ -553,6 +574,7 @@
                         p_eq_id: "", 
                         name: item.name,
                         category: item.category,
+                        subCategory: item.subCategory, // 🔥
                         model: item.model,
                         location: item.location,
                         totalQty: item.totalQty
@@ -575,27 +597,21 @@
             const statusFilter = document.getElementById('status-filter').value;
             
             let filtered = equipmentCache.filter(eq => {
-                // 1. 分類
                 const matchCat = currentCategory === 'All' || eq.category === currentCategory;
-                
-                // 2. 位置過濾
+                const matchSubCat = currentSubCategory === 'All' || eq.sub_category === currentSubCategory; // 🔥 加入細項過濾
                 const matchLoc = currentLocation === 'All' || eq.location === currentLocation;
-
-                // 3. 搜尋
-                const matchSearch = (eq.name+eq.model).toLowerCase().includes(searchText) || (eq.active_loans && eq.active_loans.some(l => l.borrower.toLowerCase().includes(searchText)));
+                // 🔥 搜尋也要加入 sub_category
+                const matchSearch = (eq.name+eq.model+(eq.sub_category||'')).toLowerCase().includes(searchText) || (eq.active_loans && eq.active_loans.some(l => l.borrower.toLowerCase().includes(searchText)));
                 
-                // 4. 狀態
                 const isBorrowed = eq.available_qty < eq.total_qty;
                 let matchStatus = (statusFilter === 'Borrowed' ? isBorrowed : (statusFilter === 'InStock' ? !isBorrowed : true));
                 
-                // 5. 備註
                 let matchNote = true;
                 if (currentNote !== 'All') {
                     if (!eq.active_loans || eq.active_loans.length === 0) matchNote = false;
                     else matchNote = eq.active_loans.some(l => (currentNote==='未分類' ? (!l.note||l.note.trim()==='') : l.note===currentNote));
                 }
-
-                return matchCat && matchLoc && matchSearch && matchStatus && matchNote;
+                return matchCat && matchSubCat && matchLoc && matchSearch && matchStatus && matchNote;
             });
             filtered.sort((a, b) => (a.available_qty < a.total_qty ? -1 : 1));
 
@@ -611,27 +627,24 @@
                 if (eq.active_loans && eq.active_loans.length > 0) {
                     loansHtml = `<div class="mt-2 pt-2 border-t border-gray-600 space-y-1">`;
                     eq.active_loans.forEach(l => {
-                        // 🔥 [修正] 歸還按鈕：只給管理員看
                         const returnBtn = isUserAdmin ? `<button onclick="openSingleReturnModal('${eq.id}', '${l.loan_id}', ${l.qty}, '${l.borrower}')" class="bg-green-700 text-white px-2 py-1 rounded text-[10px]">歸還</button>` : '';
-                        
-                        loansHtml += `<div class="flex justify-between items-center text-xs text-gray-300">
-                                <span>👤 ${l.borrower} <span class="text-yellow-400">x${l.qty}</span> <span class="text-blue-300">${l.note ? `#${l.note}` : ''}</span></span>
-                                ${returnBtn}
-                            </div>`;
+                        loansHtml += `<div class="flex justify-between items-center text-xs text-gray-300"><span>👤 ${l.borrower} <span class="text-yellow-400">x${l.qty}</span> <span class="text-blue-300">${l.note ? `#${l.note}` : ''}</span></span>${returnBtn}</div>`;
                     });
                     loansHtml += `</div>`;
                 }
                 const checked = selectedItems.has(eq.id) ? 'checked' : '';
                 const checkHtml = isExportMode ? `<div class="mr-3 flex items-center"><input type="checkbox" onchange="toggleSelect('${eq.id}')" ${checked} class="w-6 h-6"></div>` : '';
-
-                // 🔥 [修正] 借出按鈕：只給管理員看
                 const borrowBtn = (!isEmpty && isUserAdmin) ? `<button onclick="openSingleBorrowModal('${eq.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold">借出</button>` : '';
-                
-                // 🔥 [修正] 編輯按鈕：只給管理員看
                 const editBtn = isUserAdmin ? `<button onclick="openEditModal('update', '${eq.id}')" class="text-gray-500 p-1">⚙️</button>` : '';
 
+                // 🔥 在標題旁顯示細項標籤
+                const subCatBadge = eq.sub_category ? `<span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded ml-2">${eq.sub_category}</span>` : '';
+
                 html += `<div class="flex items-start bg-gray-800 p-4 rounded-lg mb-3 border-l-4 ${isEmpty ? "border-red-500" : (isFull ? "border-green-500" : "border-blue-500")}">
-                        ${checkHtml}<div class="flex-1"><div class="flex justify-between"><div><h3 class="font-bold text-white text-lg">${eq.name}</h3><div class="flex gap-2 text-xs text-gray-400 mt-1"><span>${eq.model||'-'}</span><span>📍${eq.location||'-'}</span></div></div><div class="flex gap-2"><button onclick="fetchItemHistory('${eq.id}')" class="text-blue-400 p-1">📜</button>${editBtn}</div></div>
+                        ${checkHtml}<div class="flex-1"><div class="flex justify-between"><div>
+                            <h3 class="font-bold text-white text-lg flex items-center flex-wrap gap-1">${eq.name} ${subCatBadge}</h3>
+                            <div class="flex gap-2 text-xs text-gray-400 mt-1"><span>${eq.model||'-'}</span><span>📍${eq.location||'-'}</span></div>
+                        </div><div class="flex gap-2"><button onclick="fetchItemHistory('${eq.id}')" class="text-blue-400 p-1">📜</button>${editBtn}</div></div>
                         <div class="flex justify-between items-center mt-3">${statusBadge}${borrowBtn}</div>${loansHtml}</div></div>`;
             });
             listDiv.innerHTML = html || "<p class='text-center text-gray-500'>無符合裝備</p>";
@@ -725,10 +738,12 @@
             const container = document.getElementById('location-filter-container');
             const locs = new Set();
             
-            // 🚨 連動核心：如果目前有選分類，就只抓該分類下的位置；否則抓全部
-            const sourceData = currentCategory === 'All' 
-                ? equipmentCache 
-                : equipmentCache.filter(e => e.category === currentCategory);
+            let sourceData = currentCategory === 'All' ? equipmentCache : equipmentCache.filter(e => e.category === currentCategory);
+            
+            // 🔥 再過濾一層細項
+            if (currentSubCategory !== 'All') {
+                sourceData = sourceData.filter(e => e.sub_category === currentSubCategory);
+            }
 
             sourceData.forEach(e => { if(e.location) locs.add(e.location); });
             
@@ -736,7 +751,6 @@
             container.classList.remove('hidden');
 
             let html = `<button onclick="switchLocation('All')" class="btn-chip ${currentLocation==='All'?'active':''}">全部位置</button>`;
-            // 這裡保持排序，讓位置比較好找
             Array.from(locs).sort().forEach(loc => {
                 html += `<button onclick="switchLocation('${loc}')" class="btn-chip ${currentLocation===loc?'active':''}">${loc}</button>`;
             });
@@ -796,13 +810,20 @@
         }
 
         
-        // 🔥 [修改] 切換分類 (加入連動邏輯)
+        // 🔥 [修改] 切換分類 -> 重置細項 -> 重置位置
         function switchCategory(c) { 
             currentCategory = c; 
-            currentLocation = 'All'; // 🚨 重點：切換組別時，位置要歸零，不然會卡在舊位置搜不到東西
-            renderCategoryUI(); 
-            renderLocationUI();      // 🚨 重點：重新渲染位置按鈕 (觸發連動)
+            currentSubCategory = 'All'; // 重置細項
+            currentLocation = 'All';    // 重置位置
+            renderDatalists();          
             renderEquipmentList(); 
+        }
+        // 🔥 [新增] 切換細項 -> 重置位置
+        function switchSubCategory(sc) {
+            currentSubCategory = sc;
+            currentLocation = 'All';    // 重置位置
+            renderLocationUI();         // 更新位置選單
+            renderEquipmentList();
         }
         // 切換備註過濾
         function switchNote(n) { 
@@ -813,24 +834,24 @@
             // 🔥 [修正] 選完後自動收合篩選面板
             toggleFilterPanel(); 
         }
+        // 🔥 [修改] 加入 subCategory 處理
         function openEditModal(mode, id) {
             document.getElementById('edit-eq-modal').classList.add('flex');
             document.getElementById('edit-mode').value = mode;
-            
-            // 重置輸入框
             document.getElementById('edit-eq-id').value = id || "";
             document.getElementById('eq-name').value = "";
             document.getElementById('eq-category').value = "";
+            document.getElementById('eq-sub-category').value = ""; // 🔥 清空細項
             document.getElementById('eq-model').value = "";
             document.getElementById('eq-location').value = "";
             document.getElementById('eq-total').value = 1;
 
             if (mode === 'update' && id) {
-                // 編輯模式：隱藏批量區，顯示單筆儲存
                 const eq = equipmentCache.find(e => e.id === id) || {};
                 document.getElementById('edit-modal-title').innerText = "⚙️ 編輯裝備";
                 document.getElementById('eq-name').value = eq.name || "";
                 document.getElementById('eq-category').value = eq.category || "";
+                document.getElementById('eq-sub-category').value = eq.sub_category || ""; // 🔥 填入舊細項
                 document.getElementById('eq-model').value = eq.model || "";
                 document.getElementById('eq-location').value = eq.location || "";
                 document.getElementById('eq-total').value = eq.total_qty || 1;
@@ -840,20 +861,35 @@
                 document.getElementById('btn-submit-batch').classList.add('hidden');
                 document.getElementById('batch-add-area').classList.add('hidden');
             } else {
-                // 新增模式：顯示批量區，清空暫存
                 document.getElementById('edit-modal-title').innerText = "➕ 批量新增裝備";
                 pendingBatchItems = []; 
                 renderPreBatchList();
-                
                 document.getElementById('btn-delete-eq').classList.add('hidden');
                 document.getElementById('btn-save-edit').classList.add('hidden');
                 document.getElementById('btn-submit-batch').classList.remove('hidden');
                 document.getElementById('batch-add-area').classList.remove('hidden');
             }
         }
+                
+        // 🔥 [修改] 編輯送出 (加入參數)
         async function submitEquipmentEdit() {
-            const p = { action:'manage_equipment', userId, displayName, mode:document.getElementById('edit-mode').value, eqId:document.getElementById('edit-eq-id').value, name:document.getElementById('eq-name').value, category:document.getElementById('eq-category').value, model:document.getElementById('eq-model').value, location:document.getElementById('eq-location').value, totalQty:document.getElementById('eq-total').value };
-            if(!p.name) return alert("名稱必填"); toggleLoader(true); closeModal('edit-eq-modal'); await callGasApi(p); fetchEquipmentData(false); toggleLoader(false);
+            const p = { 
+                action: 'manage_equipment', userId, displayName, 
+                mode: document.getElementById('edit-mode').value, 
+                eqId: document.getElementById('edit-eq-id').value, 
+                name: document.getElementById('eq-name').value, 
+                category: document.getElementById('eq-category').value, 
+                subCategory: document.getElementById('eq-sub-category').value, // 🔥
+                model: document.getElementById('eq-model').value, 
+                location: document.getElementById('eq-location').value, 
+                totalQty: document.getElementById('eq-total').value 
+            };
+            if(!p.name) return alert("名稱必填"); 
+            toggleLoader(true); 
+            closeModal('edit-eq-modal'); 
+            await callGasApi(p); 
+            fetchEquipmentData(false); 
+            toggleLoader(false);
         }
         async function deleteEquipment() { if(confirm("確定刪除?")) { toggleLoader(true); closeModal('edit-eq-modal'); await callGasApi({action:'manage_equipment', userId, displayName, mode:'delete', eqId:document.getElementById('edit-eq-id').value}); fetchEquipmentData(false); toggleLoader(false); } }
         async function fetchHistory() { 
