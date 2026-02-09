@@ -315,11 +315,51 @@
         <div class="flex gap-2"><button onclick="closeModal('batch-return-modal')" class="flex-1 bg-gray-600 text-white py-2 rounded">取消</button><button onclick="submitBatchReturn()" class="flex-1 bg-green-600 text-white py-2 rounded font-bold">確認</button></div>
     </div></div>
 
-    <div id="edit-eq-modal" class="modal-overlay"><div class="bg-gray-800 p-5 rounded-lg w-full max-w-sm border border-yellow-600 h-3/4 overflow-y-auto">
-        <h3 id="edit-modal-title" class="text-xl font-bold mb-4 text-yellow-400">新增</h3><input type="hidden" id="edit-eq-id"><input type="hidden" id="edit-mode">
-        <div class="space-y-3"><input type="text" id="eq-name" class="input-dark" placeholder="名稱"><input type="text" id="eq-category" list="category-options" class="input-dark" placeholder="分類"><datalist id="category-options"></datalist><input type="text" id="eq-model" class="input-dark" placeholder="型號"><input type="text" id="eq-location" class="input-dark" placeholder="位置"><div class="flex items-center gap-2"><label class="text-gray-400 w-20">總量:</label><input type="number" id="eq-total" class="input-dark flex-1" value="1" min="1"></div></div>
-        <div class="flex gap-2 mt-6"><button id="btn-delete-eq" onclick="deleteEquipment()" class="hidden bg-red-600 text-white px-3 py-2 rounded font-bold">🗑️</button><button onclick="closeModal('edit-eq-modal')" class="flex-1 bg-gray-600 text-white py-2 rounded">取消</button><button onclick="submitEquipmentEdit()" class="flex-1 bg-yellow-600 text-white py-2 rounded font-bold">儲存</button></div>
-    </div></div>
+    <div id="edit-eq-modal" class="modal-overlay">
+        <div class="bg-gray-800 p-5 rounded-lg w-full max-w-md border border-yellow-600 flex flex-col max-h-[90vh]">
+            <h3 id="edit-modal-title" class="text-xl font-bold mb-4 text-yellow-400">新增</h3>
+            <input type="hidden" id="edit-eq-id"><input type="hidden" id="edit-mode">
+            
+            <div class="space-y-3 mb-4">
+                <input type="text" id="eq-name" class="input-dark" placeholder="名稱 (例如: 主繩)">
+                
+                <input type="text" id="eq-category" list="category-options" class="input-dark" placeholder="分類 (例如: 救援組)">
+                <datalist id="category-options"></datalist>
+                
+                <input type="text" id="eq-model" class="input-dark" placeholder="型號/規格">
+                
+                <input type="text" id="eq-location" list="location-options" class="input-dark" placeholder="存放位置 (例如: 1號車)">
+                <datalist id="location-options"></datalist>
+                
+                <div class="flex items-center gap-2">
+                    <label class="text-gray-400 w-20">總量:</label>
+                    <input type="number" id="eq-total" class="input-dark flex-1" value="1" min="1">
+                </div>
+            </div>
+
+            <div id="batch-add-area" class="hidden flex-1 flex flex-col min-h-0 border-t border-gray-700 pt-2">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs text-gray-400">待新增清單</span>
+                    <button onclick="addToPreBatch()" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold">⬇️ 加入暫存</button>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar bg-gray-900 rounded p-2">
+                    <table class="w-full text-left batch-table">
+                        <thead><tr><th>名稱</th><th>分類</th><th>位置</th><th>量</th><th></th></tr></thead>
+                        <tbody id="pre-batch-list"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="flex gap-2 mt-4 pt-2 border-t border-gray-700">
+                <button id="btn-delete-eq" onclick="deleteEquipment()" class="hidden bg-red-600 text-white px-3 py-2 rounded font-bold">🗑️</button>
+                <button onclick="closeModal('edit-eq-modal')" class="flex-1 bg-gray-600 text-white py-2 rounded">取消</button>
+                
+                <button id="btn-save-edit" onclick="submitEquipmentEdit()" class="flex-1 bg-yellow-600 text-white py-2 rounded font-bold">儲存修改</button>
+                
+                <button id="btn-submit-batch" onclick="submitBatchAdd()" class="hidden flex-1 bg-green-600 text-white py-2 rounded font-bold">✅ 確認批量送出</button>
+            </div>
+        </div>
+    </div>
 
     <div id="history-modal" class="modal-overlay"><div class="bg-gray-800 p-4 rounded-lg w-full max-w-md border border-blue-500 h-4/5 flex flex-col"><div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2"><h3 class="text-xl font-bold text-blue-400">📜 歷史紀錄</h3><button onclick="closeModal('history-modal')" class="text-2xl text-gray-400">&times;</button></div><div id="history-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2"></div></div></div>
     <datalist id="note-suggestions"><option value="雪訓"><option value="繩索訓練"><option value="動員訓練"><option value="山域搜救"></datalist>
@@ -328,6 +368,7 @@
         const GAS_API_URL = "https://line-bot-liff-lovat.vercel.app/api/webhook";
         let userId="", displayName="", equipmentCache=[], currentCategory='All', currentLocation='All', currentNote='All', isExportMode=false, selectedItems=new Set(), loaderInterval;
         let isUserAdmin = false; // 🔥 [修正] 權限旗標 (預設 false)
+        let pendingBatchItems = []; // 暫存新增的裝備列表
 
         // --- 全域工具函數 (讓 task.js 也能用) ---
         function toggleLoader(show, text="處理中...") {
@@ -400,14 +441,121 @@
                 equipmentCache = (data && data.length > 0) ? data : [];
                 if(equipmentCache.length === 0) document.getElementById('equipment-list').innerHTML = "<p class='text-center text-gray-500'>查無裝備</p>";
                 else { 
-                    renderCategoryUI(); 
-                    renderLocationUI(); 
-                    renderNoteUI(); 
+                    renderDatalists(); // 🔥 這裡改用新的函數
                     renderEquipmentList(); 
                 }
             } catch (e) { alert(e.message); } finally { if (showLoading) toggleLoader(false); }
         }
 
+        // 🔥 [新增] 統一管理下拉選單 (關鍵：合併現有資料 + 暫存區資料)
+        function renderDatalists() {
+            // 1. 從現有裝備快取抓
+            const cats = new Set(equipmentCache.map(e => e.category));
+            const locs = new Set(equipmentCache.map(e => e.location));
+            
+            // 2. 從「還沒送出的暫存區」也抓 (這樣剛打的馬上就能選！)
+            pendingBatchItems.forEach(i => {
+                if(i.category) cats.add(i.category);
+                if(i.location) locs.add(i.location);
+            });
+
+            // 3. 渲染上方分類按鈕 (連動原本的 UI)
+            const catArr = ['管理','搜索','救援','醫療','後勤', ...cats];
+            const uniqueCats = [...new Set(catArr)];
+            
+            let html = `<button onclick="switchCategory('All')" class="btn-chip ${currentCategory==='All'?'active':''}">全部</button>`;
+            uniqueCats.forEach(c => {
+                html += `<button onclick="switchCategory('${c}')" class="btn-chip ${currentCategory===c?'active':''}">${c}</button>`;
+            });
+            document.getElementById('category-filter-container').innerHTML = html;
+
+            // 4. 渲染輸入框的 Datalist (分類 + 位置)
+            document.getElementById('category-options').innerHTML = uniqueCats.map(c=>`<option value="${c}">`).join('');
+            document.getElementById('location-options').innerHTML = Array.from(locs).sort().map(l=>`<option value="${l}">`).join('');
+            
+            // 更新連動的位置篩選
+            renderLocationUI();
+            renderNoteUI();
+        }
+
+        // 🔥 [新增] 加入暫存清單 (按鈕觸發)
+        function addToPreBatch() {
+            const name = document.getElementById('eq-name').value;
+            const cat = document.getElementById('eq-category').value;
+            const model = document.getElementById('eq-model').value;
+            const loc = document.getElementById('eq-location').value;
+            const total = parseInt(document.getElementById('eq-total').value);
+
+            if (!name || !cat) return alert("名稱和分類必填！");
+
+            // 加入陣列
+            pendingBatchItems.push({ name, category: cat, model, location: loc, totalQty: total });
+            
+            // 體驗優化：只清空名稱和型號，保留分類和位置 (方便連續輸入同組裝備)
+            document.getElementById('eq-name').value = "";
+            document.getElementById('eq-model').value = "";
+            document.getElementById('eq-name').focus(); 
+
+            renderPreBatchList();
+            renderDatalists(); // 👈 關鍵：這裡會立刻把新打的分類/位置加到下拉選單
+        }
+
+        // 🔥 [新增] 渲染暫存表格
+        function renderPreBatchList() {
+            const tbody = document.getElementById('pre-batch-list');
+            tbody.innerHTML = pendingBatchItems.map((item, index) => `
+                <tr class="border-b border-gray-700">
+                    <td>${item.name}</td>
+                    <td>${item.category}</td>
+                    <td>${item.location}</td>
+                    <td>${item.totalQty}</td>
+                    <td class="text-right"><button onclick="removePreBatch(${index})" class="text-red-400">✕</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function removePreBatch(index) {
+            pendingBatchItems.splice(index, 1);
+            renderPreBatchList();
+        }
+
+        // 🔥 [新增] 確認批量送出
+        async function submitBatchAdd() {
+            // 如果暫存區是空的，但輸入框有填，就直接送輸入框那筆
+            const name = document.getElementById('eq-name').value;
+            if (pendingBatchItems.length === 0 && name) {
+                addToPreBatch(); 
+            }
+
+            if (pendingBatchItems.length === 0) return alert("請先加入裝備到清單");
+
+            toggleLoader(true, "批量建立中...");
+            try {
+                // 為了不改後端，我們前端跑迴圈一筆一筆送 (Parallel)
+                const promises = pendingBatchItems.map(item => 
+                    callGasApi({
+                        action: 'manage_equipment',
+                        userId, displayName,
+                        mode: 'create',
+                        p_eq_id: "", 
+                        name: item.name,
+                        category: item.category,
+                        model: item.model,
+                        location: item.location,
+                        totalQty: item.totalQty
+                    })
+                );
+                await Promise.all(promises);
+                alert(`成功新增 ${pendingBatchItems.length} 筆裝備！`);
+                closeModal('edit-eq-modal');
+                fetchEquipmentData(false);
+            } catch (e) {
+                alert("新增失敗: " + e.message);
+            } finally {
+                toggleLoader(false);
+            }
+        }
+        
         function renderEquipmentList() {
             const listDiv = document.getElementById('equipment-list');
             const searchText = document.getElementById('eq-search').value.toLowerCase();
