@@ -491,10 +491,10 @@
             } catch (e) { alert(e.message); } finally { if (showLoading) toggleLoader(false); }
         }
 
-        // 🔥 [修改] 統一管理下拉選單 (增強版：連備註也會自動更新)
+        // 🔥 [修正] 統一管理下拉選單 (已移除舊的分類渲染邏輯，改呼叫新函數)
         function renderDatalists() {
             const cats = new Set(equipmentCache.map(e => e.category));
-            const subcats = new Set(equipmentCache.map(e => e.sub_category || '')); // 🔥 抓取細項
+            const subcats = new Set(equipmentCache.map(e => e.sub_category || ''));
             const locs = new Set(equipmentCache.map(e => e.location));
             
             const notes = new Set(['雪訓', '繩索訓練', '動員訓練', '山域搜救']);
@@ -503,24 +503,24 @@
             // 處理暫存區資料
             pendingBatchItems.forEach(i => {
                 if(i.category) cats.add(i.category);
-                if(i.subCategory) subcats.add(i.subCategory); // 🔥
+                if(i.subCategory) subcats.add(i.subCategory);
                 if(i.location) locs.add(i.location);
             });
 
-            // 渲染上方分類按鈕
-            const uniqueCats = ['管理','搜索','救援','醫療','後勤', ...cats];
-            let html = `<button onclick="switchCategory('All')" class="btn-chip ${currentCategory==='All'?'active':''}">全部</button>`;
-            [...new Set(uniqueCats)].forEach(c => { html += `<button onclick="switchCategory('${c}')" class="btn-chip ${currentCategory===c?'active':''}">${c}</button>`; });
-            document.getElementById('category-filter-container').innerHTML = html;
+            // ❌ [移除] 這裡原本有一段「渲染上方分類按鈕」的舊程式碼，把它刪掉了！
+            // ❌ 不要再手寫 innerHTML = html 了
 
-            // 渲染 Datalist (輸入框的下拉選單)
+            // ✅ [新增] 直接呼叫我們寫好的漂亮 UI 函數
+            renderCategoryUI(); 
+
+            // 渲染 Datalist (輸入框的下拉選單) - 這邊維持原樣
             document.getElementById('category-options').innerHTML = [...cats].map(c=>`<option value="${c}">`).join('');
-            document.getElementById('subcategory-options').innerHTML = [...subcats].map(s=>`<option value="${s}">`).join(''); // 🔥
+            document.getElementById('subcategory-options').innerHTML = [...subcats].map(s=>`<option value="${s}">`).join('');
             document.getElementById('location-options').innerHTML = [...locs].sort().map(l=>`<option value="${l}">`).join('');
             document.getElementById('note-suggestions').innerHTML = [...notes].sort().map(n=>`<option value="${n}">`).join('');
             
-            renderSubCategoryUI(); // 🔥 新增：渲染細項按鈕
-            renderLocationUI();    // 渲染位置按鈕
+            renderSubCategoryUI(); 
+            renderLocationUI();    
             renderNoteUI();
         }
 
