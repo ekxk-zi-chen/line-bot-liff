@@ -981,17 +981,81 @@
             toggleLoader(false);
         }
         async function deleteEquipment() { if(confirm("確定刪除?")) { toggleLoader(true); closeModal('edit-eq-modal'); await callGasApi({action:'manage_equipment', userId, displayName, mode:'delete', eqId:document.getElementById('edit-eq-id').value}); fetchEquipmentData(false); toggleLoader(false); } }
-        async function fetchHistory() { 
-            document.getElementById('history-modal').classList.add('flex'); document.getElementById('history-list').innerHTML = '<div class="loader"></div>';
-            const data = await callGasApi({action:'get_loan_history', userId});
-            document.getElementById('history-list').innerHTML = data.map(l=>`<div class="bg-gray-700 p-3 mb-2 rounded border-l-4 ${l.status==='已歸還'?'border-green-500':'border-blue-500'} text-sm"><div class="flex justify-between font-bold"><span>${l.item_name}</span><span>${l.borrower}</span></div><div class="flex justify-between text-xs mt-1"><span>${l.status} x${l.qty}</span><span>${l.time}</span></div></div>`).join('') || "無紀錄";
+        async function fetchHistory(){
+            document.getElementById('history-modal').classList.add('flex');
+            document.getElementById('history-list').innerHTML='<div class="loader"></div>';
+            try {
+                const d = await callGasApi({action:'get_loan_history', userId});
+                document.getElementById('history-list').innerHTML = (d && d.length > 0) 
+                    ? d.map(l => renderHistoryCard(l)).join('') 
+                    : "<div class='text-center text-gray-500 mt-4'>無歷史紀錄</div>";
+            } catch(e) {
+                document.getElementById('history-list').innerHTML = `<p class="text-red-400 text-center">載入失敗: ${e.message}</p>`;
+            }
         }
-        async function fetchItemHistory(id) {
-            document.getElementById('history-modal').classList.add('flex'); document.getElementById('history-list').innerHTML = '<div class="loader"></div>';
-            const data = await callGasApi({action:'get_loan_history', userId, eqId:id});
-            document.getElementById('history-list').innerHTML = data.map(l=>`<div class="bg-gray-700 p-3 mb-2 rounded border-l-4 ${l.status==='已歸還'?'border-green-500':'border-blue-500'} text-sm"><div class="flex justify-between font-bold"><span>${l.status}</span><span>${l.borrower}</span></div><div class="flex justify-between text-xs mt-1"><span>數量: ${l.qty}</span><span>${l.time}</span></div></div>`).join('') || "無紀錄";
+        async function fetchItemHistory(id){
+            document.getElementById('history-modal').classList.add('flex');
+            document.getElementById('history-list').innerHTML='<div class="loader"></div>';
+            try {
+                const d = await callGasApi({action:'get_loan_history', userId, eqId:id});
+                document.getElementById('history-list').innerHTML = (d && d.length > 0) 
+                    ? d.map(l => renderHistoryCard(l)).join('') 
+                    : "<div class='text-center text-gray-500 mt-4'>此裝備無借出紀錄</div>";
+            } catch(e) {
+                document.getElementById('history-list').innerHTML = `<p class="text-red-400 text-center">載入失敗: ${e.message}</p>`;
+            }
         }
+        // 🔥 [新增] 歷史卡片渲染器 (共用邏輯)
+        function renderHistoryCard(l) {
+            // 判斷是否為維修單
+            const isRepair = l.note && l.note.startsWith('[維修]');
+            const repairReason = isRepair ? l.note.replace('[維修]', '').trim() : '';
 
+            // 決定顯示的狀態文字與顏色
+            let statusText = l.status;
+            let statusClass = 'border-blue-500'; // 預設借出是藍色
+            let icon = '👤';
+
+            if (isRepair) {
+                // 維修邏輯
+                if (l.status === '借出中') {
+                    statusText = '🔧 維修中';
+                    statusClass = 'border-orange-500'; // 維修是橘色
+                    icon = '';
+                } else {
+                    statusText = '✅ 維修完成'; // 歸還變成維修完成
+                    statusClass = 'border-green-500';
+                    icon = '';
+                }
+            } else {
+                // 一般借還邏輯
+                if (l.status === '已歸還') {
+                    statusClass = 'border-green-500';
+                    icon = '♻️';
+                }
+            }
+
+            // 顯示裝備名稱 (如果是單項查詢，可能會想隱藏名稱，但統一顯示也無妨)
+            const nameHtml = l.item_name ? `<div class="font-bold text-base mb-1">${l.item_name}</div>` : '';
+            // 如果是維修，顯示原因；一般借出顯示備註
+            const subInfo = isRepair 
+                ? `<div class="text-xs text-orange-300 mt-1">原因: ${repairReason}</div>`
+                : (l.note ? `<div class="text-xs text-gray-400 mt-1">備註: ${l.note}</div>` : '');
+
+            return `
+                <div class="bg-gray-700 p-3 mb-2 rounded border-l-4 ${statusClass} text-sm">
+                    ${nameHtml}
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-gray-200">${icon} ${l.borrower}</span>
+                        <span class="text-xs text-gray-400">${l.time}</span>
+                    </div>
+                    <div class="flex justify-between items-center mt-1">
+                        <span class="font-bold ${isRepair && l.status==='借出中' ? 'text-orange-400' : 'text-gray-300'}">${statusText}</span>
+                        <span class="bg-gray-800 px-2 py-0.5 rounded text-xs">數量: ${l.qty}</span>
+                    </div>
+                    ${subInfo}
+                </div>`;
+        }
         // AI
         function showAiPage() { document.getElementById('view-ai').classList.remove('hidden'); }
         async function askAI(mode) { 
