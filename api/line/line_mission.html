@@ -555,7 +555,7 @@
                 toggleLoader(false);
             }
         }
-        
+
         function renderEquipmentList() {
             const listDiv = document.getElementById('equipment-list');
             const searchText = document.getElementById('eq-search').value.toLowerCase();
@@ -800,14 +800,43 @@
             // 🔥 [修正] 選完後自動收合篩選面板
             toggleFilterPanel(); 
         }
-        function openEditModal(mode,id,name,cat,model,loc,total) {
-            document.getElementById('edit-eq-modal').classList.add('flex'); document.getElementById('edit-mode').value = mode;
-            let eq = (mode === 'update' && id) ? (equipmentCache.find(e => e.id === id) || {}) : {};
-            document.getElementById('edit-modal-title').innerText = mode==='create'?"➕ 新增":"⚙️ 編輯";
-            document.getElementById('edit-eq-id').value=id||""; document.getElementById('eq-name').value=eq.name||""; 
-            document.getElementById('eq-category').value=eq.category||""; document.getElementById('eq-model').value=eq.model||"";
-            document.getElementById('eq-location').value=eq.location||""; document.getElementById('eq-total').value=eq.total_qty||1;
-            document.getElementById('btn-delete-eq').className = mode==='create' ? 'hidden' : 'bg-red-600 text-white px-3 py-2 rounded font-bold';
+        function openEditModal(mode, id) {
+            document.getElementById('edit-eq-modal').classList.add('flex');
+            document.getElementById('edit-mode').value = mode;
+            
+            // 重置輸入框
+            document.getElementById('edit-eq-id').value = id || "";
+            document.getElementById('eq-name').value = "";
+            document.getElementById('eq-category').value = "";
+            document.getElementById('eq-model').value = "";
+            document.getElementById('eq-location').value = "";
+            document.getElementById('eq-total').value = 1;
+
+            if (mode === 'update' && id) {
+                // 編輯模式：隱藏批量區，顯示單筆儲存
+                const eq = equipmentCache.find(e => e.id === id) || {};
+                document.getElementById('edit-modal-title').innerText = "⚙️ 編輯裝備";
+                document.getElementById('eq-name').value = eq.name || "";
+                document.getElementById('eq-category').value = eq.category || "";
+                document.getElementById('eq-model').value = eq.model || "";
+                document.getElementById('eq-location').value = eq.location || "";
+                document.getElementById('eq-total').value = eq.total_qty || 1;
+                
+                document.getElementById('btn-delete-eq').classList.remove('hidden');
+                document.getElementById('btn-save-edit').classList.remove('hidden');
+                document.getElementById('btn-submit-batch').classList.add('hidden');
+                document.getElementById('batch-add-area').classList.add('hidden');
+            } else {
+                // 新增模式：顯示批量區，清空暫存
+                document.getElementById('edit-modal-title').innerText = "➕ 批量新增裝備";
+                pendingBatchItems = []; 
+                renderPreBatchList();
+                
+                document.getElementById('btn-delete-eq').classList.add('hidden');
+                document.getElementById('btn-save-edit').classList.add('hidden');
+                document.getElementById('btn-submit-batch').classList.remove('hidden');
+                document.getElementById('batch-add-area').classList.remove('hidden');
+            }
         }
         async function submitEquipmentEdit() {
             const p = { action:'manage_equipment', userId, displayName, mode:document.getElementById('edit-mode').value, eqId:document.getElementById('edit-eq-id').value, name:document.getElementById('eq-name').value, category:document.getElementById('eq-category').value, model:document.getElementById('eq-model').value, location:document.getElementById('eq-location').value, totalQty:document.getElementById('eq-total').value };
