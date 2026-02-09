@@ -790,16 +790,44 @@
         function toggleSelectAll() { const ids = Array.from(document.querySelectorAll('#equipment-list input[type="checkbox"]')).map(c => c.getAttribute('onchange').match(/'([^']+)'/)[1]); if (ids.every(id => selectedItems.has(id))) ids.forEach(id => selectedItems.delete(id)); else ids.forEach(id => selectedItems.add(id)); renderEquipmentList(); updateExportCount(); }
         function updateExportCount() { document.getElementById('export-count').innerText = selectedItems.size; }
         async function confirmExport() { if (selectedItems.size === 0) return alert("請選擇"); toggleLoader(true); try { const res = await callGasApi({ action: 'export_equipment_report', userId, eqIds: Array.from(selectedItems) }); if (res.url) window.open(res.url); else alert("失敗"); } catch (e) { alert(e.message); } finally { toggleLoader(false); } }
-        // 渲染分類按鈕
+        // 🔥 [修改] 渲染主分類按鈕 (強化視覺權重：首要索引)
         function renderCategoryUI() {
-            const cats = [...new Set(['管理','搜索','救援','醫療','後勤', ...equipmentCache.map(e=>e.category)])];
-            // 使用 btn-chip 樣式
-            let html = `<button onclick="switchCategory('All')" class="btn-chip ${currentCategory==='All'?'active':''}">全部</button>`;
-            cats.forEach(c => {
-                html += `<button onclick="switchCategory('${c}')" class="btn-chip ${currentCategory===c?'active':''}">${c}</button>`;
+            const container = document.getElementById('category-filter-container');
+            const categories = ['All', ...new Set(equipmentCache.map(e => e.category))];
+            
+            // 🎨 外層容器樣式：給它一個明顯的框框和背景，讓它看起來像「控制台」
+            // border-l-4 border-yellow-500: 左邊加一條黃色粗線，強調這是入口
+            // bg-gray-800: 比背景稍微亮一點的區塊
+            container.className = "mb-4 bg-gray-800 p-3 rounded-lg border-l-4 border-yellow-500 shadow-lg";
+
+            // 🏷️ 標題區：告訴使用者這是最重要的
+            let html = `
+                <div class="flex items-center mb-2">
+                    <span class="text-yellow-400 font-bold text-sm uppercase tracking-wider mr-2">⚡ 第一步: 選擇裝備類別</span>
+                    <span class="text-gray-500 text-xs">(連動後續選項)</span>
+                </div>
+                <div class="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+            `;
+
+            categories.forEach(cat => {
+                // 🎨 按鈕樣式邏輯
+                // Active (選中): 亮黃底黑字 (高對比，超顯眼)
+                // Inactive (未選): 深灰底白字
+                const isActive = currentCategory === cat;
+                const activeClass = "bg-yellow-500 text-black font-extrabold ring-2 ring-yellow-300 transform scale-105 shadow-md";
+                const inactiveClass = "bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600";
+
+                // 如果是 All，顯示中文「全部」
+                const label = cat === 'All' ? '全部類別' : cat;
+
+                html += `<button onclick="switchCategory('${cat}')" 
+                    class="whitespace-nowrap px-4 py-2 rounded-full text-sm transition-all duration-200 ${isActive ? activeClass : inactiveClass}">
+                    ${label}
+                </button>`;
             });
-            document.getElementById('category-filter-container').innerHTML = html;
-            document.getElementById('category-options').innerHTML = cats.map(c=>`<option value="${c}">`).join('');
+
+            html += `</div>`;
+            container.innerHTML = html;
         }
         // 🔥 [修改] 渲染位置按鈕 (加入連動邏輯)
         function renderLocationUI() {
