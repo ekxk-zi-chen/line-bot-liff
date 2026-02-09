@@ -447,19 +447,29 @@
             } catch (e) { alert(e.message); } finally { if (showLoading) toggleLoader(false); }
         }
 
-        // 🔥 [新增] 統一管理下拉選單 (關鍵：合併現有資料 + 暫存區資料)
+        // 🔥 [修改] 統一管理下拉選單 (增強版：連備註也會自動更新)
         function renderDatalists() {
-            // 1. 從現有裝備快取抓
+            // 1. 從現有裝備快取抓 分類 & 位置
             const cats = new Set(equipmentCache.map(e => e.category));
             const locs = new Set(equipmentCache.map(e => e.location));
             
+            // 🔥 3. [新增] 蒐集目前所有「借出中」的備註 (讓備註選單越來越聰明)
+            const notes = new Set(['出勤', '動員訓練']); // 預設選項
+            equipmentCache.forEach(e => {
+                if (e.active_loans) {
+                    e.active_loans.forEach(loan => {
+                        if (loan.note) notes.add(loan.note);
+                    });
+                }
+            });
+
             // 2. 從「還沒送出的暫存區」也抓 (這樣剛打的馬上就能選！)
             pendingBatchItems.forEach(i => {
                 if(i.category) cats.add(i.category);
                 if(i.location) locs.add(i.location);
             });
 
-            // 3. 渲染上方分類按鈕 (連動原本的 UI)
+            // 渲染上方分類按鈕 (連動原本的 UI)
             const catArr = ['管理','搜索','救援','醫療','後勤', ...cats];
             const uniqueCats = [...new Set(catArr)];
             
@@ -469,9 +479,12 @@
             });
             document.getElementById('category-filter-container').innerHTML = html;
 
-            // 4. 渲染輸入框的 Datalist (分類 + 位置)
+            // 4. 渲染輸入框的 Datalist
             document.getElementById('category-options').innerHTML = uniqueCats.map(c=>`<option value="${c}">`).join('');
             document.getElementById('location-options').innerHTML = Array.from(locs).sort().map(l=>`<option value="${l}">`).join('');
+            
+            // 🔥 更新備註的下拉選單
+            document.getElementById('note-suggestions').innerHTML = Array.from(notes).sort().map(n=>`<option value="${n}">`).join('');
             
             // 更新連動的位置篩選
             renderLocationUI();
