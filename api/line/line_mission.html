@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>花蓮特搜戰情中心</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -363,13 +363,14 @@
                     <span class="text-xs text-gray-400">待新增清單</span>
                     <button onclick="addToPreBatch()" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold">⬇️ 加入暫存</button>
                 </div>
-                <div class="flex-1 overflow-y-auto custom-scrollbar bg-gray-900 rounded p-2">
-                    <table class="w-full text-left batch-table">
+                <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar bg-gray-900 rounded p-2">
+                    <table class="w-full text-left batch-table whitespace-nowrap">
                         <thead>
                             <tr>
                                 <th>名稱</th>
-                                <th>細項</th> <th>位置</th>
-                                <th>量</th>
+                                <th>細項</th> 
+                                <th>位置</th>
+                                <th>保管人</th> <th>量</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -581,10 +582,11 @@
             const tbody = document.getElementById('pre-batch-list');
             tbody.innerHTML = pendingBatchItems.map((item, index) => `
                 <tr class="border-b border-gray-700">
-                    <td>${item.name}</td>
-                    <td>${item.subCategory || '-'}</td> <td>${item.location}</td>
-                    <td>${item.totalQty}</td>
-                    <td class="text-right"><button onclick="removePreBatch(${index})" class="text-red-400">✕</button></td>
+                    <td class="pr-3">${item.name}</td>
+                    <td class="pr-3 text-gray-400">${item.subCategory || '-'}</td> 
+                    <td class="pr-3 text-gray-400">${item.location || '-'}</td>
+                    <td class="pr-3 text-indigo-300">${item.custodian || '-'}</td> <td class="pr-3 text-yellow-400 font-bold">${item.totalQty}</td>
+                    <td class="text-right"><button onclick="removePreBatch(${index})" class="text-red-400 px-2 py-1">✕</button></td>
                 </tr>
             `).join('');
         }
