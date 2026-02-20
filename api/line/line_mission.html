@@ -223,11 +223,13 @@
 <body class="p-4">
 
     <div id="boar-overlay" class="hidden"><div id="boar-anim" class="boar-scene">🐗</div><p id="boar-text" class="boar-text">資料處理中...</p></div>
-    <div id="header" class="mb-3">
-        <h1 class="text-xl font-bold text-green-400 text-center mb-1">🚒 花蓮特搜行動系統</h1>
-        <div class="flex justify-between items-center px-2">
+    <div id="header" class="mb-3 text-center">
+        <h1 class="text-xl font-bold text-green-400 mb-1">🚒 花蓮特搜行動系統</h1>
+        
+        <div class="relative flex justify-center items-center h-6">
             <p id="user-info" class="text-sm text-gray-400">識別中...</p>
-            <select id="custodian-filter" onchange="switchCustodian(this.value)" class="bg-gray-800 text-indigo-300 text-xs py-1 px-2 rounded border border-indigo-700 outline-none max-w-[120px]">
+            
+            <select id="custodian-filter" onchange="switchCustodian(this.value)" class="absolute right-0 bg-gray-800 text-indigo-300 text-xs py-1 px-1 rounded border border-indigo-700 outline-none max-w-[100px]">
                 <option value="All">所有🛡️</option>
             </select>
         </div>
