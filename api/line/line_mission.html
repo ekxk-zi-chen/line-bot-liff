@@ -679,7 +679,7 @@
                 let toggleBtnHtml = ''; // 🔥 新增：收合按鈕
                 if (eq.active_loans && eq.active_loans.length > 0) {
                     // 🔥 新增按鈕 UI
-                    toggleBtnHtml = `<button onclick="toggleLoanList('${eq.id}', this, ${eq.active_loans.length})" class="w-full mt-3 text-xs bg-gray-700 hover:bg-gray-600 text-blue-300 py-1.5 rounded border border-gray-600 transition-colors font-bold">👀 顯示名單 (${eq.active_loans.length})</button>`;
+                    toggleBtnHtml = `<button onclick="toggleLoanList('${eq.id}', this, ${eq.active_loans.length})" class="bg-gray-700 hover:bg-gray-600 text-blue-300 px-3 py-1 rounded text-xs font-bold">名單 (${eq.active_loans.length})</button>`;
                     
                     // 🔥 加上 id 與 hidden 讓它預設隱藏
                     loansHtml = `<div id="loan-list-${eq.id}" class="hidden mt-2 pt-2 border-t border-gray-600 space-y-1">`;
@@ -715,7 +715,7 @@
                             <h3 class="font-bold text-white text-lg flex items-center flex-wrap gap-1">${eq.name} ${subCatBadge}</h3>
                             <div class="flex gap-2 text-xs text-gray-400 mt-1"><span>${eq.model||'-'}</span><span>📍${eq.location||'-'}</span></div>
                         </div><div class="flex gap-2"><button onclick="fetchItemHistory('${eq.id}')" class="text-blue-400 p-1">📜</button>${editBtn}</div></div>
-                        <div class="flex justify-between items-center mt-3">${statusBadge}<div>${borrowBtn}${repairBtn}</div></div>${toggleBtnHtml}${loansHtml}</div></div>`;
+                        <div class="flex justify-between items-end mt-3">${statusBadge}<div class="flex flex-col items-end gap-2"><div>${borrowBtn}${repairBtn}</div>${toggleBtnHtml}</div></div>${loansHtml}</div></div>`;
             });
             listDiv.innerHTML = html || "<p class='text-center text-gray-500'>無符合裝備</p>";
             updateExportCount();
@@ -727,12 +727,12 @@
             if (list.classList.contains('hidden')) {
                 // 展開
                 list.classList.remove('hidden');
-                btn.innerHTML = '隱藏名單';
+                btn.innerHTML = '隱藏';
                 btn.classList.replace('text-blue-300', 'text-gray-400');
             } else {
                 // 收合
                 list.classList.add('hidden');
-                btn.innerHTML = `顯示名單 (${count})`;
+                btn.innerHTML = `名單 (${count})`;
                 btn.classList.replace('text-gray-400', 'text-blue-300');
             }
         }
