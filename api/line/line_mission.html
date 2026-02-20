@@ -223,7 +223,16 @@
 <body class="p-4">
 
     <div id="boar-overlay" class="hidden"><div id="boar-anim" class="boar-scene">🐗</div><p id="boar-text" class="boar-text">資料處理中...</p></div>
-    <div id="header" class="mb-4 text-center"><h1 class="text-xl font-bold text-green-400">🚒 花蓮特搜行動系統</h1><p id="user-info" class="text-sm text-gray-400">識別中...</p></div>
+    <div id="header" class="mb-3">
+        <h1 class="text-xl font-bold text-green-400 text-center mb-1">🚒 花蓮特搜行動系統</h1>
+        <div class="flex justify-between items-center px-2">
+            <p id="user-info" class="text-sm text-gray-400">識別中...</p>
+            <select id="custodian-filter" onchange="switchCustodian(this.value)" class="bg-gray-800 text-indigo-300 text-xs py-1 px-2 rounded border border-indigo-700 outline-none max-w-[120px]">
+                <option value="All">所有🛡️</option>
+            </select>
+        </div>
+    </div>
+    
     <div id="loader" class="loader"></div>
     
     <div id="view-report" class="hidden"><h2 class="text-lg font-bold mb-2">📝 您的任務回報</h2><div id="report-list"></div></div>
@@ -419,9 +428,10 @@
 
     <script>
         const GAS_API_URL = "https://line-bot-liff-lovat.vercel.app/api/webhook";
-        let userId="", displayName="", equipmentCache=[], currentCategory='All', currentSubCategory='All', currentLocation='All', currentNote='All', isExportMode=false, selectedItems=new Set(), loaderInterval;
+        let userId="", displayName="", equipmentCache=[], currentCategory='All', currentSubCategory='All', currentLocation='All', currentNote='All', currentCustodian='All', isExportMode=false, selectedItems=new Set(), loaderInterval;
         let isUserAdmin = false; // 🔥 [修正] 權限旗標 (預設 false)
         let pendingBatchItems = []; // 暫存新增的裝備列表
+        
 
         // --- 全域工具函數 (讓 task.js 也能用) ---
         function toggleLoader(show, text="處理中...") {
@@ -439,6 +449,7 @@
     <script src="mission_folder/task.js"></script>
 
     <script>
+        
         // --- 主程式初始化 ---
         async function main() {
             try {
@@ -500,6 +511,12 @@
             } catch (e) { alert(e.message); } finally { if (showLoading) toggleLoader(false); }
         }
 
+        // 🔥 [新增] 切換保管人過濾
+        function switchCustodian(c) { 
+            currentCustodian = c; 
+            renderEquipmentList(); 
+        }
+
         // 🔥 [修正] 統一管理下拉選單 (已移除舊的分類渲染邏輯，改呼叫新函數)
         function renderDatalists() {
             const cats = new Set(equipmentCache.map(e => e.category));
@@ -534,6 +551,13 @@
             renderSubCategoryUI(); 
             renderLocationUI();    
             renderNoteUI();
+
+            // 🔥 [新增] 渲染頂部保管人下拉選單
+            const custodianSelect = document.getElementById('custodian-filter');
+            let custHtml = `<option value="All">所有🛡️</option>`;
+            Array.from(custodians).sort().forEach(c => custHtml += `<option value="${c}">${c}</option>`);
+            custodianSelect.innerHTML = custHtml;
+            if (currentCustodian) custodianSelect.value = currentCustodian; // 保持選擇狀態不跑掉
         }
 
         // 🔥 [新增] 渲染細項按鈕 (連動邏輯: 只顯示該分類下的細項)
@@ -642,7 +666,7 @@
                 const matchCat = currentCategory === 'All' || eq.category === currentCategory;
                 const matchSubCat = currentSubCategory === 'All' || eq.sub_category === currentSubCategory;
                 const matchLoc = currentLocation === 'All' || eq.location === currentLocation;
-                
+                const matchCustodian = currentCustodian === 'All' || eq.custodian === currentCustodian;
                 // 搜尋邏輯
                 const matchSearch = (eq.name+eq.model+(eq.sub_category||'')).toLowerCase().includes(searchText) || 
                                     (eq.active_loans && eq.active_loans.some(l => l.borrower.toLowerCase().includes(searchText)));
@@ -673,7 +697,7 @@
                     }
                 }
                 
-                return matchCat && matchSubCat && matchLoc && matchSearch && matchStatus && matchNote;
+                return matchCat && matchSubCat && matchLoc && matchSearch && matchStatus && matchNote && matchCustodian;
             });
 
             // 排序：有維修的排前面，方便查看
