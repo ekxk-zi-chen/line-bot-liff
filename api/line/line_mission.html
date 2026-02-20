@@ -369,8 +369,9 @@
                             <tr>
                                 <th>名稱</th>
                                 <th>細項</th> 
-                                <th>位置</th>
-                                <th>保管人</th> <th>量</th>
+                                <th>規格</th> <th>位置</th>
+                                <th>保管人</th> 
+                                <th>量</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -584,8 +585,9 @@
                 <tr class="border-b border-gray-700">
                     <td class="pr-3">${item.name}</td>
                     <td class="pr-3 text-gray-400">${item.subCategory || '-'}</td> 
-                    <td class="pr-3 text-gray-400">${item.location || '-'}</td>
-                    <td class="pr-3 text-indigo-300">${item.custodian || '-'}</td> <td class="pr-3 text-yellow-400 font-bold">${item.totalQty}</td>
+                    <td class="pr-3 text-gray-400">${item.model || '-'}</td> <td class="pr-3 text-gray-400">${item.location || '-'}</td>
+                    <td class="pr-3 text-indigo-300">${item.custodian || '-'}</td>
+                    <td class="pr-3 text-yellow-400 font-bold">${item.totalQty}</td>
                     <td class="text-right"><button onclick="removePreBatch(${index})" class="text-red-400 px-2 py-1">✕</button></td>
                 </tr>
             `).join('');
