@@ -676,21 +676,23 @@
                     : `<span class="text-blue-400 font-bold text-sm">🔵 部分借出 (${eq.available_qty}/${eq.total_qty})</span>`);
 
                 let loansHtml = '';
+                let toggleBtnHtml = ''; // 🔥 新增：收合按鈕
                 if (eq.active_loans && eq.active_loans.length > 0) {
-                    loansHtml = `<div class="mt-2 pt-2 border-t border-gray-600 space-y-1">`;
+                    // 🔥 新增按鈕 UI
+                    toggleBtnHtml = `<button onclick="toggleLoanList('${eq.id}', this, ${eq.active_loans.length})" class="w-full mt-3 text-xs bg-gray-700 hover:bg-gray-600 text-blue-300 py-1.5 rounded border border-gray-600 transition-colors font-bold">👀 顯示名單 (${eq.active_loans.length})</button>`;
+                    
+                    // 🔥 加上 id 與 hidden 讓它預設隱藏
+                    loansHtml = `<div id="loan-list-${eq.id}" class="hidden mt-2 pt-2 border-t border-gray-600 space-y-1">`;
                     eq.active_loans.forEach(l => {
                         const returnBtn = isUserAdmin ? `<button onclick="openSingleReturnModal('${eq.id}', '${l.loan_id}', ${l.qty}, '${l.borrower}')" class="bg-green-700 text-white px-2 py-1 rounded text-[10px]">歸還</button>` : '';
                         
-                        // 🔥 [顯示] 判斷顯示樣式
                         const isRepair = l.note && l.note.startsWith('[維修]');
                         let displayHtml = '';
                         
                         if (isRepair) {
-                            // 🔧 維修樣式 (橘色 + 去掉標籤)
                             const reason = l.note.replace('[維修]', '').trim();
                             displayHtml = `<span class="text-orange-400 font-bold">🔧 維修中</span> <span class="text-gray-400">(${l.borrower})</span> <span class="text-orange-300 text-xs">原因: ${reason}</span>`;
                         } else {
-                            // 👤 一般借出樣式
                             displayHtml = `<span>👤 ${l.borrower} <span class="text-yellow-400">x${l.qty}</span> <span class="text-blue-300">${l.note ? `#${l.note}` : ''}</span></span>`;
                         }
                         
@@ -702,23 +704,39 @@
                 const checked = selectedItems.has(eq.id) ? 'checked' : '';
                 const checkHtml = isExportMode ? `<div class="mr-3 flex items-center"><input type="checkbox" onchange="toggleSelect('${eq.id}')" ${checked} class="w-6 h-6"></div>` : '';
                 
-                // 🔥 [按鈕] 報修按鈕
                 const repairBtn = (!isEmpty && isUserAdmin) ? `<button onclick="openRepairModal('${eq.id}', '${displayName}')" class="bg-orange-600 text-white px-3 py-1 rounded text-xs font-bold ml-2">報修</button>` : '';
                 const borrowBtn = (!isEmpty && isUserAdmin) ? `<button onclick="openSingleBorrowModal('${eq.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold">借出</button>` : '';
                 const editBtn = isUserAdmin ? `<button onclick="openEditModal('update', '${eq.id}')" class="text-gray-500 p-1">⚙️</button>` : '';
                 const subCatBadge = eq.sub_category ? `<span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded ml-2">${eq.sub_category}</span>` : '';
 
+                // 🔥 將 ${toggleBtnHtml} 插入到 ${loansHtml} 前面
                 html += `<div class="flex items-start bg-gray-800 p-4 rounded-lg mb-3 border-l-4 ${isEmpty ? "border-red-500" : (isFull ? "border-green-500" : "border-blue-500")}">
                         ${checkHtml}<div class="flex-1"><div class="flex justify-between"><div>
                             <h3 class="font-bold text-white text-lg flex items-center flex-wrap gap-1">${eq.name} ${subCatBadge}</h3>
                             <div class="flex gap-2 text-xs text-gray-400 mt-1"><span>${eq.model||'-'}</span><span>📍${eq.location||'-'}</span></div>
                         </div><div class="flex gap-2"><button onclick="fetchItemHistory('${eq.id}')" class="text-blue-400 p-1">📜</button>${editBtn}</div></div>
-                        <div class="flex justify-between items-center mt-3">${statusBadge}<div>${borrowBtn}${repairBtn}</div></div>${loansHtml}</div></div>`;
+                        <div class="flex justify-between items-center mt-3">${statusBadge}<div>${borrowBtn}${repairBtn}</div></div>${toggleBtnHtml}${loansHtml}</div></div>`;
             });
             listDiv.innerHTML = html || "<p class='text-center text-gray-500'>無符合裝備</p>";
             updateExportCount();
         }
 
+        // 🔥 [新增] 切換顯示借出名單
+        function toggleLoanList(id, btn, count) {
+            const list = document.getElementById(`loan-list-${id}`);
+            if (list.classList.contains('hidden')) {
+                // 展開
+                list.classList.remove('hidden');
+                btn.innerHTML = '🙈 收合名單';
+                btn.classList.replace('text-blue-300', 'text-gray-400');
+            } else {
+                // 收合
+                list.classList.add('hidden');
+                btn.innerHTML = `👀 顯示名單 (${count})`;
+                btn.classList.replace('text-gray-400', 'text-blue-300');
+            }
+        }
+        
         // 借出 (批次數量)
         function openSingleBorrowModal(id) { selectedItems.clear(); selectedItems.add(id); openBatchBorrowModal(); }
         function openBatchBorrowModal() {
