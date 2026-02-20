@@ -342,8 +342,15 @@
                 
                 <input type="text" id="eq-model" class="input-dark" placeholder="型號/規格">
                 
-                <input type="text" id="eq-location" list="location-options" class="input-dark" placeholder="存放位置">
-                <datalist id="location-options"></datalist>
+                <div class="flex gap-2">
+                    <div class="flex-1">
+                        <input type="text" id="eq-location" list="location-options" class="input-dark" placeholder="存放位置">
+                        <datalist id="location-options"></datalist>
+                    </div>
+                    <div class="flex-1">
+                        <input type="text" id="eq-custodian" list="custodian-options" class="input-dark" placeholder="🛡️ 保管人 (選填)">
+                        <datalist id="custodian-options"></datalist> </div>
+                </div>
                 
                 <div class="flex items-center gap-2">
                     <label class="text-gray-400 w-20">總量:</label>
@@ -496,6 +503,7 @@
             const cats = new Set(equipmentCache.map(e => e.category));
             const subcats = new Set(equipmentCache.map(e => e.sub_category || ''));
             const locs = new Set(equipmentCache.map(e => e.location));
+            const custodians = new Set(equipmentCache.map(e => e.custodian).filter(Boolean)); // 🔥 抓取有值的保管人
             
             const notes = new Set(['雪訓', '繩索訓練', '動員訓練', '山域搜救']);
             equipmentCache.forEach(e => e.active_loans?.forEach(l => {if(l.note) notes.add(l.note)}));
@@ -518,6 +526,8 @@
             document.getElementById('subcategory-options').innerHTML = [...subcats].map(s=>`<option value="${s}">`).join('');
             document.getElementById('location-options').innerHTML = [...locs].sort().map(l=>`<option value="${l}">`).join('');
             document.getElementById('note-suggestions').innerHTML = [...notes].sort().map(n=>`<option value="${n}">`).join('');
+            // 塞進 Datalist
+            document.getElementById('custodian-options').innerHTML = [...custodians].sort().map(c=>`<option value="${c}">`).join('');
             
             renderSubCategoryUI(); 
             renderLocationUI();    
@@ -550,13 +560,15 @@
             const model = document.getElementById('eq-model').value;
             const loc = document.getElementById('eq-location').value;
             const total = parseInt(document.getElementById('eq-total').value);
+            const custodian = document.getElementById('eq-custodian').value; // 🔥 讀取
 
             if (!name || !cat) return alert("名稱和分類必填！");
 
-            pendingBatchItems.push({ name, category: cat, subCategory: subcat, model, location: loc, totalQty: total });
+            pendingBatchItems.push({ name, category: cat, subCategory: subcat, model, location: loc, custodian: custodian, totalQty: total }); // 🔥 塞進去
             
             document.getElementById('eq-name').value = "";
             document.getElementById('eq-model').value = "";
+            document.getElementById('eq-custodian').value = ""; // 🔥 清空保管人欄位
             document.getElementById('eq-name').focus(); 
 
             renderPreBatchList();
@@ -601,6 +613,7 @@
                         subCategory: item.subCategory, // 🔥
                         model: item.model,
                         location: item.location,
+                        custodian: item.custodian, // 🔥
                         totalQty: item.totalQty
                     })
                 );
@@ -708,12 +721,14 @@
                 const borrowBtn = (!isEmpty && isUserAdmin) ? `<button onclick="openSingleBorrowModal('${eq.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold">借出</button>` : '';
                 const editBtn = isUserAdmin ? `<button onclick="openEditModal('update', '${eq.id}')" class="text-gray-500 p-1">⚙️</button>` : '';
                 const subCatBadge = eq.sub_category ? `<span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded ml-2">${eq.sub_category}</span>` : '';
+                // 如果有保管人，產生微型標籤；如果沒有，就是空字串
+                const custodianBadge = eq.custodian ? `<span class="bg-indigo-900/50 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-700">🛡️保管: ${eq.custodian}</span>` : '';
 
                 // 🔥 將 ${toggleBtnHtml} 插入到 ${loansHtml} 前面
                 html += `<div class="flex items-start bg-gray-800 p-4 rounded-lg mb-3 border-l-4 ${isEmpty ? "border-red-500" : (isFull ? "border-green-500" : "border-blue-500")}">
                         ${checkHtml}<div class="flex-1"><div class="flex justify-between"><div>
                             <h3 class="font-bold text-white text-lg flex items-center flex-wrap gap-1">${eq.name} ${subCatBadge}</h3>
-                            <div class="flex gap-2 text-xs text-gray-400 mt-1"><span>${eq.model||'-'}</span><span>📍${eq.location||'-'}</span></div>
+                            <div class="flex gap-2 text-xs text-gray-400 mt-1 flex-wrap"><span>${eq.model||'-'}</span><span>📍${eq.location||'-'}</span>${custodianBadge}</div>
                         </div><div class="flex gap-2"><button onclick="fetchItemHistory('${eq.id}')" class="text-blue-400 p-1">📜</button>${editBtn}</div></div>
                         <div class="flex justify-between items-end mt-3">${statusBadge}<div class="flex flex-col items-end gap-2"><div>${borrowBtn}${repairBtn}</div>${toggleBtnHtml}</div></div>${loansHtml}</div></div>`;
             });
@@ -993,6 +1008,7 @@
             document.getElementById('eq-model').value = "";
             document.getElementById('eq-location').value = "";
             document.getElementById('eq-total').value = 1;
+            document.getElementById('eq-custodian').value = ""; // 清空保管人欄位
 
             if (mode === 'update' && id) {
                 const eq = equipmentCache.find(e => e.id === id) || {};
@@ -1003,6 +1019,8 @@
                 document.getElementById('eq-model').value = eq.model || "";
                 document.getElementById('eq-location').value = eq.location || "";
                 document.getElementById('eq-total').value = eq.total_qty || 1;
+                document.getElementById('eq-custodian').value = eq.custodian || ""; // 填入舊資料
+
                 
                 document.getElementById('btn-delete-eq').classList.remove('hidden');
                 document.getElementById('btn-save-edit').classList.remove('hidden');
@@ -1030,6 +1048,7 @@
                 subCategory: document.getElementById('eq-sub-category').value, // 🔥
                 model: document.getElementById('eq-model').value, 
                 location: document.getElementById('eq-location').value, 
+                custodian: document.getElementById('eq-custodian').value, // 🔥 加入這行
                 totalQty: document.getElementById('eq-total').value 
             };
             if(!p.name) return alert("名稱必填"); 
