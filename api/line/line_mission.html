@@ -951,6 +951,7 @@
         function switchSubCategory(sc) {
             currentSubCategory = sc;
             currentLocation = 'All';    // 重置位置
+            renderSubCategoryUI();      // 🔥 補上這行：重新繪製細項按鈕（才會反黃）
             renderLocationUI();         // 更新位置選單
             renderEquipmentList();
         }
