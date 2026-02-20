@@ -727,12 +727,12 @@
             if (list.classList.contains('hidden')) {
                 // 展開
                 list.classList.remove('hidden');
-                btn.innerHTML = '🙈 收合名單';
+                btn.innerHTML = '隱藏名單';
                 btn.classList.replace('text-blue-300', 'text-gray-400');
             } else {
                 // 收合
                 list.classList.add('hidden');
-                btn.innerHTML = `👀 顯示名單 (${count})`;
+                btn.innerHTML = `顯示名單 (${count})`;
                 btn.classList.replace('text-gray-400', 'text-blue-300');
             }
         }
@@ -834,7 +834,7 @@
             // 🏷️ 標題區 + 按鈕區
             let html = `
                 <div style="margin-bottom: 10px; color: #FBBF24; font-weight: bold; font-size: 1.1rem; border-bottom: 1px solid #4B5563; padding-bottom: 5px;">
-                    ⚡ 選擇分類 <span style="font-size: 0.8rem; color: #9CA3AF; font-weight: normal;">(最優先索引)</span>
+                    ⚡ 選擇分類 <span style="font-size: 0.8rem; color: #9CA3AF; font-weight: normal;">(大分類)</span>
                 </div>
                 <div class="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
             `;
