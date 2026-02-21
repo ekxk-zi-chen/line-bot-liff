@@ -746,7 +746,7 @@
                             displayHtml = `<span class="text-orange-400 font-bold">🔧 維修中</span> <span class="text-gray-400">(${l.borrower})</span> <span class="text-orange-300 text-xs">原因: ${reason}</span>`;
                         } else {
                             // 🔥 如果有補述 (l.note2)，加上一個粉紫色的標記，沒有就空字串
-                            const note2Html = l.note2 ? ` <span class="text-fuchsia-300 text-[11px] bg-fuchsia-900/40 px-1 rounded border border-fuchsia-800">:${l.note2}</span>` : '';
+                            const note2Html = l.note2 ? ` <span class="text-fuchsia-300 text-[11px] bg-fuchsia-900/40 px-1 rounded border border-fuchsia-800">${l.note2}</span>` : '';
                             displayHtml = `<span>👤 ${l.borrower} <span class="text-yellow-400">x${l.qty}</span>${note2Html} <span class="text-blue-300 ml-1">${l.note ? `#${l.note}` : ''}</span></span>`;
                         }
                         
