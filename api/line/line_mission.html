@@ -471,7 +471,11 @@
 
     <script>
         const GAS_API_URL = "https://line-bot-liff-lovat.vercel.app/api/webhook";
-        let userId="", displayName="", equipmentCache=[], currentCategory='All', currentSubCategory='All', currentLocation='All', currentNote='All', currentCustodian='All', isExportMode=false, selectedItems=new Set(), loaderInterval;
+        let userId="", displayName="", equipmentCache=[], currentCategory='All', currentCustodian='All', isExportMode=false, selectedItems=new Set(), loaderInterval;
+        // 🔥 新增：支援多選的狀態集合
+        let activeSubCats = new Set();
+        let activeLocs = new Set();
+        let activeNotes = new Set();
         let isUserAdmin = false; // 🔥 [修正] 權限旗標 (預設 false)
         let pendingBatchItems = []; // 暫存新增的裝備列表
         let pendingBorrowRequests = []; // 🔥 [新增] 全域變數：借出暫存清單
@@ -602,26 +606,27 @@
             Array.from(custodians).sort().forEach(c => custHtml += `<option value="${c}">${c}</option>`);
             custodianSelect.innerHTML = custHtml;
             if (currentCustodian) custodianSelect.value = currentCustodian; // 保持選擇狀態不跑掉
+            
+            attachDragToElements();
         }
 
-        // 🔥 [新增] 渲染細項按鈕 (連動邏輯: 只顯示該分類下的細項)
+        // 🔥 2. 細項渲染 (支援多選樣式)
         function renderSubCategoryUI() {
             const container = document.getElementById('subcategory-filter-container');
             const subcats = new Set();
-            
-            // 連動：只抓當前分類下的細項
             const sourceData = currentCategory === 'All' ? equipmentCache : equipmentCache.filter(e => e.category === currentCategory);
             sourceData.forEach(e => { if(e.sub_category) subcats.add(e.sub_category); });
 
             if(subcats.size === 0) { container.classList.add('hidden'); return; }
             container.classList.remove('hidden');
 
-            let html = `<button onclick="switchSubCategory('All')" class="btn-chip ${currentSubCategory==='All'?'active':''}">全部細項</button>`;
+            let html = `<button onclick="switchSubCategory('All')" class="btn-chip ${activeSubCats.size===0?'active':''}">全部細項</button>`;
             Array.from(subcats).sort().forEach(sc => {
-                html += `<button onclick="switchSubCategory('${sc}')" class="btn-chip ${currentSubCategory===sc?'active':''}">${sc}</button>`;
+                html += `<button onclick="switchSubCategory('${sc}')" class="btn-chip ${activeSubCats.has(sc)?'active':''}">${sc}</button>`;
             });
             container.innerHTML = html;
         }
+
         // 🔥 [修改] 暫存時加入 subCategory
         function addToPreBatch() {
             const name = document.getElementById('eq-name').value;
@@ -708,36 +713,23 @@
             
             let filtered = equipmentCache.filter(eq => {
                 const matchCat = currentCategory === 'All' || eq.category === currentCategory;
-                const matchSubCat = currentSubCategory === 'All' || eq.sub_category === currentSubCategory;
-                const matchLoc = currentLocation === 'All' || eq.location === currentLocation;
                 const matchCustodian = currentCustodian === 'All' || eq.custodian === currentCustodian;
-                // 搜尋邏輯
-                const matchSearch = (eq.name+eq.model+(eq.sub_category||'')).toLowerCase().includes(searchText) || 
-                                    (eq.active_loans && eq.active_loans.some(l => l.borrower.toLowerCase().includes(searchText)));
                 
-                // --- 🔥 狀態篩選邏輯 (右上角下拉選單) ---
-                const isBorrowed = eq.available_qty < eq.total_qty;
-                const hasRepair = eq.active_loans && eq.active_loans.some(l => l.note && l.note.startsWith('[維修]'));
+                // 🔥 多選集合比對 (size === 0 代表按了"全部")
+                const matchSubCat = activeSubCats.size === 0 || activeSubCats.has(eq.sub_category || '');
+                const matchLoc = activeLocs.size === 0 || activeLocs.has(eq.location);
                 
-                let matchStatus = true;
-                if (statusFilter === 'Borrowed') matchStatus = isBorrowed;
-                else if (statusFilter === 'InStock') matchStatus = !isBorrowed;
-                else if (statusFilter === 'Repair') matchStatus = hasRepair; // 🔥 只顯示有維修單的
-
-                // --- 🔥 用途/備註篩選邏輯 (下方按鈕) ---
+                // --- 🔥 用途/備註篩選邏輯 (支援多選) ---
                 let matchNote = true;
-                if (currentNote !== 'All') {
+                if (activeNotes.size > 0) {
                     if (!eq.active_loans || eq.active_loans.length === 0) {
                         matchNote = false;
                     } else {
-                        if (currentNote === '維修中') {
-                            // 如果按鈕選 "維修中"，只要 note 開頭是 [維修] 就算符合
-                            matchNote = eq.active_loans.some(l => l.note && l.note.startsWith('[維修]'));
-                        } else if (currentNote === '未分類') {
-                            matchNote = eq.active_loans.some(l => !l.note || l.note.trim() === '');
-                        } else {
-                            matchNote = eq.active_loans.some(l => l.note === currentNote);
-                        }
+                        matchNote = eq.active_loans.some(l => {
+                            const noteStr = l.note ? l.note.trim() : '未分類';
+                            const mappedNote = noteStr.startsWith('[維修]') ? '維修中' : noteStr;
+                            return activeNotes.has(mappedNote);
+                        });
                     }
                 }
                 
@@ -1034,125 +1026,90 @@
         function toggleSelectAll() { const ids = Array.from(document.querySelectorAll('#equipment-list input[type="checkbox"]')).map(c => c.getAttribute('onchange').match(/'([^']+)'/)[1]); if (ids.every(id => selectedItems.has(id))) ids.forEach(id => selectedItems.delete(id)); else ids.forEach(id => selectedItems.add(id)); renderEquipmentList(); updateExportCount(); }
         function updateExportCount() { document.getElementById('export-count').innerText = selectedItems.size; }
         async function confirmExport() { if (selectedItems.size === 0) return alert("請選擇"); toggleLoader(true); try { const res = await callGasApi({ action: 'export_equipment_report', userId, eqIds: Array.from(selectedItems) }); if (res.url) window.open(res.url); else alert("失敗"); } catch (e) { alert(e.message); } finally { toggleLoader(false); } }
-        // 🔥 [修改] 渲染主分類按鈕 (強化視覺權重：首要索引)
-        // 🔥 [修改] 渲染主分類按鈕 (強制顯眼版)
+        // 🔥 1. 大分類渲染 (解決電腦版無法拖曳的問題)
         function renderCategoryUI() {
             const container = document.getElementById('category-filter-container');
-            
-            // 🐛 如果這裡報錯，代表 HTML 裡找不到 id="category-filter-container"
-            if (!container) {
-                console.error("找不到 category-filter-container，請檢查 HTML id");
-                return;
-            }
-
+            if (!container) return;
             const categories = ['All', ...new Set(equipmentCache.map(e => e.category))];
             
-            // 🎨 強制重寫容器樣式 (暴力清除舊樣式)
-            // 讓它變成一個有「黃色邊框」和「深黑背景」的獨立區塊
-            container.className = ""; // 清空原本的 class
-            container.style.border = "3px solid #F59E0B"; // 亮橘黃色邊框
-            container.style.backgroundColor = "#1F2937";   // 深灰背景
-            container.style.borderRadius = "12px";         // 圓角
-            container.style.padding = "15px";              // 內距
-            container.style.marginBottom = "20px";         // 下方留白
-            container.style.boxShadow = "0 4px 6px rgba(0,0,0,0.3)"; // 陰影
+            container.className = ""; 
+            container.style.border = "3px solid #F59E0B"; 
+            container.style.backgroundColor = "#1F2937";   
+            container.style.borderRadius = "12px";         
+            container.style.padding = "15px";              
+            container.style.marginBottom = "20px";         
+            container.style.boxShadow = "0 4px 6px rgba(0,0,0,0.3)"; 
 
-            // 🏷️ 標題區 + 按鈕區
+            // 🔥 關鍵修復：在內層 div 加上 filter-row 類別，即可支援滑鼠拖曳
             let html = `
                 <div style="margin-bottom: 10px; color: #FBBF24; font-weight: bold; font-size: 1.1rem; border-bottom: 1px solid #4B5563; padding-bottom: 5px;">
                     ⚡ 選擇分類 <span style="font-size: 0.8rem; color: #9CA3AF; font-weight: normal;">(大分類)</span>
                 </div>
-                <div class="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
+                <div class="flex gap-3 overflow-x-auto pb-2 custom-scrollbar filter-row" style="scrollbar-width: none; cursor: grab;">
             `;
 
             categories.forEach(cat => {
                 const isActive = currentCategory === cat;
-                
-                // 選中時：亮黃色底、黑字、放大
-                // 未選時：灰色外框、白字
                 const btnStyle = isActive 
                     ? "background-color: #F59E0B; color: black; font-weight: 800; border: 2px solid #F59E0B; transform: scale(1.05);"
                     : "background-color: transparent; color: white; border: 1px solid #6B7280;";
-
                 const label = cat === 'All' ? '全部顯示' : cat;
-
-                html += `<button onclick="switchCategory('${cat}')" 
-                    style="padding: 8px 16px; border-radius: 9999px; white-space: nowrap; transition: all 0.2s; ${btnStyle}">
-                    ${label}
-                </button>`;
+                html += `<button onclick="switchCategory('${cat}')" style="padding: 8px 16px; border-radius: 9999px; white-space: nowrap; transition: all 0.2s; ${btnStyle}">${label}</button>`;
             });
-
             html += `</div>`;
             container.innerHTML = html;
         }
-        // 🔥 [修改] 渲染位置按鈕 (加入連動邏輯)
+
+        // 🔥 3. 位置渲染 (智慧連動：只顯示選中細項有的位置)
         function renderLocationUI() {
             const container = document.getElementById('location-filter-container');
             const locs = new Set();
             
             let sourceData = currentCategory === 'All' ? equipmentCache : equipmentCache.filter(e => e.category === currentCategory);
-            
-            // 🔥 再過濾一層細項
-            if (currentSubCategory !== 'All') {
-                sourceData = sourceData.filter(e => e.sub_category === currentSubCategory);
-            }
+            if (activeSubCats.size > 0) sourceData = sourceData.filter(e => activeSubCats.has(e.sub_category || '')); // 瀑布流連動
 
             sourceData.forEach(e => { if(e.location) locs.add(e.location); });
-            
             if(locs.size === 0) { container.classList.add('hidden'); return; } 
             container.classList.remove('hidden');
 
-            let html = `<button onclick="switchLocation('All')" class="btn-chip ${currentLocation==='All'?'active':''}">全部位置</button>`;
+            let html = `<button onclick="switchLocation('All')" class="btn-chip ${activeLocs.size===0?'active':''}">全部位置</button>`;
             Array.from(locs).sort().forEach(loc => {
-                html += `<button onclick="switchLocation('${loc}')" class="btn-chip ${currentLocation===loc?'active':''}">${loc}</button>`;
+                html += `<button onclick="switchLocation('${loc}')" class="btn-chip ${activeLocs.has(loc)?'active':''}">${loc}</button>`;
             });
             container.innerHTML = html;
         }
 
-        // 🔥 [修正] 切換位置函數
-        function switchLocation(loc) { currentLocation = loc; renderLocationUI(); renderEquipmentList(); }
-
-        // 渲染備註按鈕 (包含自動重置邏輯)
-        // 🔥 [修改] 渲染用途/備註按鈕 (自動歸納維修)
+        // 🔥 4. 用途渲染 (終極智慧連動：只顯示目前過濾下的用途)
         function renderNoteUI() {
             const container = document.getElementById('note-filter-container');
             const notes = new Set();
             
-            // 遍歷所有借出中的裝備
-            equipmentCache.forEach(e => {
+            let sourceData = currentCategory === 'All' ? equipmentCache : equipmentCache.filter(e => e.category === currentCategory);
+            if (activeSubCats.size > 0) sourceData = sourceData.filter(e => activeSubCats.has(e.sub_category || '')); // 瀑布流連動
+            if (activeLocs.size > 0) sourceData = sourceData.filter(e => activeLocs.has(e.location)); // 瀑布流連動
+
+            sourceData.forEach(e => {
                 if (e.active_loans) {
                     e.active_loans.forEach(l => {
                         const note = l.note ? l.note.trim() : '未分類';
-                        if (note.startsWith('[維修]')) {
-                            // 🔥 關鍵邏輯：不管後面寫什麼原因，統一歸類為 "維修中"
-                            notes.add('維修中');
-                        } else {
-                            notes.add(note);
-                        }
+                        if (note.startsWith('[維修]')) notes.add('維修中');
+                        else notes.add(note);
                     });
                 }
             });
 
-            // 如果目前選的 note 已經不存在於清單中 (例如修好了)，重置為 All
-            if (currentNote !== 'All' && !notes.has(currentNote)) {
-                currentNote = 'All';
-                renderEquipmentList();
-            }
+            // 清理：如果已經不存在該用途，自動從選中名單中移除
+            for (let n of activeNotes) { if (!notes.has(n)) activeNotes.delete(n); }
 
             if (notes.size === 0) { container.classList.add('hidden'); return; }
             container.classList.remove('hidden');
 
-            let html = `<button onclick="switchNote('All')" class="btn-chip ${currentNote==='All'?'active':''}">全部用途</button>`;
-            
-            // 排序：讓 "維修中" 排在前面比較明顯
+            let html = `<button onclick="switchNote('All')" class="btn-chip ${activeNotes.size===0?'active':''}">全部用途</button>`;
             const sortedNotes = Array.from(notes).sort((a, b) => {
-                if (a === '維修中') return -1;
-                if (b === '維修中') return 1;
-                return a.localeCompare(b);
+                if (a === '維修中') return -1; if (b === '維修中') return 1; return a.localeCompare(b);
             });
-
             sortedNotes.forEach(n => {
-                html += `<button onclick="switchNote('${n}')" class="btn-chip ${currentNote===n?'active':''}">${n}</button>`;
+                html += `<button onclick="switchNote('${n}')" class="btn-chip ${activeNotes.has(n)?'active':''}">${n}</button>`;
             });
             container.innerHTML = html;
         }
@@ -1197,31 +1154,37 @@
         }
 
         
-        // 🔥 [修改] 切換分類 -> 重置細項 -> 重置位置
+        // 🔥 切換大分類 (維持單選，並清空底下的多選狀態)
         function switchCategory(c) { 
             currentCategory = c; 
-            currentSubCategory = 'All'; // 重置細項
-            currentLocation = 'All';    // 重置位置
+            activeSubCats.clear(); 
+            activeLocs.clear(); 
+            activeNotes.clear();
             renderDatalists();          
             renderEquipmentList(); 
         }
-        // 🔥 [新增] 切換細項 -> 重置位置
+        // 🔥 切換細項 (多選)
         function switchSubCategory(sc) {
-            currentSubCategory = sc;
-            currentLocation = 'All';    // 重置位置
-            renderSubCategoryUI();      // 🔥 補上這行：重新繪製細項按鈕（才會反黃）
-            renderLocationUI();         // 更新位置選單
+            if (sc === 'All') activeSubCats.clear();
+            else activeSubCats.has(sc) ? activeSubCats.delete(sc) : activeSubCats.add(sc);
+            renderDatalists(); // 刷新 UI 讓它反黃，並連動下方
             renderEquipmentList();
         }
-        // 切換備註過濾
-        function switchNote(n) { 
-            currentNote = n; 
-            renderNoteUI(); 
+        // 🔥 切換位置 (多選)
+        function switchLocation(loc) { 
+            if (loc === 'All') activeLocs.clear();
+            else activeLocs.has(loc) ? activeLocs.delete(loc) : activeLocs.add(loc);
+            renderDatalists(); 
             renderEquipmentList(); 
-            
-            // 🔥 [修正] 選完後自動收合篩選面板
-            toggleFilterPanel(); 
         }
+        // 🔥 切換用途 (多選，且不自動收合面板)
+        function switchNote(n) { 
+            if (n === 'All') activeNotes.clear();
+            else activeNotes.has(n) ? activeNotes.delete(n) : activeNotes.add(n);
+            renderDatalists(); 
+            renderEquipmentList(); 
+        }
+
         // 🔥 [修改] 加入 subCategory 處理
         function openEditModal(mode, id) {
             document.getElementById('edit-eq-modal').classList.add('flex');
@@ -1401,38 +1364,25 @@
         }
 
 
-        // 🔥 [新增] 滑鼠拖曳捲動功能 (Drag to Scroll)
-        const sliders = document.querySelectorAll('.filter-row');
-        sliders.forEach(slider => {
-            let isDown = false;
-            let startX;
-            let scrollLeft;
-
-            slider.addEventListener('mousedown', (e) => {
-                isDown = true;
-                slider.classList.add('active');
-                startX = e.pageX - slider.offsetLeft;
-                scrollLeft = slider.scrollLeft;
+        // 🔥 將滑鼠拖曳封裝成函數，支援動態生成的 UI
+        function attachDragToElements() {
+            const sliders = document.querySelectorAll('.filter-row');
+            sliders.forEach(slider => {
+                if (slider.dataset.dragAttached) return; // 避免重複綁定
+                slider.dataset.dragAttached = 'true';
+                
+                let isDown = false; let startX; let scrollLeft;
+                slider.addEventListener('mousedown', (e) => { isDown = true; slider.classList.add('active'); startX = e.pageX - slider.offsetLeft; scrollLeft = slider.scrollLeft; });
+                slider.addEventListener('mouseleave', () => { isDown = false; slider.classList.remove('active'); });
+                slider.addEventListener('mouseup', () => { isDown = false; slider.classList.remove('active'); });
+                slider.addEventListener('mousemove', (e) => {
+                    if (!isDown) return;
+                    e.preventDefault();
+                    const walk = (e.pageX - slider.offsetLeft - startX) * 2;
+                    slider.scrollLeft = scrollLeft - walk;
+                });
             });
-
-            slider.addEventListener('mouseleave', () => {
-                isDown = false;
-                slider.classList.remove('active');
-            });
-
-            slider.addEventListener('mouseup', () => {
-                isDown = false;
-                slider.classList.remove('active');
-            });
-
-            slider.addEventListener('mousemove', (e) => {
-                if (!isDown) return;
-                e.preventDefault(); // 防止選取文字
-                const x = e.pageX - slider.offsetLeft;
-                const walk = (x - startX) * 2; // *2 是滑動速度倍率，數字越大滑越快
-                slider.scrollLeft = scrollLeft - walk;
-            });
-        });
+        }
         
         main();
     </script>
