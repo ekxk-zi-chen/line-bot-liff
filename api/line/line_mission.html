@@ -350,8 +350,9 @@
             <table class="w-full text-sm text-left text-gray-400 batch-table"><thead><tr><th class="w-1/2">裝備</th><th class="text-center">庫存</th><th class="w-20 text-center">數量</th></tr></thead><tbody id="batch-borrow-list"></tbody></table>
         </div>
 
-        <div class="flex justify-end mb-2">
-            <button onclick="addToBorrowQueue()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-md transition-all">➕ 加入多人名單</button>
+        <div class="flex justify-between items-center mb-2">
+            <button onclick="hideBorrowModal()" class="bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded-lg text-xs shadow-md border border-gray-600">🔍 縮小 / 選擇更多</button>
+            <button onclick="addToBorrowQueue()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-md transition-all">➕ 加入這筆名單</button>
         </div>
 
         <div id="borrow-queue-area" class="hidden mb-4 bg-gray-900 rounded-lg p-2 border border-gray-600 max-h-32 overflow-y-auto custom-scrollbar">
@@ -359,8 +360,8 @@
             <div id="borrow-queue-list" class="space-y-1"></div>
         </div>
 
-        <div class="flex gap-2">
-            <button onclick="closeModal('batch-borrow-modal')" class="flex-1 bg-gray-600 text-white py-2 rounded">取消</button>
+        <div class="flex gap-2 mt-2">
+            <button onclick="cancelBatchBorrow()" class="flex-1 bg-red-900/40 text-red-300 border border-red-800 py-2 rounded font-bold">放棄並清空</button>
             <button onclick="submitBatchBorrow()" class="flex-1 bg-blue-600 text-white py-2 rounded font-bold">確認送出</button>
         </div>
     </div></div>
@@ -830,16 +831,15 @@
         function openBatchBorrowModal() {
             if (selectedItems.size === 0) { alert("請先勾選裝備"); return; }
             
-            // 🔥 清空暫存清單並隱藏 UI
-            pendingBorrowRequests = [];
-            document.getElementById('borrow-queue-area').classList.add('hidden');
-            document.getElementById('borrow-queue-list').innerHTML = '';
+            // ❌ 我們把清空暫存的那三行刪掉了，這樣才不會每次打開都不見！
 
             document.getElementById('batch-borrow-modal').classList.add('flex');
-            document.getElementById('batch-borrower').value = ""; 
-            document.getElementById('batch-note').value = "";
-            document.getElementById('batch-note2').value = ""; 
-            document.getElementById('batch-repair-note').value = "";
+            document.getElementById('batch-borrow-modal').classList.remove('hidden');
+
+            // 如果借用人沒清空，方便繼續打字
+            // document.getElementById('batch-borrower').value = ""; 
+            
+            // 確保維修 UI 正常
             document.querySelector('input[name="borrow_mode"][value="borrow"]').checked = true;
             toggleBorrowMode(); 
 
@@ -847,10 +847,27 @@
             selectedItems.forEach(id => {
                 const eq = equipmentCache.find(e => e.id === id);
                 if (eq && eq.available_qty > 0) {
-                    // 🔥 在 input 裡面加上 data-name="${eq.name}"
-                    tbody.innerHTML += `<tr class="border-b border-gray-700"><td class="px-2 py-2 text-white">${eq.name}</td><td class="text-center text-gray-400">${eq.available_qty}</td><td class="text-center"><input type="number" data-id="${eq.id}" data-name="${eq.name}" class="borrow-qty-input w-16 bg-gray-700 text-white p-1 rounded border border-gray-600 text-center" value="1" min="1" max="${eq.available_qty}"></td></tr>`;
+                    // 🔥 【關鍵修改】把 input 裡面的 min="1" 改成了 min="0"！
+                    tbody.innerHTML += `<tr class="border-b border-gray-700"><td class="px-2 py-2 text-white">${eq.name}</td><td class="text-center text-gray-400">${eq.available_qty}</td><td class="text-center"><input type="number" data-id="${eq.id}" data-name="${eq.name}" class="borrow-qty-input w-16 bg-gray-700 text-white p-1 rounded border border-gray-600 text-center" value="1" min="0" max="${eq.available_qty}"></td></tr>`;
                 }
             });
+
+            // 🔥 打開時重新顯示剛才已經存好的名單
+            renderBorrowQueue();
+        }
+
+        // 🔥 [新增] 隱藏彈窗，但不清空資料 (讓使用者回去勾選更多)
+        function hideBorrowModal() {
+            document.getElementById('batch-borrow-modal').classList.add('hidden');
+            document.getElementById('batch-borrow-modal').classList.remove('flex');
+        }
+
+        // 🔥 [新增] 徹底取消：清空暫存名單、清空打勾狀態、關閉彈窗
+        function cancelBatchBorrow() {
+            pendingBorrowRequests = [];  // 清空暫存清單
+            selectedItems.clear();       // 清空外面打勾的裝備
+            renderEquipmentList();       // 刷新外面畫面 (把勾勾拿掉)
+            hideBorrowModal();           // 關閉視窗
         }
 
         // 🔥 [新增] 加入多人名單暫存
@@ -964,6 +981,7 @@
             try { 
                 await Promise.all(requests.map(req => callGasApi(req))); 
                 alert("送出成功！"); 
+                pendingBorrowRequests = []; // 🔥 成功送出後徹底清空暫存區！
                 selectedItems.clear(); 
                 if(isExportMode) toggleExportMode(); 
                 fetchEquipmentData(false); 
