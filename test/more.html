@@ -59,6 +59,7 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch; /* 讓 iOS 手機滑動變得平滑原生 */
             overscroll-behavior: contain;      /* 關鍵！防止側邊欄的滑動力量傳染給背景 */
+            padding-bottom: calc(100px + env(safe-area-inset-bottom));
         }
         .sidebar.open { left: 0; }
         .sidebar-header {
