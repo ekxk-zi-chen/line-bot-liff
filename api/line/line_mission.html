@@ -320,7 +320,18 @@
     <div id="batch-borrow-modal" class="modal-overlay"><div class="bg-gray-800 p-5 rounded-lg w-full max-w-md border border-blue-500 flex flex-col max-h-[90vh]">
         <h3 class="text-xl font-bold mb-4 text-blue-400">📦 借出裝備</h3>
         <div class="mb-3"><label class="block text-gray-400 text-sm mb-1">借用人 (必填)</label><input type="text" id="batch-borrower" class="input-dark"></div>
-        <div class="mb-3 flex gap-2">
+        <div class="mb-3 flex gap-4 border-b border-gray-700 pb-2">
+            <label class="flex items-center text-gray-200 text-sm cursor-pointer font-bold">
+                <input type="radio" name="borrow_mode" value="borrow" checked onchange="toggleBorrowMode()" class="mr-2 w-4 h-4">
+                一般借出
+            </label>
+            <label class="flex items-center text-orange-400 text-sm cursor-pointer font-bold">
+                <input type="radio" name="borrow_mode" value="repair" onchange="toggleBorrowMode()" class="mr-2 w-4 h-4 accent-orange-500">
+                裝備報修
+            </label>
+        </div>
+
+        <div id="borrow-fields" class="mb-3 flex gap-2">
             <div class="flex-1">
                 <label class="block text-gray-400 text-sm mb-1">用途</label>
                 <input type="text" id="batch-note" list="note-suggestions" class="input-dark" placeholder="例如: 雪訓">
@@ -329,6 +340,11 @@
                 <label class="block text-gray-400 text-sm mb-1">詳細補述</label>
                 <input type="text" id="batch-note2" class="input-dark" placeholder="例如: XL / 紅色">
             </div>
+        </div>
+
+        <div id="repair-fields" class="mb-3 hidden">
+            <label class="block text-orange-400 text-sm mb-1">維修原因 (必填)</label>
+            <input type="text" id="batch-repair-note" class="input-dark border-orange-500 focus:border-orange-400" placeholder="例如: 螢幕破裂, 拉鍊損壞...">
         </div>
         <div class="flex-1 overflow-y-auto custom-scrollbar mb-4 border-t border-b border-gray-700 py-2 bg-gray-900 px-2"><table class="w-full text-sm text-left text-gray-400 batch-table"><thead><tr><th class="w-1/2">裝備</th><th class="text-center">庫存</th><th class="w-20 text-center">數量</th></tr></thead><tbody id="batch-borrow-list"></tbody></table></div>
         <div class="flex gap-2"><button onclick="closeModal('batch-borrow-modal')" class="flex-1 bg-gray-600 text-white py-2 rounded">取消</button><button onclick="submitBatchBorrow()" class="flex-1 bg-blue-600 text-white py-2 rounded font-bold">確認</button></div>
@@ -798,7 +814,15 @@
         function openBatchBorrowModal() {
             if (selectedItems.size === 0) { alert("請先勾選裝備"); return; }
             document.getElementById('batch-borrow-modal').classList.add('flex');
-            document.getElementById('batch-borrower').value = ""; document.getElementById('batch-note').value = "";
+            document.getElementById('batch-borrower').value = ""; 
+            document.getElementById('batch-note').value = "";
+            document.getElementById('batch-note2').value = ""; // 清除舊資料
+
+            // 🔥 [新增] 每次打開彈窗，強制重置為「一般借出」狀態，並清除維修原因
+            document.getElementById('batch-repair-note').value = "";
+            document.querySelector('input[name="borrow_mode"][value="borrow"]').checked = true;
+            toggleBorrowMode();
+
             const tbody = document.getElementById('batch-borrow-list'); tbody.innerHTML = "";
             selectedItems.forEach(id => {
                 const eq = equipmentCache.find(e => e.id === id);
@@ -809,16 +833,32 @@
         }
         async function submitBatchBorrow() {
             const borrower = document.getElementById('batch-borrower').value;
-            const note = document.getElementById('batch-note').value;
-            const note2 = document.getElementById('batch-note2').value; // 🔥 取出補述
-            if (!borrower) { alert("請輸入借用人"); return; }
+            if (!borrower) { alert("請輸入借用人 / 經手人"); return; }
+
+            // 🔥 [修改] 判斷目前是借出還是報修
+            const mode = document.querySelector('input[name="borrow_mode"]:checked').value;
+            let finalNote = "";
+            let finalNote2 = "";
+
+            if (mode === 'borrow') {
+                // 一般借出
+                finalNote = document.getElementById('batch-note').value;
+                finalNote2 = document.getElementById('batch-note2').value;
+            } else {
+                // 報修：把原因加上前綴塞入 note1，note2 留空
+                const repairReason = document.getElementById('batch-repair-note').value;
+                if (!repairReason) { alert("請輸入維修原因"); return; }
+                finalNote = "[維修] " + repairReason;
+                finalNote2 = ""; 
+            }
+
             const inputs = document.querySelectorAll('.borrow-qty-input');
             const requests = [];
             inputs.forEach(input => {
                 const qty = parseInt(input.value);
-                // 🔥 將 note2 一併 push 出去
-                if (qty > 0) requests.push({ action: 'borrow_equipment', userId, displayName, eqId: input.dataset.id, borrower, qty, note, note2 });
+                if (qty > 0) requests.push({ action: 'borrow_equipment', userId, displayName, eqId: input.dataset.id, borrower, qty, note: finalNote, note2: finalNote2 });
             });
+
             if (requests.length === 0) return;
             toggleLoader(true); closeModal('batch-borrow-modal');
             try { await Promise.all(requests.map(req => callGasApi(req))); alert("借出成功"); selectedItems.clear(); if(isExportMode) toggleExportMode(); fetchEquipmentData(false); } catch (e) { alert(e.message); } finally { toggleLoader(false); }
@@ -987,6 +1027,20 @@
                 html += `<button onclick="switchNote('${n}')" class="btn-chip ${currentNote===n?'active':''}">${n}</button>`;
             });
             container.innerHTML = html;
+        }
+
+        // 🔥 [新增] 切換借出/報修模式 UI
+        function toggleBorrowMode() {
+            const mode = document.querySelector('input[name="borrow_mode"]:checked').value;
+            if (mode === 'borrow') {
+                document.getElementById('borrow-fields').classList.remove('hidden');
+                document.getElementById('borrow-fields').classList.add('flex');
+                document.getElementById('repair-fields').classList.add('hidden');
+            } else {
+                document.getElementById('borrow-fields').classList.add('hidden');
+                document.getElementById('borrow-fields').classList.remove('flex');
+                document.getElementById('repair-fields').classList.remove('hidden');
+            }
         }
 
         // 🔥 切換篩選面板展開/收合
