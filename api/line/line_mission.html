@@ -1038,7 +1038,28 @@
         function toggleSelect(id) { if (selectedItems.has(id)) selectedItems.delete(id); else selectedItems.add(id); updateExportCount(); }
         function toggleSelectAll() { const ids = Array.from(document.querySelectorAll('#equipment-list input[type="checkbox"]')).map(c => c.getAttribute('onchange').match(/'([^']+)'/)[1]); if (ids.every(id => selectedItems.has(id))) ids.forEach(id => selectedItems.delete(id)); else ids.forEach(id => selectedItems.add(id)); renderEquipmentList(); updateExportCount(); }
         function updateExportCount() { document.getElementById('export-count').innerText = selectedItems.size; }
-        async function confirmExport() { if (selectedItems.size === 0) return alert("請選擇"); toggleLoader(true); try { const res = await callGasApi({ action: 'export_equipment_report', userId, eqIds: Array.from(selectedItems) }); if (res.url) window.open(res.url); else alert("失敗"); } catch (e) { alert(e.message); } finally { toggleLoader(false); } }
+        async function confirmExport() { 
+            if (selectedItems.size === 0) return alert("請選擇裝備"); 
+            toggleLoader(true); 
+            try { 
+                const res = await callGasApi({ action: 'export_equipment_report', userId, eqIds: Array.from(selectedItems) }); 
+                if (res.url) {
+                    // 🔥 關鍵解法：判斷如果在 LINE 裡面，強制用外部瀏覽器 (Chrome/Safari) 開啟
+                    if (liff.isInClient()) {
+                        liff.openWindow({ url: res.url, external: true });
+                    } else {
+                        window.open(res.url, '_blank');
+                    }
+                } else {
+                    alert("匯出失敗"); 
+                }
+            } catch (e) { 
+                alert(e.message); 
+            } finally { 
+                toggleLoader(false); 
+            } 
+        }
+        
         // 🔥 1. 大分類渲染 (解決電腦版無法拖曳的問題)
         function renderCategoryUI() {
             const container = document.getElementById('category-filter-container');
