@@ -498,7 +498,7 @@
                     <svg class="animate-spin h-8 w-8 mb-2 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     <span class="text-sm tracking-widest">圖片載入中</span>
                 </div>
-                <img id="details-image" src="" class="max-w-full max-h-full object-contain hidden relative z-10" onload="hideImgLoading()" onerror="showImgError()">
+                <img id="details-image" class="max-w-full max-h-full object-contain hidden relative z-10">
                 <div id="details-img-error" class="hidden absolute inset-0 flex items-center justify-center text-gray-500 text-sm">
                     尚無圖片資訊
                 </div>
@@ -1481,7 +1481,11 @@
             // 初始狀態：顯示 loading，隱藏圖片和錯誤訊息
             imgEl.classList.add('hidden');
             errorEl.classList.add('hidden');
-            imgEl.src = ""; 
+            imgEl.removeAttribute('src'); // 安全地清空上一張圖片
+            
+            // 🔥 在這裡動態綁定事件，就不會發生時間差報錯了！
+            imgEl.onload = hideImgLoading;
+            imgEl.onerror = showImgError;
             
             if (eq.image && eq.image.trim() !== '') {
                 loadingEl.classList.remove('hidden');
