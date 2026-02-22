@@ -505,7 +505,7 @@
                 </div>
             </div>
 
-            <div class="flex-1 overflow-hidden bg-black rounded-xl border border-gray-700 relative flex items-center justify-center">
+            <div id="details-img-container" class="flex-1 overflow-hidden bg-black rounded-xl border border-gray-700 relative flex items-center justify-center">
                 <div id="details-img-loading" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
                     <svg class="animate-spin h-8 w-8 mb-2 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     <span class="text-sm tracking-widest">圖片載入中</span>
@@ -513,6 +513,9 @@
                 <img id="details-image" class="max-w-full max-h-full object-contain hidden relative z-10">
                 <div id="details-img-error" class="hidden absolute inset-0 flex items-center justify-center text-gray-500 text-sm">
                     尚無圖片資訊
+                </div>
+                <div id="details-img-counter" class="hidden absolute bottom-3 bg-black/60 text-white text-xs font-bold px-3 py-1 rounded-full z-20 backdrop-blur-sm pointer-events-none">
+                    1 / 3
                 </div>
             </div>
             
@@ -534,6 +537,10 @@
         let isUserAdmin = false; // 🔥 [修正] 權限旗標 (預設 false)
         let pendingBatchItems = []; // 暫存新增的裝備列表
         let pendingBorrowRequests = []; // 🔥 [新增] 全域變數：借出暫存清單
+        // 🔥 新增：多圖滑動專用變數
+        let currentImageArray = []; // 裝著多個圖片 ID 的陣列
+        let currentImageIndex = 0;  // 目前顯示到第幾張
+        let swipeStartX = 0;        // 紀錄手指按下的 X 座標
 
 
         // --- 全域工具函數 (讓 task.js 也能用) ---
@@ -1473,7 +1480,6 @@
 
             // 1. 填寫文字資料
             document.getElementById('details-name').textContent = eq.name;
-            
             const custEl = document.getElementById('details-custodian');
             if (eq.custodian) {
                 custEl.textContent = `🛡️ 保管人: ${eq.custodian}`;
@@ -1481,48 +1487,100 @@
             } else {
                 custEl.classList.add('hidden');
             }
-
             document.getElementById('details-total').textContent = eq.total_qty;
             document.getElementById('details-avail').textContent = eq.available_qty;
 
-            // 2. 處理非同步圖片載入
-            const imgEl = document.getElementById('details-image');
-            const loadingEl = document.getElementById('details-img-loading');
-            const errorEl = document.getElementById('details-img-error');
+            // 2. 處理字串切割 (把資料庫裡的換行 \n 切成陣列)
+            // .filter(Boolean) 是為了去除空字串(防呆)
+            currentImageArray = eq.image ? eq.image.split('\n').map(s => s.trim()).filter(Boolean) : [];
+            currentImageIndex = 0; // 預設從第一張開始
 
-            // 初始狀態：顯示 loading，隱藏圖片和錯誤訊息
-            imgEl.classList.add('hidden');
-            errorEl.classList.add('hidden');
-            imgEl.removeAttribute('src'); // 安全地清空上一張圖片
-            
-            // 🔥 在這裡動態綁定事件，就不會發生時間差報錯了！
-            imgEl.onload = hideImgLoading;
-            imgEl.onerror = showImgError;
-            
-            if (eq.image && eq.image.trim() !== '') {
-                loadingEl.classList.remove('hidden');
-                // 🔥 使用 Google Drive Thumbnail API 進行極速載入 (sz=w1000 確保畫質清晰)
-                imgEl.src = `https://drive.google.com/thumbnail?id=${eq.image.trim()}&sz=w1000`; 
+            const errorEl = document.getElementById('details-img-error');
+            const counterEl = document.getElementById('details-img-counter');
+
+            if (currentImageArray.length > 0) {
+                errorEl.classList.add('hidden');
+                // 如果照片大於 1 張，顯示半透明計數器，否則隱藏
+                if (currentImageArray.length > 1) counterEl.classList.remove('hidden');
+                else counterEl.classList.add('hidden');
+                
+                // 載入第一張圖片
+                loadDetailsImage(currentImageIndex);
             } else {
-                // 如果資料庫裡沒有圖片 ID
-                loadingEl.classList.add('hidden');
+                // 如果完全沒照片
+                document.getElementById('details-img-loading').classList.add('hidden');
+                document.getElementById('details-image').classList.add('hidden');
+                counterEl.classList.add('hidden');
                 errorEl.textContent = "尚無圖片資訊";
                 errorEl.classList.remove('hidden');
             }
 
-            // 3. 顯示彈窗 (移除 hidden，加上 flex 顯示)
+            // 3. 顯示彈窗並綁定一次性的滑動事件
             const modal = document.getElementById('details-modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+            setupImageSwipe();
         }
 
-        // 🔥 [新增] 圖片載入成功 (由 <img> 的 onload 觸發)
+        // 🔥 [新增] 載入特定索引的圖片
+        function loadDetailsImage(index) {
+            const imgEl = document.getElementById('details-image');
+            const loadingEl = document.getElementById('details-img-loading');
+            const counterEl = document.getElementById('details-img-counter');
+
+            // 換圖前先轉圈圈
+            imgEl.classList.add('hidden');
+            loadingEl.classList.remove('hidden');
+            imgEl.removeAttribute('src'); 
+            
+            imgEl.onload = hideImgLoading;
+            imgEl.onerror = showImgError;
+            
+            // 抓出對應的 Drive ID 進行載入
+            const driveId = currentImageArray[index];
+            imgEl.src = `https://drive.google.com/thumbnail?id=${driveId}&sz=w1000`; 
+            
+            // 更新半透明計數器文字 (例如: 1 / 3)
+            counterEl.textContent = `${index + 1} / ${currentImageArray.length}`;
+        }
+
+        // 🔥 [新增] 綁定觸控滑動事件
+        let isSwipeBound = false; // 防止重複綁定
+        function setupImageSwipe() {
+            if (isSwipeBound) return;
+            isSwipeBound = true;
+            const container = document.getElementById('details-img-container');
+            
+            // 手指按下去時，記錄起始 X 座標
+            container.addEventListener('touchstart', e => {
+                swipeStartX = e.changedTouches[0].screenX;
+            }, {passive: true});
+
+            // 手指放開時，計算滑動距離
+            container.addEventListener('touchend', e => {
+                if (currentImageArray.length <= 1) return; // 只有一張圖就不用滑
+                
+                const swipeEndX = e.changedTouches[0].screenX;
+                const diffX = swipeStartX - swipeEndX;
+
+                // 如果往左滑超過 50px (看下一張)
+                if (diffX > 50) {
+                    currentImageIndex = (currentImageIndex + 1) % currentImageArray.length;
+                    loadDetailsImage(currentImageIndex);
+                } 
+                // 如果往右滑超過 50px (看上一張)
+                else if (diffX < -50) {
+                    currentImageIndex = (currentImageIndex - 1 + currentImageArray.length) % currentImageArray.length;
+                    loadDetailsImage(currentImageIndex);
+                }
+            }, {passive: true});
+        }
+
+        // 圖片載入成功與失敗的輔助函數
         function hideImgLoading() {
             document.getElementById('details-img-loading').classList.add('hidden');
             document.getElementById('details-image').classList.remove('hidden');
         }
-
-        // 🔥 [新增] 圖片載入失敗 (由 <img> 的 onerror 觸發)
         function showImgError() {
             document.getElementById('details-img-loading').classList.add('hidden');
             document.getElementById('details-img-error').textContent = "圖片載入失敗 (請確認權限)";
