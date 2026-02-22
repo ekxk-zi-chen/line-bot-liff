@@ -467,6 +467,49 @@
     </div>
 
     <div id="history-modal" class="modal-overlay"><div class="bg-gray-800 p-4 rounded-lg w-full max-w-md border border-blue-500 h-4/5 flex flex-col"><div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2"><h3 class="text-xl font-bold text-blue-400">📜 歷史紀錄</h3><button onclick="closeModal('history-modal')" class="text-2xl text-gray-400">&times;</button></div><div id="history-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2"></div></div></div>
+
+    <div id="details-modal" class="fixed inset-0 bg-black/80 hidden justify-center items-end z-[60]">
+        <div class="bg-gray-900 w-full h-[85vh] rounded-t-3xl p-5 flex flex-col relative border-t border-gray-700 shadow-2xl">
+            
+            <div class="flex justify-between items-start mb-4 shrink-0">
+                <div>
+                    <h2 id="details-name" class="text-2xl font-bold text-white leading-tight">載入中...</h2>
+                    <div id="details-custodian" class="text-indigo-300 text-sm mt-1 font-bold hidden">🛡️ 保管人: </div>
+                </div>
+                <button onclick="closeModal('details-modal')" class="bg-gray-800 hover:bg-gray-700 text-gray-400 p-2 rounded-full shrink-0 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <div class="flex gap-4 mb-4 shrink-0 bg-gray-800 p-3 rounded-xl border border-gray-700">
+                <div class="flex-1 text-center">
+                    <div class="text-gray-400 text-xs mb-1">總數量</div>
+                    <div id="details-total" class="text-xl font-bold text-white">0</div>
+                </div>
+                <div class="w-px bg-gray-600"></div>
+                <div class="flex-1 text-center">
+                    <div class="text-gray-400 text-xs mb-1">剩餘數量</div>
+                    <div id="details-avail" class="text-xl font-bold text-yellow-400">0</div>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-hidden bg-black rounded-xl border border-gray-700 relative flex items-center justify-center">
+                <div id="details-img-loading" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
+                    <svg class="animate-spin h-8 w-8 mb-2 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <span class="text-sm tracking-widest">圖片載入中</span>
+                </div>
+                <img id="details-image" src="" class="max-w-full max-h-full object-contain hidden relative z-10" onload="hideImgLoading()" onerror="showImgError()">
+                <div id="details-img-error" class="hidden absolute inset-0 flex items-center justify-center text-gray-500 text-sm">
+                    尚無圖片資訊
+                </div>
+            </div>
+            
+            <div class="shrink-0 mt-5 mb-2">
+                <button onclick="closeModal('details-modal')" class="w-full bg-gray-700 hover:bg-gray-600 text-white py-3.5 rounded-xl font-bold text-lg tracking-widest border border-gray-600 shadow-lg transition-transform active:scale-95">關 閉</button>
+            </div>
+        </div>
+    </div>
+
     <datalist id="note-suggestions"><option value="雪訓"><option value="繩索訓練"><option value="動員訓練"><option value="山域搜救"></datalist>
 
     <script>
@@ -766,10 +809,18 @@
                     : `<span class="text-blue-400 font-bold text-sm">🔵 部分借出 (${eq.available_qty}/${eq.total_qty})</span>`);
 
                 let loansHtml = '';
-                let toggleBtnHtml = ''; // 🔥 新增：收合按鈕
+                let toggleBtnHtml = ''; // 🔥 收合與詳細按鈕容器
+                
+                // 🔥 新增「📄詳細」按鈕 (不管有沒有借出都會產生這個按鈕)
+                const detailsBtnHtml = `<button onclick="openDetailsModal('${eq.id}')" class="bg-indigo-900/60 hover:bg-indigo-800 text-indigo-300 px-3 py-1 rounded text-xs font-bold border border-indigo-700/50">📄 詳細</button>`;
+
                 if (eq.active_loans && eq.active_loans.length > 0) {
-                    // 🔥 新增按鈕 UI
-                    toggleBtnHtml = `<button onclick="toggleLoanList('${eq.id}', this, ${eq.active_loans.length})" class="bg-gray-700 hover:bg-gray-600 text-blue-300 px-3 py-1 rounded text-xs font-bold">名單 (${eq.active_loans.length})</button>`;
+                    // 如果有借出，並排顯示「詳細」與「名單」按鈕
+                    toggleBtnHtml = `
+                        <div class="flex gap-2 mt-2">
+                            ${detailsBtnHtml}
+                            <button onclick="toggleLoanList('${eq.id}', this, ${eq.active_loans.length})" class="bg-gray-700 hover:bg-gray-600 text-blue-300 px-3 py-1 rounded text-xs font-bold border border-gray-600">名單 (${eq.active_loans.length})</button>
+                        </div>`;
                     
                     // 🔥 加上 id 與 hidden 讓它預設隱藏
                     loansHtml = `<div id="loan-list-${eq.id}" class="hidden mt-2 pt-2 border-t border-gray-600 space-y-1">`;
@@ -791,6 +842,12 @@
                         loansHtml += `<div class="flex justify-between items-center text-xs text-gray-300">${displayHtml}${returnBtn}</div>`;
                     });
                     loansHtml += `</div>`;
+                } else {
+                    // 🔥 如果沒有借出紀錄，就只顯示「📄詳細」按鈕
+                    toggleBtnHtml = `
+                        <div class="flex gap-2 mt-2">
+                            ${detailsBtnHtml}
+                        </div>`;
                 }
                 
                 const checked = selectedItems.has(eq.id) ? 'checked' : '';
@@ -1395,6 +1452,66 @@
                 alert("報修成功");
                 fetchEquipmentData(false);
             } catch (e) { alert(e.message); } finally { toggleLoader(false); }
+        }
+
+        // 🔥 [新增] 打開詳細資料跳窗
+        function openDetailsModal(id) {
+            const eq = equipmentCache.find(e => e.id === id);
+            if (!eq) return;
+
+            // 1. 填寫文字資料
+            document.getElementById('details-name').textContent = eq.name;
+            
+            const custEl = document.getElementById('details-custodian');
+            if (eq.custodian) {
+                custEl.textContent = `🛡️ 保管人: ${eq.custodian}`;
+                custEl.classList.remove('hidden');
+            } else {
+                custEl.classList.add('hidden');
+            }
+
+            document.getElementById('details-total').textContent = eq.total_qty;
+            document.getElementById('details-avail').textContent = eq.available_qty;
+
+            // 2. 處理非同步圖片載入
+            const imgEl = document.getElementById('details-image');
+            const loadingEl = document.getElementById('details-img-loading');
+            const errorEl = document.getElementById('details-img-error');
+
+            // 初始狀態：顯示 loading，隱藏圖片和錯誤訊息
+            imgEl.classList.add('hidden');
+            errorEl.classList.add('hidden');
+            imgEl.src = ""; 
+            
+            if (eq.image && eq.image.trim() !== '') {
+                loadingEl.classList.remove('hidden');
+                // 🔥 使用 Google Drive Thumbnail API 進行極速載入 (sz=w1000 確保畫質清晰)
+                imgEl.src = `https://drive.google.com/thumbnail?id=${eq.image.trim()}&sz=w1000`; 
+            } else {
+                // 如果資料庫裡沒有圖片 ID
+                loadingEl.classList.add('hidden');
+                errorEl.textContent = "尚無圖片資訊";
+                errorEl.classList.remove('hidden');
+            }
+
+            // 3. 顯示彈窗 (移除 hidden，加上 flex 顯示)
+            const modal = document.getElementById('details-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        // 🔥 [新增] 圖片載入成功 (由 <img> 的 onload 觸發)
+        function hideImgLoading() {
+            document.getElementById('details-img-loading').classList.add('hidden');
+            document.getElementById('details-image').classList.remove('hidden');
+        }
+
+        // 🔥 [新增] 圖片載入失敗 (由 <img> 的 onerror 觸發)
+        function showImgError() {
+            document.getElementById('details-img-loading').classList.add('hidden');
+            document.getElementById('details-img-error').textContent = "圖片載入失敗 (請確認權限)";
+            document.getElementById('details-img-error').classList.remove('hidden');
+            document.getElementById('details-image').classList.add('hidden');
         }
 
 
