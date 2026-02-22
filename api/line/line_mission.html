@@ -8,28 +8,40 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* =========================================
-           1. 全局佈局 (針對手機優化 - Sticky Layout)
+           1. 全局佈局 (釋放原生滾動，讓手機畫面最大化)
            ========================================= */
         body { 
             background-color: #1a1a1a; 
             color: #e0e0e0; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            /* 關鍵：讓 body 變成一個滿屏的盒子，禁止外層捲動 */
-            height: 100vh; 
-            overflow: hidden; 
-            display: flex; 
-            flex-direction: column;
+            /* 🔥 關鍵：刪除 height: 100vh 和 overflow: hidden，讓網頁自然往下長 */
             margin: 0;
-            padding: 0; /* 移除 body padding，改在內容區設定 */
+            padding: 0; 
+            /* 防止 iOS 左右滑動的橡皮筋效應，但不限制上下 */
+            overflow-x: hidden; 
         }
 
         /* 頂部固定區 (Header + 篩選器) */
         #top-fixed-area {
-            flex-shrink: 0; /* 防止被壓縮 */
-            background-color: #1a1a1a;
-            z-index: 20;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); /* 底部陰影 */
-            padding-bottom: 8px;
+            /* 🔥 關鍵：黏性定位，往下滑時自動吸附在螢幕最上方，不會被捲走 */
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background-color: #1a1a1a; /* 確保滑動時背景不會透明重疊 */
+            /* 加上一點柔和的陰影，讓往下滑時標題區更有立體感 */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            padding-top: 15px; /* 依照您原本的頂部間距 */
+            padding-left: 15px;
+            padding-right: 15px;
+        }
+
+        /* 列表內容區 */
+        #scrollable-content {
+            /* 🔥 放棄內部的自動滾動，全部交給 body 原生滾動 */
+            overflow: visible; 
+            padding-left: 15px;
+            padding-right: 15px;
+            padding-bottom: 120px; /* 留出足夠的底部空間，避免最後一張卡片被「匯出/借出」大按鈕擋住 */
         }
 
         /* 內容捲動區 (只有這裡可以滑動) */
