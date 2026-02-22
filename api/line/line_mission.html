@@ -1545,22 +1545,49 @@
         }
 
         // 🔥 [新增] 綁定觸控滑動事件
-        let isSwipeBound = false; // 防止重複綁定
+        let isSwipeBound = false; 
         function setupImageSwipe() {
             if (isSwipeBound) return;
             isSwipeBound = true;
             const container = document.getElementById('details-img-container');
             
-            // 手指按下去時，記錄起始 X 座標
+            // --- 📱 手機觸控事件 ---
             container.addEventListener('touchstart', e => {
                 swipeStartX = e.changedTouches[0].screenX;
             }, {passive: true});
 
-            // 手指放開時，計算滑動距離
             container.addEventListener('touchend', e => {
-                if (currentImageArray.length <= 1) return; // 只有一張圖就不用滑
+                handleSwipe(e.changedTouches[0].screenX);
+            }, {passive: true});
+
+
+            // --- 💻 電腦版滑鼠事件 ---
+            let isMouseDown = false;
+            container.addEventListener('mousedown', e => {
+                isMouseDown = true;
+                swipeStartX = e.screenX;
+                // 🔥 關鍵：阻止電腦版瀏覽器預設的「圖片拖曳鬼影」行為
+                e.preventDefault(); 
+            });
+
+            container.addEventListener('mouseup', e => {
+                if (!isMouseDown) return;
+                isMouseDown = false;
+                handleSwipe(e.screenX);
+            });
+
+            // 如果滑鼠按著拖到圖片外面才放開，也要算數
+            container.addEventListener('mouseleave', e => {
+                if (!isMouseDown) return;
+                isMouseDown = false;
+                handleSwipe(e.screenX);
+            });
+
+
+            // --- 🔄 共用的滑動判斷邏輯 ---
+            function handleSwipe(swipeEndX) {
+                if (currentImageArray.length <= 1) return; // 只有一張圖就不用切換
                 
-                const swipeEndX = e.changedTouches[0].screenX;
                 const diffX = swipeStartX - swipeEndX;
 
                 // 如果往左滑超過 50px (看下一張)
@@ -1573,7 +1600,7 @@
                     currentImageIndex = (currentImageIndex - 1 + currentImageArray.length) % currentImageArray.length;
                     loadDetailsImage(currentImageIndex);
                 }
-            }, {passive: true});
+            }
         }
 
         // 圖片載入成功與失敗的輔助函數
