@@ -811,9 +811,20 @@
                 }
 
                 // 👇👇👇 補回遺失的搜尋與狀態判斷 👇👇👇
-                // 1. 搜尋比對 (名稱或型號)
-                const matchSearch = !searchText || eq.name.toLowerCase().includes(searchText) || (eq.model && eq.model.toLowerCase().includes(searchText));
+                // 1. 搜尋比對 (名稱、型號、借用人、借用原因)
+                let matchSearch = !searchText || 
+                                  eq.name.toLowerCase().includes(searchText) || 
+                                  (eq.model && eq.model.toLowerCase().includes(searchText));
                 
+                // 如果裝備名稱跟型號沒中，且這個裝備目前有借出紀錄，就進去搜「借用人」或「備註」
+                if (!matchSearch && eq.active_loans && eq.active_loans.length > 0) {
+                    matchSearch = eq.active_loans.some(l => 
+                        (l.borrower && l.borrower.toLowerCase().includes(searchText)) ||
+                        (l.note && l.note.toLowerCase().includes(searchText)) ||
+                        (l.note2 && l.note2.toLowerCase().includes(searchText))
+                    );
+                }
+
                 // 2. 狀態比對 (右上角的：全部/借出/在隊/維修中)
                 let matchStatus = true;
                 if (statusFilter === 'Borrowed') matchStatus = eq.available_qty < eq.total_qty;
