@@ -630,7 +630,9 @@
                 // 把對應的大分類與細項塞進「已選集合」中
                 myEqs.forEach(eq => {
                     if (eq.category) activeCats.add(eq.category);
-                    if (eq.sub_category) activeSubCats.add(eq.sub_category);
+                    // 🔥 關鍵：把空字串(沒有細項)也視為一種狀態加入集合
+                    const sub = (eq.sub_category || '').trim();
+                    activeSubCats.add(sub); 
                 });
             }
             
@@ -693,7 +695,7 @@
             if(subcats.size === 0) { container.classList.add('hidden'); return; }
             container.classList.remove('hidden');
 
-            let html = `<button onclick="switchSubCategory('All')" class="btn-chip ${activeSubCats.size===0?'active':''}">全部細項</button>`;
+            let html = `<button onclick="switchSubCategory('All')" class="btn-chip ${(activeSubCats.size === 0 || activeSubCats.has('')) ? 'active' : ''}">全部細項</button>`;
             Array.from(subcats).sort().forEach(sc => {
                 html += `<button onclick="switchSubCategory('${sc}')" class="btn-chip ${activeSubCats.has(sc)?'active':''}">${sc}</button>`;
             });
@@ -789,7 +791,8 @@
                 const matchCustodian = currentCustodian === 'All' || eq.custodian === currentCustodian;
                 
                 // 🔥 多選集合比對 (size === 0 代表按了"全部")
-                const matchSubCat = activeSubCats.size === 0 || activeSubCats.has(eq.sub_category || '');
+                const eqSub = (eq.sub_category || '').trim();
+                const matchSubCat = activeSubCats.size === 0 || activeSubCats.has(eqSub);
                 const matchLoc = activeLocs.size === 0 || activeLocs.has(eq.location);
                 
                 // --- 🔥 用途/備註篩選邏輯 (支援多選) ---
