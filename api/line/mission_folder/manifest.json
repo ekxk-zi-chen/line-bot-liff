@@ -9,7 +9,7 @@
       "purpose": "any"
     }
   ],
-  "start_url": "line_mission.html",
+  "start_url": "./mission_folder/line_mission.html",
   "background_color": "#1a1a1a",
   "display": "standalone",
   "scope": "/",
