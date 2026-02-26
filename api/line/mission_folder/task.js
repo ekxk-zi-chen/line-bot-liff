@@ -50,8 +50,20 @@ async function submitReport(aid, mid, fin) {
     toggleLoader(true, "回報傳送中...");
     try {
         await callGasApi({action:'submit_report', userId:userId, assignmentId:aid, missionId:mid, isFinished:fin, note:note || (fin ? '任務完成' : '')});
-        alert("成功"); liff.closeWindow();
-    } catch (e) { alert("失敗: " + e.message); } finally { toggleLoader(false); }
+        alert("成功"); 
+        
+        // 🔥 雙棲判斷：如果在 LINE 裡面就關閉視窗，如果在 App 裡面就重新整理任務列表
+        if (typeof liff !== 'undefined' && liff.isInClient()) {
+            liff.closeWindow();
+        } else {
+            showReportPage(); 
+        }
+        
+    } catch (e) { 
+        alert("失敗: " + e.message); 
+    } finally { 
+        toggleLoader(false); 
+    }
 }
 
 // ============================================
