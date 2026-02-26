@@ -721,20 +721,40 @@
         async function enterSystem(user) {
             userId = user.id; 
             userEmail = user.email;
-            
-            // 🔥 1. 去資料庫把你的「真實姓名」抓出來
-            const { data } = await _supabase.from('users').select('姓名').eq('電子信箱', userEmail).maybeSingle();
-            
-            // 🔥 2. 如果資料庫有名字就用真名，萬一出錯才備用信箱前綴
-            displayName = (data && data.姓名) ? data.姓名 : userEmail.split('@')[0];
-            
-            document.getElementById('user-info').innerText = `隊員：${displayName}`;
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('loader').classList.remove('hidden');
-            
-            await checkAdminRole();
-            loadEquipment();
-            setTimeout(attachDragToElements, 500);
+
+            try {
+                // 🔥 1. 先從資料庫抓取該使用者的真實姓名
+                // 使用 rpc 呼叫我們之前建的特權函數 get_user_name_by_email 
+                // 這樣即便沒完全登入成功也能繞過 RLS 抓到名字
+                const { data: realName, error: nameErr } = await _supabase.rpc('get_user_name_by_email', { p_email: userEmail });
+
+                if (nameErr) console.error("抓取姓名失敗:", nameErr);
+
+                // 🔥 2. 設定顯示名稱：有真名用真名，沒真名才切信箱前綴
+                displayName = (realName) ? realName : userEmail.split('@')[0];
+                
+                // 更新 UI
+                document.getElementById('user-info').innerText = `隊員：${displayName}`;
+                
+                // 3. 切換介面
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('view-equipment').classList.remove('hidden');
+
+                // 4. 檢查權限並載入資料
+                await checkAdminRole();
+                await loadEquipment(); // 確保這行有加上 await
+                
+                // 綁定拖曳功能
+                setTimeout(attachDragToElements, 500);
+
+            } catch (err) {
+                console.error("進入系統發生崩潰:", err);
+                alert("系統初始化失敗，請重新整理網頁");
+            } finally {
+                // 🔥 5. 無論成功或失敗，最後一定要把轉圈圈關掉！
+                document.getElementById('loader').classList.add('hidden');
+                console.log("✅ 系統加載完成，關閉讀取動畫");
+            }
         }
 
         // --- 🔐 畫面切換邏輯 (三頁籤切換) ---
