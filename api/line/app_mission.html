@@ -258,7 +258,12 @@
                     💡 老隊員請輸入您在系統登記的信箱，並設定 App 登入密碼以完成綁定。
                 </div>
                 <input type="email" id="bind-email" placeholder="輸入已登記的電子信箱" class="input-dark py-3">
-                <input type="password" id="bind-password" placeholder="設定 App 登入密碼 (至少6碼)" class="input-dark py-3">
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="password" id="bind-password" placeholder="設定密碼 (至少6碼)" class="input-dark py-3 text-sm">
+                    <input type="password" id="bind-confirm" placeholder="確認密碼" class="input-dark py-3 text-sm">
+                </div>
+
                 <button onclick="handleBind()" id="bind-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg mt-2">確認綁定</button>
             </div>
 
@@ -765,9 +770,11 @@
         async function handleBind() {
             const email = document.getElementById('bind-email').value.trim();
             const pw = document.getElementById('bind-password').value;
+            const pwConfirm = document.getElementById('bind-confirm').value; // 抓取確認密碼的值
             const btn = document.getElementById('bind-btn');
 
             if (!email || !pw) return alert("請輸入信箱與密碼！");
+            if (pw !== pwConfirm) return alert("⚠️ 兩次密碼輸入不一致，請重新確認！"); // 加入比對檢查
             if (pw.length < 6) return alert("密碼至少需要 6 碼！");
 
             btn.innerText = "驗證中..."; btn.disabled = true;
