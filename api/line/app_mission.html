@@ -233,24 +233,7 @@
     </style>
 </head>
 <body class="p-4">
-    我完全懂你的意思了！你說得完全正確，這才是最符合邏輯、最不擾民的做法！
 
-老隊員（已經在 LINE 綁定過、users 表裡面已經有他信箱的人），只要輸入他的舊信箱，然後設定一個 App 專用的登入密碼，系統就應該直接去資料庫「認親」，認到了就直接放行，絕對不該讓他重新填寫姓名、電話、單位那些廢話！
-
-只有**「資料庫裡面完全找不到這個信箱」**的全新菜鳥，才需要填寫那一長串的資料。
-
-我們現在就把畫面跟邏輯拆成你說的三個階段：
-
-登入：已經設定好 App 密碼的人。
-
-信箱綁定 (老隊員認親)：資料庫已有信箱，只需設定密碼。
-
-註冊申請 (新進隊員)：資料庫沒有信箱，需填寫完整個資。
-
-🛠️ 請直接把你的 HTML login-screen 區塊換成這個終極版：
-（這裡幫你加上了三個切換按鈕，以及三個獨立的表單）
-
-HTML
     <div id="login-screen" class="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center z-[100] px-4 overflow-y-auto pt-10 pb-10">
         <div class="w-full max-w-md bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700">
             <div class="text-center mb-6">
