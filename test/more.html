@@ -40,6 +40,29 @@
             box-shadow: 0 6px 20px rgba(0,0,0,0.3);
         }
         
+        /* 💾 暫存與讀取按鈕樣式 */
+        .save-load-container {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 1002;
+            display: flex;
+            gap: 10px;
+        }
+        .sl-btn {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            color: #333;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        .sl-btn:active { background: #eee; transform: scale(0.95); }
+        
         /* 側邊欄 */
         .sidebar {
             position: fixed;
@@ -850,7 +873,10 @@
 </head>
 <body>
     <button class="menu-button" onclick="toggleSidebar()">選單</button>
-    
+    <div class="save-load-container">
+        <button class="sl-btn" onclick="saveToLocal()">💾 暫存</button>
+        <button class="sl-btn" onclick="loadFromLocal()">📂 讀取</button>
+    </div>
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">📋 功能選單</div>
         <div class="sidebar-item active" onclick="showSection('表單填寫')">📝 表單填寫</div>
@@ -3348,10 +3374,90 @@ ${allContent}
             }
         });
 
+        // ----------------- 本機暫存與讀取功能 -----------------
+        function saveToLocal() {
+            // 🌟 新增防呆：儲存前的確認
+            if (!confirm('⚠️ 確定要暫存目前的資料嗎？(這將會覆蓋掉您上一次的暫存紀錄)')) {
+                return; // 如果按取消，就直接終止，不執行儲存
+            }
 
+            try {
+                // 1. 備份所有的內容區塊 HTML (這會捕捉所有文字、按鈕顏色、照片預覽)
+                const sections = document.querySelectorAll('.content-section');
+                const sectionsHTML = {};
+                sections.forEach(sec => {
+                    sectionsHTML[sec.id] = sec.innerHTML;
+                });
 
+                // 2. 備份所有的隱藏數據 (dataset)
+                const cells = document.querySelectorAll('.editable-cell, [contenteditable="true"]');
+                const cellsData = [];
+                cells.forEach((cell, idx) => {
+                    let data = { idx: idx, dataset: {} };
+                    if (cell.dataset) {
+                        for (let key in cell.dataset) {
+                            data.dataset[key] = cell.dataset[key];
+                        }
+                    }
+                    cellsData.push(data);
+                });
 
+                // 打包存入瀏覽器空間
+                const backup = {
+                    time: new Date().toLocaleTimeString(),
+                    sections: sectionsHTML,
+                    cells: cellsData
+                };
 
+                localStorage.setItem('medical_form_backup', JSON.stringify(backup));
+                alert('✅ 暫存成功！資料已保存在手機中。網頁就算關閉，點「讀取」也能恢復。');
+            } catch (e) {
+                console.error(e);
+                alert('❌ 暫存失敗！可能是拍了太多照片導致超過瀏覽器容量限制。');
+            }
+        }
+
+        function loadFromLocal() {
+            const backupStr = localStorage.getItem('medical_form_backup');
+            if (!backupStr) {
+                alert('⚠️ 找不到暫存紀錄！您可能還沒存過檔。');
+                return;
+            }
+            
+            const backup = JSON.parse(backupStr);
+            
+            // 🌟 強化防呆：讀取前的確認，警告會洗掉現有資料
+            if (!confirm(`⚠️ 找到暫存紀錄 (存檔時間: ${backup.time})確定要讀取並還原嗎？
+(注意：這將會清空您現在畫面上「尚未儲存」的輸入！)`)) {
+                return; // 如果按取消，就直接終止，不執行讀取
+            }
+
+            try {
+                // 1. 還原 HTML 畫面結構
+                for (let id in backup.sections) {
+                    const sec = document.getElementById(id);
+                    if (sec) {
+                        sec.innerHTML = backup.sections[id];
+                    }
+                }
+
+                // 2. 還原隱藏的數據紀錄
+                const cells = document.querySelectorAll('.editable-cell, [contenteditable="true"]');
+                backup.cells.forEach(item => {
+                    const cell = cells[item.idx];
+                    if (cell && item.dataset) {
+                        for (let key in item.dataset) {
+                            cell.dataset[key] = item.dataset[key];
+                        }
+                    }
+                });
+                
+                alert('📂 讀取成功！畫面已還原到上次暫存的狀態。');
+            } catch (e) {
+                console.error(e);
+                alert('❌ 讀取失敗，暫存檔可能已損毀。');
+            }
+        }
 
 
     </script>
