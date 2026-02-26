@@ -1,4 +1,1372 @@
-<!DOCTYPE html>
+import pandas as pd
+import openpyxl
+import os
+from datetime import datetime
+from openpyxl.styles.colors import COLOR_INDEX
+import base64
+import json  # 添加这行
+
+base_dir = os.path.dirname(os.path.abspath(__file__))
+xlsx_file = os.path.join(base_dir, "test.xlsx")
+html_file = os.path.join(base_dir, "table_for_grapesjs.html")
+
+wb = openpyxl.load_workbook(xlsx_file)
+ws = wb.active
+merged_cells = ws.merged_cells.ranges
+
+# 添加导出表格数据存储（新增这部分）
+export_table_data = {
+    "default": "",
+    "sections": {}
+}
+
+def is_merged(cell):
+    for rng in merged_cells:
+        if cell.coordinate in rng:
+            return rng
+    return None
+
+
+def _normalize_hex(s):
+    """把 'FF00AA' 或 '#FF00AA' 轉成 '#FF00AA'，若不合法回 None"""
+    if not s:
+        return None
+    s = str(s).strip().lstrip("#").upper()
+    if len(s) == 6 and all(ch in "0123456789ABCDEF" for ch in s):
+        return "#" + s
+    return None
+
+
+def rgb_to_hex(color):
+    """
+    將 openpyxl 的 color 轉成 CSS #RRGGBB 或回傳 None。
+    支援:
+    - color.rgb (如 'FF00FF00' 或 '00FF00') -> '#FF00FF'
+    - color.indexed -> 從 COLOR_INDEX 取值並標準化
+    不嘗試解析 theme/tint（較複雜，需 workbook.theme）
+    """
+    if not color:
+        return None
+    # rgb 屬性 (常見)
+    if hasattr(color, "rgb") and color.rgb:
+        c = color.rgb
+        if isinstance(c, str):
+            c = c.strip()
+            if len(c) == 8:  # ARGB
+                return _normalize_hex(c[2:])
+            elif len(c) == 6:  # RGB
+                return _normalize_hex(c)
+    # indexed 色票
+    if hasattr(color, "indexed") and color.indexed is not None:
+        try:
+            idx = int(color.indexed)
+            if 0 <= idx < len(COLOR_INDEX):
+                val = COLOR_INDEX[idx]
+                return _normalize_hex(val)
+        except Exception:
+            pass
+    return None
+
+
+def border_to_css(border):
+    """將 openpyxl 邊框轉成 CSS 字串（如果無法解析顏色，使用黑色 #000）"""
+    if not border:
+        return ""
+    styles = []
+    for side_name in ["left", "right", "top", "bottom"]:
+        side = getattr(border, side_name)
+        if side and side.style:
+            color_hex = rgb_to_hex(side.color) or "#000000"
+            styles.append(f"border-{side_name}:1px solid {color_hex};")
+    return "".join(styles)
+
+
+def detect_sidebar_sections(ws):
+    """偵測Excel中的「新增側邊欄」分區"""
+    sections = []
+    max_row = ws.max_row
+    current_section = None
+
+    for r in range(1, max_row + 1):
+        # 檢查這一行是否有「新增側邊欄」
+        found_sidebar_marker = False
+        section_name = ""
+
+        # 檢查這一行的所有欄位
+        for c in range(1, ws.max_column + 1):
+            cell = ws.cell(row=r, column=c)
+            # 🔴 修改這裡：判斷是否為側邊欄標記
+            if cell.value and str(cell.value).strip().startswith("新增側邊欄"):
+                found_sidebar_marker = True
+                cell_text = str(cell.value).strip()
+                
+                # 判斷是否標記為不匯出
+                is_exportable = True
+                if "(不匯出)" in cell_text:
+                    is_exportable = False
+                
+                # 提取分區名稱（新增側邊欄後面的內容）
+                lines = cell_text.split("\n")
+                if len(lines) > 1:
+                    section_name = lines[1].strip()
+                else:
+                    section_name = f"分頁 {len(sections) + 1}"
+                break
+
+        if found_sidebar_marker:
+            # 如果之前有未完成的section，先結束它
+            if current_section:
+                current_section["end_row"] = r - 1
+                sections.append(current_section)
+
+            # 開始新的section
+            current_section = {
+                "name": section_name,
+                "start_row": r + 1,  # 從下一行開始
+                "end_row": max_row,  # 暫時設為最後一行
+                "exportable": is_exportable  # 新增這個屬性
+            }
+
+    # 處理最後一個section
+    if current_section:
+        sections.append(current_section)
+
+    return sections
+
+
+def make_section_table(ws, start_row, end_row):
+    """生成指定行範圍的表格HTML"""
+    if start_row > end_row:
+        return "<p>此分頁無內容</p>"
+
+    # 獲取此分區實際使用的最大欄位數
+    max_col = get_section_max_column(ws, start_row, end_row)
+    if max_col == 0:
+        return "<p>此分頁無內容</p>"
+
+    # 獲取Excel欄位寬度
+    col_widths = []
+    for col in range(1, max_col + 1):
+        col_letter = openpyxl.utils.get_column_letter(col)
+        width = ws.column_dimensions[col_letter].width
+        # Excel寬度單位轉換為像素 (大約1單位=7像素)
+        col_widths.append((width * 7) if width else 100)  # 預設100px
+
+    # 計算總寬度
+    total_width = sum(col_widths)
+
+    html = f'<table border="0" style="border-collapse:collapse; width:100%; table-layout:auto;">'
+    visited = set()
+
+    for r in range(start_row, end_row + 1):
+        # 跳過「新增側邊欄」標記行
+        first_cell = ws.cell(row=r, column=1)
+        if first_cell.value and str(first_cell.value).strip().startswith("新增側邊欄"):
+            continue
+
+        # 🔹 收集這一行的所有單元格信息
+        row_cells_data = []
+        temp_visited = set()
+
+        for c in range(1, max_col + 1):
+            if (r, c) in visited:
+                continue
+
+            cell = ws.cell(row=r, column=c)
+            val_str = "" if cell.value is None else str(cell.value).strip()
+
+            # 檢查是否有 / 開頭
+            has_break = val_str.startswith("/")
+            if has_break:
+                val_str = val_str[1:]  # 移除 /
+
+            # 獲取合併信息
+            merge_range = is_merged(cell)
+            rowspan = colspan = 1
+            if merge_range:
+                min_row, min_col, max_row_m, max_col_m = (
+                    merge_range.min_row,
+                    merge_range.min_col,
+                    merge_range.max_row,
+                    merge_range.max_col,
+                )
+                # 只有當這個儲存格是合併範圍的左上角時才處理
+                if r == min_row and c == min_col:
+                    rowspan = max_row_m - min_row + 1
+                    colspan = max_col_m - min_col + 1
+                    # 標記合併範圍內的所有其他儲存格為已訪問
+                    for rr in range(min_row, max_row_m + 1):
+                        for cc in range(min_col, max_col_m + 1):
+                            if rr != r or cc != c:  # 不標記自己
+                                temp_visited.add((rr, cc))
+                else:
+                    # 如果不是主要儲存格，直接跳過
+                    continue  # 這會跳過後面的 row_cells_data.append
+
+            row_cells_data.append(
+                {
+                    "cell": cell,
+                    "val_str": val_str,
+                    "has_break": has_break,
+                    "rowspan": rowspan,
+                    "colspan": colspan,
+                    "col": c,
+                }
+            )
+
+        # 更新 visited
+        visited.update(temp_visited)
+
+        # 🔹 根據 / 分組
+        groups = []
+        current_group = []
+
+        for cell_data in row_cells_data:
+            if cell_data["has_break"]:
+                if current_group:
+                    groups.append(current_group)
+                current_group = [cell_data]
+            else:
+                current_group.append(cell_data)
+
+        if current_group:
+            groups.append(current_group)
+
+        # 🔹 為每個組生成 <tr>
+        for group in groups:
+            html += "<tr>"
+
+            for cell_data in group:
+                cell = cell_data["cell"]
+                val_str = cell_data["val_str"]
+                rowspan = cell_data["rowspan"]
+                colspan = cell_data["colspan"]
+                c = cell_data["col"]
+
+                # 樣式
+                style_parts = []
+
+                # 添加宽度样式
+                width_style = f"width:{col_widths[c-1]}px;"
+                style_parts.append(width_style)
+
+                # style
+                if cell.font:
+                    if getattr(cell.font, "bold", False):
+                        style_parts.append("font-weight:bold;")
+                    if getattr(cell.font, "italic", False):
+                        style_parts.append("font-style:italic;")
+                    if getattr(cell.font, "color", None):
+                        color_hex = rgb_to_hex(cell.font.color)
+                        if color_hex:
+                            style_parts.append(f"color:{color_hex};")
+
+                if getattr(cell, "fill", None) and getattr(
+                    cell.fill, "patternType", None
+                ) not in (None, "none"):
+                    if getattr(cell.fill, "start_color", None):
+                        bg = rgb_to_hex(cell.fill.start_color)
+                        if bg:
+                            style_parts.append(f"background-color:{bg};")
+
+                if getattr(cell, "alignment", None):
+                    if cell.alignment.horizontal:
+                        style_parts.append(f"text-align:{cell.alignment.horizontal};")
+                    if cell.alignment.vertical:
+                        style_parts.append(f"vertical-align:{cell.alignment.vertical};")
+                    if getattr(cell.alignment, "wrap_text", False):
+                        style_parts.append("white-space:pre-wrap;")
+
+                style_parts.append(border_to_css(getattr(cell, "border", None)))
+                style = "".join(style_parts)
+
+                span_attr = f' rowspan="{rowspan}"' if rowspan > 1 else ""
+                col_attr = f' colspan="{colspan}"' if colspan > 1 else ""
+
+                # 判斷是否為表頭（第一行或粗體）
+                is_header = (r == start_row) or (
+                    cell.font and getattr(cell.font, "bold", False)
+                )
+                tag = "th" if is_header else "td"
+
+                # 特殊控件處理
+                if val_str == "錄音":
+                    html += f"""
+                    <{tag}{span_attr}{col_attr} class='editable-cell' style="{style}">
+                        <div class="recorder-cell">
+                            <button onclick="startRecording(this)">🎤 錄音</button>
+                            <button onclick="stopRecording(this)" disabled>⏹ 停止</button>
+                            <button onclick="playRecording(this)" disabled>▶ 播放</button>
+                            <audio controls style="display:none;"></audio>
+                        </div>
+                    </{tag}>
+                    """
+                # 在單選題/多選題處理部分（約第240行左右）：
+                elif val_str.startswith("單選題") or val_str.startswith("多選題"):
+                    lines = val_str.split("\n")
+                    options = []
+                    data_type = "radio" if val_str.startswith("單選題") else "multi"
+                    
+                    # 從第二行開始是選項
+                    for i in range(1, len(lines)):
+                        line = lines[i].strip()
+                        if not line:
+                            continue
+                            
+                        # 檢查是否有連結標記 $
+                        link = None
+                        display_text = line
+                        
+                        # 正確解析連結：找到第一個$和最後一個$之間的內容
+                        if "$" in line:
+                            # 找到第一個$的位置
+                            first_dollar = line.find("$")
+                            # 找到最後一個$的位置
+                            last_dollar = line.rfind("$")
+                            
+                            if first_dollar != -1 and last_dollar != -1 and first_dollar != last_dollar:
+                                # 提取顯示文本（第一個$之前的內容）
+                                display_text = line[:first_dollar].strip()
+                                # 提取連結（第一個$和最後一個$之間的內容）
+                                link = line[first_dollar + 1:last_dollar].strip()
+                        
+                        options.append({
+                            "text": line,
+                            "display_text": display_text,
+                            "link": link
+                        })
+                    
+                    html += f'<td{span_attr}{col_attr} class="editable-cell" style="{style}" data-type="{data_type}" data-value="" data-options="{json.dumps(options, ensure_ascii=False)}">'
+                    html += '<div class="option-container">'
+                    for o in options:
+                        html += f'<button class="option-button" onclick="selectInlineOption(this,\'{data_type}\')">{o["display_text"]}</button>'
+                    html += f"</div></td>"
+                elif val_str.startswith("輸入文字"):
+                    lines = val_str.split("\n")
+                    default_text = (
+                        "\n".join(lines[1:]).strip() if len(lines) > 1 else ""
+                    )
+                    display_text = default_text or "✏️ 輸入文字"
+                    html += f'<{tag}{span_attr}{col_attr} class="editable-cell" style="{style}" data-type="text" data-value="" onclick="openTextModal(this)">{display_text}</{tag}>'
+                elif val_str.startswith("輸入數字"):
+                    lines = val_str.split("\n")
+                    default_num = lines[1].strip() if len(lines) > 1 else ""
+                    display_text = default_num or "🔢 輸入數字"
+                    html += f'<{tag}{span_attr}{col_attr} class="editable-cell" style="{style}" data-type="number" data-value="{default_num}" onclick="openNumberModal(this)">{display_text}</{tag}>'
+                elif val_str.startswith("現在時間"):
+                    html += f'<{tag}{span_attr}{col_attr} class="editable-cell" style="{style}" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</{tag}>'
+                elif val_str.startswith("倒數計時"):
+                    lines = val_str.split("\n")
+                    unit = "秒"  # 預設單位
+                    seconds = 0
+
+                    # 檢查是否有指定單位
+                    if len(lines) > 1:
+                        unit_line = lines[1].strip()
+                        if unit_line in ["時", "分", "秒"]:
+                            unit = unit_line
+
+                            # 檢查是否有指定數值
+                            if len(lines) > 2 and lines[2].isdigit():
+                                value = int(lines[2])
+                                # 根據單位轉換為秒數
+                                if unit == "時":
+                                    seconds = value * 3600
+                                elif unit == "分":
+                                    seconds = value * 60
+                                else:
+                                    seconds = value
+
+                    html += f'<td{span_attr}{col_attr} class="editable-cell" style="{style}" data-type="countdown" data-seconds="{seconds}" data-unit="{unit}" onclick="promptCountdown(this)">⏳倒數計時({unit})</td>'
+                elif val_str.startswith("目前座標"):
+                    html += f'<{tag}{span_attr}{col_attr} class="editable-cell" style="{style}" data-type="location" onclick="fillCurrentLocation(this)">📍 點擊取得座標</{tag}>'
+                # 在特殊控件处理部分添加对"收合"的判断
+                elif val_str.startswith("收合"):
+                    # 将单元格内容按行分割
+                    lines = val_str.split("\n")
+                    option_type = None
+                    options = []
+                    title = "收合選擇"  # 默认标题
+
+                    # 处理第一行，检查是否有#符号
+                    if len(lines) > 0:
+                        first_line = lines[0].strip()
+                        if "#" in first_line:
+                            parts = first_line.split("#", 1)  # 只分割一次
+                            title = parts[1].strip() if len(parts) > 1 else "收合選擇"
+                        else:
+                            title = "收合選擇"
+
+                    # 检查第二行是否为"單選題"或"多選題"
+                    if len(lines) > 1:
+                        second_line = lines[1].strip()
+                        if second_line == "單選題":
+                            option_type = "radio"
+                        elif second_line == "多選題":
+                            option_type = "checkbox"
+
+                    # 从第三行开始是选项
+                    if len(lines) > 2:
+                        i = 2
+                        while i < len(lines):
+                            line = lines[i].strip()
+                            if not line:
+                                i += 1
+                                continue
+
+                            # 检查是否有子选项
+                            if i + 1 < len(lines) and lines[i + 1].strip().startswith('"'):
+                                # 这是一个有子选项的主选项
+                                main_option = line
+                                sub_options_line = lines[i + 1].strip().strip('"')
+                                sub_options = []
+
+                                # 首先解析主选项的输入标记
+                                main_input_positions = []
+                                main_original_text = main_option  # 保存主选项的原始文本
+
+                                # 找出主选项中所有输入标记的位置
+                                text_input_pos = main_option.find("(文字輸入)")
+                                while text_input_pos != -1:
+                                    main_input_positions.append({
+                                        "position": text_input_pos,
+                                        "type": "text",
+                                        "length": 6,  # "(文字輸入)"的长度
+                                        "placeholder": "請輸入文字",
+                                    })
+                                    text_input_pos = main_option.find("(文字輸入)", text_input_pos + 1)
+
+                                number_input_pos = main_option.find("(數字輸入)")
+                                while number_input_pos != -1:
+                                    main_input_positions.append({
+                                        "position": number_input_pos,
+                                        "type": "number",
+                                        "length": 6,  # "(數字輸入)"的长度
+                                        "placeholder": "請輸入數字",
+                                    })
+                                    number_input_pos = main_option.find("(數字輸入)", number_input_pos + 1)
+
+                                # 按位置排序
+                                main_input_positions.sort(key=lambda x: x["position"])
+
+                                # 然后解析子选项
+                                # 在解析子選項的部分，修改對多選題/單選題的處理
+                                for opt in sub_options_line.split("&"):
+                                    opt = opt.strip()
+                                    if not opt:
+                                        continue
+
+                                    # 检查是否有链接标记 $
+                                    link = None
+                                    display_text = opt
+                                    sub_option_type = None  # 子選項的類型
+                                    
+                                    # 檢查是否是子項目中的多選題/單選題
+                                    if "(多選題)" in opt:
+                                        sub_option_type = "checkbox"
+                                        display_text = opt.replace("(多選題)", "").strip()
+                                    elif "(單選題)" in opt:
+                                        sub_option_type = "radio" 
+                                        display_text = opt.replace("(單選題)", "").strip()
+                                    
+                                    # 修復連結提取 - 只提取，不顯示
+                                    if "$" in opt:
+                                        parts = opt.split("$", 1)  # 只分割一次
+                                        if len(parts) >= 2:
+                                            display_text = parts[0].strip()
+                                            link = parts[1].strip()  # 提取連結用於預覽功能
+                                        opt = display_text
+
+                                    # 检查是否有特殊输入类型标记
+                                    input_positions = []
+                                    original_text = opt
+
+                                    # 找出所有输入标记的位置
+                                    text_input_pos = opt.find("(文字輸入)")
+                                    while text_input_pos != -1:
+                                        input_positions.append({
+                                            "position": text_input_pos,
+                                            "type": "text",
+                                            "length": 6,  # "(文字輸入)"的长度
+                                            "placeholder": "請輸入文字",
+                                        })
+                                        text_input_pos = opt.find("(文字輸入)", text_input_pos + 1)
+
+                                    number_input_pos = opt.find("(數字輸入)")
+                                    while number_input_pos != -1:
+                                        input_positions.append({
+                                            "position": number_input_pos,
+                                            "type": "number",
+                                            "length": 6,  # "(數字輸入)"的长度
+                                            "placeholder": "請輸入數字",
+                                        })
+                                        number_input_pos = opt.find("(數字輸入)", number_input_pos + 1)
+
+                                    # 按位置排序
+                                    input_positions.sort(key=lambda x: x["position"])
+
+                                    # 保存子選項信息
+                                    sub_option_data = {
+                                        "text": opt,
+                                        "input_positions": input_positions,
+                                        "display_text": display_text,
+                                        "original_text": original_text,
+                                        "link": link,
+                                        "type": sub_option_type  # 添加類型信息
+                                    }
+
+                                    # 如果有输入标记，处理文本
+                                    if input_positions:
+                                        sub_options.append(sub_option_data)
+                                    else:
+                                        sub_options.append(sub_option_data)
+
+                                # 检查主选项是否有类型标注
+                                sub_option_type = None
+                                if "(單選題)" in main_option:
+                                    sub_option_type = "radio"
+                                    main_option = main_option.replace("(單選題)", "").strip()
+                                elif "(多選題)" in main_option:
+                                    sub_option_type = "checkbox"
+                                    main_option = main_option.replace("(多選題)", "").strip()
+
+                                # 检查主选项是否有链接
+                                # 在主選項的連結處理部分：
+                                main_link = None
+                                main_display_text = main_option
+
+                                if "$" in main_option:
+                                    parts = main_option.split("$", 1)  # 只分割一次
+                                    if len(parts) >= 2:
+                                        main_display_text = parts[0].strip()
+                                        main_link = parts[1].strip()  # 提取連結用於預覽功能
+                                    main_option = main_display_text
+
+
+                                # 在普通選項的連結處理：
+                                link = None
+                                display_text = line
+
+                                if "$" in line:
+                                    parts = line.split("$", 1)  # 只分割一次
+                                    if len(parts) >= 2:
+                                        display_text = parts[0].strip()
+                                        link = parts[1].strip()  # 取$後面的內容作為連結
+                                        link = link.replace("(多選題)", "").replace("(單選題)", "").strip()
+                                    line = display_text
+
+                                options.append({
+                                    "text": main_option,
+                                    "sub_options": sub_options,
+                                    "sub_option_type": sub_option_type or "radio",  # 默认单选
+                                    "input_positions": main_input_positions,  # 主选项的输入标记
+                                    "original_text": main_original_text,  # 确保有这个属性
+                                    "link": main_link  # 添加链接信息
+                                })
+                                i += 2  # 跳过两行
+                            else:
+                                # 检查是否是特殊输入类型
+                                input_positions = []
+                                original_text = line
+                                link = None
+
+                                # 检查是否有链接标记 $
+                                if "$" in line:
+                                    parts = line.split("$", 1)
+                                    display_text = parts[0].strip()
+                                    if len(parts) > 1:
+                                        link = parts[1].strip()
+                                        link = link.replace("$", "")
+                                    line = display_text
+                                else:
+                                    display_text = line
+
+                                # 找出所有输入标记的位置
+                                text_input_pos = line.find("(文字輸入)")
+                                while text_input_pos != -1:
+                                    input_positions.append({
+                                        "position": text_input_pos,
+                                        "type": "text",
+                                        "length": 6,  # "(文字輸入)"的长度
+                                        "placeholder": "請輸入文字",
+                                    })
+                                    text_input_pos = line.find("(文字輸入)", text_input_pos + 1)
+
+                                number_input_pos = line.find("(數字輸入)")
+                                while number_input_pos != -1:
+                                    input_positions.append({
+                                        "position": number_input_pos,
+                                        "type": "number",
+                                        "length": 6,  # "(數字輸入)"的长度
+                                        "placeholder": "請輸入數字",
+                                    })
+                                    number_input_pos = line.find("(數字輸入)", number_input_pos + 1)
+
+                                # 按位置排序
+                                input_positions.sort(key=lambda x: x["position"])
+
+                                if input_positions:
+                                    # 特殊输入类型
+                                    options.append({
+                                        "text": line,
+                                        "input_positions": input_positions,
+                                        "sub_options": None,
+                                        "display_text": display_text,  # 用于显示的文本（不含输入标记）
+                                        "original_text": original_text,  # 确保有这个属性
+                                        "link": link  # 添加链接信息
+                                    })
+                                else:
+                                    # 普通选项
+                                    options.append({
+                                        "text": line,
+                                        "input_positions": None,
+                                        "sub_options": None,
+                                        "display_text": display_text,
+                                        "original_text": original_text,  # 确保有这个属性
+                                        "link": link  # 添加链接信息
+                                    })
+                                i += 1
+
+                    # 如果没有指定类型，默认使用单选
+                    if option_type is None:
+                        option_type = "radio"
+
+                    # 将选项列表转换为JSON字符串
+                    options_json = json.dumps(options, ensure_ascii=False)
+
+                    html += (
+                        f'<td{span_attr}{col_attr} class="editable-cell" style="{style}" '
+                        f'data-type="collapse" data-option-type="{option_type}" '
+                        f"data-options='{options_json}' data-value=\"\" "
+                        f'onclick="openCollapseModal(this)">{title}</td>'
+                    )
+                # 在特殊控件處理部分添加對「拍照」的識別（約在第270行和650行左右）
+                elif val_str == "拍照":
+                    html += f'<td{span_attr}{col_attr} class="editable-cell" style="{style}" data-type="camera" data-images="[]" onclick="openCameraModal(this)">📷 拍照</td>'
+                else:
+                    html += f'<{tag}{span_attr}{col_attr} style="{style}"><div data-gjs-editable="true">{val_str}</div></{tag}>'
+
+            html += "</tr>"
+
+    html += "</table>"
+    return html
+
+
+def make_default_table(ws, sections):
+    """生成預設表格（排除「新增側邊欄」分區的內容）"""
+    # 找出要排除的行範圍
+    excluded_rows = set()
+    for section in sections:
+        # 排除標記行和內容行
+        for r in range(section["start_row"] - 1, section["end_row"] + 1):
+            excluded_rows.add(r)
+
+    # 找出主表格實際使用的最大欄位數
+    max_col = 0
+    for r in range(1, ws.max_row + 1):
+        if r in excluded_rows:
+            continue
+        for c in range(1, ws.max_column + 1):
+            cell = ws.cell(row=r, column=c)
+            # 檢查是否有內容或合併儲存格
+            if cell.value is not None or is_merged(cell):
+                max_col = max(max_col, c)
+
+    if max_col == 0:
+        return "<p>主表格無內容</p>"
+
+    # 獲取Excel欄位寬度
+    col_widths = []
+    for col in range(1, max_col + 1):
+        col_letter = openpyxl.utils.get_column_letter(col)
+        width = ws.column_dimensions[col_letter].width
+        # Excel寬度單位轉換為像素 (大約1單位=7像素)
+        col_widths.append((width * 7) if width else 100)  # 預設100px
+
+    # 計算總寬度
+    total_width = sum(col_widths)
+
+    html = f'<table border="0" style="border-collapse:collapse; width:100%; table-layout:auto;">'
+    max_row = ws.max_row
+
+    # 找出要排除的行範圍
+    excluded_rows = set()
+    for section in sections:
+        # 排除標記行和內容行
+        for r in range(section["start_row"] - 1, section["end_row"] + 1):
+            excluded_rows.add(r)
+
+    # 處理表頭 (第 1 列，如果不被排除)
+    if 1 not in excluded_rows:
+        html += "<thead><tr>"
+        visited = set()
+        r = 1
+        for c in range(1, max_col + 1):
+            cell = ws.cell(row=1, column=c)
+            if (1, c) in visited:
+                continue
+
+            # 樣式
+            style_parts = []
+
+            # 添加宽度样式
+            # width_style = f"width:{col_widths[c-1]}px;"
+            # style_parts.append(width_style)
+
+            merge_range = is_merged(cell)
+            rowspan = colspan = 1
+            if merge_range:
+                min_row, min_col, max_row_m, max_col_m = (
+                    merge_range.min_row,
+                    merge_range.min_col,
+                    merge_range.max_row,
+                    merge_range.max_col,
+                )
+                # 只有當這個儲存格是合併範圍的左上角時才處理
+                if r == min_row and c == min_col:
+                    rowspan = max_row_m - min_row + 1
+                    colspan = max_col_m - min_col + 1
+                    # 標記合併範圍內的所有其他儲存格為已訪問
+                    for rr in range(min_row, max_row_m + 1):
+                        for cc in range(min_col, max_col_m + 1):
+                            if rr != r or cc != c:  # 不標記自己
+                                visited.add((rr, cc))
+                else:
+                    # 如果不是主要儲存格，直接跳過
+                    continue  # 這會跳過後面的 row_cells_data.append
+
+            # style
+            style_parts = []
+            if cell.font:
+                if getattr(cell.font, "bold", False):
+                    style_parts.append("font-weight:bold;")
+                if getattr(cell.font, "italic", False):
+                    style_parts.append("font-style:italic;")
+                if getattr(cell.font, "color", None):
+                    color_hex = rgb_to_hex(cell.font.color)
+                    if color_hex:
+                        style_parts.append(f"color:{color_hex};")
+
+            if getattr(cell, "fill", None) and getattr(
+                cell.fill, "patternType", None
+            ) not in (None, "none"):
+                if getattr(cell.fill, "start_color", None):
+                    bg = rgb_to_hex(cell.fill.start_color)
+                    if bg:
+                        style_parts.append(f"background-color:{bg};")
+
+            style_parts.append(border_to_css(getattr(cell, "border", None)))
+            style = "".join(style_parts)
+
+            span_attr = f' rowspan="{rowspan}"' if rowspan > 1 else ""
+            col_attr = f' colspan="{colspan}"' if colspan > 1 else ""
+
+            html += f'<th{span_attr}{col_attr} style="{style}"><div data-gjs-editable="true">{cell.value if cell.value else ""}</div></th>'
+        html += "</tr></thead>"
+
+        # 處理資料列 (第 2 列開始,排除被標記的行)
+        html += "<tbody>"
+        visited = set()
+        for r in range(2, max_row + 1):
+            if r in excluded_rows:
+                continue
+
+            # 🔹 收集這一行的所有單元格信息
+            row_cells_data = []
+            temp_visited = set()
+
+            for c in range(1, max_col + 1):
+                if (r, c) in visited:
+                    continue
+
+                cell = ws.cell(row=r, column=c)
+                val_str = "" if cell.value is None else str(cell.value).strip()
+
+                # 檢查是否有 / 開頭
+                has_break = val_str.startswith("/")
+                if has_break:
+                    val_str = val_str[1:]  # 移除 /
+
+                # 獲取合併信息
+                merge_range = is_merged(cell)
+                rowspan = colspan = 1
+                if merge_range:
+                    min_row, min_col, max_row_m, max_col_m = (
+                        merge_range.min_row,
+                        merge_range.min_col,
+                        merge_range.max_row,
+                        merge_range.max_col,
+                    )
+                    # 只有當這個儲存格是合併範圍的左上角時才處理
+                    if r == min_row and c == min_col:
+                        rowspan = max_row_m - min_row + 1
+                        colspan = max_col_m - min_col + 1
+                        # 標記合併範圍內的所有其他儲存格為已訪問
+                        for rr in range(min_row, max_row_m + 1):
+                            for cc in range(min_col, max_col_m + 1):
+                                if rr != r or cc != c:  # 不標記自己
+                                    temp_visited.add((rr, cc))
+                    else:
+                        # 如果不是主要儲存格，直接跳過
+                        continue  # 這會跳過後面的 row_cells_data.append
+
+                row_cells_data.append(
+                    {
+                        "cell": cell,
+                        "val_str": val_str,
+                        "has_break": has_break,
+                        "rowspan": rowspan,
+                        "colspan": colspan,
+                        "col": c,
+                    }
+                )
+
+            # 更新 visited
+            visited.update(temp_visited)
+
+            # 🔹 根據 / 分組
+            groups = []
+            current_group = []
+
+            for cell_data in row_cells_data:
+                if cell_data["has_break"]:
+                    if current_group:
+                        groups.append(current_group)
+                    current_group = [cell_data]
+                else:
+                    current_group.append(cell_data)
+
+            if current_group:
+                groups.append(current_group)
+
+            # 🔹 為每個組生成 <tr>
+            for group in groups:
+                html += "<tr>"
+
+                for cell_data in group:
+                    cell = cell_data["cell"]
+                    val_str = cell_data["val_str"]
+                    rowspan = cell_data["rowspan"]
+                    colspan = cell_data["colspan"]
+                    c = cell_data["col"]
+
+                    # style
+                    style_parts = []
+                    if cell.font:
+                        if getattr(cell.font, "bold", False):
+                            style_parts.append("font-weight:bold;")
+                        if getattr(cell.font, "italic", False):
+                            style_parts.append("font-style:italic;")
+                        if getattr(cell.font, "color", None):
+                            color_hex = rgb_to_hex(cell.font.color)
+                            if color_hex:
+                                style_parts.append(f"color:{color_hex};")
+
+                    if getattr(cell, "fill", None) and getattr(
+                        cell.fill, "patternType", None
+                    ) not in (None, "none"):
+                        if getattr(cell.fill, "start_color", None):
+                            bg = rgb_to_hex(cell.fill.start_color)
+                            if bg:
+                                style_parts.append(f"background-color:{bg};")
+
+                    if getattr(cell, "alignment", None):
+                        if cell.alignment.horizontal:
+                            style_parts.append(
+                                f"text-align:{cell.alignment.horizontal};"
+                            )
+                        if cell.alignment.vertical:
+                            style_parts.append(
+                                f"vertical-align:{cell.alignment.vertical};"
+                            )
+                        if getattr(cell.alignment, "wrap_text", False):
+                            style_parts.append("white-space:pre-wrap;")
+
+                    style_parts.append(border_to_css(getattr(cell, "border", None)))
+                    style = "".join(style_parts)
+
+                    span_attr = f' rowspan="{rowspan}"' if rowspan > 1 else ""
+                    col_attr = f' colspan="{colspan}"' if colspan > 1 else ""
+                    width_style = f"width:{col_widths[c-1]}px;"  # ✅ 加上欄寬
+                    style = width_style + style
+
+                    if not val_str:
+                        # 空值 -> 輸出乾淨的 <td>
+                        html += f'<td{span_attr}{col_attr} style="{style}"></td>'
+                    else:
+                        # 特殊控件處理
+                        if val_str == "錄音":
+                            html += f"""
+                            <td{span_attr}{col_attr} class='editable-cell' style="{style}">
+                                <div class="recorder-cell">
+                                    <button onclick="startRecording(this)">🎤 錄音</button>
+                                    <button onclick="stopRecording(this)" disabled>⏹ 停止</button>
+                                    <button onclick="playRecording(this)" disabled>▶ 播放</button>
+                                    <audio controls style="display:none;"></audio>
+                                </div>
+                            </td>
+                            """
+                        elif val_str.startswith("單選題") or val_str.startswith(
+                            "多選題"
+                        ):
+                            options = [o for o in val_str.split("\n")[1:] if o.strip()]
+                            data_type = (
+                                "radio" if val_str.startswith("單選題") else "multi"
+                            )
+                            html += f'<td{span_attr}{col_attr} class="editable-cell" style="{style}" data-type="{data_type}" data-value="" data-options="{",".join(options)}">'
+                            html += '<div class="option-container">'  # 使用 class 而不是 inline style
+                            for o in options:
+                                html += f'<button class="option-button" onclick="selectInlineOption(this,\'{data_type}\')">{o}</button>'
+                            html += f"</div></td>"
+                        elif val_str.startswith("輸入文字"):
+                            lines = val_str.split("\n")
+                            default_text = (
+                                "\n".join(lines[1:]).strip() if len(lines) > 1 else ""
+                            )
+                            display_text = default_text or "✏️ 輸入文字"
+                            html += f'<td{span_attr}{col_attr} class="editable-cell" style="{style}" data-type="text" data-value="" onclick="openTextModal(this)">{display_text}</td>'
+                        elif val_str.startswith("輸入數字"):
+                            lines = val_str.split("\n")
+                            default_num = lines[1].strip() if len(lines) > 1 else ""
+                            display_text = default_num or "🔢 輸入數字"
+                            html += f'<td{span_attr}{col_attr} class="editable-cell" style="{style}" data-type="number" data-value="{default_num}" onclick="openNumberModal(this)">{display_text}</td>'
+                        elif val_str.startswith("現在時間"):
+                            html += f'<td{span_attr}{col_attr} class="editable-cell" style="{style}" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</td>'
+                        elif val_str.startswith("倒數計時"):
+                            lines = val_str.split("\n")
+                            seconds = (
+                                int(lines[1])
+                                if len(lines) > 1 and lines[1].isdigit()
+                                else 0
+                            )
+                            html += f'<td{span_attr}{col_attr} class="editable-cell" style="{style}" data-type="countdown" data-seconds="{seconds}" onclick="promptCountdown(this)">⏳倒數計時</td>'
+                        elif val_str.startswith("目前座標"):
+                            html += f'<td{span_attr}{col_attr} class="editable-cell" style="{style}" data-type="location" onclick="fillCurrentLocation(this)">📍 點擊取得座標</td>'
+                        elif val_str.startswith("收合"):
+                            # 将单元格内容按行分割
+                            lines = val_str.split("\n")
+                            option_type = None
+                            options = []
+                            title = "收合選擇"  # 默认标题
+
+                            # 处理第一行，检查是否有#符号
+                            if len(lines) > 0:
+                                first_line = lines[0].strip()
+                                if "#" in first_line:
+                                    parts = first_line.split("#", 1)  # 只分割一次
+                                    title = (
+                                        parts[1].strip()
+                                        if len(parts) > 1
+                                        else "收合選擇"
+                                    )
+                                else:
+                                    title = "收合選擇"
+
+                            # 检查第二行是否为"單選題"或"多選題"
+                            if len(lines) > 1:
+                                second_line = lines[1].strip()
+                                if second_line == "單選題":
+                                    option_type = "radio"
+                                elif second_line == "多選題":
+                                    option_type = "checkbox"
+
+                            # 从第三行开始是选项
+                            if len(lines) > 2:
+                                i = 2
+                                while i < len(lines):
+                                    line = lines[i].strip()
+                                    if not line:
+                                        i += 1
+                                        continue
+
+                                    # 检查是否有子选项
+                                    if i + 1 < len(lines) and lines[
+                                        i + 1
+                                    ].strip().startswith('"'):
+                                        # 这是一个有子选项的主选项
+                                        main_option = line
+                                        sub_options_line = (
+                                            lines[i + 1].strip().strip('"')
+                                        )
+                                        sub_options = []
+
+                                        # 首先解析主选项的输入标记
+                                        main_input_positions = []
+                                        main_original_text = (
+                                            main_option  # 保存主选项的原始文本
+                                        )
+
+                                        # 找出主选项中所有输入标记的位置
+                                        text_input_pos = main_option.find("(文字輸入)")
+                                        while text_input_pos != -1:
+                                            main_input_positions.append(
+                                                {
+                                                    "position": text_input_pos,
+                                                    "type": "text",
+                                                    "length": 6,  # "(文字輸入)"的长度
+                                                    "placeholder": "請輸入文字",
+                                                }
+                                            )
+                                            text_input_pos = main_option.find(
+                                                "(文字輸入)", text_input_pos + 1
+                                            )
+
+                                        number_input_pos = main_option.find(
+                                            "(數字輸入)"
+                                        )
+                                        while number_input_pos != -1:
+                                            main_input_positions.append(
+                                                {
+                                                    "position": number_input_pos,
+                                                    "type": "number",
+                                                    "length": 6,  # "(數字輸入)"的长度
+                                                    "placeholder": "請輸入數字",
+                                                }
+                                            )
+                                            number_input_pos = main_option.find(
+                                                "(數字輸入)", number_input_pos + 1
+                                            )
+
+                                        # 按位置排序
+                                        main_input_positions.sort(
+                                            key=lambda x: x["position"]
+                                        )
+
+                                        # 然后解析子选项
+                                        for opt in sub_options_line.split("&"):
+                                            opt = opt.strip()
+                                            if not opt:
+                                                continue
+
+                                            # 检查是否有特殊输入类型标记
+                                            input_positions = []
+                                            original_text = opt
+
+                                            # 找出所有输入标记的位置
+                                            text_input_pos = opt.find("(文字輸入)")
+                                            while text_input_pos != -1:
+                                                input_positions.append(
+                                                    {
+                                                        "position": text_input_pos,
+                                                        "type": "text",
+                                                        "length": 6,  # "(文字輸入)"的长度
+                                                        "placeholder": "請輸入文字",
+                                                    }
+                                                )
+                                                text_input_pos = opt.find(
+                                                    "(文字輸入)", text_input_pos + 1
+                                                )
+
+                                            number_input_pos = opt.find("(數字輸入)")
+                                            while number_input_pos != -1:
+                                                input_positions.append(
+                                                    {
+                                                        "position": number_input_pos,
+                                                        "type": "number",
+                                                        "length": 6,  # "(數字輸入)"的长度
+                                                        "placeholder": "請輸入數字",
+                                                    }
+                                                )
+                                                number_input_pos = opt.find(
+                                                    "(數字輸入)", number_input_pos + 1
+                                                )
+
+                                            # 按位置排序
+                                            input_positions.sort(
+                                                key=lambda x: x["position"]
+                                            )
+
+                                            # 如果有输入标记，处理文本
+                                            if input_positions:
+                                                # 保存原始文本和输入位置信息
+                                                sub_options.append(
+                                                    {
+                                                        "text": opt,
+                                                        "input_positions": input_positions,
+                                                        "display_text": opt,  # 用于显示的文本（不含输入标记）
+                                                        "original_text": original_text,  # 确保有这个属性
+                                                    }
+                                                )
+                                            else:
+                                                # 普通选项
+                                                sub_options.append(
+                                                    {
+                                                        "text": opt,
+                                                        "input_positions": None,
+                                                        "display_text": opt,
+                                                        "original_text": original_text,  # 确保有这个属性
+                                                    }
+                                                )
+
+                                        # 检查主选项是否有类型标注
+                                        sub_option_type = None
+                                        if "(單選題)" in main_option:
+                                            sub_option_type = "radio"
+                                            main_option = main_option.replace(
+                                                "(單選題)", ""
+                                            ).strip()
+                                        elif "(多選題)" in main_option:
+                                            sub_option_type = "checkbox"
+                                            main_option = main_option.replace(
+                                                "(多選題)", ""
+                                            ).strip()
+
+                                        options.append(
+                                            {
+                                                "text": main_option,
+                                                "sub_options": sub_options,
+                                                "sub_option_type": sub_option_type
+                                                or "radio",  # 默认单选
+                                                "input_positions": main_input_positions,  # 主选项的输入标记
+                                                "original_text": main_original_text,  # 确保有这个属性
+                                            }
+                                        )
+                                        i += 2  # 跳过两行
+                                    else:
+                                        # 检查是否是特殊输入类型
+                                        input_positions = []
+                                        original_text = line
+
+                                        # 找出所有输入标记的位置
+                                        text_input_pos = line.find("(文字輸入)")
+                                        while text_input_pos != -1:
+                                            input_positions.append(
+                                                {
+                                                    "position": text_input_pos,
+                                                    "type": "text",
+                                                    "length": 6,  # "(文字輸入)"的长度
+                                                    "placeholder": "請輸入文字",
+                                                }
+                                            )
+                                            text_input_pos = line.find(
+                                                "(文字輸入)", text_input_pos + 1
+                                            )
+
+                                        number_input_pos = line.find("(數字輸入)")
+                                        while number_input_pos != -1:
+                                            input_positions.append(
+                                                {
+                                                    "position": number_input_pos,
+                                                    "type": "number",
+                                                    "length": 6,  # "(數字輸入)"的长度
+                                                    "placeholder": "請輸入數字",
+                                                }
+                                            )
+                                            number_input_pos = line.find(
+                                                "(數字輸入)", number_input_pos + 1
+                                            )
+
+                                        # 按位置排序
+                                        input_positions.sort(
+                                            key=lambda x: x["position"]
+                                        )
+
+                                        if input_positions:
+                                            # 特殊输入类型
+                                            options.append(
+                                                {
+                                                    "text": line,
+                                                    "input_positions": input_positions,
+                                                    "sub_options": None,
+                                                    "display_text": line,  # 用于显示的文本（不含输入标记）
+                                                    "original_text": original_text,  # 确保有这个属性
+                                                }
+                                            )
+                                        else:
+                                            # 普通选项
+                                            options.append(
+                                                {
+                                                    "text": line,
+                                                    "input_positions": None,
+                                                    "sub_options": None,
+                                                    "display_text": line,
+                                                    "original_text": original_text,  # 确保有这个属性
+                                                }
+                                            )
+                                        i += 1
+
+                            # 如果没有指定类型，默认使用单选
+                            if option_type is None:
+                                option_type = "radio"
+
+                            # 将选项列表转换为JSON字符串
+                            import json
+
+                            options_json = json.dumps(options, ensure_ascii=False)
+
+                            html += (
+                                f'<td{span_attr}{col_attr} class="editable-cell" style="{style}" '
+                                f'data-type="collapse" data-option-type="{option_type}" '
+                                f"data-options='{options_json}' data-value=\"\" "
+                                f'onclick="openCollapseModal(this)">{title}</td>'
+                            )
+                        # 在特殊控件處理部分添加對「拍照」的識別（約在第270行和650行左右）
+                        elif val_str == "拍照":
+                            html += f'<td{span_attr}{col_attr} class="editable-cell" style="{style}" data-type="camera" data-images="[]" onclick="openCameraModal(this)">📷 拍照</td>'
+                        else:
+                            html += f'<td{span_attr}{col_attr} style="{style}"><div data-gjs-editable="true">{val_str}</div></td>'
+
+                html += "</tr>"
+
+    html += "</tbody></table>"
+    return html
+
+def make_export_table(ws, start_row, end_row):
+    """生成专门用于导出的表格HTML（不使用/分割）"""
+    if start_row > end_row:
+        return "<p>此分頁無內容</p>"
+    
+    # 獲取此分區實際使用的最大欄位數
+    max_col = get_section_max_column(ws, start_row, end_row)
+    if max_col == 0:
+        return "<p>此分頁無內容</p>"
+    
+    html = '<table border="1" style="border-collapse:collapse; width:100%;">'
+    
+    for r in range(start_row, end_row + 1):
+        # 跳過「新增側邊欄」標記行
+        first_cell = ws.cell(row=r, column=1)
+        if first_cell.value and str(first_cell.value).strip().startswith("新增側邊欄"):
+            continue
+            
+        html += "<tr>"
+        
+        for c in range(1, max_col + 1):
+            cell = ws.cell(row=r, column=c)
+            val_str = "" if cell.value is None else str(cell.value).strip()
+            
+            # 移除 / 开头的标记，但不进行分割
+            if val_str.startswith("/"):
+                val_str = val_str[1:]
+            
+            # 獲取合併信息
+            merge_range = is_merged(cell)
+            rowspan = colspan = 1
+            if merge_range:
+                min_row, min_col, max_row_m, max_col_m = (
+                    merge_range.min_row,
+                    merge_range.min_col,
+                    merge_range.max_row,
+                    merge_range.max_col,
+                )
+                # 只有當這個儲存格是合併範圍的左上角時才處理
+                if r == min_row and c == min_col:
+                    rowspan = max_row_m - min_row + 1
+                    colspan = max_col_m - min_col + 1
+                else:
+                    # 如果不是主要儲存格，直接跳過
+                    continue
+            
+            span_attr = f' rowspan="{rowspan}"' if rowspan > 1 else ""
+            col_attr = f' colspan="{colspan}"' if colspan > 1 else ""
+            
+            html += f'<td{span_attr}{col_attr}>{val_str}</td>'
+        
+        html += "</tr>"
+    
+    html += "</table>"
+    return html
+
+def make_default_export_table(ws, sections):
+    """生成預設導出表格（不使用/分割）"""
+    # 找出要排除的行範圍
+    excluded_rows = set()
+    for section in sections:
+        # 排除標記行和內容行
+        for r in range(section["start_row"] - 1, section["end_row"] + 1):
+            excluded_rows.add(r)
+
+    # 找出主表格實際使用的最大欄位數
+    max_col = 0
+    for r in range(1, ws.max_row + 1):
+        if r in excluded_rows:
+            continue
+        for c in range(1, ws.max_column + 1):
+            cell = ws.cell(row=r, column=c)
+            # 檢查是否有內容或合併儲存格
+            if cell.value is not None or is_merged(cell):
+                max_col = max(max_col, c)
+
+    if max_col == 0:
+        return "<p>主表格無內容</p>"
+
+    html = '<table border="1" style="border-collapse:collapse; width:100%;">'
+    
+    for r in range(1, ws.max_row + 1):
+        if r in excluded_rows:
+            continue
+            
+        html += "<tr>"
+        
+        for c in range(1, max_col + 1):
+            cell = ws.cell(row=r, column=c)
+            val_str = "" if cell.value is None else str(cell.value).strip()
+            
+            # 移除 / 开头的标记，但不进行分割
+            if val_str.startswith("/"):
+                val_str = val_str[1:]
+            
+            # 獲取合併信息
+            merge_range = is_merged(cell)
+            rowspan = colspan = 1
+            if merge_range:
+                min_row, min_col, max_row_m, max_col_m = (
+                    merge_range.min_row,
+                    merge_range.min_col,
+                    merge_range.max_row,
+                    merge_range.max_col,
+                )
+                # 只有當這個儲存格是合併範圍的左上角時才處理
+                if r == min_row and c == min_col:
+                    rowspan = max_row_m - min_row + 1
+                    colspan = max_col_m - min_col + 1
+                else:
+                    # 如果不是主要儲存格，直接跳過
+                    continue
+            
+            span_attr = f' rowspan="{rowspan}"' if rowspan > 1 else ""
+            col_attr = f' colspan="{colspan}"' if colspan > 1 else ""
+            
+            tag = "th" if r == 1 else "td"
+            html += f'<{tag}{span_attr}{col_attr}>{val_str}</{tag}>'
+        
+        html += "</tr>"
+    
+    html += "</table>"
+    return html
+
+# 輔助函數：計算指定行範圍內實際使用的最大欄位數
+def get_section_max_column(ws, start_row, end_row):
+    """計算指定行範圍內實際使用的最大欄位數"""
+    max_col = 0
+    for r in range(start_row, end_row + 1):
+        for c in range(1, ws.max_column + 1):
+            cell = ws.cell(row=r, column=c)
+            # 檢查是否有內容或合併儲存格
+            if cell.value is not None or is_merged(cell):
+                max_col = max(max_col, c)
+    return max_col
+
+
+# 偵測分區
+sections = detect_sidebar_sections(ws)
+default_table = make_default_table(ws, sections)
+
+# 生成分區內容
+section_contents = {}
+for section in sections:
+    section_contents[section["name"]] = make_section_table(
+        ws, section["start_row"], section["end_row"]
+    )
+# 新增：生成导出专用的表格（不使用/分割）
+export_default_table = make_default_export_table(ws, sections)
+export_section_contents = {}
+for section in sections:
+    export_section_contents[section["name"]] = make_export_table(
+        ws, section["start_row"], section["end_row"]
+    )
+# HTML 內容
+html_content = """<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -879,184 +2247,45 @@
     </div>
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">📋 功能選單</div>
-        <div class="sidebar-item active" onclick="showSection('表單填寫')">📝 表單填寫</div>
-        <div class="sidebar-item" onclick="showSection('傷患基本資料')">傷患基本資料</div>
-        <div class="sidebar-item" onclick="showSection('主觀評估(S)')">主觀評估(S)</div>
-        <div class="sidebar-item" onclick="showSection('客觀評估(O)')">客觀評估(O)</div>
-        <div class="sidebar-item" onclick="showSection('評估和預期計畫(A、A〞、P)')">評估和預期計畫(A、A〞、P)</div>
-        <div class="sidebar-item" onclick="showSection('意識處置')">意識處置</div>
-        <div class="sidebar-item" onclick="showSection('X(大失血處置)')">X(大失血處置)</div>
-        <div class="sidebar-item" onclick="showSection('A、B(呼吸處置)')">A、B(呼吸處置)</div>
-        <div class="sidebar-item" onclick="showSection('E(露身檢查)')">E(露身檢查)</div>
-        <div class="sidebar-item" onclick="showSection('高山症')">高山症</div>
-        <div class="sidebar-item" onclick="showSection('匯出')">💾 匯出</div>
-    </div>
+        <div class="sidebar-item active" onclick="showSection('表單填寫')">📝 表單填寫</div>"""
+    
+# 動態生成側邊欄項目
+for section in sections:
+    html_content += f'\n        <div class="sidebar-item" onclick="showSection(\'{section["name"]}\')">{section["name"]}</div>'
 
-    <div class="main-content">
+html_content += '\n        <div class="sidebar-item" onclick="showSection(\'匯出\')">💾 匯出</div>\n    </div>\n\n'
+
+# 主內容區域
+html_content += (
+    """    <div class="main-content">
         <!-- 表單填寫內容 -->
         <div id="section-表單填寫" class="content-section">
             <div class="table-container">
-<table border="0" style="border-collapse:collapse; width:100%; table-layout:auto;"><thead><tr><th colspan="2" style="font-weight:bold;background-color:#00B050;border-left:1px solid #000000;"><div data-gjs-editable="true">野蠻的驕傲</div></th></tr></thead><tbody><tr><td colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">醫療電子化2.0</div></td></tr></tbody></table>
+"""
+    + default_table
+    + """
             </div>
-        </div>
-        <div id="section-傷患基本資料" class="content-section" style="display:none;" data-exportable="true">
-            <div class="table-container">
-                <h2>傷患基本資料</h2>
-                <table border="0" style="border-collapse:collapse; width:100%; table-layout:auto;"><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">傷病患姓名</div></th></tr><tr><th colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">年齡</div></th></tr><tr><th colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">性別</div></th></tr><tr><td colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="[{"text": "男生", "display_text": "男生", "link": null}, {"text": "女生", "display_text": "女生", "link": null}]"><div class="option-container"><button class="option-button" onclick="selectInlineOption(this,'radio')">男生</button><button class="option-button" onclick="selectInlineOption(this,'radio')">女生</button></div></td></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">體重(KG)</div></th></tr><tr><th colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="number" data-value="*" onclick="openNumberModal(this)">*</th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">緊急聯絡人/電話</div></th></tr><tr><th colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFC000;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">發生地點</div></th></tr><tr><th colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">詳細地點</th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">患者座標</div></th></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">手動填寫</th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="location" onclick="fillCurrentLocation(this)">📍 點擊取得座標</th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">接觸時間紀錄</div></th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FF0000;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">SAMPLE/病史詢問</div></th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">S/感:症狀</div></th></tr><tr><th colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">A/敏:過敏</div></th></tr><tr><th colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">M/藥:藥物</div></th></tr><tr><th colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">P/過:過去相關病史</div></th></tr><tr><th colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">L/吃:最後的進出</div></th></tr><tr><th colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">E/之前:發生意外之前的事件</div></th></tr><tr><th colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">*</th></tr></table>
-            </div>
-        </div>
-        <div id="section-主觀評估(S)" class="content-section" style="display:none;" data-exportable="true">
-            <div class="table-container">
-                <h2>主觀評估(S)</h2>
-                <table border="0" style="border-collapse:collapse; width:100%; table-layout:auto;"><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">現場評估</div></th></tr><tr><th colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">(含氣候、氣溫、現場環境、所見事件)</th></tr><tr><td colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;color:#00B0F0;background-color:#7030A0;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="camera" data-images="[]" onclick="openCameraModal(this)">📷 拍照</td></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">主訴</div></th></tr><tr><th colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">(傷情概述)</th></tr><tr><td colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;color:#00B0F0;background-color:#7030A0;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="camera" data-images="[]" onclick="openCameraModal(this)">📷 拍照</td></tr></table>
-            </div>
-        </div>
-        <div id="section-客觀評估(O)" class="content-section" style="display:none;" data-exportable="true">
-            <div class="table-container">
-                <h2>客觀評估(O)</h2>
-                <table border="0" style="border-collapse:collapse; width:100%; table-layout:auto;"><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">全身檢查(XABCDE及二評)</div></th></tr><tr><th colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">(依照流程填入評估結果)</th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">傷患部(多選)</div></th></tr><tr><td colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "頭部", "input_positions": null, "sub_options": null, "display_text": "頭部", "original_text": "頭部", "link": null}, {"text": "胸部", "input_positions": null, "sub_options": null, "display_text": "胸部", "original_text": "胸部", "link": null}, {"text": "腹部", "input_positions": null, "sub_options": null, "display_text": "腹部", "original_text": "腹部", "link": null}, {"text": "骨盆", "input_positions": null, "sub_options": null, "display_text": "骨盆", "original_text": "骨盆", "link": null}, {"text": "左上肢", "input_positions": null, "sub_options": null, "display_text": "左上肢", "original_text": "左上肢", "link": null}, {"text": "左下肢", "input_positions": null, "sub_options": null, "display_text": "左下肢", "original_text": "左下肢", "link": null}, {"text": "右上肢", "input_positions": null, "sub_options": null, "display_text": "右上肢", "original_text": "右上肢", "link": null}, {"text": "右下肢", "input_positions": null, "sub_options": null, "display_text": "右下肢", "original_text": "右下肢", "link": null}]' data-value="" onclick="openCollapseModal(this)">選擇傷患處(正面)</td></tr><tr><td colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "頭部", "input_positions": null, "sub_options": null, "display_text": "頭部", "original_text": "頭部", "link": null}, {"text": "頸椎", "input_positions": null, "sub_options": null, "display_text": "頸椎", "original_text": "頸椎", "link": null}, {"text": "背部", "input_positions": null, "sub_options": null, "display_text": "背部", "original_text": "背部", "link": null}, {"text": "脊椎", "input_positions": null, "sub_options": null, "display_text": "脊椎", "original_text": "脊椎", "link": null}, {"text": "左上肢", "input_positions": null, "sub_options": null, "display_text": "左上肢", "original_text": "左上肢", "link": null}, {"text": "左下肢", "input_positions": null, "sub_options": null, "display_text": "左下肢", "original_text": "左下肢", "link": null}, {"text": "右上肢", "input_positions": null, "sub_options": null, "display_text": "右上肢", "original_text": "右上肢", "link": null}, {"text": "右下肢", "input_positions": null, "sub_options": null, "display_text": "右下肢", "original_text": "右下肢", "link": null}]' data-value="" onclick="openCollapseModal(this)">選擇傷患處(背面)</td></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;color:#00B050;background-color:#002060;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">1</div></th></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</th><td class="editable-cell" style="width:362.44140625px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="[{"text": "清", "display_text": "清", "link": null}, {"text": "聲", "display_text": "聲", "link": null}, {"text": "痛", "display_text": "痛", "link": null}, {"text": "否", "display_text": "否", "link": null}]"><div class="option-container"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">血壓，脈搏</th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">呼吸/血氧</th></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">膚色</th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">危險體溫>38,<35</th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;color:#00B050;background-color:#002060;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">2</div></th></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</th><td class="editable-cell" style="width:362.44140625px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="[{"text": "清", "display_text": "清", "link": null}, {"text": "聲", "display_text": "聲", "link": null}, {"text": "痛", "display_text": "痛", "link": null}, {"text": "否", "display_text": "否", "link": null}]"><div class="option-container"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">血壓，脈搏</th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">呼吸/血氧</th></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">膚色</th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">危險體溫>38,<35</th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;color:#00B050;background-color:#002060;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">3</div></th></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</th><td class="editable-cell" style="width:362.44140625px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="[{"text": "清", "display_text": "清", "link": null}, {"text": "聲", "display_text": "聲", "link": null}, {"text": "痛", "display_text": "痛", "link": null}, {"text": "否", "display_text": "否", "link": null}]"><div class="option-container"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">血壓，脈搏</th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">呼吸/血氧</th></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">膚色</th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">危險體溫>38,<35</th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;color:#00B050;background-color:#002060;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">4</div></th></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</th><td class="editable-cell" style="width:362.44140625px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="[{"text": "清", "display_text": "清", "link": null}, {"text": "聲", "display_text": "聲", "link": null}, {"text": "痛", "display_text": "痛", "link": null}, {"text": "否", "display_text": "否", "link": null}]"><div class="option-container"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">血壓，脈搏</th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">呼吸/血氧</th></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">膚色</th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">危險體溫>38,<35</th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;color:#00B050;background-color:#002060;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">5</div></th></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</th><td class="editable-cell" style="width:362.44140625px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="[{"text": "清", "display_text": "清", "link": null}, {"text": "聲", "display_text": "聲", "link": null}, {"text": "痛", "display_text": "痛", "link": null}, {"text": "否", "display_text": "否", "link": null}]"><div class="option-container"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">血壓，脈搏</th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">呼吸/血氧</th></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">膚色</th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">危險體溫>38,<35</th></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;color:#00B050;background-color:#002060;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">6</div></th></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</th><td class="editable-cell" style="width:362.44140625px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="radio" data-value="" data-options="[{"text": "清", "display_text": "清", "link": null}, {"text": "聲", "display_text": "聲", "link": null}, {"text": "痛", "display_text": "痛", "link": null}, {"text": "否", "display_text": "否", "link": null}]"><div class="option-container"><button class="option-button" onclick="selectInlineOption(this,'radio')">清</button><button class="option-button" onclick="selectInlineOption(this,'radio')">聲</button><button class="option-button" onclick="selectInlineOption(this,'radio')">痛</button><button class="option-button" onclick="selectInlineOption(this,'radio')">否</button></div></td></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">血壓，脈搏</th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">呼吸/血氧</th></tr><tr><th class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">膚色</th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">危險體溫>38,<35</th></tr></table>
-            </div>
-        </div>
-        <div id="section-評估和預期計畫(A、A〞、P)" class="content-section" style="display:none;" data-exportable="true">
-            <div class="table-container">
-                <h2>評估和預期計畫(A、A〞、P)</h2>
-                <table border="0" style="border-collapse:collapse; width:100%; table-layout:auto;"><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;color:#00B050;background-color:#002060;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">1</div></th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">時間</div></th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">A問題列</div></th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">問題列</th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">A'預期問題</div></th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">預期問題列</th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">P=處置計畫</div></th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">計畫內容</th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">給藥</div></th><td class="editable-cell" style="width:362.44140625px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "Epinephrine 0.3mg(IM)", "input_positions": null, "sub_options": null, "display_text": "Epinephrine 0.3mg(IM)", "original_text": "Epinephrine 0.3mg(IM)", "link": null}, {"text": "Epinephrine 1mg(IVP)", "input_positions": null, "sub_options": null, "display_text": "Epinephrine 1mg(IVP)", "original_text": "Epinephrine 1mg(IVP)", "link": null}, {"text": "Transamin 1000mg(IVD)", "input_positions": null, "sub_options": null, "display_text": "Transamin 1000mg(IVD)", "original_text": "Transamin 1000mg(IVD)", "link": null}, {"text": "Ibuprofen 400mg(PO)/6HR", "input_positions": null, "sub_options": null, "display_text": "Ibuprofen 400mg(PO)/6HR", "original_text": "Ibuprofen 400mg(PO)/6HR", "link": null}, {"text": "Acetminophen 500mg(PO)/6HR", "input_positions": null, "sub_options": null, "display_text": "Acetminophen 500mg(PO)/6HR", "original_text": "Acetminophen 500mg(PO)/6HR", "link": null}, {"text": "Diamox 125mg(PO)/12HR", "input_positions": null, "sub_options": null, "display_text": "Diamox 125mg(PO)/12HR", "original_text": "Diamox 125mg(PO)/12HR", "link": null}, {"text": "Dexamethasone 2mg(PO)/6HR", "input_positions": null, "sub_options": null, "display_text": "Dexamethasone 2mg(PO)/6HR", "original_text": "Dexamethasone 2mg(PO)/6HR", "link": null}, {"text": "Dexamethasone 8mg(PO)", "input_positions": null, "sub_options": null, "display_text": "Dexamethasone 8mg(PO)", "original_text": "Dexamethasone 8mg(PO)", "link": null}, {"text": "Dexamethasone 4mg(PO)/6HR", "input_positions": null, "sub_options": null, "display_text": "Dexamethasone 4mg(PO)/6HR", "original_text": "Dexamethasone 4mg(PO)/6HR", "link": null}, {"text": "Nifedipine 30mg(PO/SL)/12HR", "input_positions": null, "sub_options": null, "display_text": "Nifedipine 30mg(PO/SL)/12HR", "original_text": "Nifedipine 30mg(PO/SL)/12HR", "link": null}, {"text": "D10W 500ml(IV)", "input_positions": null, "sub_options": null, "display_text": "D10W 500ml(IV)", "original_text": "D10W 500ml(IV)", "link": null}, {"text": "N/S 500ml(IV)", "input_positions": null, "sub_options": null, "display_text": "N/S 500ml(IV)", "original_text": "N/S 500ml(IV)", "link": null}]' data-value="" onclick="openCollapseModal(this)">選擇藥物及給藥途徑</td></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;color:#00B050;background-color:#002060;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">2</div></th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">時間</div></th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">A問題列</div></th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">問題列</th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">A'預期問題</div></th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">預期問題列</th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">P=處置計畫</div></th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">計畫內容</th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">給藥</div></th><td class="editable-cell" style="width:362.44140625px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "Epinephrine 0.3mg(IM)", "input_positions": null, "sub_options": null, "display_text": "Epinephrine 0.3mg(IM)", "original_text": "Epinephrine 0.3mg(IM)", "link": null}, {"text": "Epinephrine 1mg(IVP)", "input_positions": null, "sub_options": null, "display_text": "Epinephrine 1mg(IVP)", "original_text": "Epinephrine 1mg(IVP)", "link": null}, {"text": "Transamin 1000mg(IVD)", "input_positions": null, "sub_options": null, "display_text": "Transamin 1000mg(IVD)", "original_text": "Transamin 1000mg(IVD)", "link": null}, {"text": "Ibuprofen 400mg(PO)/6HR", "input_positions": null, "sub_options": null, "display_text": "Ibuprofen 400mg(PO)/6HR", "original_text": "Ibuprofen 400mg(PO)/6HR", "link": null}, {"text": "Acetminophen 500mg(PO)/6HR", "input_positions": null, "sub_options": null, "display_text": "Acetminophen 500mg(PO)/6HR", "original_text": "Acetminophen 500mg(PO)/6HR", "link": null}, {"text": "Diamox 125mg(PO)/12HR", "input_positions": null, "sub_options": null, "display_text": "Diamox 125mg(PO)/12HR", "original_text": "Diamox 125mg(PO)/12HR", "link": null}, {"text": "Dexamethasone 2mg(PO)/6HR", "input_positions": null, "sub_options": null, "display_text": "Dexamethasone 2mg(PO)/6HR", "original_text": "Dexamethasone 2mg(PO)/6HR", "link": null}, {"text": "Dexamethasone 8mg(PO)", "input_positions": null, "sub_options": null, "display_text": "Dexamethasone 8mg(PO)", "original_text": "Dexamethasone 8mg(PO)", "link": null}, {"text": "Dexamethasone 4mg(PO)/6HR", "input_positions": null, "sub_options": null, "display_text": "Dexamethasone 4mg(PO)/6HR", "original_text": "Dexamethasone 4mg(PO)/6HR", "link": null}, {"text": "Nifedipine 30mg(PO/SL)/12HR", "input_positions": null, "sub_options": null, "display_text": "Nifedipine 30mg(PO/SL)/12HR", "original_text": "Nifedipine 30mg(PO/SL)/12HR", "link": null}, {"text": "D10W 500ml(IV)", "input_positions": null, "sub_options": null, "display_text": "D10W 500ml(IV)", "original_text": "D10W 500ml(IV)", "link": null}, {"text": "N/S 500ml(IV)", "input_positions": null, "sub_options": null, "display_text": "N/S 500ml(IV)", "original_text": "N/S 500ml(IV)", "link": null}]' data-value="" onclick="openCollapseModal(this)">選擇藥物及給藥途徑</td></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;color:#00B050;background-color:#002060;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">3</div></th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">時間</div></th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">A問題列</div></th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">問題列</th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">A'預期問題</div></th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">預期問題列</th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">P=處置計畫</div></th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">計畫內容</th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">給藥</div></th><td class="editable-cell" style="width:362.44140625px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "Epinephrine 0.3mg(IM)", "input_positions": null, "sub_options": null, "display_text": "Epinephrine 0.3mg(IM)", "original_text": "Epinephrine 0.3mg(IM)", "link": null}, {"text": "Epinephrine 1mg(IVP)", "input_positions": null, "sub_options": null, "display_text": "Epinephrine 1mg(IVP)", "original_text": "Epinephrine 1mg(IVP)", "link": null}, {"text": "Transamin 1000mg(IVD)", "input_positions": null, "sub_options": null, "display_text": "Transamin 1000mg(IVD)", "original_text": "Transamin 1000mg(IVD)", "link": null}, {"text": "Ibuprofen 400mg(PO)/6HR", "input_positions": null, "sub_options": null, "display_text": "Ibuprofen 400mg(PO)/6HR", "original_text": "Ibuprofen 400mg(PO)/6HR", "link": null}, {"text": "Acetminophen 500mg(PO)/6HR", "input_positions": null, "sub_options": null, "display_text": "Acetminophen 500mg(PO)/6HR", "original_text": "Acetminophen 500mg(PO)/6HR", "link": null}, {"text": "Diamox 125mg(PO)/12HR", "input_positions": null, "sub_options": null, "display_text": "Diamox 125mg(PO)/12HR", "original_text": "Diamox 125mg(PO)/12HR", "link": null}, {"text": "Dexamethasone 2mg(PO)/6HR", "input_positions": null, "sub_options": null, "display_text": "Dexamethasone 2mg(PO)/6HR", "original_text": "Dexamethasone 2mg(PO)/6HR", "link": null}, {"text": "Dexamethasone 8mg(PO)", "input_positions": null, "sub_options": null, "display_text": "Dexamethasone 8mg(PO)", "original_text": "Dexamethasone 8mg(PO)", "link": null}, {"text": "Dexamethasone 4mg(PO)/6HR", "input_positions": null, "sub_options": null, "display_text": "Dexamethasone 4mg(PO)/6HR", "original_text": "Dexamethasone 4mg(PO)/6HR", "link": null}, {"text": "Nifedipine 30mg(PO/SL)/12HR", "input_positions": null, "sub_options": null, "display_text": "Nifedipine 30mg(PO/SL)/12HR", "original_text": "Nifedipine 30mg(PO/SL)/12HR", "link": null}, {"text": "D10W 500ml(IV)", "input_positions": null, "sub_options": null, "display_text": "D10W 500ml(IV)", "original_text": "D10W 500ml(IV)", "link": null}, {"text": "N/S 500ml(IV)", "input_positions": null, "sub_options": null, "display_text": "N/S 500ml(IV)", "original_text": "N/S 500ml(IV)", "link": null}]' data-value="" onclick="openCollapseModal(this)">選擇藥物及給藥途徑</td></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;color:#00B050;background-color:#002060;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">4</div></th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">時間</div></th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="datetime" onclick="fillCurrentTime(this)">⏰ 現在時間</th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">A問題列</div></th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">問題列</th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">A'預期問題</div></th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">預期問題列</th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">P=處置計畫</div></th><th class="editable-cell" style="width:362.44140625px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">計畫內容</th></tr><tr><th style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">給藥</div></th><td class="editable-cell" style="width:362.44140625px;font-weight:bold;background-color:#92D050;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="collapse" data-option-type="checkbox" data-options='[{"text": "Epinephrine 0.3mg(IM)", "input_positions": null, "sub_options": null, "display_text": "Epinephrine 0.3mg(IM)", "original_text": "Epinephrine 0.3mg(IM)", "link": null}, {"text": "Epinephrine 1mg(IVP)", "input_positions": null, "sub_options": null, "display_text": "Epinephrine 1mg(IVP)", "original_text": "Epinephrine 1mg(IVP)", "link": null}, {"text": "Transamin 1000mg(IVD)", "input_positions": null, "sub_options": null, "display_text": "Transamin 1000mg(IVD)", "original_text": "Transamin 1000mg(IVD)", "link": null}, {"text": "Ibuprofen 400mg(PO)/6HR", "input_positions": null, "sub_options": null, "display_text": "Ibuprofen 400mg(PO)/6HR", "original_text": "Ibuprofen 400mg(PO)/6HR", "link": null}, {"text": "Acetminophen 500mg(PO)/6HR", "input_positions": null, "sub_options": null, "display_text": "Acetminophen 500mg(PO)/6HR", "original_text": "Acetminophen 500mg(PO)/6HR", "link": null}, {"text": "Diamox 125mg(PO)/12HR", "input_positions": null, "sub_options": null, "display_text": "Diamox 125mg(PO)/12HR", "original_text": "Diamox 125mg(PO)/12HR", "link": null}, {"text": "Dexamethasone 2mg(PO)/6HR", "input_positions": null, "sub_options": null, "display_text": "Dexamethasone 2mg(PO)/6HR", "original_text": "Dexamethasone 2mg(PO)/6HR", "link": null}, {"text": "Dexamethasone 8mg(PO)", "input_positions": null, "sub_options": null, "display_text": "Dexamethasone 8mg(PO)", "original_text": "Dexamethasone 8mg(PO)", "link": null}, {"text": "Dexamethasone 4mg(PO)/6HR", "input_positions": null, "sub_options": null, "display_text": "Dexamethasone 4mg(PO)/6HR", "original_text": "Dexamethasone 4mg(PO)/6HR", "link": null}, {"text": "Nifedipine 30mg(PO/SL)/12HR", "input_positions": null, "sub_options": null, "display_text": "Nifedipine 30mg(PO/SL)/12HR", "original_text": "Nifedipine 30mg(PO/SL)/12HR", "link": null}, {"text": "D10W 500ml(IV)", "input_positions": null, "sub_options": null, "display_text": "D10W 500ml(IV)", "original_text": "D10W 500ml(IV)", "link": null}, {"text": "N/S 500ml(IV)", "input_positions": null, "sub_options": null, "display_text": "N/S 500ml(IV)", "original_text": "N/S 500ml(IV)", "link": null}]' data-value="" onclick="openCollapseModal(this)">選擇藥物及給藥途徑</td></tr><tr><th colspan="2" style="width:384.20703125px;font-weight:bold;background-color:#FFFF00;text-align:center;vertical-align:center;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;"><div data-gjs-editable="true">補充事項</div></th></tr><tr><th colspan="2" class="editable-cell" style="width:384.20703125px;font-weight:bold;text-align:center;vertical-align:center;white-space:pre-wrap;border-left:1px solid #000000;border-right:1px solid #000000;border-top:1px solid #000000;border-bottom:1px solid #000000;" data-type="text" data-value="" onclick="openTextModal(this)">撤退方式(水平或垂直)</th></tr></table>
-            </div>
-        </div>
-        <div id="section-意識處置" class="content-section" style="display:none;" data-exportable="false">
-            <div class="table-container">
-                <h2>意識處置</h2>
-                <table border="0" style="border-collapse:collapse; width:100%; table-layout:auto;"><tr><th colspan="2" style="width:384.20703125px;text-align:left;vertical-align:center;white-space:pre-wrap;border-top:1px solid #000000;"><div data-gjs-editable="true">STOPEATS
-S:血糖
-T:體溫
-O:氧氣(窒息或溺水)
-P:壓力(顱內壓或休克)
-E:電流
-A:高海拔(腦水腫、肺水腫)
-T:毒物
-S:鹽(電解質不平衡)
+        </div>"""
+)
 
-TBI(創傷性腦損傷)
-**注意生命徵象(SPO2大於94、BP100-110、GCS、瞳孔反射)
-*庫欣氏三徵象(血壓高、脈搏慢、呼吸不規則)
-嚴重頭部創傷:GCS小於9
-中度頭部創傷:GCS9-12
-輕度頭部創傷:GCS13-15
-*頭部創傷患者抬高頭部約30度
-*注意脊椎檢測</div></th></tr></table>
-            </div>
-        </div>
-        <div id="section-X(大失血處置)" class="content-section" style="display:none;" data-exportable="false">
+# 動態生成各分區內容
+# 修改：改用 sections 列表迴圈，這樣才能拿到 exportable 屬性
+for section in sections:
+    section_name = section["name"]
+    section_html = section_contents[section_name]
+    # 如果是不匯出，標記為 false，否則 true
+    export_attr = 'false' if section.get("exportable") == False else 'true'
+    
+    html_content += f"""
+        <div id="section-{section_name}" class="content-section" style="display:none;" data-exportable="{export_attr}">
             <div class="table-container">
-                <h2>X(大失血處置)</h2>
-                <table border="0" style="border-collapse:collapse; width:100%; table-layout:auto;"><tr><th colspan="2" style="width:384.20703125px;text-align:left;vertical-align:center;white-space:pre-wrap;border-top:1px solid #000000;"><div data-gjs-editable="true">***止血帶降階
-條件:傷患意識清楚、無休克、生命徵象穩定，評估可透過傷口填塞敷料或加壓敷料止血，截肢則不建議。
-時機:如使用超過6小時或2小時內可到達醫院則不建議轉換，目標盡量在止血帶打上後2小時內完成。
-交界處止血:如傷口可填塞則先完成填塞再進行交界處加壓。
+                <h2>{section_name}</h2>
+                {section_html}
+            </div>
+        </div>"""
 
-Transamin使用方法
-1.無法透過外部止血(胸腹骨盆)之休克
-2.創傷發生3小時內
-3.BP小於90或HR大於120
-4.IM(大腿或臀部)每部位最多5CC、靜脈滴注大於10分鐘(1秒3滴)
-*有過敏或血栓疾病患者(腦血栓、心肌梗塞、血栓靜脈炎)及長期接受凝血酶治療者</div></th></tr></table>
-            </div>
-        </div>
-        <div id="section-A、B(呼吸處置)" class="content-section" style="display:none;" data-exportable="false">
-            <div class="table-container">
-                <h2>A、B(呼吸處置)</h2>
-                <table border="0" style="border-collapse:collapse; width:100%; table-layout:auto;"><tr><th colspan="2" style="width:384.20703125px;text-align:left;vertical-align:center;white-space:pre-wrap;border-top:1px solid #000000;"><div data-gjs-editable="true">嚴重氣喘或過敏反應
-Epinephrine 0.3-0.5mg(IM)，無法改善則且血壓小於90可以10分鐘後再給予1次
-大量血胸:
-症狀:呼吸窘迫、血壓血氧下降，患側呼吸音減少且叩診實音
-開放性氣胸:胸壁起伏不對稱，胸部傷口隨呼吸可感受氣體進出
-張力性氣胸:氣管偏移、頸靜脈怒張、患側呼吸音消失且叩診鼓音
-**針刺減壓條件:呼吸窘迫、患側呼吸音消失、血壓小於90
-**鎖骨中線第二肋間</div></th></tr></table>
-            </div>
-        </div>
-        <div id="section-E(露身檢查)" class="content-section" style="display:none;" data-exportable="false">
-            <div class="table-container">
-                <h2>E(露身檢查)</h2>
-                <table border="0" style="border-collapse:collapse; width:100%; table-layout:auto;"><tr><th colspan="2" style="width:384.20703125px;text-align:left;vertical-align:center;white-space:pre-wrap;border-top:1px solid #000000;"><div data-gjs-editable="true">脊椎檢測:(當患者情況穩定後進行)
-患者意識不清則無法排除脊椎傷害，意識清楚但因為疼痛、緊張和腦部受傷也無法排除脊椎傷害
-排除要件:
-脊椎觸診無觸痛
-完整的手腳指運動/感知測試(手指外展、手腕、腳掌、腳背的伸展)
-區分尖銳/輕觸的感覺</div></th></tr></table>
-            </div>
-        </div>
-        <div id="section-高山症" class="content-section" style="display:none;" data-exportable="false">
-            <div class="table-container">
-                <h2>高山症</h2>
-                <table border="0" style="border-collapse:collapse; width:100%; table-layout:auto;"><tr><th colspan="2" style="width:384.20703125px;text-align:left;vertical-align:center;white-space:pre-wrap;border-top:1px solid #000000;"><div data-gjs-editable="true">露易絲湖急性高山病指數:
-新的高度上升，抵達地點高於海拔2,500公尺。 
-出現頭痛，且下列三個症狀至少出現一個以上： 
-腸胃道症狀(噁心/嘔吐/沒胃口)、疲憊虛弱、頭暈/頭重腳輕。
-頭痛症狀:無 0-輕微頭痛 1-中度頭痛 2-嚴重頭痛，無法緩解 3。
-腸胃道症狀:食慾良好 0-食慾不振或噁心 1-中度噁心或嘔吐 2-嚴重噁心或嘔吐，無法緩解 3 
-疲憊虛弱:無 0-輕微 1-中度疲憊 2-嚴重疲憊虛弱，無法緩解 3
-頭昏/頭重腳輕:無 0-輕微頭昏/頭重腳輕 1-中度頭昏/頭重腳輕症 2-嚴重，無法緩解 3
-輕度急性高山症(總分3-5分)、中度急性高山症(總分6-9分)、重度急性高山症(總分10-12分) 
-急性高山病(AMS):1.有登高、2.頭痛(2分)、頭暈(1分)、失眠(1分)、噁心或嘔吐(1分)、虛弱(1分)，症狀得分≧3分
-高海拔腦水腫(HACE):
-1.有登高
-2.步態不穩(註a)或意識改變
-高海拔肺水腫(HAPE):
-1.有登高
-2.以下症狀至少2項:休息狀態下呼吸困難、咳嗽、虛弱無力或活動力降低、胸悶或胸脹 
-3.以下病徵至少2項：至少一側肺野有囉音或哮鳴音、中心型發紺(註b)、呼吸過速、心搏過速
-**嚴重症狀如高山肺水腫或高山腦水腫等應立即下山至少500～1000公尺才能有某種程度之改善；對於急性高山症患者攜帶型加壓袋PAC(充氣加壓提供類似降低1500公尺高度效果)如該事故區域(目前多數山屋可能備有)可取得為務必使用。
-***Acetazolamide(丹木斯): 
-利尿劑藥物，適應症為青光眼及水腫、癲癇之輔助治療。 
-一、治療劑量： 
-1. 成人：Acetazolamide 125mg（體重大於100公斤者250mg），每12小時一次(口服)。
-從上升的前一天開始使用，並在高海拔的前2天繼續，如果繼續爬升則延長使用。 
-2. 兒童：Acetazolamide 5mg/kg/day 分次口服使用，或是每12小時2.5mg/kg，最多125mg，每12小時一次。 
-二、禁忌症： 
-1. 對Acetazolamide或是磺胺類(sulfa)過敏。 
-2. 肝硬化或顯著肝臟疾病、低鉀血症、低鈉血症、高氯性酸中毒、腎功能不全、蠶豆症等。
-***Dexamethasone 
-類固醇類藥物，可減少引起發炎的細胞激素產生、降低白血球的活性、降低體內免疫系統的反應等，具有抗發炎、抗風濕、抗過敏和血管收縮作用。若對於Acetazolamide過敏或是病患無法口服藥物，成人可使Dexamethasone。有效預防和治療高山症和高山腦水腫，還可預防高山肺水腫。
-須注意如果在海拔升高適應前停藥，可能會發生輕度反彈。爬升高度時
-Acetazolamide適合預防高山症，Dexamethasone可保留作為下降撤退時的輔助治療。 
-一、治療劑量： 
-1. 成人： 
-(1) 預防：Dexamethasone 2mg，每6小時口服一次，或是每12小時4mg。 
-(2) 治療：第一次4-8mg口服，之後每6小時4mg(如果還困在高海拔或是病情嚴重)。如果只是頭痛一次4-8mg口服即可。如果無法口服，8mg肌肉注射，之後每6小時4mg(如果還困在高海拔或是症狀持續)為期24小時。 
-2. 兒童： 
-不建議使用在預防。Dexamethasone 0.15mg/kg，每6小時一次，最高劑量4mg。 (PS:兒童劑量證據不足) 
-二、禁忌症： 
-1. 對Dexamethasone過敏。 
-2. 全身性真菌感染。 
-3. ☆上述藥物無禁忌症方可使用；孕婦以及哺乳婦女不宜使用。
-***Acetminophen 
-止痛劑及解熱劑，當患者引起頭痛可以使用Acetminophen。 
-一、治療劑量： 
-1. 成人：Acetminophen 500mg，每6小時一次(口服)。 
-二、禁忌症： 
-1. 對Acetminophen過敏。 
-2. 嚴重肝疾病或肝功能損害等。 
-3. 相關副作用及說明參考本局實際採購藥品說明書。
-***Nifedipine 
-鈣離子拮抗劑，適應症為狹心症、高血壓，可使冠狀動脈和小動脈平滑肌舒張，來降低血壓。預防或是緩解高山肺水腫。 
-一、治療劑量： 
-1. 成人：Nifedipine 30mg，每12小時一次或是20mg，每8小時一次(口服)。 注意血壓可能會降低。 
-二、禁忌症： 
-1. 對Nifedipine過敏或其它同類型鈣離子阻斷劑如Felodipine、Isradipine、Amlodipine過敏。 
-2. 收縮壓低於90mmHg者、心臟儲量不佳者、糖尿病患者、透析的病人有惡性高血壓和不可逆性腎衰竭有血容積過少者使用時要小心，因為此藥放鬆血管的作用可能會使血壓突然下降。無法監控血壓時盡量不要用。 
-3. 避免食用葡萄柚汁。 
-4. 不要與威而鋼(或相似作用藥物如犀利士)併用
-**Tadalafil(犀利士) 
-第五型磷酸二酯酶抑制劑（phosphodiesterase type 5 inhibitor），適應症為治療男性勃
-起功能障礙及肺高壓，治療肺高壓時適用於兩種性別。如無威而鋼禁忌前提可使用
-Tadalafil。 
-一、治療劑量： 
-1. 成人：Tadalafil 10mg，每日2次(口服)。 
-二、禁忌症： 
-1. 對Tadalafil過敏。</div></th></tr></table>
-            </div>
-        </div>
+# 匯出區域和其他內容
+html_content += """
         <!-- 匯出內容 -->
         <div id="section-匯出" class="content-section" style="display:none;">
             <div class="table-container">
@@ -1175,269 +2404,9 @@ Tadalafil。
         let currentLinks = [];
         // 新增：导出表格数据
         const exportTableData = {
-            default: `<table border="1" style="border-collapse:collapse; width:100%;"><tr><th colspan="2">野蠻的驕傲</th></tr><tr><td colspan="2">醫療電子化2.0</td></tr></table>`,
+            default: `""" + export_default_table + """`,
             sections: {
-                "傷患基本資料": `<table border="1" style="border-collapse:collapse; width:100%;"><tr><td colspan="2">傷病患姓名</td></tr><tr><td colspan="2">輸入文字
-*</td></tr><tr><td colspan="2">年齡</td></tr><tr><td colspan="2">輸入數字
-*</td></tr><tr><td colspan="2">性別</td></tr><tr><td colspan="2">單選題
-男生
-女生</td></tr><tr><td colspan="2">體重(KG)</td></tr><tr><td colspan="2">輸入數字
-*</td></tr><tr><td colspan="2">緊急聯絡人/電話</td></tr><tr><td colspan="2">輸入文字
-*</td></tr><tr><td colspan="2">發生地點</td></tr><tr><td colspan="2">輸入文字
-詳細地點</td></tr><tr><td colspan="2">患者座標</td></tr><tr><td>輸入文字
-手動填寫</td><td>目前座標</td></tr><tr><td>接觸時間紀錄</td><td>現在時間</td></tr><tr><td colspan="2">SAMPLE/病史詢問</td></tr><tr><td colspan="2">S/感:症狀</td></tr><tr><td colspan="2">輸入文字
-*</td></tr><tr><td colspan="2">A/敏:過敏</td></tr><tr><td colspan="2">輸入文字
-*</td></tr><tr><td colspan="2">M/藥:藥物</td></tr><tr><td colspan="2">輸入文字
-*</td></tr><tr><td colspan="2">P/過:過去相關病史</td></tr><tr><td colspan="2">輸入文字
-*</td></tr><tr><td colspan="2">L/吃:最後的進出</td></tr><tr><td colspan="2">輸入文字
-*</td></tr><tr><td colspan="2">E/之前:發生意外之前的事件</td></tr><tr><td colspan="2">輸入文字
-*</td></tr></table>`,
-                "主觀評估(S)": `<table border="1" style="border-collapse:collapse; width:100%;"><tr><td colspan="2">現場評估</td></tr><tr><td colspan="2">輸入文字
-(含氣候、氣溫、現場環境、所見事件)</td></tr><tr><td colspan="2">拍照</td></tr><tr><td colspan="2">主訴</td></tr><tr><td colspan="2">輸入文字
-(傷情概述)</td></tr><tr><td colspan="2">拍照</td></tr></table>`,
-                "客觀評估(O)": `<table border="1" style="border-collapse:collapse; width:100%;"><tr><td colspan="2">全身檢查(XABCDE及二評)</td></tr><tr><td colspan="2">輸入文字
-(依照流程填入評估結果)</td></tr><tr><td colspan="2">傷患部(多選)</td></tr><tr><td colspan="2">收合#選擇傷患處(正面)
-多選題
-頭部
-胸部
-腹部
-骨盆
-左上肢
-左下肢
-右上肢
-右下肢</td></tr><tr><td colspan="2">收合#選擇傷患處(背面)
-多選題
-頭部
-頸椎
-背部
-脊椎
-左上肢
-左下肢
-右上肢
-右下肢</td></tr><tr><td colspan="2">1</td></tr><tr><td>現在時間</td><td>單選題
-清
-聲
-痛
-否</td></tr><tr><td>輸入文字
-血壓，脈搏</td><td>輸入文字
-呼吸/血氧</td></tr><tr><td>輸入文字
-膚色</td><td>輸入文字
-危險體溫>38,<35</td></tr><tr><td colspan="2">2</td></tr><tr><td>現在時間</td><td>單選題
-清
-聲
-痛
-否</td></tr><tr><td>輸入文字
-血壓，脈搏</td><td>輸入文字
-呼吸/血氧</td></tr><tr><td>輸入文字
-膚色</td><td>輸入文字
-危險體溫>38,<35</td></tr><tr><td colspan="2">3</td></tr><tr><td>現在時間</td><td>單選題
-清
-聲
-痛
-否</td></tr><tr><td>輸入文字
-血壓，脈搏</td><td>輸入文字
-呼吸/血氧</td></tr><tr><td>輸入文字
-膚色</td><td>輸入文字
-危險體溫>38,<35</td></tr><tr><td colspan="2">4</td></tr><tr><td>現在時間</td><td>單選題
-清
-聲
-痛
-否</td></tr><tr><td>輸入文字
-血壓，脈搏</td><td>輸入文字
-呼吸/血氧</td></tr><tr><td>輸入文字
-膚色</td><td>輸入文字
-危險體溫>38,<35</td></tr><tr><td colspan="2">5</td></tr><tr><td>現在時間</td><td>單選題
-清
-聲
-痛
-否</td></tr><tr><td>輸入文字
-血壓，脈搏</td><td>輸入文字
-呼吸/血氧</td></tr><tr><td>輸入文字
-膚色</td><td>輸入文字
-危險體溫>38,<35</td></tr><tr><td colspan="2">6</td></tr><tr><td>現在時間</td><td>單選題
-清
-聲
-痛
-否</td></tr><tr><td>輸入文字
-血壓，脈搏</td><td>輸入文字
-呼吸/血氧</td></tr><tr><td>輸入文字
-膚色</td><td>輸入文字
-危險體溫>38,<35</td></tr></table>`,
-                "評估和預期計畫(A、A〞、P)": `<table border="1" style="border-collapse:collapse; width:100%;"><tr><td colspan="2">1</td></tr><tr><td>時間</td><td>現在時間</td></tr><tr><td>A問題列</td><td>輸入文字
-問題列</td></tr><tr><td>A'預期問題</td><td>輸入文字
-預期問題列</td></tr><tr><td>P=處置計畫</td><td>輸入文字
-計畫內容</td></tr><tr><td>給藥</td><td>收合#選擇藥物及給藥途徑
-多選題
-Epinephrine 0.3mg(IM)
-Epinephrine 1mg(IVP)
-Transamin 1000mg(IVD)
-Ibuprofen 400mg(PO)/6HR
-Acetminophen 500mg(PO)/6HR
-Diamox 125mg(PO)/12HR
-Dexamethasone 2mg(PO)/6HR
-Dexamethasone 8mg(PO)
-Dexamethasone 4mg(PO)/6HR
-Nifedipine 30mg(PO/SL)/12HR
-D10W 500ml(IV)
-N/S 500ml(IV)</td></tr><tr><td colspan="2">2</td></tr><tr><td>時間</td><td>現在時間</td></tr><tr><td>A問題列</td><td>輸入文字
-問題列</td></tr><tr><td>A'預期問題</td><td>輸入文字
-預期問題列</td></tr><tr><td>P=處置計畫</td><td>輸入文字
-計畫內容</td></tr><tr><td>給藥</td><td>收合#選擇藥物及給藥途徑
-多選題
-Epinephrine 0.3mg(IM)
-Epinephrine 1mg(IVP)
-Transamin 1000mg(IVD)
-Ibuprofen 400mg(PO)/6HR
-Acetminophen 500mg(PO)/6HR
-Diamox 125mg(PO)/12HR
-Dexamethasone 2mg(PO)/6HR
-Dexamethasone 8mg(PO)
-Dexamethasone 4mg(PO)/6HR
-Nifedipine 30mg(PO/SL)/12HR
-D10W 500ml(IV)
-N/S 500ml(IV)</td></tr><tr><td colspan="2">3</td></tr><tr><td>時間</td><td>現在時間</td></tr><tr><td>A問題列</td><td>輸入文字
-問題列</td></tr><tr><td>A'預期問題</td><td>輸入文字
-預期問題列</td></tr><tr><td>P=處置計畫</td><td>輸入文字
-計畫內容</td></tr><tr><td>給藥</td><td>收合#選擇藥物及給藥途徑
-多選題
-Epinephrine 0.3mg(IM)
-Epinephrine 1mg(IVP)
-Transamin 1000mg(IVD)
-Ibuprofen 400mg(PO)/6HR
-Acetminophen 500mg(PO)/6HR
-Diamox 125mg(PO)/12HR
-Dexamethasone 2mg(PO)/6HR
-Dexamethasone 8mg(PO)
-Dexamethasone 4mg(PO)/6HR
-Nifedipine 30mg(PO/SL)/12HR
-D10W 500ml(IV)
-N/S 500ml(IV)</td></tr><tr><td colspan="2">4</td></tr><tr><td>時間</td><td>現在時間</td></tr><tr><td>A問題列</td><td>輸入文字
-問題列</td></tr><tr><td>A'預期問題</td><td>輸入文字
-預期問題列</td></tr><tr><td>P=處置計畫</td><td>輸入文字
-計畫內容</td></tr><tr><td>給藥</td><td>收合#選擇藥物及給藥途徑
-多選題
-Epinephrine 0.3mg(IM)
-Epinephrine 1mg(IVP)
-Transamin 1000mg(IVD)
-Ibuprofen 400mg(PO)/6HR
-Acetminophen 500mg(PO)/6HR
-Diamox 125mg(PO)/12HR
-Dexamethasone 2mg(PO)/6HR
-Dexamethasone 8mg(PO)
-Dexamethasone 4mg(PO)/6HR
-Nifedipine 30mg(PO/SL)/12HR
-D10W 500ml(IV)
-N/S 500ml(IV)</td></tr><tr><td colspan="2">補充事項</td></tr><tr><td colspan="2">輸入文字
-撤退方式(水平或垂直)</td></tr></table>`,
-                "意識處置": `<table border="1" style="border-collapse:collapse; width:100%;"><tr><td colspan="2">STOPEATS
-S:血糖
-T:體溫
-O:氧氣(窒息或溺水)
-P:壓力(顱內壓或休克)
-E:電流
-A:高海拔(腦水腫、肺水腫)
-T:毒物
-S:鹽(電解質不平衡)
-
-TBI(創傷性腦損傷)
-**注意生命徵象(SPO2大於94、BP100-110、GCS、瞳孔反射)
-*庫欣氏三徵象(血壓高、脈搏慢、呼吸不規則)
-嚴重頭部創傷:GCS小於9
-中度頭部創傷:GCS9-12
-輕度頭部創傷:GCS13-15
-*頭部創傷患者抬高頭部約30度
-*注意脊椎檢測</td></tr></table>`,
-                "X(大失血處置)": `<table border="1" style="border-collapse:collapse; width:100%;"><tr><td colspan="2">***止血帶降階
-條件:傷患意識清楚、無休克、生命徵象穩定，評估可透過傷口填塞敷料或加壓敷料止血，截肢則不建議。
-時機:如使用超過6小時或2小時內可到達醫院則不建議轉換，目標盡量在止血帶打上後2小時內完成。
-交界處止血:如傷口可填塞則先完成填塞再進行交界處加壓。
-
-Transamin使用方法
-1.無法透過外部止血(胸腹骨盆)之休克
-2.創傷發生3小時內
-3.BP小於90或HR大於120
-4.IM(大腿或臀部)每部位最多5CC、靜脈滴注大於10分鐘(1秒3滴)
-*有過敏或血栓疾病患者(腦血栓、心肌梗塞、血栓靜脈炎)及長期接受凝血酶治療者</td></tr></table>`,
-                "A、B(呼吸處置)": `<table border="1" style="border-collapse:collapse; width:100%;"><tr><td colspan="2">嚴重氣喘或過敏反應
-Epinephrine 0.3-0.5mg(IM)，無法改善則且血壓小於90可以10分鐘後再給予1次
-大量血胸:
-症狀:呼吸窘迫、血壓血氧下降，患側呼吸音減少且叩診實音
-開放性氣胸:胸壁起伏不對稱，胸部傷口隨呼吸可感受氣體進出
-張力性氣胸:氣管偏移、頸靜脈怒張、患側呼吸音消失且叩診鼓音
-**針刺減壓條件:呼吸窘迫、患側呼吸音消失、血壓小於90
-**鎖骨中線第二肋間</td></tr></table>`,
-                "E(露身檢查)": `<table border="1" style="border-collapse:collapse; width:100%;"><tr><td colspan="2">脊椎檢測:(當患者情況穩定後進行)
-患者意識不清則無法排除脊椎傷害，意識清楚但因為疼痛、緊張和腦部受傷也無法排除脊椎傷害
-排除要件:
-脊椎觸診無觸痛
-完整的手腳指運動/感知測試(手指外展、手腕、腳掌、腳背的伸展)
-區分尖銳/輕觸的感覺</td></tr></table>`,
-                "高山症": `<table border="1" style="border-collapse:collapse; width:100%;"><tr><td colspan="2">露易絲湖急性高山病指數:
-新的高度上升，抵達地點高於海拔2,500公尺。 
-出現頭痛，且下列三個症狀至少出現一個以上： 
-腸胃道症狀(噁心/嘔吐/沒胃口)、疲憊虛弱、頭暈/頭重腳輕。
-頭痛症狀:無 0-輕微頭痛 1-中度頭痛 2-嚴重頭痛，無法緩解 3。
-腸胃道症狀:食慾良好 0-食慾不振或噁心 1-中度噁心或嘔吐 2-嚴重噁心或嘔吐，無法緩解 3 
-疲憊虛弱:無 0-輕微 1-中度疲憊 2-嚴重疲憊虛弱，無法緩解 3
-頭昏/頭重腳輕:無 0-輕微頭昏/頭重腳輕 1-中度頭昏/頭重腳輕症 2-嚴重，無法緩解 3
-輕度急性高山症(總分3-5分)、中度急性高山症(總分6-9分)、重度急性高山症(總分10-12分) 
-急性高山病(AMS):1.有登高、2.頭痛(2分)、頭暈(1分)、失眠(1分)、噁心或嘔吐(1分)、虛弱(1分)，症狀得分≧3分
-高海拔腦水腫(HACE):
-1.有登高
-2.步態不穩(註a)或意識改變
-高海拔肺水腫(HAPE):
-1.有登高
-2.以下症狀至少2項:休息狀態下呼吸困難、咳嗽、虛弱無力或活動力降低、胸悶或胸脹 
-3.以下病徵至少2項：至少一側肺野有囉音或哮鳴音、中心型發紺(註b)、呼吸過速、心搏過速
-**嚴重症狀如高山肺水腫或高山腦水腫等應立即下山至少500～1000公尺才能有某種程度之改善；對於急性高山症患者攜帶型加壓袋PAC(充氣加壓提供類似降低1500公尺高度效果)如該事故區域(目前多數山屋可能備有)可取得為務必使用。
-***Acetazolamide(丹木斯): 
-利尿劑藥物，適應症為青光眼及水腫、癲癇之輔助治療。 
-一、治療劑量： 
-1. 成人：Acetazolamide 125mg（體重大於100公斤者250mg），每12小時一次(口服)。
-從上升的前一天開始使用，並在高海拔的前2天繼續，如果繼續爬升則延長使用。 
-2. 兒童：Acetazolamide 5mg/kg/day 分次口服使用，或是每12小時2.5mg/kg，最多125mg，每12小時一次。 
-二、禁忌症： 
-1. 對Acetazolamide或是磺胺類(sulfa)過敏。 
-2. 肝硬化或顯著肝臟疾病、低鉀血症、低鈉血症、高氯性酸中毒、腎功能不全、蠶豆症等。
-***Dexamethasone 
-類固醇類藥物，可減少引起發炎的細胞激素產生、降低白血球的活性、降低體內免疫系統的反應等，具有抗發炎、抗風濕、抗過敏和血管收縮作用。若對於Acetazolamide過敏或是病患無法口服藥物，成人可使Dexamethasone。有效預防和治療高山症和高山腦水腫，還可預防高山肺水腫。
-須注意如果在海拔升高適應前停藥，可能會發生輕度反彈。爬升高度時
-Acetazolamide適合預防高山症，Dexamethasone可保留作為下降撤退時的輔助治療。 
-一、治療劑量： 
-1. 成人： 
-(1) 預防：Dexamethasone 2mg，每6小時口服一次，或是每12小時4mg。 
-(2) 治療：第一次4-8mg口服，之後每6小時4mg(如果還困在高海拔或是病情嚴重)。如果只是頭痛一次4-8mg口服即可。如果無法口服，8mg肌肉注射，之後每6小時4mg(如果還困在高海拔或是症狀持續)為期24小時。 
-2. 兒童： 
-不建議使用在預防。Dexamethasone 0.15mg/kg，每6小時一次，最高劑量4mg。 (PS:兒童劑量證據不足) 
-二、禁忌症： 
-1. 對Dexamethasone過敏。 
-2. 全身性真菌感染。 
-3. ☆上述藥物無禁忌症方可使用；孕婦以及哺乳婦女不宜使用。
-***Acetminophen 
-止痛劑及解熱劑，當患者引起頭痛可以使用Acetminophen。 
-一、治療劑量： 
-1. 成人：Acetminophen 500mg，每6小時一次(口服)。 
-二、禁忌症： 
-1. 對Acetminophen過敏。 
-2. 嚴重肝疾病或肝功能損害等。 
-3. 相關副作用及說明參考本局實際採購藥品說明書。
-***Nifedipine 
-鈣離子拮抗劑，適應症為狹心症、高血壓，可使冠狀動脈和小動脈平滑肌舒張，來降低血壓。預防或是緩解高山肺水腫。 
-一、治療劑量： 
-1. 成人：Nifedipine 30mg，每12小時一次或是20mg，每8小時一次(口服)。 注意血壓可能會降低。 
-二、禁忌症： 
-1. 對Nifedipine過敏或其它同類型鈣離子阻斷劑如Felodipine、Isradipine、Amlodipine過敏。 
-2. 收縮壓低於90mmHg者、心臟儲量不佳者、糖尿病患者、透析的病人有惡性高血壓和不可逆性腎衰竭有血容積過少者使用時要小心，因為此藥放鬆血管的作用可能會使血壓突然下降。無法監控血壓時盡量不要用。 
-3. 避免食用葡萄柚汁。 
-4. 不要與威而鋼(或相似作用藥物如犀利士)併用
-**Tadalafil(犀利士) 
-第五型磷酸二酯酶抑制劑（phosphodiesterase type 5 inhibitor），適應症為治療男性勃
-起功能障礙及肺高壓，治療肺高壓時適用於兩種性別。如無威而鋼禁忌前提可使用
-Tadalafil。 
-一、治療劑量： 
-1. 成人：Tadalafil 10mg，每日2次(口服)。 
-二、禁忌症： 
-1. 對Tadalafil過敏。</td></tr></table>`
+""" + ',\n'.join([f'                "{name}": `{html}`' for name, html in export_section_contents.items()]) + """
             }
         };
         
@@ -3356,6 +4325,10 @@ ${allContent}
                             text: "這是你匯出的表格檔案"
                         });
                         exportStatus.innerText = "✅ 匯出成功！";
+                        
+                        // 🌟 新增：匯出成功後，清除本地暫存！
+                        localStorage.removeItem('medical_form_backup');
+                        
                         return;
                     } catch (err) {
                         console.warn("分享失敗，改用下載:", err);
@@ -3366,6 +4339,9 @@ ${allContent}
                 // 下載ZIP（手機分享失敗或桌機）
                 saveAs(zipBlob, zipFileName);
                 exportStatus.innerText = "✅ 匯出成功！";
+                
+                // 🌟 新增：匯出成功後，清除本地暫存！
+                localStorage.removeItem('medical_form_backup');
 
                 
             } catch (error) {
@@ -3427,8 +4403,7 @@ ${allContent}
             const backup = JSON.parse(backupStr);
             
             // 🌟 強化防呆：讀取前的確認，警告會洗掉現有資料
-            if (!confirm(`⚠️ 找到暫存紀錄 (存檔時間: ${backup.time})確定要讀取並還原嗎？
-(注意：這將會清空您現在畫面上「尚未儲存」的輸入！)`)) {
+            if (!confirm(`⚠️ 找到暫存紀錄 (存檔時間: ${backup.time})確定要讀取並還原嗎？\n(注意：這將會清空您現在畫面上「尚未儲存」的輸入！)`)) {
                 return; // 如果按取消，就直接終止，不執行讀取
             }
 
@@ -3462,4 +4437,15 @@ ${allContent}
 
     </script>
 </body>
-</html>
+</html>"""
+
+with open(html_file, "w", encoding="utf-8") as f:
+    f.write(html_content)
+
+print(f"✅ 已生成動態側邊欄表單系統：{html_file}")
+print(f"📋 偵測到 {len(sections)} 個自定義分區：")
+for section in sections:
+    print(f" - {section['name']} (第 {section['start_row']}-{section['end_row']} 行)")
+print(
+    "🎯 功能包含：錄音、選擇題、文字輸入、數字輸入、時間填寫、倒數計時、定位、動態側邊欄、資料匯出"
+)
