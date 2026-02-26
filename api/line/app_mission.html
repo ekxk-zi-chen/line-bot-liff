@@ -291,7 +291,10 @@
         <h1 class="text-xl font-bold text-green-400 mb-1">🚒 花蓮特搜行動系統</h1>
         
         <div class="relative flex justify-center items-center h-6">
-            <p id="user-info" class="text-sm text-gray-400">識別中...</p>
+            <div class="flex items-center gap-2">
+                <p id="user-info" class="text-sm text-gray-400">識別中...</p>
+                <button onclick="handleLogout()" class="bg-red-900/60 hover:bg-red-800 text-red-300 px-2 py-0.5 rounded border border-red-700 text-xs transition-colors">登出</button>
+            </div>
             
             <select id="custodian-filter" onchange="switchCustodian(this.value)" class="absolute right-0 bg-gray-800 text-indigo-300 text-xs py-1 px-1 rounded border border-indigo-700 outline-none max-w-[100px]">
                 <option value="All">所有🛡️</option>
@@ -673,15 +676,57 @@
             enterSystem(data.user);
         }
 
+        // --- 🚪 登出系統與清除本地快取 ---
+        async function handleLogout() {
+            if (!confirm("確定要登出並清除登入狀態嗎？")) return;
+            
+            toggleLoader(true, "登出中...");
+            try {
+                // 1. 呼叫 Supabase 登出，這行會「自動幫你把 LocalStorage 裡的憑證刪光光」
+                await _supabase.auth.signOut();
+                
+                // 2. 清除網頁內存變數 (失憶)
+                userId = "";
+                userEmail = "";
+                displayName = "";
+                isUserAdmin = false;
+                equipmentCache = [];
+                
+                // 3. 把管理員按鈕重新封印隱藏
+                document.getElementById('btn-add-eq').classList.add('hidden');
+                document.getElementById('btn-batch-borrow').classList.add('hidden');
+                document.getElementById('btn-batch-return').classList.add('hidden');
+                
+                // 4. 切換畫面：隱藏裝備清單，顯示登入畫面
+                document.getElementById('view-equipment').classList.add('hidden');
+                document.getElementById('login-screen').classList.remove('hidden');
+                
+                // 5. 順便把密碼框清空，保護隱私
+                document.getElementById('login-password').value = ""; 
+                
+            } catch (error) {
+                console.error("登出失敗:", error);
+                alert("登出時發生錯誤");
+            } finally {
+                toggleLoader(false);
+            }
+        }
 
         // 2. 成功登入後，動態賦予身分並解鎖畫面
         async function enterSystem(user) {
             userId = user.id; 
             userEmail = user.email;
-            displayName = user.email.split('@')[0];
+            
+            // 🔥 1. 去資料庫把你的「真實姓名」抓出來
+            const { data } = await _supabase.from('users').select('姓名').eq('電子信箱', userEmail).maybeSingle();
+            
+            // 🔥 2. 如果資料庫有名字就用真名，萬一出錯才備用信箱前綴
+            displayName = (data && data.姓名) ? data.姓名 : userEmail.split('@')[0];
+            
             document.getElementById('user-info').innerText = `隊員：${displayName}`;
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('loader').classList.remove('hidden');
+            
             await checkAdminRole();
             loadEquipment();
             setTimeout(attachDragToElements, 500);
