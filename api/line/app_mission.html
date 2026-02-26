@@ -616,6 +616,10 @@
 
                 const { data, error } = await _supabase.rpc(action, rpcParams); // <--- 改名
                 if (error) throw new Error(error.message);
+                
+                // 🔥 加上這行：如果資料庫明明白白說 success 是 false，就丟出拒絕原因！
+                if (data && data.success === false) throw new Error(data.message);
+                
                 return data;
             } 
             else if (action === 'check_user_role') {
@@ -719,19 +723,16 @@
 
         // 2. 成功登入後，動態賦予身分並解鎖畫面
         async function enterSystem(user) {
-            userId = user.id; 
-            userEmail = user.email;
+            userEmail = user.email; // 先記錄信箱
 
             try {
-                // 🔥 1. 先從資料庫抓取該使用者的真實姓名
-                // 使用 rpc 呼叫我們之前建的特權函數 get_user_name_by_email 
-                // 這樣即便沒完全登入成功也能繞過 RLS 抓到名字
-                const { data: realName, error: nameErr } = await _supabase.rpc('get_user_name_by_email', { p_email: userEmail });
-
-                if (nameErr) console.error("抓取姓名失敗:", nameErr);
-
-                // 🔥 2. 設定顯示名稱：有真名用真名，沒真名才切信箱前綴
+                // 1. 抓取真實姓名
+                const { data: realName } = await _supabase.rpc('get_user_name_by_email', { p_email: userEmail });
                 displayName = (realName) ? realName : userEmail.split('@')[0];
+
+                // 🔥 2. 獲取資料庫真正認得的 user_id (修復所有權限的核心)
+                const { data: dbUserId } = await _supabase.rpc('get_user_id_by_email', { p_email: userEmail });
+                userId = dbUserId || user.id; // 如果資料庫有 ID 就用資料庫的，沒有才用備案
                 
                 // 更新 UI
                 document.getElementById('user-info').innerText = `隊員：${displayName}`;
@@ -742,18 +743,15 @@
 
                 // 4. 檢查權限並載入資料
                 await checkAdminRole();
-                await loadEquipment(); // 確保這行有加上 await
+                await loadEquipment(); 
                 
-                // 綁定拖曳功能
                 setTimeout(attachDragToElements, 500);
 
             } catch (err) {
                 console.error("進入系統發生崩潰:", err);
                 alert("系統初始化失敗，請重新整理網頁");
             } finally {
-                // 🔥 5. 無論成功或失敗，最後一定要把轉圈圈關掉！
                 document.getElementById('loader').classList.add('hidden');
-                console.log("✅ 系統加載完成，關閉讀取動畫");
             }
         }
 
