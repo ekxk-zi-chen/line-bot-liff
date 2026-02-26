@@ -734,6 +734,12 @@
                 const { data: dbUserId } = await _supabase.rpc('get_user_id_by_email', { p_email: userEmail });
                 userId = dbUserId || user.id; // 如果資料庫有 ID 就用資料庫的，沒有才用備案
                 
+                // 🔥 補上這一段：登入成功後，立刻檢查有沒有 Android 傳過來的暫存 Token
+                if (window.tempFCMToken) {
+                    console.log("偵測到暫存 Token，準備執行補登...");
+                    performTokenUpdate(window.tempFCMToken);
+                }
+
                 // 更新 UI
                 document.getElementById('user-info').innerText = `隊員：${displayName}`;
                 
@@ -850,33 +856,32 @@
             btn.innerText = "提交中..."; btn.disabled = true;
 
             try {
-                // 🔥 呼叫第 11 個特權函數檢查是否重複
+                // 1. 檢查是否重複 (使用你原本的邏輯)
                 const { data: userName } = await _supabase.rpc('get_user_name_by_email', { p_email: email });
-                
                 if (userName) {
                     alert(`⚠️ ${userName} 您好，這個信箱已經在系統中了！\n請直接切換至中間的「信箱綁定」來設定 App 密碼，不需重新註冊。`);
+                    btn.innerText = "提交新註冊"; btn.disabled = false;
                     return;
                 }
 
-                // 2. 真的沒註冊過，建立 Supabase 登入帳號
+                // 2. 建立 Supabase 登入帳號
                 const { error: authErr } = await _supabase.auth.signUp({ email, password: pw });
                 if (authErr) throw authErr;
 
-                // 3. 寫入 users 資料表 (生成虛擬 ID)
+                // 🔥 3. 改用 RPC 寫入 users 資料表 (解決權限問題，並保留你所有欄位)
                 const fakeUserId = "APP_" + Math.random().toString(36).substr(2, 9);
-                const { error: insertErr } = await _supabase.from('users').insert([{
-                    "user_id": fakeUserId,
-                    "姓名": name,
-                    "display_name": name,
-                    "電話": phone,
-                    "職稱": title,
-                    "單位": unit,
-                    "申請備註": note,
-                    "電子信箱": email,
-                    "管理員": "一般用戶", 
-                    "創建時間": new Date().toISOString()
-                }]);
-                if (insertErr) throw insertErr;
+                const { data: regRes, error: regErr } = await _supabase.rpc('handle_new_user_registration', {
+                    p_name: name,
+                    p_unit: unit,
+                    p_email: email,
+                    p_user_id: fakeUserId,
+                    p_phone: phone,
+                    p_title: title,
+                    p_note: note
+                });
+
+                if (regErr) throw regErr;
+                if (!regRes.success) throw new Error(regRes.message);
 
                 alert("🎉 註冊成功！資料已提交。\n系統將自動為您登入。");
                 
@@ -1986,6 +1991,31 @@
                     slider.scrollLeft = scrollLeft - walk;
                 });
             });
+        }
+
+
+                // 🏆 接收來自 Android 的 Token
+        window.setFCMToken = function(token) {
+            console.log("從手機 App 取得 Token:", token);
+            
+            // 如果 userEmail 已經存在 (代表 enterSystem 已跑完)，直接更新
+            if (typeof userEmail !== 'undefined' && userEmail) {
+                performTokenUpdate(token);
+            } else {
+                // 否則暫存在全域，等登入流程完成再呼叫
+                window.tempFCMToken = token;
+            }
+        };
+
+        // 執行 Supabase 更新 (遵循 RLS)
+        async function performTokenUpdate(token) {
+            const { error } = await _supabase
+                .from('users')
+                .update({ fcm_token: token })
+                .eq('電子信箱', userEmail); // 對齊你的 SQL 欄位名稱
+
+            if (error) console.error("同步失敗:", error.message);
+            else console.log("🎉 Token 已安全同步");
         }
 
     </script>
