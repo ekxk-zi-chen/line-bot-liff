@@ -3383,17 +3383,19 @@ ${allContent}
 
         // ----------------- 本機暫存與讀取功能 -----------------
         function saveToLocal() {
-            // 🌟 新增防呆：儲存前的確認
             if (!confirm('⚠️ 確定要暫存目前的資料嗎？(這將會覆蓋掉您上一次的暫存紀錄)')) {
-                return; // 如果按取消，就直接終止，不執行儲存
+                return;
             }
 
             try {
-                // 1. 備份所有的內容區塊 HTML (這會捕捉所有文字、按鈕顏色、照片預覽)
+                // 1. 備份所有的內容區塊 HTML (🌟修改：跳過匯出區塊，保護按鈕功能不失效)
                 const sections = document.querySelectorAll('.content-section');
                 const sectionsHTML = {};
                 sections.forEach(sec => {
-                    sectionsHTML[sec.id] = sec.innerHTML;
+                    // 加入這行防呆判斷，只要不是匯出區塊才儲存
+                    if (sec.id !== 'section-匯出') {
+                        sectionsHTML[sec.id] = sec.innerHTML;
+                    }
                 });
 
                 // 2. 備份所有的隱藏數據 (dataset)
@@ -3433,15 +3435,15 @@ ${allContent}
             
             const backup = JSON.parse(backupStr);
             
-            // 🌟 強化防呆：讀取前的確認，警告會洗掉現有資料
-            if (!confirm(`⚠️ 找到暫存紀錄 (存檔時間: ${backup.time})確定要讀取並還原嗎？
-(注意：這將會清空您現在畫面上「尚未儲存」的輸入！)`)) {
-                return; // 如果按取消，就直接終止，不執行讀取
+            if (!confirm(`⚠️ 找到暫存紀錄 (存檔時間: ${backup.time})確定要讀取並還原嗎？(注意：這將會清空您現在畫面上「尚未儲存」的輸入！)`)) {
+                return;
             }
 
             try {
-                // 1. 還原 HTML 畫面結構
+                // 1. 還原 HTML 畫面結構 (🌟修改：讀取時也跳過匯出區塊)
                 for (let id in backup.sections) {
+                    if (id === 'section-匯出') continue; // <--- 加入這行保護機制
+                    
                     const sec = document.getElementById(id);
                     if (sec) {
                         sec.innerHTML = backup.sections[id];
@@ -3465,7 +3467,6 @@ ${allContent}
                 alert('❌ 讀取失敗，暫存檔可能已損毀。');
             }
         }
-
 
     </script>
 </body>
