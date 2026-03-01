@@ -604,7 +604,7 @@
         // 🔥 2. 智慧路由器：自動判斷要直連 Supabase 還是去呼叫 GAS
         async function callGasApi(payload) {
             const action = payload.action;
-            const rpcActions = ['get_equipment_list', 'manage_equipment', 'borrow_equipment', 'return_equipment', 'get_loan_history'];
+            const rpcActions = ['get_equipment_list', 'manage_equipment', 'borrow_equipment', 'return_equipment', 'get_loan_history', 'batch_borrow_equipment', 'batch_return_equipment'];
 
             if (rpcActions.includes(action)) {
                 let rpcParams = {};
@@ -613,7 +613,12 @@
                 else if (action === 'borrow_equipment') rpcParams = { p_eq_id: payload.eqId, p_borrower_name: payload.borrower, p_qty: payload.qty, p_user_name: displayName, p_note: payload.note || '', p_note2: payload.note2 || '', p_user_id: userId };
                 else if (action === 'return_equipment') rpcParams = { p_loan_id: payload.loanId, p_return_qty: payload.returnQty, p_user_name: displayName, p_user_id: userId };
                 else if (action === 'get_loan_history') rpcParams = { p_user_id: userId, p_eq_id: payload.eqId || null };
-
+                else if (action === 'batch_borrow_equipment') {
+                    rpcParams = { p_user_id: userId, p_user_name: displayName, p_items: payload.items };
+                }
+                else if (action === 'batch_return_equipment') {
+                    rpcParams = { p_user_id: userId, p_user_name: displayName, p_items: payload.items };
+                }
                 const { data, error } = await _supabase.rpc(action, rpcParams); // <--- 改名
                 if (error) throw new Error(error.message);
                 
@@ -1404,24 +1409,21 @@
                 return;
             }
 
-            // 將暫存名單轉化為 API 請求格式
-            const requests = pendingBorrowRequests.map(req => ({
-                action: 'borrow_equipment',
-                userId, 
-                displayName, 
-                eqId: req.eqId, 
-                borrower: req.borrower, 
-                qty: req.qty, 
-                note: req.note, 
-                note2: req.note2
-            }));
+            // 【貨櫃船模式】打包成 1 個大包裹，細節全部都在 items 裡面！
+            const requestPayload = {
+                action: 'batch_borrow_equipment',
+                userId: userId,
+                displayName: displayName,
+                items: pendingBorrowRequests 
+            };
 
-            toggleLoader(true); 
+            toggleLoader(true, "批量打包送出中..."); 
             closeModal('batch-borrow-modal');
             try { 
-                await Promise.all(requests.map(req => callGasApi(req))); 
+                // 🔥 只發射一次！
+                await callGasApi(requestPayload); 
                 alert("送出成功！"); 
-                pendingBorrowRequests = []; // 🔥 成功送出後徹底清空暫存區！
+                pendingBorrowRequests = []; // 成功後清空暫存區
                 selectedItems.clear(); 
                 if(isExportMode) toggleExportMode(); 
                 fetchEquipmentData(false); 
@@ -1458,14 +1460,35 @@
         async function submitBatchReturn() {
             const checkboxes = document.querySelectorAll('.return-checkbox:checked');
             if (checkboxes.length === 0) return alert("請勾選");
-            const requests = [];
+            
+            // 準備一個陣列來裝歸還的細節
+            const items = [];
             checkboxes.forEach(cb => {
                 const loanId = cb.dataset.loanId;
                 const qty = parseInt(document.querySelector(`.return-qty-input[data-loan-id="${loanId}"]`).value);
-                if (qty > 0) requests.push({ action: 'return_equipment', userId, displayName, loanId, returnQty: qty });
+                // 把專屬參數(借據ID、歸還數量)塞進陣列
+                if (qty > 0) items.push({ loanId: loanId, returnQty: qty });
             });
-            toggleLoader(true); closeModal('batch-return-modal');
-            try { await Promise.all(requests.map(req => callGasApi(req))); alert("歸還成功"); selectedItems.clear(); if(isExportMode) toggleExportMode(); fetchEquipmentData(false); } catch (e) { alert(e.message); } finally { toggleLoader(false); }
+
+            toggleLoader(true, "批量歸還中..."); 
+            closeModal('batch-return-modal');
+            try { 
+                // 【貨櫃船模式】打包成 1 個大包裹
+                await callGasApi({ 
+                    action: 'batch_return_equipment', 
+                    userId: userId, 
+                    displayName: displayName, 
+                    items: items 
+                }); 
+                alert("歸還成功"); 
+                selectedItems.clear(); 
+                if(isExportMode) toggleExportMode(); 
+                fetchEquipmentData(false); 
+            } catch (e) { 
+                alert(e.message); 
+            } finally { 
+                toggleLoader(false); 
+            }
         }
 
         // 其他工具
