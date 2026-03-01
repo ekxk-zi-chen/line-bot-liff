@@ -594,6 +594,11 @@
         let isUserAdmin = false; let pendingBatchItems = []; let pendingBorrowRequests = [];
         let currentImageArray = []; let currentImageIndex = 0; let swipeStartX = 0;
 
+        // 【App 專用介面卡】: 原封不動把大包裹丟給 Supabase 的 RPC
+        window.submitToBackend = async function(payload) {
+            return await callGasApi(payload);
+        };
+
         // --- 全域工具函數 ---
         function toggleLoader(show, text="處理中...") {
             const el = document.getElementById('boar-overlay'), txt = document.getElementById('boar-text'), anim = document.getElementById('boar-anim');
@@ -643,7 +648,8 @@
     </script>
 
     <script src="mission_folder/task.js"></script>
-
+    <script src="mission_folder/return.js"></script>
+    <script src="mission_folder/borrow.js"></script>
     <script>
         
 
@@ -1270,226 +1276,6 @@
                 btn.classList.replace('text-gray-400', 'text-blue-300');
             }
         }
-        
-        // 借出 (批次數量)
-        function openSingleBorrowModal(id) { selectedItems.clear(); selectedItems.add(id); openBatchBorrowModal(); }
-        function openBatchBorrowModal() {
-            if (selectedItems.size === 0) { alert("請先勾選裝備"); return; }
-            
-            // ❌ 我們把清空暫存的那三行刪掉了，這樣才不會每次打開都不見！
-
-            document.getElementById('batch-borrow-modal').classList.add('flex');
-            document.getElementById('batch-borrow-modal').classList.remove('hidden');
-
-            // 如果借用人沒清空，方便繼續打字
-            // document.getElementById('batch-borrower').value = ""; 
-            
-            // 確保維修 UI 正常
-            document.querySelector('input[name="borrow_mode"][value="borrow"]').checked = true;
-            toggleBorrowMode(); 
-
-            const tbody = document.getElementById('batch-borrow-list'); tbody.innerHTML = "";
-            selectedItems.forEach(id => {
-                const eq = equipmentCache.find(e => e.id === id);
-                if (eq && eq.available_qty > 0) {
-                    // 🔥 【關鍵修改】把 input 裡面的 min="1" 改成了 min="0"！
-                    tbody.innerHTML += `<tr class="border-b border-gray-700"><td class="px-2 py-2 text-white">${eq.name}</td><td class="text-center text-gray-400">${eq.available_qty}</td><td class="text-center"><input type="number" data-id="${eq.id}" data-name="${eq.name}" class="borrow-qty-input w-16 bg-gray-700 text-white p-1 rounded border border-gray-600 text-center" value="1" min="0" max="${eq.available_qty}"></td></tr>`;
-                }
-            });
-
-            // 🔥 打開時重新顯示剛才已經存好的名單
-            renderBorrowQueue();
-        }
-
-        // 🔥 [新增] 隱藏彈窗，但不清空資料 (讓使用者回去勾選更多)
-        function hideBorrowModal() {
-            document.getElementById('batch-borrow-modal').classList.add('hidden');
-            document.getElementById('batch-borrow-modal').classList.remove('flex');
-        }
-
-        // 🔥 [新增] 徹底取消：清空暫存名單、清空打勾狀態、關閉彈窗
-        function cancelBatchBorrow() {
-            pendingBorrowRequests = [];  // 清空暫存清單
-            selectedItems.clear();       // 清空外面打勾的裝備
-            renderEquipmentList();       // 刷新外面畫面 (把勾勾拿掉)
-            hideBorrowModal();           // 關閉視窗
-        }
-
-        // 🔥 [新增] 加入多人名單暫存
-        function addToBorrowQueue() {
-            const borrower = document.getElementById('batch-borrower').value;
-            if (!borrower) { alert("請輸入借用人 / 經手人"); return; }
-
-            const mode = document.querySelector('input[name="borrow_mode"]:checked').value;
-            let finalNote = "", finalNote2 = "";
-
-            if (mode === 'borrow') {
-                finalNote = document.getElementById('batch-note').value;
-                finalNote2 = document.getElementById('batch-note2').value;
-            } else {
-                const repairReason = document.getElementById('batch-repair-note').value;
-                if (!repairReason) { alert("請輸入維修原因"); return; }
-                finalNote = "[維修] " + repairReason;
-                finalNote2 = ""; 
-            }
-
-            const inputs = document.querySelectorAll('.borrow-qty-input');
-            const tempQueue = [];
-
-            for (let input of inputs) {
-                const qty = parseInt(input.value);
-                if (qty > 0) {
-                    const maxQty = parseInt(input.max);
-                    const eqId = input.dataset.id;
-                    const eqName = input.dataset.name;
-
-                    // 檢查這項裝備在暫存區裡已經借了幾個，避免超借
-                    const queuedQty = pendingBorrowRequests.filter(req => req.eqId === eqId).reduce((sum, req) => sum + req.qty, 0);
-                    if (queuedQty + qty > maxQty) {
-                        alert(`【${eqName}】庫存不足！\n剩餘: ${maxQty}\n已排入名單: ${queuedQty}\n本次欲借: ${qty}`);
-                        return; // 中斷加入
-                    }
-                    tempQueue.push({ eqId, eqName, borrower, qty, note: finalNote, note2: finalNote2 });
-                }
-            }
-
-            if (tempQueue.length === 0) return alert("請確認借用數量");
-
-            pendingBorrowRequests.push(...tempQueue);
-            renderBorrowQueue();
-            
-            // 清空名字，方便輸入下一個人 (用途/補述保留，因為通常同一批借用途一樣)
-            document.getElementById('batch-borrower').value = "";
-            document.getElementById('batch-borrower').focus();
-        }
-
-        // 🔥 [新增] 渲染待送出名單 UI
-        function renderBorrowQueue() {
-            const area = document.getElementById('borrow-queue-area');
-            const list = document.getElementById('borrow-queue-list');
-            list.innerHTML = "";
-
-            if (pendingBorrowRequests.length === 0) {
-                area.classList.add('hidden');
-                return;
-            }
-
-            area.classList.remove('hidden');
-            pendingBorrowRequests.forEach((req, index) => {
-                const n1 = req.note ? `<span class="text-blue-300 ml-1">#${req.note}</span>` : '';
-                const n2 = req.note2 ? `<span class="text-fuchsia-300 ml-1 bg-fuchsia-900/40 px-1 rounded">補:${req.note2}</span>` : '';
-                
-                list.innerHTML += `
-                    <div class="flex justify-between items-center bg-gray-800 p-2 rounded border border-gray-700 text-sm">
-                        <div class="flex-1 line-clamp-1">
-                            <span class="text-white font-bold">${req.borrower}</span>
-                            <span class="text-gray-400 text-xs ml-1">借 ${req.eqName} <span class="text-yellow-400 font-bold">x${req.qty}</span></span>
-                            ${n1}${n2}
-                        </div>
-                        <button onclick="removeFromBorrowQueue(${index})" class="text-red-400 px-2 ml-2 bg-gray-700 hover:bg-gray-600 rounded">✕</button>
-                    </div>`;
-            });
-        }
-
-        // 🔥 [新增] 從名單中移除
-        function removeFromBorrowQueue(index) {
-            pendingBorrowRequests.splice(index, 1);
-            renderBorrowQueue();
-        }
-
-        async function submitBatchBorrow() {
-            // 如果輸入框有填人名但還沒按「加入名單」，自動幫他加入 (相容舊操作習慣)
-            const borrower = document.getElementById('batch-borrower').value;
-            if (borrower) {
-                addToBorrowQueue();
-            }
-
-            if (pendingBorrowRequests.length === 0) {
-                alert("請輸入借用人或加入名單");
-                return;
-            }
-
-            // 【貨櫃船模式】打包成 1 個大包裹，細節全部都在 items 裡面！
-            const requestPayload = {
-                action: 'batch_borrow_equipment',
-                userId: userId,
-                displayName: displayName,
-                items: pendingBorrowRequests 
-            };
-
-            toggleLoader(true, "批量打包送出中..."); 
-            closeModal('batch-borrow-modal');
-            try { 
-                // 🔥 只發射一次！
-                await callGasApi(requestPayload); 
-                alert("送出成功！"); 
-                pendingBorrowRequests = []; // 成功後清空暫存區
-                selectedItems.clear(); 
-                if(isExportMode) toggleExportMode(); 
-                fetchEquipmentData(false); 
-            } catch (e) { 
-                alert(e.message); 
-            } finally { 
-                toggleLoader(false); 
-            }
-        }
-
-        // 歸還 (批次數量)
-        function openSingleReturnModal(eqId, loanId, qty, borrower) {
-            document.getElementById('batch-return-modal').classList.add('flex');
-            const listDiv = document.getElementById('batch-return-list'); listDiv.innerHTML = "";
-            const eq = equipmentCache.find(e => e.id === eqId);
-            renderReturnItem(listDiv, eq ? eq.name : '裝備', loanId, qty, borrower);
-        }
-        function openBatchReturnModal() {
-            if (selectedItems.size === 0) { alert("請先勾選歸還裝備"); return; }
-            document.getElementById('batch-return-modal').classList.add('flex');
-            const listDiv = document.getElementById('batch-return-list'); listDiv.innerHTML = "";
-            let hasLoan = false;
-            selectedItems.forEach(id => {
-                const eq = equipmentCache.find(e => e.id === id);
-                if (eq && eq.active_loans) eq.active_loans.forEach(l => { hasLoan=true; renderReturnItem(listDiv, eq.name, l.loan_id, l.qty, l.borrower); });
-            });
-            if (!hasLoan) { alert("無借出紀錄"); closeModal('batch-return-modal'); }
-        }
-        function renderReturnItem(container, eqName, loanId, maxQty, borrower) {
-            container.innerHTML += `<div class="flex items-center justify-between bg-gray-700 p-3 rounded border border-gray-600">
-                <div class="flex items-center gap-3"><input type="checkbox" class="return-checkbox w-5 h-5" checked data-loan-id="${loanId}"><div class="text-sm"><div class="text-white font-bold">${eqName}</div><div class="text-gray-300 text-xs">👤 ${borrower} (借: ${maxQty})</div></div></div>
-                <div class="flex items-center gap-2"><label class="text-xs text-gray-400">歸還:</label><input type="number" class="return-qty-input w-16 bg-gray-800 text-white p-1 rounded border border-gray-500 text-center" value="${maxQty}" min="1" max="${maxQty}" data-loan-id="${loanId}"></div></div>`;
-        }
-        async function submitBatchReturn() {
-            const checkboxes = document.querySelectorAll('.return-checkbox:checked');
-            if (checkboxes.length === 0) return alert("請勾選");
-            
-            // 準備一個陣列來裝歸還的細節
-            const items = [];
-            checkboxes.forEach(cb => {
-                const loanId = cb.dataset.loanId;
-                const qty = parseInt(document.querySelector(`.return-qty-input[data-loan-id="${loanId}"]`).value);
-                // 把專屬參數(借據ID、歸還數量)塞進陣列
-                if (qty > 0) items.push({ loanId: loanId, returnQty: qty });
-            });
-
-            toggleLoader(true, "批量歸還中..."); 
-            closeModal('batch-return-modal');
-            try { 
-                // 【貨櫃船模式】打包成 1 個大包裹
-                await callGasApi({ 
-                    action: 'batch_return_equipment', 
-                    userId: userId, 
-                    displayName: displayName, 
-                    items: items 
-                }); 
-                alert("歸還成功"); 
-                selectedItems.clear(); 
-                if(isExportMode) toggleExportMode(); 
-                fetchEquipmentData(false); 
-            } catch (e) { 
-                alert(e.message); 
-            } finally { 
-                toggleLoader(false); 
-            }
-        }
 
         // 其他工具
         function toggleExportMode() { isExportMode = !isExportMode; document.getElementById('export-toolbar').classList.toggle('hidden'); document.getElementById('btn-export-mode').innerText = isExportMode ? "❌ 取消" : "批量/匯出"; renderEquipmentList(); }
@@ -1602,19 +1388,6 @@
             container.innerHTML = html;
         }
 
-        // 🔥 [新增] 切換借出/報修模式 UI
-        function toggleBorrowMode() {
-            const mode = document.querySelector('input[name="borrow_mode"]:checked').value;
-            if (mode === 'borrow') {
-                document.getElementById('borrow-fields').classList.remove('hidden');
-                document.getElementById('borrow-fields').classList.add('flex');
-                document.getElementById('repair-fields').classList.add('hidden');
-            } else {
-                document.getElementById('borrow-fields').classList.add('hidden');
-                document.getElementById('borrow-fields').classList.remove('flex');
-                document.getElementById('repair-fields').classList.remove('hidden');
-            }
-        }
 
         // 🔥 切換篩選面板展開/收合
         function toggleFilterPanel() {
@@ -1821,37 +1594,6 @@
             document.getElementById('ai-response').innerHTML = mode==='ppt'?`<a href="${r.url}" target="_blank" class="btn block text-center bg-green-600 p-2 rounded">下載簡報</a>`:r.answer; } catch(e){alert(e.message)} finally{toggleLoader(false)}
         }
         async function safeExecute(btn, fn) { btn.disabled=true; await fn(); btn.disabled=false; }
-
-        // 新增維修相關功能
-        function openRepairModal(id, currentUser) {
-            const eq = equipmentCache.find(e => e.id === id);
-            if (!eq) return;
-            document.getElementById('repair-modal').classList.add('flex');
-            document.getElementById('repair-eq-id').value = id;
-            document.getElementById('repair-user').value = currentUser;
-            document.getElementById('repair-reason').value = "";
-            document.getElementById('repair-qty').value = 1;
-            document.getElementById('repair-qty').max = eq.available_qty;
-        }
-
-        async function submitRepair() {
-            const id = document.getElementById('repair-eq-id').value;
-            const user = document.getElementById('repair-user').value;
-            const reason = document.getElementById('repair-reason').value;
-            const qty = document.getElementById('repair-qty').value;
-            if (!reason) return alert("請輸入維修原因");
-            toggleLoader(true);
-            closeModal('repair-modal');
-            try {
-                // 自動加上 [維修] 標籤
-                await callGasApi({
-                    action: 'borrow_equipment', userId, displayName,
-                    eqId: id, borrower: user, qty: qty, note: `[維修] ${reason}`
-                });
-                alert("報修成功");
-                fetchEquipmentData(false);
-            } catch (e) { alert(e.message); } finally { toggleLoader(false); }
-        }
 
         // 🔥 [新增] 打開詳細資料跳窗
         function openDetailsModal(id) {
