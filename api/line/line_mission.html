@@ -537,40 +537,17 @@
         let currentImageIndex = 0;  // 目前顯示到第幾張
         let swipeStartX = 0;        // 紀錄手指按下的 X 座標
 
-        // 【LINE 專用介面卡】: 負責把大包裹「拆回迴圈」，相容舊版 API
+        // 【LINE 專用介面卡 - 升級大包裹版】
         window.submitToBackend = async function(payload) {
-            if (payload.action === 'batch_borrow_equipment') {
-                // 把 1 個包裹拆成 30 封信 (舊版的 request 陣列)
-                const requests = payload.items.map(req => ({
-                    action: 'borrow_equipment',
-                    userId: payload.userId, 
-                    displayName: payload.displayName, 
-                    eqId: req.eqId, 
-                    borrower: req.borrower, 
-                    qty: req.qty, 
-                    note: req.note, 
-                    note2: req.note2
-                }));
-                // 用迴圈機關槍發射出去！
-                await Promise.all(requests.map(req => callGasApi(req)));
-                return { success: true };
-            } 
-            else if (payload.action === 'batch_return_equipment') {
-                // 歸還一樣拆開
-                const requests = payload.items.map(item => ({
-                    action: 'return_equipment',
-                    userId: payload.userId,
-                    displayName: payload.displayName,
-                    loanId: item.loanId,
-                    returnQty: item.returnQty
-                }));
-                await Promise.all(requests.map(req => callGasApi(req)));
-                return { success: true };
+            // 🔥 GAS 已經支援大包裹了，不再需要拆解迴圈！
+            // 直接把整包資料發射給 Vercel / GAS
+            const res = await callGasApi(payload);
+            
+            // 防呆：如果 GAS 回傳明確的錯誤訊息，就把錯誤丟出來給畫面顯示
+            if (res && res.success === false) {
+                throw new Error(res.message);
             }
-            else {
-                // 單次操作 (如報修) 直接發射
-                return await callGasApi(payload);
-            }
+            return res;
         };
 
         // --- 全域工具函數 (讓 task.js 也能用) ---
