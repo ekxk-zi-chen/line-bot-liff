@@ -13,7 +13,6 @@ firebase.initializeApp({
     storageBucket: "hnfa-rescue.firebasestorage.app",
     messagingSenderId: "958260270342",
     appId: "1:958260270342:web:d18e0c35653a3ab45c3a87",
-    appId: "你的_APP_ID"
 });
 
 const messaging = firebase.messaging();
