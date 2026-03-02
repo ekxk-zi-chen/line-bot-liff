@@ -5,7 +5,10 @@ const urlsToCache = [
   './app_mission.html',
   './manifest.json',
   './rescue192.png',
-  './rescue512.png'
+  './rescue512.png',
+  './mission_folder/borrow.js',
+  './mission_folder/return.js',
+  './mission_folder/task.js',
 ];
 
 self.addEventListener('install', event => {
