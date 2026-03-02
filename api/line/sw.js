@@ -21,16 +21,23 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
     console.log('📥 在背景收到推播：', payload);
 
-    // 解析推播內容 (相容 Supabase 發送的格式)
+    // 如果 Firebase 已經自動顯示了通知，payload.notification 可能會存在
+    // 我們透過加上 tag 來確保通知不會重疊彈出
     const notificationTitle = payload.notification?.title || '花搜戰情中心';
     const notificationOptions = {
         body: payload.notification?.body || '您有一則新通知',
-        icon: './rescue192.png',   // 通知上顯示的小圖示
-        badge: './rescue192.png',  // iOS 頂部狀態列的單色圖示
-        vibrate: [200, 100, 200, 100, 200] // 震動模式：SOS 節奏
+        icon: './rescue192.png',
+        badge: './rescue192.png',
+        // ✨ 加入 tag 屬性：這是防止重複通知的最強武器！
+        // 只要 tag 一樣，手機就會認為是同一則通知，只會顯示一個
+        tag: 'sar-task-notification', 
+        renotify: false, // 當 tag 相同時，不要再次震動或響鈴
+        vibrate: [200, 100, 200, 100, 200],
+        data: payload.data // 把原始資料帶進去，方便點擊時處理
     };
 
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    // 只有在真的需要手動彈出時才呼叫
+    return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 // 處理使用者點擊通知的動作
