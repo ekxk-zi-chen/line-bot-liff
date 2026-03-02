@@ -19,24 +19,25 @@ const messaging = firebase.messaging();
 
 // 攔截並顯示背景收到的推播
 messaging.onBackgroundMessage((payload) => {
-    console.log('📥 在背景收到推播：', payload);
+    console.log('📥 收到推播載荷：', payload);
 
-    // 如果 Firebase 已經自動顯示了通知，payload.notification 可能會存在
-    // 我們透過加上 tag 來確保通知不會重疊彈出
-    const notificationTitle = payload.notification?.title || '花搜戰情中心';
+    // 🔥 這是解決兩次通知的核心邏輯：
+    // 如果 Webhook 送來的資料已經包含「notification」物件 (即 title 和 body)
+    // 瀏覽器會自動顯示它，我們在這裡就直接結束，不要重複呼叫 showNotification
+    if (payload.notification) {
+        console.log('📢 偵測到系統通知內容，sw.js 略過手動彈窗以避免重複顯示。');
+        return; 
+    }
+
+    // --- 只有在「純資料 (Data Only)」的情況下才會走到下面 ---
+    // 例如：如果你未來想發送那種「不顯示文字，只讓背景更新資料」的推播
+    const notificationTitle = '花搜戰情中心';
     const notificationOptions = {
-        body: payload.notification?.body || '您有一則新通知',
+        body: payload.data?.message || '您有一則新任務',
         icon: './rescue192.png',
-        badge: './rescue192.png',
-        // ✨ 加入 tag 屬性：這是防止重複通知的最強武器！
-        // 只要 tag 一樣，手機就會認為是同一則通知，只會顯示一個
-        tag: 'sar-task-notification', 
-        renotify: false, // 當 tag 相同時，不要再次震動或響鈴
-        vibrate: [200, 100, 200, 100, 200],
-        data: payload.data // 把原始資料帶進去，方便點擊時處理
+        tag: 'sar-task-notification'
     };
 
-    // 只有在真的需要手動彈出時才呼叫
     return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
