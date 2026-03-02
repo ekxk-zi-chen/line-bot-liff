@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>花蓮特搜戰情中心</title>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a1a">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="花搜戰情">
+    <link rel="apple-touch-icon" href="icon-192.png"> <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -1782,7 +1791,15 @@
             if (error) console.error("同步失敗:", error.message);
             else console.log("🎉 Token 已安全同步");
         }
-
+        
+        // 🚀 註冊 PWA Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('✅ Service Worker 註冊成功:', reg.scope))
+                    .catch(err => console.error('❌ Service Worker 註冊失敗:', err));
+            });
+        }
     </script>
 </body>
 </html>
