@@ -66,8 +66,8 @@ const CACHE_NAME = 'sar-cache-v4'; // 版本號更新，強制刷新快取
 const urlsToCache = [
     './app_mission.html',
     './manifest.json',
-    './rescue192.jpg',
-    './rescue512.jpg',
+    './rescue192.png',
+    './rescue512.png',
     './mission_folder/task.js',
     './mission_folder/return.js',
     './mission_folder/borrow.js',
