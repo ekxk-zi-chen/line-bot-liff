@@ -13,6 +13,9 @@
     <meta name="apple-mobile-web-app-title" content="花搜戰情">
     <link rel="apple-touch-icon" href="rescue192.png"> <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -659,6 +662,8 @@
     <script src="mission_folder/task.js"></script>
     <script src="mission_folder/return.js"></script>
     <script src="mission_folder/borrow.js"></script>
+    <script src="mission_folder/web_push.js"></script>
+
     <script>
         
 
@@ -754,10 +759,16 @@
                 const { data: dbUserId } = await _supabase.rpc('get_user_id_by_email', { p_email: userEmail });
                 userId = dbUserId || user.id; // 如果資料庫有 ID 就用資料庫的，沒有才用備案
                 
-                // 🔥 補上這一段：登入成功後，立刻檢查有沒有 Android 傳過來的暫存 Token
+                // 🔥 登入成功後：判斷推播 Token 更新方式
                 if (window.tempFCMToken) {
-                    console.log("偵測到暫存 Token，準備執行補登...");
+                    // 情境 A：有 Android 殼傳 Token 過來
+                    console.log("偵測到 Android 暫存 Token，準備執行補登...");
                     performTokenUpdate(window.tempFCMToken);
+                } else {
+                    // 情境 B：沒有殼 (iOS PWA / 電腦版瀏覽器)，主動討 Token
+                    if (typeof requestWebPushPermission === 'function') {
+                        requestWebPushPermission();
+                    }
                 }
 
                 // 更新 UI
@@ -1796,10 +1807,15 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('✅ Service Worker 註冊成功:', reg.scope))
+                    .then(reg => {
+                        console.log('✅ Service Worker 註冊成功:', reg.scope);
+                        // 🔥 把註冊實體存進全域變數，給 web_push.js 使用
+                        window.swRegistration = reg;
+                    })
                     .catch(err => console.error('❌ Service Worker 註冊失敗:', err));
             });
         }
+        
     </script>
 </body>
 </html>
