@@ -1970,25 +1970,32 @@
             const counterEl = document.getElementById('details-img-counter');
 
             const driveId = currentImageArray[index];
-            const targetSrc = `https://drive.google.com/thumbnail?id=${driveId}&sz=s0`;
+            // 🌟 優化 1：把 sz=s0 (龐大原圖) 改成 sz=s1080。不僅省流量，手機解碼才能「瞬間完成」！
+            const targetSrc = `https://drive.google.com/thumbnail?id=${driveId}&sz=s1080`;
 
-            // 更新半透明計數器文字 (例如: 1 / 3)
+            // 更新半透明計數器文字
             counterEl.textContent = `${index + 1} / ${currentImageArray.length}`;
 
-            // 🧠 核心：檢查小本本裡面有沒有這個 ID？
-            if (loadedImageCache.has(driveId)) {
-                // ✅ 看過了！直接把圖片網址塞進去，瞬間顯示，完全不轉圈圈！
-                imgEl.src = targetSrc;
-                hideImgLoading();
-            } else {
-                // ❌ 沒看過！乖乖顯示轉圈圈，等他下載
-                imgEl.classList.add('hidden');
-                loadingEl.classList.remove('hidden');
-                imgEl.removeAttribute('src'); // 拔掉舊圖避免殘影
+            // 🌟 優化 2：拔掉上一張圖的網址，並先隱藏。徹底消滅「看到上一張圖殘影」的錯覺
+            imgEl.classList.add('hidden');
+            imgEl.removeAttribute('src');
 
+            // 🧠 檢查小本本
+            if (loadedImageCache.has(driveId)) {
+                // ✅ 看過了！直接把轉圈圈藏起來 (畫面會有一瞬間乾淨的黑底)
+                loadingEl.classList.add('hidden');
+                
+                // 就算有內存，也堅持等瀏覽器「排版解碼」完那一瞬間才顯示，保證畫面 100% 無縫絲滑
                 imgEl.onload = () => {
-                    // 下載成功啦！把這張圖的 ID 寫進小本本裡
-                    loadedImageCache.add(driveId);
+                    imgEl.classList.remove('hidden');
+                };
+                imgEl.src = targetSrc;
+            } else {
+                // ❌ 沒看過！乖乖顯示轉圈圈等他下載
+                loadingEl.classList.remove('hidden');
+                
+                imgEl.onload = () => {
+                    loadedImageCache.add(driveId); // 寫入小本本
                     hideImgLoading();
                 };
                 imgEl.onerror = showImgError;
