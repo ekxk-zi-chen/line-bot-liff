@@ -462,7 +462,7 @@
                 <div class="flex gap-2">
                     <select id="status-filter" onchange="renderEquipmentList()"
                         class="bg-gray-800 text-gray-300 text-xs py-1 px-1 rounded border border-gray-700 outline-none max-w-[80px]">
-                        <option value="All">全部</option>
+                        <option value="All">▽</option>
                         <option value="Borrowed">借出</option>
                         <option value="InStock">在隊</option>
                         <option value="Repair">維修中</option>
@@ -1688,7 +1688,7 @@
                 // 收合
                 panel.style.maxHeight = '0px';
                 panel.style.opacity = '0';
-                btn.innerHTML = '<span>🔍</span> 篩選'; // 收起來時變成搜尋圖示
+                btn.innerHTML = '<span>🔍</span>'; // 收起來時變成搜尋圖示
                 btn.classList.remove('text-yellow-400', 'border-yellow-600');
                 btn.classList.add('text-gray-400', 'border-gray-600');
             }
