@@ -56,6 +56,10 @@ async function requestWebPushPermission() {
 
 // 3. (選擇性) 當 App 打開在畫面上時，收到推播的處理
 messaging.onMessage((payload) => {
-    console.log('收到前景推播:', payload);
-    // 你可以在這裡跳出一個客製化的 alert 或 toast 提醒隊員
+    console.log('🔥 web_push.js 收到前景推播:', payload);
+    
+    // 呼叫寫在 app_mission.html 裡的超美紫色彈窗！
+    if (typeof showInAppNotification === 'function') {
+        showInAppNotification(payload);
+    }
 });
