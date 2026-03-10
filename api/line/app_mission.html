@@ -2329,23 +2329,8 @@
             }
         });
         // ==========================================
-        // 🔥 [v4.7 修正] PWA 專屬：最穩定的前景彈窗
+        // 🔥 [v4.7 最終版] 繪製精美的前景彈窗 UI (In-App Toast)
         // ==========================================
-
-        // 2. 攔截底層推播訊號 (不依賴 Firebase JS SDK，絕對抓得到！)
-        navigator.serviceWorker.addEventListener('message', (event) => {
-            console.log("📥 收到底層推播訊號:", event.data);
-            
-            // 解開 Firebase 隱藏包裹
-            const payload = event.data?.firebaseMessaging?.payload || event.data;
-            
-            // 只要收到推播，就呼叫「小框框」彈窗 (絕對不會強制切換畫面)
-            if (payload && (payload.notification || payload.data?.notifId)) {
-                showInAppNotification(payload);
-            }
-        });
-
-        // 3. 繪製精美的前景彈窗 UI (In-App Toast)
         function showInAppNotification(payload) {
             const title = payload.notification?.title || "新通知";
             const body = payload.notification?.body || "";
