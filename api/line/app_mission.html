@@ -2250,18 +2250,21 @@
             }
         }
 
-        // 🔥 [v4.5 新增] 獨立的單號檢查函數
-        async function checkDeepLink() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const notifId = urlParams.get('notifId');
+        // 🔥 [v4.6 修改] 讓函數可以接收直接傳進來的 ID
+        async function checkDeepLink(directNotifId = null) {
+            let notifId = directNotifId;
             
-            // 如果網址沒有單號，就不執行後續動作
+            // 如果沒有直接傳入 ID，才去網址列找 (應付冷開機)
+            if (!notifId) {
+                const urlParams = new URLSearchParams(window.location.search);
+                notifId = urlParams.get('notifId');
+            }
+            
+            // 如果真的沒有單號，就不執行後續動作
             if (!notifId) return;
 
-            // 如果已經在加載中，避免重複觸發
             toggleLoader(true, "讀取通知內容...");
             try {
-                // 向資料庫領取裝備 ID 清單 (受 RLS 保護)
                 const { data, error } = await _supabase
                     .from('notification_queue')
                     .select('involved_eq_ids')
@@ -2269,13 +2272,8 @@
                     .single();
                     
                 if (data && data.involved_eq_ids) {
-                    // 更新全域變數
                     notifEqIdsArray = data.involved_eq_ids.split(',').filter(Boolean);
-                    
-                    // 🚀 關鍵：手動觸發重新渲染，畫面才會立刻變掉！
                     renderEquipmentList(); 
-                    
-                    // (選配) 自動滾動到最上方，讓使用者看到橫幅
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
             } catch (err) {
@@ -2330,6 +2328,61 @@
                 checkDeepLink(); 
             }
         });
+        // ==========================================
+        // 🔥 [v4.6 新增] PWA 專屬：前景與背景推播處理
+        // ==========================================
+        
+        // 1. 攔截 Service Worker 傳來的背景點擊事件 (解決縮小在背景的問題)
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            console.log("收到 SW 傳來的喚醒資料:", event.data);
+            // Firebase 會把隱藏包裹放在這裡面
+            const payload = event.data?.firebaseMessaging?.payload || event.data;
+            if (payload && payload.data && payload.data.notifId) {
+                console.log("背景點擊喚醒！直接觸發過濾:", payload.data.notifId);
+                checkDeepLink(payload.data.notifId); // 直接把單號丟給過濾器
+            }
+        });
+
+        // 2. 處理前景通知 (解決 App 開啟中不會有通知的問題)
+        if (typeof firebase !== 'undefined' && firebase.messaging.isSupported()) {
+            const messaging = firebase.messaging();
+            messaging.onMessage((payload) => {
+                console.log("前景收到推播:", payload);
+                showInAppNotification(payload); // 呼叫自製的彈窗
+            });
+        }
+
+        // 3. 繪製精美的前景彈窗 UI (In-App Toast)
+        function showInAppNotification(payload) {
+            const title = payload.notification?.title || "新通知";
+            const body = payload.notification?.body || "";
+            const notifId = payload.data?.notifId;
+
+            const toast = document.createElement('div');
+            toast.className = "fixed top-4 left-4 right-4 bg-indigo-900/95 border border-indigo-500 text-white p-4 rounded-xl shadow-2xl z-[100] transform transition-transform duration-300 -translate-y-[150%] backdrop-blur-sm";
+            toast.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h4 class="font-bold text-lg mb-1 text-yellow-400">🔔 ${title}</h4>
+                        <p class="text-sm text-indigo-100 whitespace-pre-line">${body}</p>
+                    </div>
+                    <button class="text-gray-400 hover:text-white p-1 text-xl" onclick="this.parentElement.parentElement.classList.add('-translate-y-[150%]'); setTimeout(() => this.parentElement.parentElement.remove(), 300)">✕</button>
+                </div>
+                ${notifId ? `<button class="mt-3 w-full bg-indigo-600 hover:bg-indigo-500 py-2 rounded-lg font-bold text-sm shadow border border-indigo-400 active:scale-95 transition-transform" onclick="checkDeepLink('${notifId}'); this.parentElement.classList.add('-translate-y-[150%]'); setTimeout(() => this.parentElement.remove(), 300)">立即查看裝備</button>` : ''}
+            `;
+            document.body.appendChild(toast);
+
+            // 動畫滑入
+            requestAnimationFrame(() => toast.classList.remove('-translate-y-[150%]'));
+
+            // 8 秒後自動滑出消失
+            setTimeout(() => {
+                if(document.body.contains(toast)) {
+                    toast.classList.add('-translate-y-[150%]');
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 8000);
+        }
     </script>
 </body>
 
