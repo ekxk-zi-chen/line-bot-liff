@@ -410,7 +410,12 @@
         <div id="boar-anim" class="boar-scene">🐗</div>
         <p id="boar-text" class="boar-text">資料處理中...</p>
     </div>
-    <div id="header" class="mb-3 text-center">
+    <div id="header" class="mb-3 text-center relative">
+        
+        <button onclick="openSettingsModal()" class="absolute left-0 top-0 text-gray-400 hover:text-white p-1 text-2xl transition-transform active:scale-90">
+            ⚙️
+        </button>
+
         <h1 class="text-xl font-bold text-green-400 mb-1">🚒 花蓮特搜行動系統</h1>
 
         <div class="relative flex justify-center items-center h-6">
@@ -734,6 +739,44 @@
                     class="text-2xl text-gray-400">&times;</button>
             </div>
             <div id="history-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2"></div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal-overlay">
+        <div class="bg-gray-800 p-5 rounded-lg w-full max-w-sm border border-gray-500 flex flex-col shadow-2xl">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                <h3 class="text-xl font-bold text-white">⚙️ 系統設定</h3>
+                <button onclick="closeModal('settings-modal')" class="text-2xl text-gray-400 hover:text-white transition-colors">&times;</button>
+            </div>
+            
+            <div class="mb-5">
+                <label class="block text-gray-300 text-sm font-bold mb-3">🔔 推播通知接收設定</label>
+                <div class="space-y-3 bg-gray-900 p-4 rounded-lg border border-gray-700">
+                    <label class="flex items-start text-gray-300 text-sm cursor-pointer active:scale-95 transition-transform">
+                        <input type="radio" name="notif_pref" value="All" class="mt-0.5 mr-3 w-4 h-4 accent-blue-500">
+                        <div>
+                            <div class="font-bold text-blue-400">全部接收 (預設)</div>
+                            <div class="text-xs text-gray-500 mt-0.5">接收隊上所有裝備的借還通知</div>
+                        </div>
+                    </label>
+                    <label class="flex items-start text-gray-300 text-sm cursor-pointer active:scale-95 transition-transform">
+                        <input type="radio" name="notif_pref" value="CustodianOnly" class="mt-0.5 mr-3 w-4 h-4 accent-indigo-500">
+                        <div>
+                            <div class="font-bold text-indigo-400">僅限我保管的裝備</div>
+                            <div class="text-xs text-gray-500 mt-0.5">只在牽涉到我保管的裝備時才響起</div>
+                        </div>
+                    </label>
+                    <label class="flex items-start text-gray-300 text-sm cursor-pointer active:scale-95 transition-transform">
+                        <input type="radio" name="notif_pref" value="None" class="mt-0.5 mr-3 w-4 h-4 accent-red-500">
+                        <div>
+                            <div class="font-bold text-red-400">關閉推播通知</div>
+                            <div class="text-xs text-gray-500 mt-0.5">完全不要吵我</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            
+            <button onclick="saveSettings()" class="w-full bg-gray-700 hover:bg-gray-600 border border-gray-500 text-white py-2.5 rounded-lg font-bold tracking-widest transition-all shadow-lg active:scale-95">儲存設定</button>
         </div>
     </div>
 
@@ -2139,6 +2182,57 @@
             else console.log("🎉 Token 已安全同步");
         }
 
+        // 打開設定彈窗，並自動抓取該使用者目前的設定狀態
+        async function openSettingsModal() {
+            document.getElementById('settings-modal').classList.add('flex');
+            document.getElementById('settings-modal').classList.remove('hidden');
+            
+            try {
+                // 利用 RLS 政策，安全地從 users 表讀取自己的設定
+                const { data, error } = await _supabase
+                    .from('users')
+                    .select('notification_pref')
+                    .eq('user_id', userId)
+                    .single();
+                
+                if (data && data.notification_pref) {
+                    const radios = document.getElementsByName('notif_pref');
+                    for (let r of radios) {
+                        if (r.value === data.notification_pref) r.checked = true;
+                    }
+                } else {
+                    // 若資料庫還沒設定過，預設勾選 All
+                    document.querySelector('input[name="notif_pref"][value="All"]').checked = true;
+                }
+            } catch (err) {
+                console.error("讀取設定失敗:", err);
+            }
+        }
+
+        // 儲存設定到資料庫
+        async function saveSettings() {
+            const pref = document.querySelector('input[name="notif_pref"]:checked').value;
+            toggleLoader(true, "儲存設定中...");
+            
+            try {
+                // 呼叫我們在 v4.0 建立好的專屬 RPC
+                const { data, error } = await _supabase.rpc('update_notification_pref', {
+                    p_user_id: userId,
+                    p_pref: pref
+                });
+                
+                if (error) throw new Error(error.message);
+                if (data && data.success === false) throw new Error(data.message);
+                
+                alert("✅ 推播設定已成功更新！");
+                closeModal('settings-modal');
+            } catch (e) {
+                alert("儲存失敗: " + e.message);
+            } finally {
+                toggleLoader(false);
+            }
+        }
+        
         // 🚀 註冊 PWA Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
