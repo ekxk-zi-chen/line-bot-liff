@@ -2331,17 +2331,6 @@
         // ==========================================
         // 🔥 [v4.6 新增] PWA 專屬：前景與背景推播處理
         // ==========================================
-        
-        // 1. 攔截 Service Worker 傳來的背景點擊事件 (解決縮小在背景的問題)
-        navigator.serviceWorker.addEventListener('message', (event) => {
-            console.log("收到 SW 傳來的喚醒資料:", event.data);
-            // Firebase 會把隱藏包裹放在這裡面
-            const payload = event.data?.firebaseMessaging?.payload || event.data;
-            if (payload && payload.data && payload.data.notifId) {
-                console.log("背景點擊喚醒！直接觸發過濾:", payload.data.notifId);
-                checkDeepLink(payload.data.notifId); // 直接把單號丟給過濾器
-            }
-        });
 
         // 2. 處理前景通知 (解決 App 開啟中不會有通知的問題)
         if (typeof firebase !== 'undefined' && firebase.messaging.isSupported()) {
