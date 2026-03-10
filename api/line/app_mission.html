@@ -2329,8 +2329,36 @@
             }
         });
         // ==========================================
-        // 🔥 [v4.7 最終版] 繪製精美的前景彈窗 UI (In-App Toast)
+        // 🔥 [v4.8 終極修正] 解決 iOS PWA 前景/背景失效問題
         // ==========================================
+        
+        // 使用最底層的 message 監聽，這比 Firebase SDK 更穩定
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            console.log("📥 收到 Service Worker 原始訊號:", event.data);
+
+            // 1. 解析 Firebase 的原始包裹內容
+            const firebaseData = event.data?.firebaseMessaging || event.data;
+            const payload = firebaseData?.payload || firebaseData;
+            const msgType = firebaseData?.type; // 這是判斷「前景」或「背景點擊」的關鍵
+
+            // 2. 如果沒有有效的單號，就放棄處理
+            const notifId = payload?.data?.notifId;
+            if (!notifId) return;
+
+            // 🎯 判斷邏輯 A：如果是背景點擊通知喚醒 (Notification Clicked)
+            // ➔ iOS 有時不刷新網址，所以我們手動在這裡觸發「跳轉過濾」
+            if (msgType === 'notification-clicked') {
+                console.log("🚀 偵測到背景點擊，執行強制過濾...");
+                checkDeepLink(notifId);
+                return;
+            }
+
+            // 🎯 判斷邏輯 B：如果是前景收到訊息 (Push Received)
+            // ➔ 彈出您原本寫好的紫色精美彈窗
+            console.log("✨ 前景收到訊息，顯示彈窗...");
+            showInAppNotification(payload);
+        });
+        
         function showInAppNotification(payload) {
             const title = payload.notification?.title || "新通知";
             const body = payload.notification?.body || "";
