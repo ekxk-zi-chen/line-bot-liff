@@ -1039,30 +1039,9 @@
                 // 3. 切換介面
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('view-equipment').classList.remove('hidden');
-
-                // 👇 👇 👇 🔥 [v4.2 新增] 透過單號向資料庫領取清單 👇 👇 👇
-                const urlParams = new URLSearchParams(window.location.search);
-                const notifId = urlParams.get('notifId');
                 
-                if (notifId) {
-                    toggleLoader(true, "讀取通知內容...");
-                    try {
-                        // 🔒 因為有 RLS 嚴格保護，只有管理員或被牽涉的保管人能查到資料！
-                        const { data, error } = await _supabase
-                            .from('notification_queue')
-                            .select('involved_eq_ids')
-                            .eq('id', notifId)
-                            .single();
-                            
-                        if (data && data.involved_eq_ids) {
-                            notifEqIdsArray = data.involved_eq_ids.split(',').filter(Boolean);
-                        }
-                    } catch (err) {
-                        console.error("無法讀取通知或權限不足", err);
-                    } finally {
-                        toggleLoader(false);
-                    }
-                }
+                // 3. 檢查通知單號 (冷啟動)
+                await checkDeepLink();
                 
                 // 4. 檢查權限並載入資料
                 await checkAdminRole();
@@ -2271,6 +2250,41 @@
             }
         }
 
+        // 🔥 [v4.5 新增] 獨立的單號檢查函數
+        async function checkDeepLink() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const notifId = urlParams.get('notifId');
+            
+            // 如果網址沒有單號，就不執行後續動作
+            if (!notifId) return;
+
+            // 如果已經在加載中，避免重複觸發
+            toggleLoader(true, "讀取通知內容...");
+            try {
+                // 向資料庫領取裝備 ID 清單 (受 RLS 保護)
+                const { data, error } = await _supabase
+                    .from('notification_queue')
+                    .select('involved_eq_ids')
+                    .eq('id', notifId)
+                    .single();
+                    
+                if (data && data.involved_eq_ids) {
+                    // 更新全域變數
+                    notifEqIdsArray = data.involved_eq_ids.split(',').filter(Boolean);
+                    
+                    // 🚀 關鍵：手動觸發重新渲染，畫面才會立刻變掉！
+                    renderEquipmentList(); 
+                    
+                    // (選配) 自動滾動到最上方，讓使用者看到橫幅
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            } catch (err) {
+                console.error("無法讀取通知或權限不足", err);
+            } finally {
+                toggleLoader(false);
+            }
+        }
+
         // 儲存設定到資料庫
         async function saveSettings() {
             const pref = document.querySelector('input[name="notif_pref"]:checked').value;
@@ -2308,6 +2322,14 @@
             });
         }
 
+        // 🔥 [v4.5 新增] 當使用者從背景點擊通知回到 App 時 (熱啟動)，主動檢查單號
+        document.addEventListener('visibilitychange', () => {
+            // 當頁面從「隱藏/背景」切換回「顯示/前景」時觸發
+            if (document.visibilityState === 'visible') {
+                console.log("偵測到 App 喚醒，檢查是否有新通知參數...");
+                checkDeepLink(); 
+            }
+        });
     </script>
 </body>
 
