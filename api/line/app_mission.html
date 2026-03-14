@@ -2400,8 +2400,18 @@
 
     <script>
         window.addEventListener('load', function() {
+            // 🌟 1. 檢查網址列是不是帶有「通知單號」
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            if (urlParams.has('notifId')) {
+                // 🚨 情況 A：點擊推播通知進來的 (緊急任務)
+                console.log("🚨 偵測到緊急任務跳轉！略過開場動畫，開啟綠色通道。");
+                // 直接 return 結束，絕對不執行 Splash.init 蓋黑布
+                return; 
+            }
+
+            // 🎥 情況 B：平常手動開啟 App (正常啟動)
             Splash.init({
-                // 2. 修改影片與圖片路徑
                 videoSrc: 'splash/splash.mp4',   
                 coverImage: 'splash/USAR.png',   
                 onComplete: function() {
