@@ -2085,7 +2085,14 @@
                 
                 // 如果有人借出，新增「歸還」提示按鈕，點了會自動切換到名單畫面
                 if (hasLoans) {
-                    btnsHtml += `<button onclick="document.getElementById('details-action-menu').classList.add('hidden'); if(!isDetailsListView) toggleDetailsView();" class="w-full bg-green-600 hover:bg-green-500 text-white py-2.5 rounded-lg font-bold shadow border border-green-500 active:scale-95 transition-transform text-sm">♻️ 歸還 (前往借出名單)</button>`;
+                    if (eq.active_loans.length === 1) {
+                        // 🌟 情況 A：只有一筆借出，直接跳出歸還視窗！不翻面！
+                        const l = eq.active_loans[0];
+                        btnsHtml += `<button onclick="closeModal('details-modal'); openSingleReturnModal('${eq.id}', '${l.loan_id}', ${l.qty}, '${l.borrower}')" class="w-full bg-green-600 hover:bg-green-500 text-white py-2.5 rounded-lg font-bold shadow border border-green-500 active:scale-95 transition-transform text-sm">♻️ 歸還裝備</button>`;
+                    } else {
+                        // 🌟 情況 B：有多筆借出，翻面並提示選擇對象
+                        btnsHtml += `<button onclick="document.getElementById('details-action-menu').classList.add('hidden'); if(!isDetailsListView) toggleDetailsView(); setTimeout(() => alert('💡 此裝備目前借給了 ${eq.active_loans.length} 個人，請從畫面中點選您要歸還的對象！'), 300);" class="w-full bg-green-600 hover:bg-green-500 text-white py-2.5 rounded-lg font-bold shadow border border-green-500 active:scale-95 transition-transform text-sm">♻️ 歸還 (請選擇對象)</button>`;
+                    }
                 }
                 
                 // 編輯按鈕永遠都在
