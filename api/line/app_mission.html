@@ -342,7 +342,7 @@
 <body class="p-4">
 
     <div id="login-screen"
-        class="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center z-[100] px-4 overflow-y-auto pt-10 pb-10">
+        class="fixed inset-0 bg-gray-900 hidden flex-col items-center justify-center z-[100] px-4 overflow-y-auto pt-10 pb-10">
         <div class="w-full max-w-md bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700">
             <div class="text-center mb-6">
                 <div class="text-4xl mb-2">🚒</div>
@@ -1195,11 +1195,17 @@
         async function checkSessionOnLoad() {
             document.getElementById('loader').classList.add('hidden');
 
-            // 🔥 就是加這一行！在檢查登入前，先把單位清單抓下來塞進選單！
+            // 抓取單位清單
             await loadDynamicUnits();
 
-            const { data, error } = await _supabase.auth.getSession(); // <--- 改名
-            if (data.session) enterSystem(data.session.user);
+            const { data, error } = await _supabase.auth.getSession();
+            if (data.session) {
+                enterSystem(data.session.user);
+            } else {
+                // 🔥 新增這兩行：確定沒登入時，才把登入畫面顯示出來
+                document.getElementById('login-screen').classList.remove('hidden');
+                document.getElementById('login-screen').classList.add('flex');
+            }
         }
 
 
