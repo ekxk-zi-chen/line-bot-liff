@@ -2390,6 +2390,20 @@
             }, 8000);
         }
     </script>
+    <script src="splash/hnfa_splash.js"></script>
+
+    <script>
+        window.addEventListener('load', function() {
+            Splash.init({
+                // 2. 修改影片與圖片路徑
+                videoSrc: 'splash/splash.mp4',   
+                coverImage: 'splash/USAR.png',   
+                onComplete: function() {
+                    console.log("✅ 戰術部署完畢");
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>
