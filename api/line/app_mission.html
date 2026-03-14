@@ -1990,42 +1990,52 @@
 
             // 👇 👇 👇 --- 新增：處理與渲染借用名單 --- 👇 👇 👇
             const loanContainerContent = document.getElementById('details-loan-list-content');
+            // 👇 👇 👇 --- 替換這一段：背面的名單渲染 --- 👇 👇 👇
             if (eq.active_loans && eq.active_loans.length > 0) {
                 let loansHtml = '';
                 eq.active_loans.forEach(l => {
                     const isRepair = l.note && l.note.startsWith('[維修]');
                     
+                    // 🌟 統一在這裡定義歸還按鈕！確保不管是借出還是維修，按鈕絕對存在且不會被擠壓 (shrink-0)
+                    const returnBtn = isUserAdmin ? `<button onclick="closeModal('details-modal'); openSingleReturnModal('${eq.id}', '${l.loan_id}', ${l.qty}, '${l.borrower}')" class="shrink-0 bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold border border-green-500 shadow-lg active:scale-95 transition-transform ml-2">♻️ 歸還</button>` : '';
+
                     if (isRepair) {
                         const reason = l.note.replace('[維修]', '').trim();
                         loansHtml += `
-                            <div class="bg-gray-800 p-3 rounded-lg border-l-4 border-orange-500 shadow-md">
+                            <div class="bg-gray-800 p-3 rounded-lg border-l-4 border-orange-500 shadow-md mb-2">
                                 <div class="flex justify-between items-center mb-1 border-b border-gray-700 pb-2">
-                                    <span class="text-orange-400 font-bold">🔧 維修中 <span class="text-yellow-400 ml-1">x${l.qty}</span></span>
+                                    <span class="text-orange-400 font-bold flex items-center">🔧 維修 <span class="text-yellow-400 ml-1">x${l.qty}</span></span>
                                     <span class="text-xs text-gray-400 bg-gray-900 px-2 py-0.5 rounded border border-gray-700">🕒 ${l.date}</span>
                                 </div>
-                                <div class="text-sm text-gray-300 mt-2">經手人: ${l.borrower}</div>
-                                <div class="text-xs text-orange-300 mt-1">原因: ${reason}</div>
+                                <div class="flex justify-between items-end mt-2">
+                                    <div class="flex-1 pr-2">
+                                        <div class="text-sm text-gray-300">經手人: ${l.borrower}</div>
+                                        <div class="text-xs text-orange-300 mt-1">原因: ${reason}</div>
+                                    </div>
+                                    ${returnBtn} </div>
                             </div>`;
                     } else {
                         const note1 = l.note ? `<div class="text-sm text-gray-300 mb-1">用途: <span class="text-blue-300">${l.note}</span></div>` : '';
                         const note2 = l.note2 ? `<div class="text-xs text-gray-400">補述: <span class="text-fuchsia-300 bg-fuchsia-900/40 px-1 py-0.5 rounded border border-fuchsia-800">${l.note2}</span></div>` : '';
-                        
-                        // 🌟 新增：專屬這筆紀錄的歸還按鈕
-                        const returnBtn = isUserAdmin ? `<button onclick="closeModal('details-modal'); openSingleReturnModal('${eq.id}', '${l.loan_id}', ${l.qty}, '${l.borrower}')" class="bg-green-700 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-bold border border-green-500 shadow-md active:scale-95 transition-transform ml-2">♻️ 歸還</button>` : '';
 
                         loansHtml += `
-                            <div class="bg-gray-800 p-3 rounded-lg border-l-4 border-blue-500 shadow-md">
+                            <div class="bg-gray-800 p-3 rounded-lg border-l-4 border-blue-500 shadow-md mb-2">
                                 <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
-                                    <div class="font-bold text-gray-200 flex items-center">👤 ${l.borrower} <span class="text-yellow-400 mx-1">x${l.qty}</span> ${returnBtn}</div>
-                                    <div class="text-xs text-gray-400 bg-gray-900 px-2 py-0.5 rounded border border-gray-700">🕒 ${l.date}</div>
+                                    <div class="font-bold text-gray-200 flex items-center flex-wrap gap-1">👤 ${l.borrower} <span class="text-yellow-400 mx-1">x${l.qty}</span></div>
+                                    <div class="text-xs text-gray-400 bg-gray-900 px-2 py-0.5 rounded border border-gray-700 shrink-0">🕒 ${l.date}</div>
                                 </div>
-                                ${note1}
-                                ${note2}
+                                <div class="flex justify-between items-end">
+                                    <div class="flex-1 pr-2">
+                                        ${note1}
+                                        ${note2}
+                                    </div>
+                                    ${returnBtn} </div>
                             </div>`;
                     }
                 });
                 loanContainerContent.innerHTML = loansHtml;
             } else {
+            // 👆 👆 👆 --------------------------------- 👆 👆 👆
                 loanContainerContent.innerHTML = '<div class="flex h-full items-center justify-center text-gray-500 text-sm mt-20">✅ 目前裝備全數在隊，無借出紀錄</div>';
             }
 
