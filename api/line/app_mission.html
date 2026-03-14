@@ -1658,14 +1658,23 @@
         function updateExportCount() { document.getElementById('export-count').innerText = selectedItems.size; }
         async function confirmExport() {
             if (selectedItems.size === 0) return alert("請選擇裝備");
-            toggleLoader(true);
+            toggleLoader(true, "產生報表中...");
             try {
                 const res = await callGasApi({ action: 'export_equipment_report', userId, eqIds: Array.from(selectedItems) });
+                
                 if (res.url) {
-                    // App 獨立版：直接用外部瀏覽器打開 PDF 連結
-                    window.open(res.url, '_blank');
+                    // 🌟 智慧判斷：
+                    // iOS / 電腦版用 window.open 很穩。
+                    // 但 Android WebView 討厭開新視窗，所以我們用 location.href 直接撞上去，
+                    // 故意觸發等一下要在 Android 底層寫的「攔截網」！
+                    const isAndroid = /Android/i.test(navigator.userAgent);
+                    if (isAndroid) {
+                        window.location.href = res.url; 
+                    } else {
+                        window.open(res.url, '_blank');
+                    }
                 } else {
-                    alert("匯出失敗");
+                    alert("匯出失敗，請稍後再試。");
                 }
             } catch (e) {
                 alert(e.message);
