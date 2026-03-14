@@ -821,8 +821,14 @@
 
             </div>
 
-            <div class="shrink-0 mt-3">
-                <button onclick="closeModal('details-modal')" class="w-full bg-gray-700 hover:bg-gray-600 text-white py-2.5 rounded-xl font-bold text-base tracking-widest border border-gray-600 shadow-lg transition-transform active:scale-95">關 閉</button>
+            <div id="details-action-menu" class="hidden flex-col gap-2 mt-2 bg-gray-800/90 p-3 rounded-xl border border-gray-600 backdrop-blur-sm shadow-inner">
+                </div>
+
+            <div class="shrink-0 mt-3 flex gap-2">
+                <button id="details-action-btn" onclick="document.getElementById('details-action-menu').classList.toggle('hidden')" class="hidden flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl font-bold text-base shadow-[0_0_15px_rgba(79,70,229,0.5)] border border-indigo-400 transition-transform active:scale-95 flex justify-center items-center gap-2">
+                    <span class="animate-pulse text-yellow-300">⚡</span> 裝備操作
+                </button>
+                <button onclick="closeModal('details-modal')" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2.5 rounded-xl font-bold text-base tracking-widest border border-gray-600 shadow-lg transition-transform active:scale-95">關 閉</button>
             </div>
         </div>
     </div>
@@ -2004,11 +2010,14 @@
                         const note1 = l.note ? `<div class="text-sm text-gray-300 mb-1">用途: <span class="text-blue-300">${l.note}</span></div>` : '';
                         const note2 = l.note2 ? `<div class="text-xs text-gray-400">補述: <span class="text-fuchsia-300 bg-fuchsia-900/40 px-1 py-0.5 rounded border border-fuchsia-800">${l.note2}</span></div>` : '';
                         
+                        // 🌟 新增：專屬這筆紀錄的歸還按鈕
+                        const returnBtn = isUserAdmin ? `<button onclick="closeModal('details-modal'); openSingleReturnModal('${eq.id}', '${l.loan_id}', ${l.qty}, '${l.borrower}')" class="bg-green-700 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-bold border border-green-500 shadow-md active:scale-95 transition-transform ml-2">♻️ 歸還</button>` : '';
+
                         loansHtml += `
                             <div class="bg-gray-800 p-3 rounded-lg border-l-4 border-blue-500 shadow-md">
                                 <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
-                                    <div class="font-bold text-gray-200">👤 ${l.borrower} <span class="text-yellow-400 ml-1">x${l.qty}</span></div>
-                                    <div class="text-xs text-gray-400 bg-gray-900 px-2 py-0.5 rounded border border-gray-700">🕒 ${l.date}</span></div>
+                                    <div class="font-bold text-gray-200 flex items-center">👤 ${l.borrower} <span class="text-yellow-400 mx-1">x${l.qty}</span> ${returnBtn}</div>
+                                    <div class="text-xs text-gray-400 bg-gray-900 px-2 py-0.5 rounded border border-gray-700">🕒 ${l.date}</div>
                                 </div>
                                 ${note1}
                                 ${note2}
@@ -2046,10 +2055,44 @@
                 errorEl.classList.remove('hidden');
             }
 
+            // 👇 👇 👇 --- 新增：動態渲染抽屜式操作選單 --- 👇 👇 👇
+            const actionMenu = document.getElementById('details-action-menu');
+            const actionBtn = document.getElementById('details-action-btn');
+            
+            if (isUserAdmin) {
+                actionBtn.classList.remove('hidden');
+                actionMenu.classList.add('hidden'); // 每次打開大圖時，預設把選單收合起來
+                
+                let btnsHtml = '';
+                const isEmpty = eq.available_qty === 0;
+                const hasLoans = eq.active_loans && eq.active_loans.length > 0;
+                
+                // 如果還有庫存，顯示「借出」跟「報修」
+                if (!isEmpty) {
+                    btnsHtml += `<button onclick="closeModal('details-modal'); openSingleBorrowModal('${eq.id}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg font-bold shadow border border-blue-500 active:scale-95 transition-transform text-sm">📤 借出裝備</button>`;
+                    btnsHtml += `<button onclick="closeModal('details-modal'); openRepairModal('${eq.id}', '${displayName}')" class="w-full bg-orange-600 hover:bg-orange-500 text-white py-2.5 rounded-lg font-bold shadow border border-orange-500 active:scale-95 transition-transform text-sm">🔧 報修裝備</button>`;
+                }
+                
+                // 如果有人借出，新增「歸還」提示按鈕，點了會自動切換到名單畫面
+                if (hasLoans) {
+                    btnsHtml += `<button onclick="document.getElementById('details-action-menu').classList.add('hidden'); if(!isDetailsListView) toggleDetailsView();" class="w-full bg-green-600 hover:bg-green-500 text-white py-2.5 rounded-lg font-bold shadow border border-green-500 active:scale-95 transition-transform text-sm">♻️ 歸還 (前往借出名單)</button>`;
+                }
+                
+                // 編輯按鈕永遠都在
+                btnsHtml += `<button onclick="closeModal('details-modal'); openEditModal('update', '${eq.id}')" class="w-full bg-gray-600 hover:bg-gray-500 text-gray-200 py-2.5 rounded-lg font-bold shadow border border-gray-500 active:scale-95 transition-transform text-sm">⚙️ 編輯資訊</button>`;
+                
+                actionMenu.innerHTML = btnsHtml;
+            } else {
+                actionBtn.classList.add('hidden');
+                actionMenu.classList.add('hidden');
+            }
+            // 👆 👆 👆 ------------------------------------- 👆 👆 👆 👆 👆
+
             // 3. 顯示彈窗
             const modal = document.getElementById('details-modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+            
             setupImageSwipe();
         }
 
@@ -2256,7 +2299,7 @@
             }
         }
 
-        // 🔥 [v4.6 修改] 讓函數可以接收直接傳進來的 ID
+        // 🔥 [v4.6 修改] 讓函數可以接收直接傳進來的 ID (加入強制刷新機制)
         async function checkDeepLink(directNotifId = null) {
             let notifId = directNotifId;
             
@@ -2269,7 +2312,7 @@
             // 如果真的沒有單號，就不執行後續動作
             if (!notifId) return;
 
-            toggleLoader(true, "讀取通知內容...");
+            toggleLoader(true, "讀取最新狀態...");
             try {
                 const { data, error } = await _supabase
                     .from('notification_queue')
@@ -2279,6 +2322,12 @@
                     
                 if (data && data.involved_eq_ids) {
                     notifEqIdsArray = data.involved_eq_ids.split(',').filter(Boolean);
+                    
+                    // 🌟 【關鍵修正】強制去資料庫把「所有裝備」最新狀態抓回來更新！
+                    // 這樣就能保證跳轉過去時，看到的是剛被借走/歸還的最新數量
+                    const newData = await callGasApi({ action: 'get_equipment_list', userId: userId, category: 'All' });
+                    equipmentCache = (newData && newData.length > 0) ? newData : [];
+
                     renderEquipmentList(); 
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
