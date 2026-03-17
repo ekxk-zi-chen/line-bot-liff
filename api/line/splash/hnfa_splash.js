@@ -116,19 +116,30 @@ const Splash = (() => {
                 cover.style.backgroundImage = `url('${coverImage}')`;
             }
 
-            cover.onclick = () => {
-                cover.style.display = 'none';
-                video.style.display = 'block';
-                video.play();
-            };
-
-            video.onended = () => {
+            // 💡 1. 把「退場機制」獨立打包成一個函數
+            const finishSplash = () => {
                 wrapper.classList.add('fade-out');
                 setTimeout(() => {
                     wrapper.remove();
                     if (typeof onCompleteCallback === 'function') onCompleteCallback();
                 }, 800);
             };
+
+            // 點擊封面：隱藏封面、顯示影片並播放
+            cover.onclick = () => {
+                cover.style.display = 'none';
+                video.style.display = 'block';
+                video.play();
+            };
+
+            // 💡 2. [新增] 點擊播放中的影片：立刻暫停，並提早執行退場機制
+            video.onclick = () => {
+                video.pause();
+                finishSplash();
+            };
+
+            // 💡 3. 影片自然播完：執行退場機制
+            video.onended = finishSplash;
         }
     };
 })();
