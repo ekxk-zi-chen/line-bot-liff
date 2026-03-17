@@ -22,7 +22,6 @@ const Splash = (() => {
                 background-color: #050505;
                 background-position: center center; 
                 background-repeat: no-repeat;
-                /* 🌟 戰術暗角：在底部製造黑色漸層，讓黃色文字絕對清晰 */
                 box-shadow: inset 0 -200px 150px -50px rgba(0,0,0,0.95);
                 display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
                 cursor: pointer; z-index: 10;
@@ -54,16 +53,22 @@ const Splash = (() => {
                 position: absolute; top: 50%; left: 50%; width: 100vw; height: 100dvh;
                 transform: translate(-50%, -50%); 
                 display: none; z-index: 5; 
-                pointer-events: auto; /* 💡 修改這裡，讓影片能接收事件 */
+                pointer-events: none; /* 🔥 讓點擊直接穿透影片，不要被影片吞掉 */
                 background: #000;
+            }
+
+            /* 🔥 4. [新增] 透明攔截網 (專門負責收點擊) */
+            #splash-skip-layer {
+                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                z-index: 8; /* 介於影片(5)和封面(10)之間 */
+                display: none; /* 預設隱藏，等封面點擊後才出現 */
             }
 
             /* 📱 手機直拿 (Portrait) */
             @media (orientation: portrait) {
                 #splash-cover {
-                    /* 🔥 關鍵修改：手機上用 contain 保證山豬不被切掉，搭配黑色背景無縫融合 */
                     background-size: contain; 
-                    background-position: center 30%; /* 稍微偏上方一點，讓底部有空間放文字 */
+                    background-position: center 30%;
                 }
                 #splash-video {
                     object-fit: contain; 
@@ -93,11 +98,12 @@ const Splash = (() => {
             const wrapper = document.createElement('div');
             wrapper.id = 'splash-wrapper';
             
-            // 🌟 核心修正：加入 poster (解決安卓灰屏) 與 webkit-playsinline / disablePictureInPicture (解決 iOS 播放器 UI)
+            // 🌟 核心修正：加入透明攔截網 <div id="splash-skip-layer"></div>
             wrapper.innerHTML = `
                 <div id="splash-cover">
                     <div id="tactical-text">>> TAP TO DEPLOY <<</div>
                 </div>
+                <div id="splash-skip-layer"></div>
                 <video id="splash-video" 
                        playsinline 
                        webkit-playsinline="true" 
@@ -107,49 +113,52 @@ const Splash = (() => {
                     <source src="${videoSrc}" type="video/mp4">
                 </video>
             `;
-            // 強制插在 body 的最前面，確保第一時間蓋住畫面
             document.body.insertBefore(wrapper, document.body.firstChild);
 
             const video = document.getElementById('splash-video');
             const cover = document.getElementById('splash-cover');
+            const skipLayer = document.getElementById('splash-skip-layer'); // 🔥 抓取攔截網
 
             if(coverImage) {
                 cover.style.backgroundImage = `url('${coverImage}')`;
             }
 
-            // 💡 1. 統一包裝退場函數，增加一個「防止重複執行」的標記
+            // 💡 1. 退場函數
             let isFinishing = false;
             const finishSplash = () => {
                 if (isFinishing) return;
                 isFinishing = true;
                 
                 wrapper.classList.add('fade-out');
-                video.pause(); // 跳過時立刻停止聲音
+                video.pause(); 
                 setTimeout(() => {
                     wrapper.remove();
                     if (typeof onCompleteCallback === 'function') onCompleteCallback();
                 }, 800);
             };
 
-            // 💡 2. 點擊整個大外框 (wrapper) 就能跳過
-            // 這樣不管你點到影片還是點到旁邊，都能觸發
-            wrapper.onclick = () => {
-                // 檢查：只有當封面已經消失（代表影片正在播）時，點擊才算跳過
-                if (cover.style.display === 'none') {
-                    console.log(">> 戰術跳過");
-                    finishSplash();
-                }
-            };
-
-            // 💡 3. 點擊封面 (TAP TO DEPLOY)
+            // 💡 2. 點擊封面啟動
             cover.onclick = (e) => {
-                e.stopPropagation(); // 🔥 極重要：防止這一點擊冒泡到 wrapper 導致立刻跳過影片
-                cover.style.display = 'none';
-                video.style.display = 'block';
+                e.stopPropagation(); 
+                cover.style.display = 'none'; // 封面消失
+                skipLayer.style.display = 'block'; // 🔥 讓透明攔截網出現
+                video.style.display = 'block'; // 顯示影片
                 video.play();
             };
 
-            // 影片自然播完
+            // 💡 3. [終極必殺] 把跳過邏輯綁在透明攔截網上
+            // 同時監聽 onclick (給電腦) 跟 ontouchstart (給手機，反應最快)
+            skipLayer.onclick = () => {
+                console.log(">> 攔截網觸發：點擊跳過");
+                finishSplash();
+            };
+            skipLayer.ontouchstart = (e) => {
+                e.preventDefault(); // 防止手機的連續觸控反應
+                console.log(">> 攔截網觸發：觸控跳過");
+                finishSplash();
+            };
+
+            // 💡 4. 影片自然播完
             video.onended = finishSplash;
         }
     };
