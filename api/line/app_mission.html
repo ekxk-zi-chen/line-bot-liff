@@ -648,7 +648,7 @@
                 </div>
 
                 <input type="text" id="eq-model" class="input-dark" placeholder="型號/規格">
-
+                <input type="text" id="eq-image" class="input-dark border-purple-800" placeholder="🖼️ 圖片ID (多張逗號,隔開)">
                 <div class="flex gap-2">
                     <div class="flex-1">
                         <input type="text" id="eq-location" list="location-options" class="input-dark"
@@ -880,7 +880,7 @@
             if (rpcActions.includes(action)) {
                 let rpcParams = {};
                 if (action === 'get_equipment_list') rpcParams = { p_category_filter: payload.category || 'All' };
-                else if (action === 'manage_equipment') rpcParams = { p_user_id: userId, p_action: payload.mode, p_eq_id: payload.eqId || null, p_name: payload.name || '', p_category: payload.category || '', p_sub_category: payload.subCategory || '', p_model: payload.model || '', p_location: payload.location || '', p_custodian: payload.custodian || '', p_total_qty: payload.totalQty || 0, p_user_name: displayName };
+                else if (action === 'manage_equipment') rpcParams = { p_user_id: userId, p_action: payload.mode, p_eq_id: payload.eqId || null, p_name: payload.name || '', p_category: payload.category || '', p_sub_category: payload.subCategory || '', p_model: payload.model || '', p_location: payload.location || '', p_custodian: payload.custodian || '', p_total_qty: payload.totalQty || 0, p_user_name: displayName, p_image: payload.image || '' };
                 else if (action === 'borrow_equipment') rpcParams = { p_eq_id: payload.eqId, p_borrower_name: payload.borrower, p_qty: payload.qty, p_user_name: displayName, p_note: payload.note || '', p_note2: payload.note2 || '', p_user_id: userId };
                 else if (action === 'return_equipment') rpcParams = { p_loan_id: payload.loanId, p_return_qty: payload.returnQty, p_user_name: displayName, p_user_id: userId };
                 else if (action === 'get_loan_history') rpcParams = { p_user_id: userId, p_eq_id: payload.eqId || null };
@@ -1253,19 +1253,23 @@
         function addToPreBatch() {
             const name = document.getElementById('eq-name').value;
             const cat = document.getElementById('eq-category').value;
-            const subcat = document.getElementById('eq-sub-category').value; // 🔥 讀取細項
+            const subcat = document.getElementById('eq-sub-category').value;
             const model = document.getElementById('eq-model').value;
+            // 💡 [新增] 抓取圖片欄位的值
+            const image = document.getElementById('eq-image').value.replace(/,/g, '\n'); 
             const loc = document.getElementById('eq-location').value;
             const total = parseInt(document.getElementById('eq-total').value);
-            const custodian = document.getElementById('eq-custodian').value; // 🔥 讀取
+            const custodian = document.getElementById('eq-custodian').value;
 
             if (!name || !cat) return alert("名稱和分類必填！");
 
-            pendingBatchItems.push({ name, category: cat, subCategory: subcat, model, location: loc, custodian: custodian, totalQty: total }); // 🔥 塞進去
+            // 💡 [新增] 把 image 一併塞進暫存包裹裡
+            pendingBatchItems.push({ name, category: cat, subCategory: subcat, model, image: image, location: loc, custodian: custodian, totalQty: total }); 
 
             document.getElementById('eq-name').value = "";
             document.getElementById('eq-model').value = "";
-            document.getElementById('eq-custodian').value = ""; // 🔥 清空保管人欄位
+            document.getElementById('eq-image').value = ""; // 💡 [新增] 暫存後清空圖片欄位
+            document.getElementById('eq-custodian').value = "";
             document.getElementById('eq-name').focus();
 
             renderPreBatchList();
@@ -1276,16 +1280,20 @@
         // 🔥 [修改] 渲染暫存表格 (多一欄)
         function renderPreBatchList() {
             const tbody = document.getElementById('pre-batch-list');
-            tbody.innerHTML = pendingBatchItems.map((item, index) => `
+            tbody.innerHTML = pendingBatchItems.map((item, index) => {
+                // 💡 [新增] 判斷如果有圖片，就給他一個小圖示
+                const imgIcon = item.image ? '<span class="text-xs ml-1">🖼️</span>' : '';
+                
+                return `
                 <tr class="border-b border-gray-700">
-                    <td class="pr-3">${item.name}</td>
-                    <td class="pr-3 text-gray-400">${item.subCategory || '-'}</td> 
+                    <td class="pr-3">${item.name}${imgIcon}</td> <td class="pr-3 text-gray-400">${item.subCategory || '-'}</td> 
                     <td class="pr-3 text-gray-400">${item.model || '-'}</td> <td class="pr-3 text-gray-400">${item.location || '-'}</td>
                     <td class="pr-3 text-indigo-300">${item.custodian || '-'}</td>
                     <td class="pr-3 text-yellow-400 font-bold">${item.totalQty}</td>
                     <td class="text-right"><button onclick="removePreBatch(${index})" class="text-red-400 px-2 py-1">✕</button></td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function removePreBatch(index) {
@@ -1311,6 +1319,7 @@
                         category: item.category,
                         subCategory: item.subCategory, // 🔥
                         model: item.model,
+                        image: item.image,
                         location: item.location,
                         custodian: item.custodian, // 🔥
                         totalQty: item.totalQty
@@ -1375,6 +1384,7 @@
                 document.getElementById('eq-category').value = eq.category || "";
                 document.getElementById('eq-sub-category').value = eq.sub_category || ""; // 🔥 填入舊細項
                 document.getElementById('eq-model').value = eq.model || "";
+                document.getElementById('eq-image').value = eq.image ? eq.image.replace(/\n/g, ',') : "";
                 document.getElementById('eq-location').value = eq.location || "";
                 document.getElementById('eq-total').value = eq.total_qty || 1;
                 document.getElementById('eq-custodian').value = eq.custodian || ""; // 填入舊資料
@@ -1405,6 +1415,7 @@
                 category: document.getElementById('eq-category').value,
                 subCategory: document.getElementById('eq-sub-category').value, // 🔥
                 model: document.getElementById('eq-model').value,
+                image: document.getElementById('eq-image').value.replace(/,/g, '\n'),
                 location: document.getElementById('eq-location').value,
                 custodian: document.getElementById('eq-custodian').value, // 🔥 加入這行
                 totalQty: document.getElementById('eq-total').value
@@ -1452,6 +1463,9 @@
             let statusClass = 'border-blue-500'; // 預設借出是藍色
             let icon = '👤';
 
+            // 💡 [新增] 判斷是否有歸還時間，有的話產生一小段 HTML
+            let returnTimeHtml = '';
+
             if (isRepair) {
                 // 維修邏輯
                 if (l.status === '借出中') {
@@ -1462,12 +1476,16 @@
                     statusText = '✅ 維修完成'; // 歸還變成維修完成
                     statusClass = 'border-green-500';
                     icon = '';
+                    // 💡 [新增] 維修完成的時間
+                    if (l.return_time) returnTimeHtml = `<div class="text-[10px] text-gray-500 mt-0.5">完成於: ${l.return_time}</div>`;
                 }
             } else {
                 // 一般借還邏輯
                 if (l.status === '已歸還') {
                     statusClass = 'border-green-500';
                     icon = '♻️';
+                    // 💡 [新增] 一般歸還的時間
+                    if (l.return_time) returnTimeHtml = `<div class="text-[10px] text-gray-500 mt-0.5">歸還於: ${l.return_time}</div>`;
                 }
             }
 
@@ -1483,7 +1501,9 @@
                     ${nameHtml}
                     <div class="flex justify-between items-center">
                         <span class="font-bold text-gray-200">${icon} ${l.borrower}</span>
-                        <span class="text-xs text-gray-400">${l.time}</span>
+                        <div class="text-right">
+                            <span class="text-xs text-gray-400">借出: ${l.time}</span>
+                            ${returnTimeHtml} </div>
                     </div>
                     <div class="flex justify-between items-center mt-1">
                         <span class="font-bold ${isRepair && l.status === '借出中' ? 'text-orange-400' : 'text-gray-300'}">${statusText}</span>
