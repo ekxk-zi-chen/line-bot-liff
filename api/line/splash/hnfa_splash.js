@@ -53,7 +53,8 @@ const Splash = (() => {
             #splash-video {
                 position: absolute; top: 50%; left: 50%; width: 100vw; height: 100dvh;
                 transform: translate(-50%, -50%); 
-                display: none; z-index: 5; pointer-events: none;
+                display: none; z-index: 5; 
+                pointer-events: auto; /* 💡 [關鍵修改] 讓影片可以接收點擊事件 */
                 background: #000;
             }
 
