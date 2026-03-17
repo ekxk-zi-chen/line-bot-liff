@@ -54,7 +54,7 @@ const Splash = (() => {
                 position: absolute; top: 50%; left: 50%; width: 100vw; height: 100dvh;
                 transform: translate(-50%, -50%); 
                 display: none; z-index: 5; 
-                pointer-events: auto; /* 💡 [關鍵修改] 讓影片可以接收點擊事件 */
+                pointer-events: auto; /* 💡 修改這裡，讓影片能接收事件 */
                 background: #000;
             }
 
@@ -117,29 +117,39 @@ const Splash = (() => {
                 cover.style.backgroundImage = `url('${coverImage}')`;
             }
 
-            // 💡 1. 把「退場機制」獨立打包成一個函數
+            // 💡 1. 統一包裝退場函數，增加一個「防止重複執行」的標記
+            let isFinishing = false;
             const finishSplash = () => {
+                if (isFinishing) return;
+                isFinishing = true;
+                
                 wrapper.classList.add('fade-out');
+                video.pause(); // 跳過時立刻停止聲音
                 setTimeout(() => {
                     wrapper.remove();
                     if (typeof onCompleteCallback === 'function') onCompleteCallback();
                 }, 800);
             };
 
-            // 點擊封面：隱藏封面、顯示影片並播放
-            cover.onclick = () => {
+            // 💡 2. 點擊整個大外框 (wrapper) 就能跳過
+            // 這樣不管你點到影片還是點到旁邊，都能觸發
+            wrapper.onclick = () => {
+                // 檢查：只有當封面已經消失（代表影片正在播）時，點擊才算跳過
+                if (cover.style.display === 'none') {
+                    console.log(">> 戰術跳過");
+                    finishSplash();
+                }
+            };
+
+            // 💡 3. 點擊封面 (TAP TO DEPLOY)
+            cover.onclick = (e) => {
+                e.stopPropagation(); // 🔥 極重要：防止這一點擊冒泡到 wrapper 導致立刻跳過影片
                 cover.style.display = 'none';
                 video.style.display = 'block';
                 video.play();
             };
 
-            // 💡 2. [新增] 點擊播放中的影片：立刻暫停，並提早執行退場機制
-            video.onclick = () => {
-                video.pause();
-                finishSplash();
-            };
-
-            // 💡 3. 影片自然播完：執行退場機制
+            // 影片自然播完
             video.onended = finishSplash;
         }
     };
