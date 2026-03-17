@@ -1416,7 +1416,8 @@
                         base64Data: base64DataObj.base64Data,
                         fileName: file.name,
                         mimeType: base64DataObj.mimeType,
-                        folderPath: targetPath // 💡 [修改] 這裡的參數名稱改成 folderPath 傳給後端
+                        folderPath: targetPath, // 💡 [修改] 這裡的參數名稱改成 folderPath 傳給後端
+                        unit: '特搜' // 💡 [新增] 告訴後端：我是新秀！
                     });
 
                     if (res.success) {
