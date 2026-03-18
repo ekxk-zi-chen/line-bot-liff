@@ -1335,48 +1335,60 @@
         }
 
         function previewImageSelection(event) {
-            // 💡 [修改] 把選到的檔案轉成陣列
             const files = Array.from(event.target.files);
             if (files.length === 0) return;
 
-            // 防呆：限制一次最多 5 張，避免等太久或 GAS 當掉
             if (files.length > 5) {
-                alert("為了確保穩定，一次最多只能上傳 5 張照片喔！");
+                alert("一次最多只能上傳 5 張照片喔！");
                 event.target.value = '';
                 return;
             }
 
-            const validFiles = [];
-            for (let file of files) {
-                if (file.size > 5 * 1024 * 1024) {
-                    alert(`圖片 [${file.name}] 太大囉！已被剔除 (請選擇 5MB 以下)。`);
-                    continue;
-                }
-                validFiles.push(file);
-            }
-
-            if (validFiles.length === 0) return;
-
-            pendingUploadFiles = validFiles; // 存入暫存陣列
-
-            // 清空預覽區並隱藏 placeholder
             const previewContainer = document.getElementById('upload-preview-container');
-            previewContainer.innerHTML = ''; 
+            previewContainer.innerHTML = '';
 
-            // 💡 [修改] 跑迴圈把每一張預覽圖畫出來
-            pendingUploadFiles.forEach(file => {
+            pendingUploadFiles = []; // ⚠️ 改這裡
+
+            files.forEach(file => {
+
+                if (!file || file.size === 0) {
+                    alert(`圖片 [${file.name}] 讀取失敗（iOS問題）`);
+                    return;
+                }
+
+                if (file.size > 5 * 1024 * 1024) {
+                    alert(`圖片 [${file.name}] 太大囉！`);
+                    return;
+                }
+
                 const reader = new FileReader();
+
                 reader.onload = function(e) {
+
+                    const arrayBuffer = e.target.result;
+
+                    // ✅ 重建一個「乾淨的 file」
+                    const newFile = new File(
+                        [arrayBuffer],
+                        file.name || "image.jpg",
+                        { type: file.type || "image/jpeg" }
+                    );
+
+                    // 👉 存這個新的
+                    pendingUploadFiles.push(newFile);
+
+                    // 預覽
                     const img = document.createElement('img');
-                    img.src = e.target.result;
+                    img.src = URL.createObjectURL(newFile);
                     img.className = 'w-20 h-20 object-cover rounded border border-gray-600 shadow-sm';
                     previewContainer.appendChild(img);
                 };
-                reader.readAsDataURL(file);
+
+                // ⚠️ 這裡改用 ArrayBuffer（很重要）
+                reader.readAsArrayBuffer(file);
             });
 
-            // 解鎖確認按鈕
-            document.getElementById('btn-confirm-upload').disabled = false; 
+            document.getElementById('btn-confirm-upload').disabled = false;
         }
 
         async function confirmImageUpload() {
