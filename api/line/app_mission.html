@@ -1567,6 +1567,7 @@
             document.getElementById('eq-category').value = "";
             document.getElementById('eq-sub-category').value = ""; // 🔥 清空細項
             document.getElementById('eq-model').value = "";
+            document.getElementById('eq-image').value = "";
             document.getElementById('eq-location').value = "";
             document.getElementById('eq-total').value = 1;
             document.getElementById('eq-custodian').value = ""; // 清空保管人欄位
@@ -1584,7 +1585,7 @@
                 document.getElementById('eq-total').value = eq.total_qty || 1;
                 document.getElementById('eq-custodian').value = eq.custodian || ""; // 填入舊資料
                 document.getElementById('eq-property-number').value = eq.property_number || ""; // 💡 新增讀取舊資料
-                
+
 
                 document.getElementById('btn-delete-eq').classList.remove('hidden');
                 document.getElementById('btn-save-edit').classList.remove('hidden');
