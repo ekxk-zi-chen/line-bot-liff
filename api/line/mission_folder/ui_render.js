@@ -176,15 +176,52 @@ function renderEquipmentList() {
             const repairBtn = (!isEmpty && isUserAdmin) ? `<button onclick="openRepairModal('${eq.id}', '${displayName}')" class="bg-orange-600 text-white px-3 py-1 rounded text-xs font-bold ml-2">報修</button>` : '';
             const borrowBtn = (!isEmpty && isUserAdmin) ? `<button onclick="openSingleBorrowModal('${eq.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold">借出</button>` : '';
             const editBtn = isUserAdmin ? `<button onclick="openEditModal('update', '${eq.id}')" class="text-gray-500 p-1">⚙️</button>` : '';
+            // [準備標籤]
+            const propBadge = eq.property_number ? `<div class="text-yellow-400 font-mono text-sm mt-1 font-bold"># ${eq.property_number}</div>` : '';
             const subCatBadge = eq.sub_category ? `<span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded ml-2">${eq.sub_category}</span>` : '';
-            const custodianBadge = eq.custodian ? `<span class="bg-indigo-900/50 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-700">🛡️保管: ${eq.custodian}</span>` : '';
+            const custodianBadge = eq.custodian ? `<span class="bg-indigo-900/50 text-indigo-300 px-2 py-1 rounded border border-indigo-700 text-xs">🛡️保管: ${eq.custodian}</span>` : '';
 
-            html += `<div class="flex items-start bg-gray-800 p-4 rounded-lg mb-3 border-l-4 ${isEmpty ? "border-red-500" : (isFull ? "border-green-500" : "border-blue-500")}">
-                            ${checkHtml}<div class="flex-1"><div class="flex justify-between"><div>
-                                <h3 class="font-bold text-white text-lg flex items-center flex-wrap gap-1">${eq.name} ${subCatBadge}</h3>
-                                <div class="flex gap-2 text-xs text-gray-400 mt-1 flex-wrap"><span>${eq.model || '-'}</span><span>📍${eq.location || '-'}</span>${custodianBadge}</div>
-                            </div><div class="flex gap-2"><button onclick="fetchItemHistory('${eq.id}')" class="text-blue-400 p-1">📜</button>${editBtn}</div></div>
-                            <div class="flex justify-between items-end mt-3">${statusBadge}<div class="flex flex-col items-end gap-2"><div>${borrowBtn}${repairBtn}</div>${toggleBtnHtml}</div></div>${loansHtml}</div></div>`;
+            // [開始組裝卡片]
+            html += `
+            <div class="flex items-start bg-gray-800 p-4 rounded-lg mb-3 border-l-4 ${isEmpty ? "border-red-500" : (isFull ? "border-green-500" : "border-blue-500")}">
+                ${checkHtml}
+                <div class="flex-1">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h3 class="font-bold text-white text-lg flex items-center flex-wrap gap-1">
+                                ${eq.name} ${subCatBadge}
+                            </h3>
+                            
+                            ${propBadge}
+                            
+                            <div class="flex gap-3 text-xs text-gray-400 mt-1.5 flex-wrap items-center">
+                                <span class="bg-gray-700/50 px-1.5 py-0.5 rounded">${eq.model || '無規格'}</span>
+                                <span class="flex items-center gap-0.5">📍${eq.location || '-'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-2 shrink-0 ml-2">
+                            <button onclick="fetchItemHistory('${eq.id}')" class="text-blue-400 p-1 active:scale-90 transition-transform">📜</button>
+                            ${editBtn}
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-end mt-4 pt-3 border-t border-gray-700/50">
+                        
+                        <div class="flex flex-col gap-2">
+                            ${statusBadge}
+                            ${custodianBadge}
+                        </div>
+                        
+                        <div class="flex flex-col items-end gap-2">
+                            <div class="flex gap-1">${borrowBtn}${repairBtn}</div>
+                            ${toggleBtnHtml}
+                        </div>
+                    </div>
+                    
+                    ${loansHtml}
+                </div>
+            </div>`;
         }
     });
 
