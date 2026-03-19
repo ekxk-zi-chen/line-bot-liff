@@ -667,9 +667,10 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <label class="text-gray-400 w-20">總量:</label>
-                    <input type="number" id="eq-total" class="input-dark flex-1" value="1" min="1">
+                <div class="flex gap-2 items-center">
+                    <input type="text" id="eq-property-number" class="input-dark flex-1 border-blue-800" placeholder="財產編號 (選填)">
+                    <label class="text-gray-400 shrink-0 text-sm">總量:</label>
+                    <input type="number" id="eq-total" class="input-dark w-20 text-center" value="1" min="1">
                 </div>
             </div>
 
@@ -685,7 +686,7 @@
                             <tr>
                                 <th>名稱</th>
                                 <th>細項</th>
-                                <th>規格</th>
+                                <th>財編</th> <th>規格</th>
                                 <th>位置</th>
                                 <th>保管人</th>
                                 <th>量</th>
@@ -911,7 +912,7 @@
             if (rpcActions.includes(action)) {
                 let rpcParams = {};
                 if (action === 'get_equipment_list') rpcParams = { p_category_filter: payload.category || 'All' };
-                else if (action === 'manage_equipment') rpcParams = { p_user_id: userId, p_action: payload.mode, p_eq_id: payload.eqId || null, p_name: payload.name || '', p_category: payload.category || '', p_sub_category: payload.subCategory || '', p_model: payload.model || '', p_location: payload.location || '', p_custodian: payload.custodian || '', p_total_qty: payload.totalQty || 0, p_user_name: displayName, p_image: payload.image || '' };
+                else if (action === 'manage_equipment') rpcParams = { p_user_id: userId, p_action: payload.mode, p_eq_id: payload.eqId || null, p_name: payload.name || '', p_category: payload.category || '', p_sub_category: payload.subCategory || '', p_model: payload.model || '', p_location: payload.location || '', p_custodian: payload.custodian || '', p_total_qty: payload.totalQty || 0, p_user_name: displayName, p_image: payload.image || '' , p_property_number: payload.propertyNumber || ''};
                 else if (action === 'borrow_equipment') rpcParams = { p_eq_id: payload.eqId, p_borrower_name: payload.borrower, p_qty: payload.qty, p_user_name: displayName, p_note: payload.note || '', p_note2: payload.note2 || '', p_user_id: userId };
                 else if (action === 'return_equipment') rpcParams = { p_loan_id: payload.loanId, p_return_qty: payload.returnQty, p_user_name: displayName, p_user_id: userId };
                 else if (action === 'get_loan_history') rpcParams = { p_user_id: userId, p_eq_id: payload.eqId || null };
@@ -1288,6 +1289,7 @@
             const model = document.getElementById('eq-model').value;
             // 💡 [新增] 抓取圖片欄位的值
             const image = document.getElementById('eq-image').value.replace(/,/g, '\n'); 
+            const propNum = document.getElementById('eq-property-number').value.trim(); // 💡 新增這行
             const loc = document.getElementById('eq-location').value;
             const total = parseInt(document.getElementById('eq-total').value);
             const custodian = document.getElementById('eq-custodian').value;
@@ -1295,12 +1297,13 @@
             if (!name || !cat) return alert("名稱和分類必填！");
 
             // 💡 [新增] 把 image 一併塞進暫存包裹裡
-            pendingBatchItems.push({ name, category: cat, subCategory: subcat, model, image: image, location: loc, custodian: custodian, totalQty: total }); 
+            pendingBatchItems.push({ name, category: cat, subCategory: subcat, model, image: image, propertyNumber: propNum, location: loc, custodian: custodian, totalQty: total });
 
             document.getElementById('eq-name').value = "";
             document.getElementById('eq-model').value = "";
             document.getElementById('eq-image').value = ""; // 💡 [新增] 暫存後清空圖片欄位
             document.getElementById('eq-custodian').value = "";
+            document.getElementById('eq-property-number').value = ""; // 💡 新增這行
             document.getElementById('eq-name').focus();
 
             renderPreBatchList();
@@ -1480,6 +1483,7 @@
                     <td class="pr-3 text-indigo-300">${item.custodian || '-'}</td>
                     <td class="pr-3 text-yellow-400 font-bold">${item.totalQty}</td>
                     <td class="text-right"><button onclick="removePreBatch(${index})" class="text-red-400 px-2 py-1">✕</button></td>
+                    <td class="pr-3 text-gray-400">${item.propertyNumber || '-'}</td>
                 </tr>
                 `;
             }).join('');
@@ -1511,7 +1515,8 @@
                         image: item.image,
                         location: item.location,
                         custodian: item.custodian, // 🔥
-                        totalQty: item.totalQty
+                        totalQty: item.totalQty,
+                        propertyNumber: item.propertyNumber // 💡 新增這行
                     })
                 );
                 await Promise.all(promises);
@@ -1565,6 +1570,7 @@
             document.getElementById('eq-location').value = "";
             document.getElementById('eq-total').value = 1;
             document.getElementById('eq-custodian').value = ""; // 清空保管人欄位
+            document.getElementById('eq-property-number').value = ""; // 💡 新增清空
 
             if (mode === 'update' && id) {
                 const eq = equipmentCache.find(e => e.id === id) || {};
@@ -1577,7 +1583,8 @@
                 document.getElementById('eq-location').value = eq.location || "";
                 document.getElementById('eq-total').value = eq.total_qty || 1;
                 document.getElementById('eq-custodian').value = eq.custodian || ""; // 填入舊資料
-
+                document.getElementById('eq-property-number').value = eq.property_number || ""; // 💡 新增讀取舊資料
+                
 
                 document.getElementById('btn-delete-eq').classList.remove('hidden');
                 document.getElementById('btn-save-edit').classList.remove('hidden');
@@ -1607,7 +1614,8 @@
                 image: document.getElementById('eq-image').value.replace(/,/g, '\n'),
                 location: document.getElementById('eq-location').value,
                 custodian: document.getElementById('eq-custodian').value, // 🔥 加入這行
-                totalQty: document.getElementById('eq-total').value
+                totalQty: document.getElementById('eq-total').value,
+                propertyNumber: document.getElementById('eq-property-number').value // 💡 新增這行
             };
             if (!p.name) return alert("名稱必填");
             toggleLoader(true);
