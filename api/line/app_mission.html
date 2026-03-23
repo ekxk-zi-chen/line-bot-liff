@@ -339,6 +339,84 @@
                 transform: translateY(-10px);
             }
         }
+
+        /* =========================================
+           🎮 遊戲化導覽 (Driver.js) 戰術黑化風格
+           ========================================= */
+        /* 1. 主視窗：深色背景、圓角、立體陰影 */
+        .driver-popover {
+            background-color: #1f2937 !important; /* 呼應你系統的 bg-gray-800 */
+            color: #e5e7eb !important;
+            border: 1px solid #4b5563 !important; /* 邊框 border-gray-600 */
+            border-radius: 16px !important; /* 圓角變大更現代 */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9) !important;
+            font-family: inherit !important;
+        }
+
+        /* 2. 標題：換成戰情室專屬的「特搜黃」 */
+        .driver-popover-title {
+            color: #facc15 !important; /* text-yellow-400 */
+            font-size: 1.15rem !important;
+            font-weight: bold !important;
+            margin-bottom: 8px !important;
+            display: flex;
+            align-items: center;
+        }
+
+        /* 3. 內文描述：柔和的灰色 */
+        .driver-popover-description {
+            color: #9ca3af !important; /* text-gray-400 */
+            font-size: 0.9rem !important;
+            line-height: 1.6 !important;
+        }
+
+        /* 4. 底部按鈕：換成你的靛藍色風格 */
+        .driver-popover-footer button {
+            background-color: #4f46e5 !important; /* bg-indigo-600 */
+            color: white !important;
+            border: none !important;
+            border-radius: 8px !important;
+            padding: 6px 12px !important;
+            font-weight: bold !important;
+            text-shadow: none !important;
+            transition: all 0.2s !important;
+        }
+
+        /* 按鈕 hover & 點擊特效 */
+        .driver-popover-footer button:hover {
+            background-color: #4338ca !important; /* bg-indigo-700 */
+        }
+        .driver-popover-footer button:active {
+            transform: scale(0.95) !important;
+        }
+
+        /* 5. 禁用的按鈕 (例如第一頁的「上一步」) */
+        .driver-popover-footer .driver-popover-btn-disabled {
+            background-color: #374151 !important; /* bg-gray-700 */
+            color: #6b7280 !important; /* text-gray-500 */
+            cursor: not-allowed !important;
+        }
+
+        /* 6. 關閉按鈕 (右上角的 X) */
+        .driver-popover-close-btn {
+            color: #9ca3af !important;
+            transition: color 0.2s !important;
+        }
+        .driver-popover-close-btn:hover {
+            color: #ef4444 !important; /* hover 變紅色 */
+        }
+
+        /* 7. 進度文字 (1/4) */
+        .driver-popover-progress-text {
+            color: #6b7280 !important;
+            font-weight: bold !important;
+        }
+
+        /* 8. 關鍵！指向按鈕的小三角箭頭也要跟著黑化，不然會破功 */
+        .driver-popover-arrow-side-top { border-bottom-color: #1f2937 !important; }
+        .driver-popover-arrow-side-bottom { border-top-color: #1f2937 !important; }
+        .driver-popover-arrow-side-left { border-right-color: #1f2937 !important; }
+        .driver-popover-arrow-side-right { border-left-color: #1f2937 !important; }
     </style>
 </head>
 
