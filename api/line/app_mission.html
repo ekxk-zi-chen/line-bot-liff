@@ -20,6 +20,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
     <style>
         /* =========================================
            1. 全局佈局 (釋放原生滾動，讓手機畫面最大化)
@@ -414,6 +417,10 @@
         
         <button onclick="openSettingsModal()" class="absolute left-0 top-0 text-gray-400 hover:text-white p-1 text-2xl transition-transform active:scale-90">
             ⚙️
+        </button>
+
+        <button onclick="startTutorial()" class="absolute right-0 top-0 text-gray-400 hover:text-yellow-400 p-1 text-2xl transition-transform active:scale-90">
+            ❓
         </button>
 
         <h1 class="text-xl font-bold text-green-400 mb-1">🚒 花蓮特搜行動系統</h1>
@@ -1077,6 +1084,9 @@
                 await loadEquipment();
 
                 setTimeout(attachDragToElements, 500);
+
+                // 👇 新增這行：登入完畢後，檢查是否要啟動新手教學
+                checkAndRunTutorial();
 
             } catch (err) {
                 console.error("進入系統發生崩潰:", err);
@@ -1998,7 +2008,70 @@
     </script>
     <script src="splash/hnfa_splash.js"></script>
 
+    
     <script>
+        // =========================================
+        // 🎮 遊戲化新手教學 (Driver.js)
+        // =========================================
+        function startTutorial() {
+            const driver = window.driver.js.driver;
+            const tourGuide = driver({
+                showProgress: true, // 顯示 1/4 進度條
+                doneBtnText: '完成教學',
+                closeBtnText: '✕',
+                nextBtnText: '下一步 ➔',
+                prevBtnText: '⬅ 上一步',
+                steps: [
+                    {
+                        popover: {
+                            title: '🚒 歡迎來到花蓮特搜戰情中心',
+                            description: '學弟你好！第一次登入嗎？讓我花 30 秒帶你認識一下系統介面。',
+                            side: "bottom", align: 'center'
+                        }
+                    },
+                    {
+                        element: '#btn-toggle-filter', // 指向你原本的搜尋放大鏡
+                        popover: {
+                            title: '🔍 展開搜尋面板',
+                            description: '點擊這裡，可以展開詳細的裝備分類與關鍵字搜尋框。不知道全名沒關係，打一個字就能找！',
+                            side: "bottom", align: 'start'
+                        }
+                    },
+                    {
+                        element: '#status-filter', // 指向你原本的狀態選單
+                        popover: {
+                            title: '📦 裝備狀態過濾',
+                            description: '想知道哪些裝備被借走了？或哪些正在維修？點擊這個下拉選單切換就對了！',
+                            side: "bottom", align: 'start'
+                        }
+                    },
+                    {
+                        element: '#btn-export-mode', // 指向你原本的批量按鈕
+                        popover: {
+                            title: '📊 批量操作與匯出',
+                            description: '如果要一次借出多項裝備，或是下載裝備清單，請點擊這裡進入選擇模式。',
+                            side: "top", align: 'start'
+                        }
+                    }
+                ]
+            });
+            tourGuide.drive(); // 開演！
+        }
+
+        // 檢查是否是第一次登入
+        function checkAndRunTutorial() {
+            // 如果瀏覽器記憶體沒有 'hasSeenTutorial' 這個標記，代表他是菜鳥
+            if (!localStorage.getItem('hasSeenTutorial')) {
+                setTimeout(() => {
+                    startTutorial(); // 啟動教學
+                    localStorage.setItem('hasSeenTutorial', 'true'); // 幫他蓋章，下次進來就不吵他了
+                }, 1500); // 延遲 1.5 秒等畫面資料都載入完畢再跳出來
+            }
+        }
+
+
+
+
         window.addEventListener('load', function() {
             // 🌟 1. 檢查網址列是不是帶有「通知單號」
             const urlParams = new URLSearchParams(window.location.search);
