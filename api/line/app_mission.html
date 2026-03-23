@@ -1083,7 +1083,9 @@
                 await checkAdminRole();
                 await loadEquipment();
 
-                setTimeout(attachDragToElements, 500);
+                // 👇 換成這兩行：回報登入完畢，並呼叫交管中心
+                isSystemEntered = true;
+                tryRunTutorial();
 
                 // 👇 新增這行：登入完畢後，檢查是否要啟動新手教學
                 checkAndRunTutorial();
@@ -2058,14 +2060,20 @@
             tourGuide.drive(); // 開演！
         }
 
-        // 檢查是否是第一次登入
-        function checkAndRunTutorial() {
-            // 如果瀏覽器記憶體沒有 'hasSeenTutorial' 這個標記，代表他是菜鳥
-            if (!localStorage.getItem('hasSeenTutorial')) {
-                setTimeout(() => {
-                    startTutorial(); // 啟動教學
-                    localStorage.setItem('hasSeenTutorial', 'true'); // 幫他蓋章，下次進來就不吵他了
-                }, 1500); // 延遲 1.5 秒等畫面資料都載入完畢再跳出來
+        // 🚦 新增兩個全域變數，用來當作信號燈
+        let isSplashFinished = false;
+        let isSystemEntered = false;
+
+        // 升級版的教學觸發器
+        function tryRunTutorial() {
+            // 必須「動畫播完了」且「系統登入成功了」，兩個綠燈才能放行！
+            if (isSplashFinished && isSystemEntered) {
+                if (!localStorage.getItem('hasSeenTutorial')) {
+                    setTimeout(() => {
+                        startTutorial(); // 啟動教學
+                        localStorage.setItem('hasSeenTutorial', 'true'); 
+                    }, 500); // 稍微等 0.5 秒讓畫面版面穩定再彈出
+                }
             }
         }
 
@@ -2079,7 +2087,10 @@
             if (urlParams.has('notifId')) {
                 // 🚨 情況 A：點擊推播通知進來的 (緊急任務)
                 console.log("🚨 偵測到緊急任務跳轉！略過開場動畫，開啟綠色通道。");
-                // 直接 return 結束，絕對不執行 Splash.init 蓋黑布
+                
+                // 👇 因為直接跳過動畫了，所以我們直接給綠燈
+                isSplashFinished = true; 
+                tryRunTutorial();
                 return; 
             }
 
@@ -2089,6 +2100,10 @@
                 coverImage: 'splash/USAR.png',   
                 onComplete: function() {
                     console.log("✅ 戰術部署完畢");
+                    
+                    // 👇 動畫徹底結束，黑幕也拉開了，給予綠燈！
+                    isSplashFinished = true; 
+                    tryRunTutorial();
                 }
             });
         });
