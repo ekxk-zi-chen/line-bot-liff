@@ -23,6 +23,8 @@
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
+    
+    <link rel="stylesheet" href="mission_folder/tour_guide.css">
     <style>
         /* =========================================
            1. 全局佈局 (釋放原生滾動，讓手機畫面最大化)
@@ -340,83 +342,6 @@
             }
         }
 
-        /* =========================================
-           🎮 遊戲化導覽 (Driver.js) 戰術黑化風格
-           ========================================= */
-        /* 1. 主視窗：深色背景、圓角、立體陰影 */
-        .driver-popover {
-            background-color: #1f2937 !important; /* 呼應你系統的 bg-gray-800 */
-            color: #e5e7eb !important;
-            border: 1px solid #4b5563 !important; /* 邊框 border-gray-600 */
-            border-radius: 16px !important; /* 圓角變大更現代 */
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9) !important;
-            font-family: inherit !important;
-        }
-
-        /* 2. 標題：換成戰情室專屬的「特搜黃」 */
-        .driver-popover-title {
-            color: #facc15 !important; /* text-yellow-400 */
-            font-size: 1.15rem !important;
-            font-weight: bold !important;
-            margin-bottom: 8px !important;
-            display: flex;
-            align-items: center;
-        }
-
-        /* 3. 內文描述：柔和的灰色 */
-        .driver-popover-description {
-            color: #9ca3af !important; /* text-gray-400 */
-            font-size: 0.9rem !important;
-            line-height: 1.6 !important;
-        }
-
-        /* 4. 底部按鈕：換成你的靛藍色風格 */
-        .driver-popover-footer button {
-            background-color: #4f46e5 !important; /* bg-indigo-600 */
-            color: white !important;
-            border: none !important;
-            border-radius: 8px !important;
-            padding: 6px 12px !important;
-            font-weight: bold !important;
-            text-shadow: none !important;
-            transition: all 0.2s !important;
-        }
-
-        /* 按鈕 hover & 點擊特效 */
-        .driver-popover-footer button:hover {
-            background-color: #4338ca !important; /* bg-indigo-700 */
-        }
-        .driver-popover-footer button:active {
-            transform: scale(0.95) !important;
-        }
-
-        /* 5. 禁用的按鈕 (例如第一頁的「上一步」) */
-        .driver-popover-footer .driver-popover-btn-disabled {
-            background-color: #374151 !important; /* bg-gray-700 */
-            color: #6b7280 !important; /* text-gray-500 */
-            cursor: not-allowed !important;
-        }
-
-        /* 6. 關閉按鈕 (右上角的 X) */
-        .driver-popover-close-btn {
-            color: #9ca3af !important;
-            transition: color 0.2s !important;
-        }
-        .driver-popover-close-btn:hover {
-            color: #ef4444 !important; /* hover 變紅色 */
-        }
-
-        /* 7. 進度文字 (1/4) */
-        .driver-popover-progress-text {
-            color: #6b7280 !important;
-            font-weight: bold !important;
-        }
-
-        /* 8. 關鍵！指向按鈕的小三角箭頭也要跟著黑化，不然會破功 */
-        .driver-popover-arrow-side-top { border-bottom-color: #1f2937 !important; }
-        .driver-popover-arrow-side-bottom { border-top-color: #1f2937 !important; }
-        .driver-popover-arrow-side-left { border-right-color: #1f2937 !important; }
-        .driver-popover-arrow-side-right { border-left-color: #1f2937 !important; }
     </style>
 </head>
 
@@ -497,7 +422,7 @@
             ⚙️
         </button>
 
-        <button onclick="startTutorial()" class="absolute right-0 top-0 text-gray-400 hover:text-yellow-400 p-1 text-2xl transition-transform active:scale-90">
+        <button id="btn-help" class="absolute right-0 top-0 text-gray-400 hover:text-yellow-400 p-1 text-2xl transition-transform active:scale-90">
             ❓
         </button>
 
@@ -977,6 +902,33 @@
         // 🔥 用來記錄「已經看過且下載完成」的圖片 ID
         let loadedImageCache = new Set();
 
+        const AppState = {
+            // 👤 人員狀態區
+            user: {
+                id: "",
+                email: "",
+                name: "",
+                isAdmin: false
+            },
+            // 📦 裝備資料區
+            data: {
+                equipmentCache: [],     // 存你從資料庫抓回來的所有裝備
+                pendingBatchItems: [],  // 待新增的批量清單
+                loadedImageCache: new Set() // 存看過的圖片 ID
+            },
+            // 🎨 畫面狀態區
+            ui: {
+                isExportMode: false,
+                isImageMode: false,
+                isDetailsListView: false
+            },
+            // 🎮 系統與導覽狀態區
+            system: {
+                isSplashFinished: false,
+                isSystemEntered: false
+            }
+        };
+
         // 【App 專用介面卡】: 原封不動把大包裹丟給 Supabase 的 RPC
         window.submitToBackend = async function (payload) {
             return await callGasApi(payload);
@@ -1162,7 +1114,7 @@
                 await loadEquipment();
 
                 // 👇 換成這兩行：回報登入完畢，並呼叫交管中心
-                isSystemEntered = true;
+                AppState.system.isSystemEntered = true;
                 tryRunTutorial();
 
 
@@ -2085,75 +2037,9 @@
 
     </script>
     <script src="splash/hnfa_splash.js"></script>
-
+    <script src="mission_folder/tour_guide.js"></script>
     
     <script>
-        // =========================================
-        // 🎮 遊戲化新手教學 (Driver.js)
-        // =========================================
-        function startTutorial() {
-            const driver = window.driver.js.driver;
-            const tourGuide = driver({
-                showProgress: true, // 顯示 1/4 進度條
-                doneBtnText: '完成教學',
-                closeBtnText: '✕',
-                nextBtnText: '下一步 ➔',
-                prevBtnText: '⬅ 上一步',
-                steps: [
-                    {
-                        popover: {
-                            title: '🚒 歡迎來到花蓮特搜戰情中心',
-                            description: '學弟你好！第一次登入嗎？讓我花 30 秒帶你認識一下系統介面。',
-                            side: "bottom", align: 'center'
-                        }
-                    },
-                    {
-                        element: '#btn-toggle-filter', // 指向你原本的搜尋放大鏡
-                        popover: {
-                            title: '🔍 展開搜尋面板',
-                            description: '點擊這裡，可以展開詳細的裝備分類與關鍵字搜尋框。不知道全名沒關係，打一個字就能找！',
-                            side: "bottom", align: 'start'
-                        }
-                    },
-                    {
-                        element: '#status-filter', // 指向你原本的狀態選單
-                        popover: {
-                            title: '📦 裝備狀態過濾',
-                            description: '想知道哪些裝備被借走了？或哪些正在維修？點擊這個下拉選單切換就對了！',
-                            side: "bottom", align: 'start'
-                        }
-                    },
-                    {
-                        element: '#btn-export-mode', // 指向你原本的批量按鈕
-                        popover: {
-                            title: '📊 批量操作與匯出',
-                            description: '如果要一次借出多項裝備，或是下載裝備清單，請點擊這裡進入選擇模式。',
-                            side: "top", align: 'start'
-                        }
-                    }
-                ]
-            });
-            tourGuide.drive(); // 開演！
-        }
-
-        // 🚦 新增兩個全域變數，用來當作信號燈
-        let isSplashFinished = false;
-        let isSystemEntered = false;
-
-        // 升級版的教學觸發器
-        function tryRunTutorial() {
-            // 必須「動畫播完了」且「系統登入成功了」，兩個綠燈才能放行！
-            if (isSplashFinished && isSystemEntered) {
-                if (!localStorage.getItem('hasSeenTutorial')) {
-                    setTimeout(() => {
-                        startTutorial(); // 啟動教學
-                        localStorage.setItem('hasSeenTutorial', 'true'); 
-                    }, 500); // 稍微等 0.5 秒讓畫面版面穩定再彈出
-                }
-            }
-        }
-
-
 
 
         window.addEventListener('load', function() {
@@ -2165,7 +2051,7 @@
                 console.log("🚨 偵測到緊急任務跳轉！略過開場動畫，開啟綠色通道。");
                 
                 // 👇 因為直接跳過動畫了，所以我們直接給綠燈
-                isSplashFinished = true; 
+                AppState.system.isSplashFinished = true;
                 tryRunTutorial();
                 return; 
             }
@@ -2178,7 +2064,7 @@
                     console.log("✅ 戰術部署完畢");
                     
                     // 👇 動畫徹底結束，黑幕也拉開了，給予綠燈！
-                    isSplashFinished = true; 
+                    AppState.system.isSplashFinished = true;
                     tryRunTutorial();
                 }
             });
