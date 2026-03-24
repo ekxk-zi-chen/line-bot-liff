@@ -6,11 +6,17 @@
 function startTutorial() {
     const driver = window.driver.js.driver;
     const tourGuide = driver({
-        showProgress: true, // 顯示 1/4 進度條
+        showProgress: true,
+        allowClose: true,        // 💡 必須為 true 才有右上角的 X，我們會用 CSS 移位置
+        overlayClickable: false, // 💡 關鍵：設為 false，點擊黑色背景不會消失
+        // ---------------------------------------------------------
+        // 🎨 下面這四個是按鈕文字自定義
+        // ---------------------------------------------------------
         doneBtnText: '完成教學',
-        closeBtnText: '✕',
+        closeBtnText: '跳過',    // 💡 你想做 skip，這裡改寫成「跳過」或「✕」
         nextBtnText: '下一步 ➔',
         prevBtnText: '⬅ 上一步',
+        // ---------------------------------------------------------
         steps: [
             {
                 popover: {
@@ -20,10 +26,19 @@ function startTutorial() {
                 }
             },
             {
-                element: '#btn-toggle-filter', // 指向你原本的搜尋放大鏡
+                element: '#settings-modal-btn',
+                popover: {
+                    title: '⚙️ 系統設定',
+                    // 💡 使用 <span class="text-highlight-red"> 來達成紅字強調效果
+                    description: '調整你的保管人推播設定！<span class="text-highlight-red">重要!!</span> 不想被吵就記得選取「<span class="bg-yellow-text-red">僅限我保管的裝備</span>」',
+                    side: "bottom", align: 'start'
+                }
+            },
+            {
+                element: '#btn-toggle-filter',
                 popover: {
                     title: '🔍 展開搜尋面板',
-                    description: '點擊這裡，可以展開詳細的裝備分類與關鍵字搜尋框。不知道全名沒關係，打一個字就能找！',
+                    description: '點擊這裡展開詳細搜尋。注意：這裡也可以直接輸入<span class="bg-yellow-text-red">「借出人姓名」</span>來查看他借了什麼！',
                     side: "bottom", align: 'start'
                 }
             },
@@ -36,10 +51,42 @@ function startTutorial() {
                 }
             },
             {
+                element: '#history-btn', // 查看歷史紀錄按鈕
+                popover: {
+                    title: '📜 歷史紀錄',
+                    description: '查看最近的歷史紀錄！',
+                    side: "bottom", align: 'start'
+                }
+            },
+            {
+                element: '#toggle-image-mode-btn', // 切換圖片模式按鈕
+                popover: {
+                    title: '🖼️ 圖片模式',
+                    description: '切換到圖片模式，可以更直觀地查看裝備！',
+                    side: "bottom", align: 'start'
+                }
+            },
+            {
+                element: '#refresh-btn', // 刷新按鈕
+                popover: {
+                    title: '🔄 刷新',
+                    description: '資源有限，不走即時更新變化，但有做額外裝備變更推播，點擊這裡刷新裝備資料！',
+                    side: "bottom", align: 'start'
+                }
+            },
+            {
                 element: '#btn-export-mode', // 指向你原本的批量按鈕
                 popover: {
                     title: '📊 批量操作與匯出',
-                    description: '如果要一次借出多項裝備，或是下載裝備清單，請點擊這裡進入選擇模式。',
+                    description: '如果要一次借出多項裝備，或是匯出裝備清單，請點擊這裡進入勾選模式。篩選好後底部有<span class="text-highlight-red">全選</span>可以用!',
+                    side: "top", align: 'start'
+                }
+            },
+            {
+                element: '#btn-add-eq', // 新增按鈕
+                popover: {
+                    title: '➕新增 裝備',
+                    description: '可以一次匯新增多個裝備，記得多筆要加入清單列表喔!',
                     side: "top", align: 'start'
                 }
             }
