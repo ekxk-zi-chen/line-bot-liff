@@ -1377,6 +1377,7 @@
             document.getElementById('image-upload-modal').classList.add('hidden');
         }
 
+        // 🖼️ 1. 選擇照片並預覽 (直接轉換存 Base64)
         function previewImageSelection(event) {
             const files = Array.from(event.target.files);
             if (files.length === 0) return;
@@ -1389,56 +1390,63 @@
 
             const previewContainer = document.getElementById('upload-preview-container');
             previewContainer.innerHTML = '';
+            
+            // 💡 清空暫存陣列
+            pendingUploadFiles = []; 
+            document.getElementById('btn-confirm-upload').disabled = true;
 
-            pendingUploadFiles = []; // ⚠️ 改這裡
+            // 用來計算有幾張圖片讀取完成
+            let loadedCount = 0; 
 
             files.forEach(file => {
-
                 if (!file || file.size === 0) {
-                    alert(`圖片 [${file.name}] 讀取失敗（iOS問題）`);
+                    alert(`圖片 [${file.name}] 讀取失敗`);
+                    loadedCount++;
                     return;
                 }
 
                 if (file.size > 5 * 1024 * 1024) {
-                    alert(`圖片 [${file.name}] 太大囉！`);
+                    alert(`圖片 [${file.name}] 太大囉！(限制 5MB)`);
+                    loadedCount++;
                     return;
                 }
 
                 const reader = new FileReader();
 
                 reader.onload = function(e) {
+                    // 💡 關鍵：直接拿到瀏覽器已經轉好的 Base64 字串
+                    const dataUrl = e.target.result;
 
-                    const arrayBuffer = e.target.result;
+                    // 把「檔名」跟「Base64資料」打包存進陣列，iOS 就不會搞丟它了
+                    pendingUploadFiles.push({
+                        name: file.name || "image.jpg",
+                        dataUrl: dataUrl 
+                    });
 
-                    // ✅ 重建一個「乾淨的 file」
-                    const newFile = new File(
-                        [arrayBuffer],
-                        file.name || "image.jpg",
-                        { type: file.type || "image/jpeg" }
-                    );
-
-                    // 👉 存這個新的
-                    pendingUploadFiles.push(newFile);
-
-                    // 預覽
+                    // 畫出預覽圖
                     const img = document.createElement('img');
-                    img.src = URL.createObjectURL(newFile);
+                    img.src = dataUrl;
                     img.className = 'w-20 h-20 object-cover rounded border border-gray-600 shadow-sm';
                     previewContainer.appendChild(img);
+
+                    // 確保全部圖片都轉檔完畢，才開放「確認上傳」按鈕
+                    loadedCount++;
+                    if (loadedCount === files.length) {
+                        document.getElementById('btn-confirm-upload').disabled = false;
+                    }
                 };
 
-                // ⚠️ 這裡改用 ArrayBuffer（很重要）
-                reader.readAsArrayBuffer(file);
+                // ⚠️ 關鍵：直接讀成 DataURL (Base64)，不要再搞 ArrayBuffer 轉換了！
+                reader.readAsDataURL(file);
             });
-
-            document.getElementById('btn-confirm-upload').disabled = false;
         }
 
+        // 🚀 2. 確認上傳 (直接拿存好的 Base64 丟給後端)
         async function confirmImageUpload() {
             if (pendingUploadFiles.length === 0) return;
 
-            const files = pendingUploadFiles;
-            // 💡 [修改] 改成抓取「路徑輸入框」裡面的值
+            // 這裡的 files 現在是一個裝滿 {name, dataUrl} 的陣列
+            const files = pendingUploadFiles; 
             const targetPath = document.getElementById('upload-folder-path').value.trim() || '未分類裝備';
 
             closeImageUploadModal();
@@ -1446,58 +1454,49 @@
             const uploadedIds = [];
             let hasError = false;
 
-            // 💡 [修改] 排隊上傳機制 (迴圈逐一處理)
             for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                // 動態更新 Loading 文字，讓使用者知道進度
+                const fileObj = files[i];
                 toggleLoader(true, `圖片上傳中 (${i + 1}/${files.length})...`);
-                
-                // 將讀取檔案包裝成 Promise 等待它完成
-                const base64DataObj = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const fullData = e.target.result;
-                        const mimeType = fullData.split(';')[0].split(':')[1]; 
-                        const base64Data = fullData.split(',')[1];
-                        resolve({ mimeType, base64Data });
-                    };
-                    reader.readAsDataURL(file);
-                });
 
                 try {
+                    // 💡 直接從剛才存好的 dataUrl 裡面拆解 MIME 類型和真實資料
+                    const fullData = fileObj.dataUrl;
+                    const mimeType = fullData.split(';')[0].split(':')[1]; 
+                    const base64Data = fullData.split(',')[1];
+
                     // 呼叫 GAS
                     const res = await callGasApi({
                         action: 'upload_image',
-                        base64Data: base64DataObj.base64Data,
-                        fileName: file.name,
-                        mimeType: base64DataObj.mimeType,
-                        folderPath: targetPath, // 💡 [修改] 這裡的參數名稱改成 folderPath 傳給後端
+                        base64Data: base64Data,
+                        fileName: fileObj.name,
+                        mimeType: mimeType,
+                        folderPath: targetPath, 
                         unit: '特搜' 
                     });
 
                     if (res.success) {
                         uploadedIds.push(res.fileId); // 成功就加入收集袋
                     } else {
-                        alert(`❌ [${file.name}] 上傳失敗: ${res.message}`);
+                        alert(`❌ [${fileObj.name}] 上傳失敗: ${res.message}`);
                         hasError = true;
                     }
                 } catch (err) {
-                    alert(`❌ [${file.name}] 系統錯誤: ${err.message}`);
+                    alert(`❌ [${fileObj.name}] 系統錯誤: ${err.message}`);
                     hasError = true;
                 }
             }
 
             toggleLoader(false);
 
-            // 💡 [修改] 批次把所有收集到的 ID 寫進輸入框
+            // 批次把所有收集到的 ID 寫進輸入框
             if (uploadedIds.length > 0) {
                 const imgInput = document.getElementById('eq-image');
-                const newIdsStr = uploadedIds.join(','); // 把陣列變成用逗號隔開的字串
+                const newIdsStr = uploadedIds.join(','); 
                 
                 if (imgInput.value.trim() !== '') {
-                    imgInput.value += ',' + newIdsStr; // 附加在舊的後面
+                    imgInput.value += ',' + newIdsStr; 
                 } else {
-                    imgInput.value = newIdsStr; // 全新寫入
+                    imgInput.value = newIdsStr; 
                 }
 
                 if (!hasError) {
