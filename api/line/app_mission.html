@@ -1572,18 +1572,24 @@
         async function confirmExport() {
             if (selectedItems.size === 0) return alert("請選擇裝備");
             
-            // 💡 [新增] 抓取填寫的用途 (借出事由)
-            const borrowReason = document.getElementById('batch-note').value.trim();
+            // 🌟 戰術修復：利用原生彈窗要求填寫事由
+            const inputReason = prompt("📝 請輸入本次報表的「借出事由」\n(例如：雪地訓練、裝備清點、山域搜救)：", "一般勤務使用");
+            
+            // 💡 防呆：如果使用者按了「取消」，就直接中斷，不要產出 PDF
+            if (inputReason === null) {
+                return; 
+            }
+
+            const borrowReason = inputReason.trim();
 
             toggleLoader(true, "產生報表中...");
             try {
-                // 💡 [修改] 在這裡多傳 teamName 和 reason
                 const res = await callGasApi({ 
                     action: 'export_equipment_report', 
                     userId, 
                     eqIds: Array.from(selectedItems),
-                    teamName: '特搜大隊',  // ⚠️ 如果是在新秀的檔案，這裡記得改成 '新秀分隊'
-                    reason: borrowReason   // 👈 把事由一起送給 GAS
+                    teamName: '特搜大隊',  // ⚠️ 特搜大隊專屬名稱！
+                    reason: borrowReason   // 👈 確實把剛剛打的字送出去！
                 });
                 
                 if (res.url) {
