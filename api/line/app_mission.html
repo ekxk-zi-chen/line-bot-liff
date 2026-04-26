@@ -903,30 +903,41 @@
 
     <div id="signature-modal" class="fixed inset-0 bg-black z-[100] hidden flex-row overflow-hidden">
         
-        <div class="w-20 h-full bg-gray-900 border-r border-gray-700 flex flex-col items-center justify-between py-6 shrink-0">
+        <div id="sig-control-panel" class="w-24 h-full bg-gray-900 border-r border-gray-700 flex flex-col items-center justify-between py-6 shrink-0 transition-all">
             
-            <button onclick="closeSignaturePad()" class="transform -rotate-90 bg-gray-700 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl active:scale-90 transition-transform">
+            <button onclick="closeSignaturePad()" class="sig-btn bg-gray-700 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl active:scale-90">
                 ✕
             </button>
 
-            <div class="transform -rotate-90 whitespace-nowrap">
-                <span id="sig-pad-title" class="text-white font-bold tracking-widest text-base">簽名區域</span>
+            <button onclick="toggleSignatureRotation()" class="sig-btn bg-indigo-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl active:scale-90 shadow-lg shadow-indigo-900/50">
+                🔄
+            </button>
+
+            <div class="sig-btn-text text-center">
+                <span id="sig-pad-title" class="text-white font-bold tracking-widest text-base block">簽名區域</span>
+                <span id="sig-mode-label" class="text-gray-500 text-[10px]">電腦模式</span>
             </div>
 
-            <button onclick="signaturePad.clear()" class="transform -rotate-90 bg-gray-700 text-gray-300 px-4 py-2 rounded-full text-xs font-bold active:scale-90 transition-transform">
+            <button onclick="signaturePad.clear()" class="sig-btn bg-gray-700 text-gray-300 px-3 py-2 rounded-lg text-xs font-bold active:scale-90">
                 重寫
             </button>
 
-            <button onclick="saveSignature()" class="transform -rotate-90 bg-green-600 text-white w-14 h-14 rounded-full flex items-center justify-center font-bold text-sm shadow-lg shadow-green-900/50 active:scale-95 transition-transform">
+            <button onclick="saveSignature()" class="sig-btn bg-green-600 text-white w-14 h-14 rounded-full flex items-center justify-center font-bold text-sm shadow-xl active:scale-95">
                 完成
             </button>
         </div>
 
         <div class="flex-1 h-full bg-white relative">
-            <div class="absolute w-[1px] h-[80%] border-l border-dashed border-gray-300 pointer-events-none top-[10%] right-[30%] z-0"></div>
+            <div id="sig-guide-line" class="absolute h-[1px] w-[80%] border-t border-dashed border-gray-300 pointer-events-none left-[10%] bottom-[30%] z-0"></div>
             <canvas id="signature-canvas" class="w-full h-full touch-none relative z-10"></canvas>
         </div>
     </div>
+
+    <style>
+        /* 旋轉動畫類別 */
+        .rotate-90-mod { transform: rotate(-90deg) !important; }
+        .sig-btn, .sig-btn-text { transition: transform 0.3s ease; }
+    </style>
 
     <datalist id="note-suggestions">
         <option value="雪訓">
@@ -958,7 +969,8 @@
         let signaturePad;
         let currentSigTarget = ''; // 'checker' 或 'borrower'
         let signatures = { checker: null, borrower: null };
-
+        let isMobileMode = false; // 💡 預設電腦版 (不翻轉)
+        
         const AppState = {
             // 👤 人員狀態區
             user: {
@@ -1655,27 +1667,54 @@
         function clearSignature() { signaturePad.clear(); }
         function closeSignaturePad() { document.getElementById('signature-modal').classList.add('hidden'); }
 
+        // 🔄 切換旋轉模式
+        function toggleSignatureRotation() {
+            isMobileMode = !isMobileMode;
+            
+            const btns = document.querySelectorAll('.sig-btn, .sig-btn-text');
+            const guideLine = document.getElementById('sig-guide-line');
+            const modeLabel = document.getElementById('sig-mode-label');
+
+            if (isMobileMode) {
+                // 手機模式：按鈕轉向、輔助線變垂直
+                btns.forEach(el => el.classList.add('rotate-90-mod'));
+                guideLine.className = "absolute w-[1px] h-[80%] border-l border-dashed border-gray-300 pointer-events-none top-[10%] right-[30%] z-0";
+                modeLabel.innerText = "手機模式";
+                modeLabel.classList.replace('text-gray-500', 'text-yellow-500');
+            } else {
+                // 電腦模式：按鈕正立、輔助線變水平
+                btns.forEach(el => el.classList.remove('rotate-90-mod'));
+                guideLine.className = "absolute h-[1px] w-[80%] border-t border-dashed border-gray-300 pointer-events-none left-[10%] bottom-[30%] z-0";
+                modeLabel.innerText = "電腦模式";
+                modeLabel.classList.replace('text-yellow-500', 'text-gray-500');
+            }
+        }
+
+        // 🚀 最終儲存 (大判斷)
         function saveSignature() {
             if (signaturePad.isEmpty()) return alert("請簽名後再確認！");
             
-            // 1. 取得原本的畫布 (直向的)
             const canvas = document.getElementById('signature-canvas');
-            
-            // 2. 🌟 建立一個隱藏的「替身畫布」(寬高互換，變成橫向的)
-            const rotatedCanvas = document.createElement('canvas');
-            rotatedCanvas.width = canvas.height;  // 新的寬 = 舊的高
-            rotatedCanvas.height = canvas.width;  // 新的高 = 舊的寬
-            const ctx = rotatedCanvas.getContext('2d');
-            
-            // 3. 🌟 修正後的：順時針轉 90 度 (解決翻轉 180 度問題)
-            ctx.translate(rotatedCanvas.width, 0); 
-            ctx.rotate(Math.PI / 2);
-            
-            // 4. 把原本直直的簽名，畫到已經轉向的替身畫布上
-            ctx.drawImage(canvas, 0, 0);
-            
-            // 5. 產出 Base64 (這時候已經是一張完美的橫式圖片了！)
-            signatures[currentSigTarget] = rotatedCanvas.toDataURL('image/png');
+            let finalBase64 = '';
+
+            if (isMobileMode) {
+                // 📱 手機模式：執行旋轉 90 度魔法
+                const rotatedCanvas = document.createElement('canvas');
+                rotatedCanvas.width = canvas.height;
+                rotatedCanvas.height = canvas.width;
+                const ctx = rotatedCanvas.getContext('2d');
+                
+                ctx.translate(rotatedCanvas.width, 0); 
+                ctx.rotate(Math.PI / 2);
+                ctx.drawImage(canvas, 0, 0);
+                
+                finalBase64 = rotatedCanvas.toDataURL('image/png');
+            } else {
+                // 💻 電腦模式：直接出圖，不翻轉
+                finalBase64 = signaturePad.toDataURL('image/png');
+            }
+
+            signatures[currentSigTarget] = finalBase64;
             
             // 更新 UI 狀態
             const statusEl = document.getElementById(`status-sig-${currentSigTarget}`);
