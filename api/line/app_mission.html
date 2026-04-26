@@ -2363,6 +2363,17 @@
             const hint = document.getElementById('update-hint');
             if (!btn || !hint) return;
 
+            // 🍎 【新增】iOS 偵測防線 (包含 iPhone, iPad, iPod)
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            if (isIOS) {
+                btn.disabled = true; // 鎖死按鈕
+                btn.className = "w-full bg-gray-800 text-gray-500 py-3 rounded-lg font-bold flex items-center justify-center gap-2 cursor-not-allowed border border-gray-700 transition-all";
+                btn.innerHTML = `<span>🍎</span> iOS 系統無需更新`;
+                hint.innerHTML = `<span class="text-blue-400">重新開啟 App 即為最新版狀態</span>`;
+                return; // 直接結束函數，不往下執行 (也不用去抓 JSON 了)
+            }
+
+            // --- 以下為 Android 或一般電腦的邏輯 ---
             try {
                 // 抓取雲端 version.json (加上 t= 防止快取)
                 const response = await fetch(`version.json?t=${Date.now()}`);
@@ -2395,6 +2406,13 @@
         * 🚀 步驟 B：點擊按鈕執行下載
         */
         function launchAppUpdate() {
+            // 🍎 【新增】第二道防線：萬一真的有 iOS 點到了，彈出提示擋掉
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            if (isIOS) {
+                alert("iOS 裝置不需要下載更新檔喔！\n請直接將 App 往上滑掉重新開啟，系統就會自動套用最新畫面。");
+                return;
+            }
+
             if (!remoteUpdateInfo) {
                 alert("尚未取得雲端更新資訊，請檢查網路！");
                 return;
