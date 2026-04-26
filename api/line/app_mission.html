@@ -903,14 +903,24 @@
 
     <div id="signature-modal" class="fixed inset-0 bg-black z-[100] hidden flex-col items-center justify-center p-4">
         <div class="absolute top-4 right-4 flex gap-2">
-            <button onclick="clearSignature()" class="bg-gray-700 text-white px-4 py-2 rounded-full text-sm">重寫</button>
+            <button onclick="signaturePad.clear()" class="bg-gray-700 text-white px-4 py-2 rounded-full text-sm">重寫</button>
             <button onclick="closeSignaturePad()" class="bg-red-600 text-white px-4 py-2 rounded-full text-sm">✕ 關閉</button>
         </div>
-        <div class="text-white mb-2 text-sm" id="sig-pad-title">請於下方橫式簽名</div>
-        <div class="w-full h-[70vh] bg-white rounded-xl shadow-inner relative overflow-hidden">
-            <canvas id="signature-canvas" class="w-full h-full touch-none"></canvas>
+        
+        <div id="sig-pad-title" class="text-white mb-3 text-base text-center font-bold">
+            清點人員<br>
+            <span class="text-yellow-400 text-sm font-normal">⚠️ 請保持手機直立，<br>將手機頂部當作左側「打橫簽名」</span>
         </div>
-        <button onclick="saveSignature()" class="mt-6 w-full max-w-xs bg-green-600 text-white py-4 rounded-full font-bold text-lg shadow-xl active:scale-95 transition-transform">✅ 簽名完成</button>
+
+        <div class="w-[80vw] h-[65vh] bg-white rounded-xl relative overflow-hidden flex justify-center shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+            <div class="absolute w-[2px] h-[80%] border-l-2 border-dashed border-gray-300 pointer-events-none top-[10%]" style="right: 30%;"></div>
+            
+            <canvas id="signature-canvas" class="w-full h-full touch-none relative z-10"></canvas>
+        </div>
+
+        <button onclick="saveSignature()" class="mt-6 w-full max-w-xs bg-green-600 hover:bg-green-500 text-white py-4 rounded-full font-bold text-lg shadow-xl active:scale-95 transition-transform">
+            ✅ 簽名完成
+        </button>
     </div>
 
     <datalist id="note-suggestions">
@@ -1642,9 +1652,25 @@
         function saveSignature() {
             if (signaturePad.isEmpty()) return alert("請簽名後再確認！");
             
-            // 💡 轉成 Base64 (PNG 格式)
-            const base64Data = signaturePad.toDataURL('image/png');
-            signatures[currentSigTarget] = base64Data;
+            // 1. 取得原本的畫布 (直向的)
+            const canvas = document.getElementById('signature-canvas');
+            
+            // 2. 🌟 建立一個隱藏的「替身畫布」(寬高互換，變成橫向的)
+            const rotatedCanvas = document.createElement('canvas');
+            rotatedCanvas.width = canvas.height;  // 新的寬 = 舊的高
+            rotatedCanvas.height = canvas.width;  // 新的高 = 舊的寬
+            const ctx = rotatedCanvas.getContext('2d');
+            
+            // 3. 🌟 進行空間旋轉魔法 (逆時針旋轉 90 度)
+            // 將畫筆起點移到左下角，然後把畫布轉成橫的
+            ctx.translate(0, rotatedCanvas.height);
+            ctx.rotate(-Math.PI / 2);
+            
+            // 4. 把原本直直的簽名，畫到已經轉向的替身畫布上
+            ctx.drawImage(canvas, 0, 0);
+            
+            // 5. 產出 Base64 (這時候已經是一張完美的橫式圖片了！)
+            signatures[currentSigTarget] = rotatedCanvas.toDataURL('image/png');
             
             // 更新 UI 狀態
             const statusEl = document.getElementById(`status-sig-${currentSigTarget}`);
