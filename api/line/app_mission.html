@@ -877,21 +877,6 @@
         </div>
     </div>
 
-    帥哥，你這個需求提得非常接地氣！在現場直接拍照附在裝備表後面，這才是真正的「戰術級 App」該有的樣子。
-
-你擔心的點完全正確：「手機照片很大，GAS 會不會撐爆？」
-答案是：會！ 如果你直接把 5 張原圖（每張可能 5MB~10MB）轉成 Base64 塞給後端，GAS 絕對會直接報錯「Payload Too Large」給你看。
-
-但別擔心，我們不需要犧牲畫質，我們只需要在前端加入「自動壓縮引擎」。在轉 Base64 之前，我們先用 JavaScript 的 <canvas> 把照片長寬縮小（例如限制最長邊為 800px），並存成 JPEG 格式。這樣每張照片的體積會瞬間從 5MB 掉到 100KB 左右，GAS 閉著眼睛都能吃下 5 張！
-
-而且，為了不破壞你原本精心排版的 A4 表格，我們在 GAS 裡開一個新的試算表分頁叫做「附件照片」。因為匯出 PDF 時，GAS 預設會把所有分頁都印出來，所以照片會自動完美地接在裝備清單的下一頁！
-
-來，我們分三步進行武裝升級：
-
-第一步：前端 HTML (新增拍照區塊)
-請到 app_mission.html 找到 <div id="export-settings-modal"...>，把裡面的內容替換成這樣，我們在簽名區塊下方多加了照相功能：
-
-HTML
     <div id="export-settings-modal" class="modal-overlay hidden z-[70]">
         <div class="bg-gray-800 p-5 rounded-lg w-full max-w-sm border border-purple-500 shadow-2xl max-h-[90vh] flex flex-col">
             <h3 class="text-xl font-bold text-white mb-4 shrink-0">📊 匯出報表設定</h3>
