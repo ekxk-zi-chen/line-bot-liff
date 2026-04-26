@@ -901,26 +901,31 @@
         </div>
     </div>
 
-    <div id="signature-modal" class="fixed inset-0 bg-black z-[100] hidden flex-col items-center justify-center p-4">
-        <div class="absolute top-4 right-4 flex gap-2">
-            <button onclick="signaturePad.clear()" class="bg-gray-700 text-white px-4 py-2 rounded-full text-sm">重寫</button>
-            <button onclick="closeSignaturePad()" class="bg-red-600 text-white px-4 py-2 rounded-full text-sm">✕ 關閉</button>
-        </div>
+    <div id="signature-modal" class="fixed inset-0 bg-black z-[100] hidden flex-row overflow-hidden">
         
-        <div id="sig-pad-title" class="text-white mb-3 text-base text-center font-bold">
-            清點人員<br>
-            <span class="text-yellow-400 text-sm font-normal">⚠️ 請保持手機直立，<br>將手機頂部當作左側「打橫簽名」</span>
+        <div class="w-20 h-full bg-gray-900 border-r border-gray-700 flex flex-col items-center justify-between py-6 shrink-0">
+            
+            <button onclick="closeSignaturePad()" class="transform -rotate-90 bg-gray-700 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl active:scale-90 transition-transform">
+                ✕
+            </button>
+
+            <div class="transform -rotate-90 whitespace-nowrap">
+                <span id="sig-pad-title" class="text-white font-bold tracking-widest text-base">簽名區域</span>
+            </div>
+
+            <button onclick="signaturePad.clear()" class="transform -rotate-90 bg-gray-700 text-gray-300 px-4 py-2 rounded-full text-xs font-bold active:scale-90 transition-transform">
+                重寫
+            </button>
+
+            <button onclick="saveSignature()" class="transform -rotate-90 bg-green-600 text-white w-14 h-14 rounded-full flex items-center justify-center font-bold text-sm shadow-lg shadow-green-900/50 active:scale-95 transition-transform">
+                完成
+            </button>
         </div>
 
-        <div class="w-[80vw] h-[65vh] bg-white rounded-xl relative overflow-hidden flex justify-center shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-            <div class="absolute w-[2px] h-[80%] border-l-2 border-dashed border-gray-300 pointer-events-none top-[10%]" style="right: 30%;"></div>
-            
+        <div class="flex-1 h-full bg-white relative">
+            <div class="absolute w-[1px] h-[80%] border-l border-dashed border-gray-300 pointer-events-none top-[10%] right-[30%] z-0"></div>
             <canvas id="signature-canvas" class="w-full h-full touch-none relative z-10"></canvas>
         </div>
-
-        <button onclick="saveSignature()" class="mt-6 w-full max-w-xs bg-green-600 hover:bg-green-500 text-white py-4 rounded-full font-bold text-lg shadow-xl active:scale-95 transition-transform">
-            ✅ 簽名完成
-        </button>
     </div>
 
     <datalist id="note-suggestions">
@@ -1624,22 +1629,23 @@
         // 啟動畫板
         function openSignaturePad(role) {
             currentSigTarget = role;
-            document.getElementById('sig-pad-title').innerText = (role === 'checker' ? '清點人員' : '借用人/領用人') + ' 請簽名';
+            // 更新標題文字
+            document.getElementById('sig-pad-title').innerText = (role === 'checker' ? '清點人員' : '領用人') + ' 簽名';
+            
             document.getElementById('signature-modal').classList.remove('hidden');
             document.getElementById('signature-modal').classList.add('flex');
             
             const canvas = document.getElementById('signature-canvas');
-            // 動態設定寬高，確保畫布大小跟容器一致
-            canvas.width = canvas.parentElement.offsetWidth;
-            canvas.height = canvas.parentElement.offsetHeight;
+            // 💡 關鍵：必須設定畫布的實體寬高等於它被 CSS 撐開後的寬高
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
             
             if (!signaturePad) {
                 signaturePad = new SignaturePad(canvas, {
-                    backgroundColor: 'rgba(255, 255, 255, 0)', // 透明背景
+                    backgroundColor: 'rgba(255, 255, 255, 0)',
                     penColor: 'black',
-                    // 👇 在這裡加入這兩行，數字越大越粗（預設通常是 0.5 到 2.5）
-                    minWidth: 2, // 最小寬度
-                    maxWidth: 5  // 最大寬度
+                    minWidth: 2, // 💡 筆跡加粗
+                    maxWidth: 5
                 });
             } else {
                 signaturePad.clear();
