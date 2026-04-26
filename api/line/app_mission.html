@@ -2368,18 +2368,26 @@
                 const response = await fetch(`version.json?t=${Date.now()}`);
                 remoteUpdateInfo = await response.json();
 
-                // 核心比對邏輯：只要 JSON 的版號跟手機抓到的不一樣，就發光！
+                // 核心比對邏輯：
                 if (remoteUpdateInfo.latestVersion !== CURRENT_APP_VERSION) {
-                    btn.classList.remove('bg-blue-600');
-                    btn.classList.add('bg-orange-600', 'animate-pulse'); // 變橘色並閃爍
-                    btn.innerHTML = `<span>🚀</span> 發現新版本 ${remoteUpdateInfo.latestVersion}`;
+                    // 🚀 情況 1：有新版本！解鎖按鈕並發光
+                    btn.disabled = false; // 解除鎖定
+                    btn.className = "w-full bg-orange-600 hover:bg-orange-500 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(234,88,12,0.6)] animate-pulse active:scale-95 transition-all";
+                    btn.innerHTML = `<span>🚀</span> 發現新版本 v${remoteUpdateInfo.latestVersion} (點擊更新)`;
                     hint.innerHTML = `<span class="text-orange-400 font-bold">更新重點：${remoteUpdateInfo.releaseNote}</span>`;
                 } else {
-                    hint.innerText = `當前版本 v${CURRENT_APP_VERSION} (已是最新)`;
+                    // ✅ 情況 2：版本一樣！鎖死按鈕並反灰
+                    btn.disabled = true; // 鎖定按鈕，無法點擊
+                    btn.className = "w-full bg-gray-700 text-gray-500 py-3 rounded-lg font-bold flex items-center justify-center gap-2 cursor-not-allowed border border-gray-600 transition-all";
+                    btn.innerHTML = `<span>✅</span> 裝甲已是最新版`;
+                    hint.innerText = `當前版本 v${CURRENT_APP_VERSION} (無需更新)`;
                 }
             } catch (e) {
                 console.error("版本檢查失敗:", e);
-                hint.innerText = `目前版本 v${CURRENT_APP_VERSION} (無法連接更新伺服器)`;
+                // ❌ 情況 3：斷網或抓不到 JSON！一樣鎖死按鈕保護機制
+                btn.disabled = true;
+                btn.className = "w-full bg-gray-800 text-gray-600 py-3 rounded-lg font-bold flex items-center justify-center gap-2 cursor-not-allowed border border-gray-700 transition-all";
+                hint.innerText = `無法連接更新伺服器 (當前 v${CURRENT_APP_VERSION})`;
             }
         }
 
@@ -2389,6 +2397,12 @@
         function launchAppUpdate() {
             if (!remoteUpdateInfo) {
                 alert("尚未取得雲端更新資訊，請檢查網路！");
+                return;
+            }
+
+            // 🛡️ 雙重防線：就算他用什麼怪招點到了按鈕，只要版本一樣就直接擋掉
+            if (remoteUpdateInfo.latestVersion === CURRENT_APP_VERSION) {
+                alert("目前已經是最新版本，不需要更新喔！");
                 return;
             }
 
