@@ -877,24 +877,56 @@
         </div>
     </div>
 
+    帥哥，你這個需求提得非常接地氣！在現場直接拍照附在裝備表後面，這才是真正的「戰術級 App」該有的樣子。
+
+你擔心的點完全正確：「手機照片很大，GAS 會不會撐爆？」
+答案是：會！ 如果你直接把 5 張原圖（每張可能 5MB~10MB）轉成 Base64 塞給後端，GAS 絕對會直接報錯「Payload Too Large」給你看。
+
+但別擔心，我們不需要犧牲畫質，我們只需要在前端加入「自動壓縮引擎」。在轉 Base64 之前，我們先用 JavaScript 的 <canvas> 把照片長寬縮小（例如限制最長邊為 800px），並存成 JPEG 格式。這樣每張照片的體積會瞬間從 5MB 掉到 100KB 左右，GAS 閉著眼睛都能吃下 5 張！
+
+而且，為了不破壞你原本精心排版的 A4 表格，我們在 GAS 裡開一個新的試算表分頁叫做「附件照片」。因為匯出 PDF 時，GAS 預設會把所有分頁都印出來，所以照片會自動完美地接在裝備清單的下一頁！
+
+來，我們分三步進行武裝升級：
+
+第一步：前端 HTML (新增拍照區塊)
+請到 app_mission.html 找到 <div id="export-settings-modal"...>，把裡面的內容替換成這樣，我們在簽名區塊下方多加了照相功能：
+
+HTML
     <div id="export-settings-modal" class="modal-overlay hidden z-[70]">
-        <div class="bg-gray-800 p-5 rounded-lg w-full max-w-sm border border-purple-500 shadow-2xl">
-            <h3 class="text-xl font-bold text-white mb-4">📊 匯出報表設定</h3>
-            <div class="mb-4">
-                <label class="block text-gray-400 text-xs mb-1 font-bold">借出事由</label>
-                <input type="text" id="export-reason-input" class="input-dark w-full" placeholder="例如：雪山搜救、裝備清點">
+        <div class="bg-gray-800 p-5 rounded-lg w-full max-w-sm border border-purple-500 shadow-2xl max-h-[90vh] flex flex-col">
+            <h3 class="text-xl font-bold text-white mb-4 shrink-0">📊 匯出報表設定</h3>
+            
+            <div class="overflow-y-auto custom-scrollbar pr-2 flex-1 mb-4 space-y-4">
+                <div>
+                    <label class="block text-gray-400 text-xs mb-1 font-bold">借出事由</label>
+                    <input type="text" id="export-reason-input" class="input-dark w-full" placeholder="例如：雪山搜救、裝備清點">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="openSignaturePad('checker')" class="bg-gray-700 p-3 rounded-lg border border-gray-600 text-center active:scale-95 transition-transform">
+                        <div class="text-xs text-gray-400 mb-1">清點人員簽名</div>
+                        <div id="status-sig-checker" class="text-sm font-bold text-red-500">❌ 未簽名</div>
+                    </button>
+                    <button onclick="openSignaturePad('borrower')" class="bg-gray-700 p-3 rounded-lg border border-gray-600 text-center active:scale-95 transition-transform">
+                        <div class="text-xs text-gray-400 mb-1">借用人簽名</div>
+                        <div id="status-sig-borrower" class="text-sm font-bold text-red-500">❌ 未簽名</div>
+                    </button>
+                </div>
+
+                <div class="border-t border-gray-700 pt-4">
+                    <label class="block text-gray-400 text-xs mb-2 font-bold">📸 現場附件照片 (最多 5 張)</label>
+                    
+                    <div id="export-photo-preview" class="flex gap-2 overflow-x-auto mb-2 custom-scrollbar pb-1"></div>
+                    
+                    <input type="file" id="export-photo-input" accept="image/*" multiple class="hidden" onchange="processExportPhotos(event)">
+                    
+                    <button onclick="document.getElementById('export-photo-input').click()" class="w-full bg-gray-700 hover:bg-gray-600 text-gray-200 py-2.5 rounded-lg text-sm border border-gray-600 active:scale-95 transition-transform shadow-inner flex justify-center items-center gap-2 font-bold">
+                        <span>📷</span> 拍照 / 選擇照片
+                    </button>
+                </div>
             </div>
-            <div class="grid grid-cols-2 gap-2 mb-6">
-                <button onclick="openSignaturePad('checker')" class="bg-gray-700 p-3 rounded-lg border border-gray-600 text-center active:scale-95 transition-transform">
-                    <div class="text-xs text-gray-400 mb-1">清點人員簽名</div>
-                    <div id="status-sig-checker" class="text-sm font-bold text-red-500">❌ 未簽名</div>
-                </button>
-                <button onclick="openSignaturePad('borrower')" class="bg-gray-700 p-3 rounded-lg border border-gray-600 text-center active:scale-95 transition-transform">
-                    <div class="text-xs text-gray-400 mb-1">借用人簽名</div>
-                    <div id="status-sig-borrower" class="text-sm font-bold text-red-500">❌ 未簽名</div>
-                </button>
-            </div>
-            <div class="flex gap-2 border-t border-gray-700 pt-3">
+
+            <div class="flex gap-2 border-t border-gray-700 pt-3 shrink-0">
                 <button onclick="closeModal('export-settings-modal')" class="flex-1 bg-gray-600 text-white py-2 rounded-lg font-bold">取消</button>
                 <button onclick="executeFinalExport()" class="flex-1 bg-purple-600 text-white py-2 rounded-lg font-bold">確認匯出 PDF</button>
             </div>
@@ -970,7 +1002,8 @@
         let currentSigTarget = ''; // 'checker' 或 'borrower'
         let signatures = { checker: null, borrower: null };
         let isMobileMode = true; // 💡 預設電腦版 (不翻轉)
-        
+        let exportPhotosBase64 = []; // 專門存放壓縮後的 Base64 照片
+
         const AppState = {
             // 👤 人員狀態區
             user: {
@@ -1748,23 +1781,107 @@
             closeSignaturePad();
         }
 
+        // 🌟 打開設定彈窗時，清空之前的照片與簽名
         async function confirmExport() {
             if (selectedItems.size === 0) return alert("請選擇裝備");
-            // 重置簽名狀態
+            
             signatures = { checker: null, borrower: null };
             document.getElementById('status-sig-checker').className = 'text-sm font-bold text-red-500';
             document.getElementById('status-sig-checker').innerText = "❌ 未簽名";
             document.getElementById('status-sig-borrower').className = 'text-sm font-bold text-red-500';
             document.getElementById('status-sig-borrower').innerText = "❌ 未簽名";
             
+            // 清空照片
+            exportPhotosBase64 = [];
+            renderExportPhotoPreview();
+            document.getElementById('export-photo-input').value = '';
+            
             document.getElementById('export-settings-modal').classList.remove('hidden');
             document.getElementById('export-settings-modal').classList.add('flex');
         }
 
-        // 🚀 最終執行匯出
+        // 🌟 照片壓縮與預覽引擎
+        async function processExportPhotos(event) {
+            const files = Array.from(event.target.files);
+            if (files.length === 0) return;
+
+            if (exportPhotosBase64.length + files.length > 5) {
+                alert("最多只能附加 5 張照片喔！");
+                event.target.value = '';
+                return;
+            }
+
+            toggleLoader(true, "照片壓縮處理中...");
+            
+            for (let file of files) {
+                try {
+                    // 呼叫壓縮黑科技 (最大寬度限制 800px)
+                    const compressedBase64 = await compressImageToJPEG(file, 800); 
+                    exportPhotosBase64.push(compressedBase64);
+                } catch(e) {
+                    console.error("圖片處理失敗", e);
+                }
+            }
+
+            renderExportPhotoPreview();
+            event.target.value = '';
+            toggleLoader(false);
+        }
+
+        // 壓縮核心邏輯
+        function compressImageToJPEG(file, maxWidth) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = event => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        // 等比例縮小
+                        if (width > maxWidth || height > maxWidth) {
+                            if (width > height) {
+                                height = Math.round((height *= maxWidth / width));
+                                width = maxWidth;
+                            } else {
+                                width = Math.round((width *= maxWidth / height));
+                                height = maxWidth;
+                            }
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // 🔥 關鍵：輸出為 JPEG，品質 0.7，體積暴降 90%
+                        resolve(canvas.toDataURL('image/jpeg', 0.7));
+                    };
+                    img.onerror = error => reject(error);
+                };
+            });
+        }
+
+        function renderExportPhotoPreview() {
+            const container = document.getElementById('export-photo-preview');
+            container.innerHTML = exportPhotosBase64.map((b64, index) => `
+                <div class="relative shrink-0 w-16 h-16 rounded border border-gray-600 shadow-md">
+                    <img src="${b64}" class="w-full h-full object-cover rounded">
+                    <button onclick="removeExportPhoto(${index})" class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function removeExportPhoto(index) {
+            exportPhotosBase64.splice(index, 1);
+            renderExportPhotoPreview();
+        }
+
+        // 🌟 執行最終匯出 (打包加入 photos)
         async function executeFinalExport() {
             const reason = document.getElementById('export-reason-input').value.trim();
-            
             
             toggleLoader(true, "簽名打包並產生 PDF 中...");
             try {
@@ -1774,9 +1891,9 @@
                     eqIds: Array.from(selectedItems),
                     teamName: '特搜大隊', 
                     reason: reason,
-                    // 💡 [新增] 傳送兩組 Base64 簽名
                     checkerSig: signatures.checker,
-                    borrowerSig: signatures.borrower
+                    borrowerSig: signatures.borrower,
+                    photos: exportPhotosBase64 // 👈 把壓縮好的照片陣列送出！
                 });
                 
                 if (res.url) {
