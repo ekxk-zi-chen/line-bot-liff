@@ -1764,7 +1764,7 @@
         // 🚀 最終執行匯出
         async function executeFinalExport() {
             const reason = document.getElementById('export-reason-input').value.trim();
-            if (!reason) return alert("請填寫借出事由！");
+            
             
             toggleLoader(true, "簽名打包並產生 PDF 中...");
             try {
