@@ -1667,10 +1667,9 @@
             rotatedCanvas.height = canvas.width;  // 新的高 = 舊的寬
             const ctx = rotatedCanvas.getContext('2d');
             
-            // 3. 🌟 進行空間旋轉魔法 (逆時針旋轉 90 度)
-            // 將畫筆起點移到左下角，然後把畫布轉成橫的
-            ctx.translate(0, rotatedCanvas.height);
-            ctx.rotate(-Math.PI / 2);
+            // 3. 🌟 修正後的：順時針轉 90 度 (解決翻轉 180 度問題)
+            ctx.translate(rotatedCanvas.width, 0); 
+            ctx.rotate(Math.PI / 2);
             
             // 4. 把原本直直的簽名，畫到已經轉向的替身畫布上
             ctx.drawImage(canvas, 0, 0);
