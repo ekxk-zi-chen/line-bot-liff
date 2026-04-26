@@ -25,6 +25,8 @@
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
     
     <link rel="stylesheet" href="mission_folder/tour_guide_style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
     <style>
         /* =========================================
            1. 全局佈局 (釋放原生滾動，讓手機畫面最大化)
@@ -875,6 +877,42 @@
         </div>
     </div>
 
+    <div id="export-settings-modal" class="modal-overlay hidden z-[70]">
+        <div class="bg-gray-800 p-5 rounded-lg w-full max-w-sm border border-purple-500 shadow-2xl">
+            <h3 class="text-xl font-bold text-white mb-4">📊 匯出報表設定</h3>
+            <div class="mb-4">
+                <label class="block text-gray-400 text-xs mb-1 font-bold">借出事由</label>
+                <input type="text" id="export-reason-input" class="input-dark w-full" placeholder="例如：雪山搜救、裝備清點">
+            </div>
+            <div class="grid grid-cols-2 gap-2 mb-6">
+                <button onclick="openSignaturePad('checker')" class="bg-gray-700 p-3 rounded-lg border border-gray-600 text-center active:scale-95 transition-transform">
+                    <div class="text-xs text-gray-400 mb-1">清點人員簽名</div>
+                    <div id="status-sig-checker" class="text-sm font-bold text-red-500">❌ 未簽名</div>
+                </button>
+                <button onclick="openSignaturePad('borrower')" class="bg-gray-700 p-3 rounded-lg border border-gray-600 text-center active:scale-95 transition-transform">
+                    <div class="text-xs text-gray-400 mb-1">借用人簽名</div>
+                    <div id="status-sig-borrower" class="text-sm font-bold text-red-500">❌ 未簽名</div>
+                </button>
+            </div>
+            <div class="flex gap-2 border-t border-gray-700 pt-3">
+                <button onclick="closeModal('export-settings-modal')" class="flex-1 bg-gray-600 text-white py-2 rounded-lg font-bold">取消</button>
+                <button onclick="executeFinalExport()" class="flex-1 bg-purple-600 text-white py-2 rounded-lg font-bold">確認匯出 PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="signature-modal" class="fixed inset-0 bg-black z-[100] hidden flex-col items-center justify-center p-4">
+        <div class="absolute top-4 right-4 flex gap-2">
+            <button onclick="clearSignature()" class="bg-gray-700 text-white px-4 py-2 rounded-full text-sm">重寫</button>
+            <button onclick="closeSignaturePad()" class="bg-red-600 text-white px-4 py-2 rounded-full text-sm">✕ 關閉</button>
+        </div>
+        <div class="text-white mb-2 text-sm" id="sig-pad-title">請於下方橫式簽名</div>
+        <div class="w-full h-[70vh] bg-white rounded-xl shadow-inner relative overflow-hidden">
+            <canvas id="signature-canvas" class="w-full h-full touch-none"></canvas>
+        </div>
+        <button onclick="saveSignature()" class="mt-6 w-full max-w-xs bg-green-600 text-white py-4 rounded-full font-bold text-lg shadow-xl active:scale-95 transition-transform">✅ 簽名完成</button>
+    </div>
+
     <datalist id="note-suggestions">
         <option value="雪訓">
         <option value="繩索訓練">
@@ -901,6 +939,10 @@
         let isDetailsListView = false;
         // 🔥 用來記錄「已經看過且下載完成」的圖片 ID
         let loadedImageCache = new Set();
+
+        let signaturePad;
+        let currentSigTarget = ''; // 'checker' 或 'borrower'
+        let signatures = { checker: null, borrower: null };
 
         const AppState = {
             // 👤 人員狀態區
@@ -1569,42 +1611,85 @@
             }
         }
 
+        // 啟動畫板
+        function openSignaturePad(role) {
+            currentSigTarget = role;
+            document.getElementById('sig-pad-title').innerText = (role === 'checker' ? '清點人員' : '借用人/領用人') + ' 請簽名';
+            document.getElementById('signature-modal').classList.remove('hidden');
+            document.getElementById('signature-modal').classList.add('flex');
+            
+            const canvas = document.getElementById('signature-canvas');
+            // 動態設定寬高，確保畫布大小跟容器一致
+            canvas.width = canvas.parentElement.offsetWidth;
+            canvas.height = canvas.parentElement.offsetHeight;
+            
+            if (!signaturePad) {
+                signaturePad = new SignaturePad(canvas, {
+                    backgroundColor: 'rgba(255, 255, 255, 0)', // 透明背景
+                    penColor: 'black'
+                });
+            } else {
+                signaturePad.clear();
+            }
+        }
+
+        function clearSignature() { signaturePad.clear(); }
+        function closeSignaturePad() { document.getElementById('signature-modal').classList.add('hidden'); }
+
+        function saveSignature() {
+            if (signaturePad.isEmpty()) return alert("請簽名後再確認！");
+            
+            // 💡 轉成 Base64 (PNG 格式)
+            const base64Data = signaturePad.toDataURL('image/png');
+            signatures[currentSigTarget] = base64Data;
+            
+            // 更新 UI 狀態
+            const statusEl = document.getElementById(`status-sig-${currentSigTarget}`);
+            statusEl.innerText = "✅ 已簽名";
+            statusEl.classList.remove('text-red-500');
+            statusEl.classList.add('text-green-400');
+            
+            closeSignaturePad();
+        }
+
         async function confirmExport() {
             if (selectedItems.size === 0) return alert("請選擇裝備");
+            // 重置簽名狀態
+            signatures = { checker: null, borrower: null };
+            document.getElementById('status-sig-checker').className = 'text-sm font-bold text-red-500';
+            document.getElementById('status-sig-checker').innerText = "❌ 未簽名";
+            document.getElementById('status-sig-borrower').className = 'text-sm font-bold text-red-500';
+            document.getElementById('status-sig-borrower').innerText = "❌ 未簽名";
             
-            // 🌟 戰術修復：利用原生彈窗要求填寫事由
-            const inputReason = prompt("📝 請輸入本次報表的「借出事由」\n(例如：雪地訓練、裝備清點、山域搜救)：", "一般勤務使用");
+            document.getElementById('export-settings-modal').classList.remove('hidden');
+            document.getElementById('export-settings-modal').classList.add('flex');
+        }
+
+        // 🚀 最終執行匯出
+        async function executeFinalExport() {
+            const reason = document.getElementById('export-reason-input').value.trim();
+            if (!reason) return alert("請填寫借出事由！");
             
-            // 💡 防呆：如果使用者按了「取消」，就直接中斷，不要產出 PDF
-            if (inputReason === null) {
-                return; 
-            }
-
-            const borrowReason = inputReason.trim();
-
-            toggleLoader(true, "產生報表中...");
+            toggleLoader(true, "簽名打包並產生 PDF 中...");
             try {
                 const res = await callGasApi({ 
                     action: 'export_equipment_report', 
                     userId, 
                     eqIds: Array.from(selectedItems),
-                    teamName: '特搜大隊',  // ⚠️ 特搜大隊專屬名稱！
-                    reason: borrowReason   // 👈 確實把剛剛打的字送出去！
+                    teamName: '特搜大隊', 
+                    reason: reason,
+                    // 💡 [新增] 傳送兩組 Base64 簽名
+                    checkerSig: signatures.checker,
+                    borrowerSig: signatures.borrower
                 });
                 
                 if (res.url) {
-                    // 🌟 智慧判斷：
-                    // iOS / 電腦版用 window.open 很穩。
-                    // 但 Android WebView 討厭開新視窗，所以我們用 location.href 直接撞上去，
-                    // 故意觸發等一下要在 Android 底層寫的「攔截網」！
+                    closeModal('export-settings-modal');
                     const isAndroid = /Android/i.test(navigator.userAgent);
-                    if (isAndroid) {
-                        window.location.href = res.url; 
-                    } else {
-                        window.open(res.url, '_blank');
-                    }
+                    if (isAndroid) window.location.href = res.url; 
+                    else window.open(res.url, '_blank');
                 } else {
-                    alert("匯出失敗，請稍後再試。");
+                    alert("匯出失敗: " + res.message);
                 }
             } catch (e) {
                 alert(e.message);
