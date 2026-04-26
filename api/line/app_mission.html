@@ -1474,8 +1474,8 @@
             document.getElementById('image-upload-modal').classList.add('hidden');
         }
 
-        // 🖼️ 1. 選擇照片並預覽 (直接轉換存 Base64)
-        function previewImageSelection(event) {
+        // 🖼️ 1. 選擇照片並預覽 (🚀 導入無情壓縮黑科技版)
+        async function previewImageSelection(event) {
             const files = Array.from(event.target.files);
             if (files.length === 0) return;
 
@@ -1488,54 +1488,48 @@
             const previewContainer = document.getElementById('upload-preview-container');
             previewContainer.innerHTML = '';
             
-            // 💡 清空暫存陣列
+            // 💡 清空暫存陣列，並鎖死上傳按鈕
             pendingUploadFiles = []; 
             document.getElementById('btn-confirm-upload').disabled = true;
 
-            // 用來計算有幾張圖片讀取完成
-            let loadedCount = 0; 
+            // 🐗 啟動山豬動畫，讓隊員知道正在努力壓縮
+            toggleLoader(true, "照片極速壓縮中..."); 
 
-            files.forEach(file => {
-                if (!file || file.size === 0) {
-                    alert(`圖片 [${file.name}] 讀取失敗`);
-                    loadedCount++;
-                    return;
-                }
+            try {
+                for (let file of files) {
+                    if (!file || file.size === 0) continue;
 
-                if (file.size > 5 * 1024 * 1024) {
-                    alert(`圖片 [${file.name}] 太大囉！(限制 5MB)`);
-                    loadedCount++;
-                    return;
-                }
+                    // ❌ 砍掉舊的 5MB 限制！
+                    // 🚀 核心黑科技：直接呼叫 compressImageToJPEG，寬度壓到 800px
+                    const compressedBase64 = await compressImageToJPEG(file, 800);
 
-                const reader = new FileReader();
+                    // 檔名強制換成 .jpg (因為壓縮出來一定是 JPEG)
+                    const newFileName = (file.name || `image_${Date.now()}`).replace(/\.[^/.]+$/, "") + ".jpg";
 
-                reader.onload = function(e) {
-                    // 💡 關鍵：直接拿到瀏覽器已經轉好的 Base64 字串
-                    const dataUrl = e.target.result;
-
-                    // 把「檔名」跟「Base64資料」打包存進陣列，iOS 就不會搞丟它了
+                    // 存入陣列等待上傳
                     pendingUploadFiles.push({
-                        name: file.name || "image.jpg",
-                        dataUrl: dataUrl 
+                        name: newFileName,
+                        dataUrl: compressedBase64 
                     });
 
                     // 畫出預覽圖
                     const img = document.createElement('img');
-                    img.src = dataUrl;
+                    img.src = compressedBase64;
                     img.className = 'w-20 h-20 object-cover rounded border border-gray-600 shadow-sm';
                     previewContainer.appendChild(img);
+                }
 
-                    // 確保全部圖片都轉檔完畢，才開放「確認上傳」按鈕
-                    loadedCount++;
-                    if (loadedCount === files.length) {
-                        document.getElementById('btn-confirm-upload').disabled = false;
-                    }
-                };
+                // 確保至少有一張圖片壓縮成功，才開放「確認上傳」按鈕
+                if (pendingUploadFiles.length > 0) {
+                    document.getElementById('btn-confirm-upload').disabled = false;
+                }
 
-                // ⚠️ 關鍵：直接讀成 DataURL (Base64)，不要再搞 ArrayBuffer 轉換了！
-                reader.readAsDataURL(file);
-            });
+            } catch (err) {
+                console.error("圖片壓縮失敗:", err);
+                alert("圖片處理發生異常，請重試！");
+            } finally {
+                toggleLoader(false); // 關閉山豬動畫
+            }
         }
 
         // 🚀 2. 確認上傳 (直接拿存好的 Base64 丟給後端)
