@@ -901,37 +901,42 @@
         </div>
     </div>
 
-    <div id="signature-modal" class="fixed inset-0 bg-black z-[100] hidden flex-col overflow-hidden">
+    <div id="signature-modal" class="fixed inset-0 bg-black z-[100] hidden flex-row overflow-hidden">
         
-        <div id="sig-control-panel" class="w-full h-20 bg-gray-900 border-b border-gray-700 flex flex-row items-center justify-between px-6 py-2 shrink-0">
-            <div class="sig-btn-text flex flex-col items-start transition-transform">
-                <span id="sig-pad-title" class="text-white font-bold tracking-widest text-lg">清點人員簽名</span>
-                <span id="sig-mode-label" class="text-gray-500 text-xs">電腦模式 (不翻轉)</span>
+        <div id="sig-control-panel" class="w-24 h-full bg-gray-900 border-r border-gray-700 flex flex-col items-center justify-between py-6 shrink-0 transition-all">
+            
+            <button onclick="closeSignaturePad()" class="sig-btn bg-gray-700 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl active:scale-90 rotate-90-mod">
+                ✕
+            </button>
+
+            <button onclick="toggleSignatureRotation()" class="sig-btn bg-indigo-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl active:scale-90 shadow-lg shadow-indigo-900/50 rotate-90-mod">
+                🔄
+            </button>
+
+            <div class="sig-btn-text text-center rotate-90-mod">
+                <span id="sig-pad-title" class="text-white font-bold tracking-widest text-base block">簽名區域</span>
+                <span id="sig-mode-label" class="text-yellow-500 text-[10px]">手機模式</span>
             </div>
 
-            <div class="flex items-center gap-3">
-                <button onclick="toggleSignatureRotation()" class="sig-btn bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 active:scale-95 transition-transform">
-                    <span>🔄</span> <span class="sig-hide-on-mobile text-sm font-bold">切換模式</span>
-                </button>
-                <button onclick="signaturePad.clear()" class="sig-btn bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-sm font-bold active:scale-90 transition-transform">重寫</button>
-                <button onclick="saveSignature()" class="sig-btn bg-green-600 text-white px-6 py-2 rounded-lg font-bold text-sm shadow-xl active:scale-95 transition-transform">完成簽名</button>
-                <button onclick="closeSignaturePad()" class="sig-btn bg-red-600/20 text-red-500 w-10 h-10 rounded-full flex items-center justify-center text-xl active:scale-90 transition-transform">✕</button>
-            </div>
+            <button onclick="signaturePad.clear()" class="sig-btn bg-gray-700 text-gray-300 px-3 py-2 rounded-lg text-xs font-bold active:scale-90 rotate-90-mod">
+                重寫
+            </button>
+
+            <button onclick="saveSignature()" class="sig-btn bg-green-600 text-white w-14 h-14 rounded-full flex items-center justify-center font-bold text-sm shadow-xl active:scale-95 rotate-90-mod">
+                完成
+            </button>
         </div>
 
-        <div id="canvas-wrapper" class="flex-1 bg-gray-100 flex items-center justify-center p-4">
-            <div id="canvas-container" class="w-full max-w-3xl aspect-[5/2] bg-white shadow-inner relative overflow-hidden rounded-lg">
-                <div id="sig-guide-line" class="absolute h-[1px] w-[80%] border-t border-dashed border-gray-300 pointer-events-none left-[10%] bottom-[30%] z-0"></div>
-                <canvas id="signature-canvas" class="w-full h-full touch-none relative z-10"></canvas>
-            </div>
+        <div id="canvas-wrapper" class="flex-1 h-full bg-white relative">
+            <div id="sig-guide-line" class="absolute w-[1px] h-[80%] border-l-2 border-dashed border-gray-300 pointer-events-none top-[10%] right-[30%] z-0"></div>
+            <canvas id="signature-canvas" class="w-full h-full touch-none relative z-10"></canvas>
         </div>
     </div>
 
     <style>
-        /* 旋轉黑科技 */
+        /* 旋轉動畫類別 (你的版本) */
         .rotate-90-mod { transform: rotate(-90deg) !important; }
-        /* 手機模式下隱藏多餘文字 */
-        .mobile-hide { display: none !important; }
+        .sig-btn, .sig-btn-text { transition: transform 0.3s ease; }
     </style>
 
     <datalist id="note-suggestions">
@@ -1669,63 +1674,78 @@
             const modal = document.getElementById('signature-modal');
             const panel = document.getElementById('sig-control-panel');
             const wrapper = document.getElementById('canvas-wrapper');
-            const container = document.getElementById('canvas-container');
-            const btns = document.querySelectorAll('.sig-btn');
-            const titleText = document.querySelector('.sig-btn-text');
-            const hideTexts = document.querySelectorAll('.sig-hide-on-mobile');
+            const btns = document.querySelectorAll('.sig-btn, .sig-btn-text');
             const guideLine = document.getElementById('sig-guide-line');
             const modeLabel = document.getElementById('sig-mode-label');
 
             if (isMobileMode) {
-                // 📱 【手機模式】完全還原你原本的側邊欄！
+                // 📱 切換回你「完美的」手機模式
                 modal.className = "fixed inset-0 bg-black z-[100] flex flex-row overflow-hidden";
-                
-                // 控制列變成：寬度固定、靠左、垂直排列
                 panel.className = "w-24 h-full bg-gray-900 border-r border-gray-700 flex flex-col items-center justify-between py-6 shrink-0";
-                
-                // 畫布容器變成：吃滿右邊所有空間、無圓角、無比例限制
                 wrapper.className = "flex-1 h-full bg-white relative";
-                container.className = "w-full h-full relative";
                 
-                // 按鈕全數旋轉 -90 度
-                btns.forEach(btn => btn.classList.add('rotate-90-mod'));
-                titleText.classList.add('rotate-90-mod');
-                hideTexts.forEach(txt => txt.classList.add('mobile-hide'));
-                
+                // 按鈕轉回 -90 度
+                btns.forEach(el => el.classList.add('rotate-90-mod'));
                 // 輔助線變垂直
-                guideLine.className = "absolute w-[1px] h-[80%] border-l border-dashed border-gray-300 pointer-events-none top-[10%] right-[30%] z-0";
+                guideLine.className = "absolute w-[1px] h-[80%] border-l-2 border-dashed border-gray-300 pointer-events-none top-[10%] right-[30%] z-0";
+                
                 modeLabel.innerText = "手機模式";
-                modeLabel.className = "text-yellow-500 text-xs";
-
+                modeLabel.classList.replace('text-gray-500', 'text-yellow-500');
             } else {
-                // 💻 【電腦模式】上方控制列 + 置中正常比例畫布
+                // 💻 切換到「電腦模式」
                 modal.className = "fixed inset-0 bg-black z-[100] flex flex-col overflow-hidden";
-                
-                // 控制列變成：上方橫條、水平排列
-                panel.className = "w-full h-20 bg-gray-900 border-b border-gray-700 flex flex-row items-center justify-between px-6 py-2 shrink-0";
-                
-                // 畫布容器變成：灰色背景置中、有最大寬度與比例限制
-                wrapper.className = "flex-1 bg-gray-100 flex items-center justify-center p-4";
-                container.className = "w-full max-w-3xl aspect-[5/2] bg-white shadow-inner relative overflow-hidden rounded-lg";
+                // 面板變上方橫條，橫向排列
+                panel.className = "w-full h-20 bg-gray-900 border-b border-gray-700 flex flex-row items-center justify-between px-10 py-2 shrink-0";
+                wrapper.className = "flex-1 w-full bg-white relative";
                 
                 // 按鈕轉正
-                btns.forEach(btn => btn.classList.remove('rotate-90-mod'));
-                titleText.classList.remove('rotate-90-mod');
-                hideTexts.forEach(txt => txt.classList.remove('mobile-hide'));
-                
+                btns.forEach(el => el.classList.remove('rotate-90-mod'));
                 // 輔助線變水平
-                guideLine.className = "absolute h-[1px] w-[80%] border-t border-dashed border-gray-300 pointer-events-none left-[10%] bottom-[30%] z-0";
-                modeLabel.innerText = "電腦模式 (不翻轉)";
-                modeLabel.className = "text-gray-500 text-xs";
+                guideLine.className = "absolute h-[1px] w-[80%] border-t-2 border-dashed border-gray-300 pointer-events-none left-[10%] bottom-[30%] z-0";
+                
+                modeLabel.innerText = "電腦模式";
+                modeLabel.classList.replace('text-yellow-500', 'text-gray-500');
             }
 
-            // ⚠️ 重新計算畫布解析度 (非常重要，否則筆跡座標會歪掉)
+            // ⚠️ 重新計算畫布解析度 (必做，否則筆跡座標會歪)
             setTimeout(() => {
                 const canvas = document.getElementById('signature-canvas');
                 canvas.width = canvas.offsetWidth;
                 canvas.height = canvas.offsetHeight;
                 if(signaturePad) signaturePad.clear(); 
-            }, 50); // 給一點點時間讓 DOM 長好再抓寬高
+            }, 50);
+        }
+
+        // 🚀 最終儲存 (完美融合你的旋轉邏輯)
+        function saveSignature() {
+            if (signaturePad.isEmpty()) return alert("請簽名後再確認！");
+            
+            const canvas = document.getElementById('signature-canvas');
+            let finalBase64 = '';
+
+            if (isMobileMode) {
+                // 📱 手機模式：直接套用你給的那段「完美翻轉 180 修正」代碼
+                const rotatedCanvas = document.createElement('canvas');
+                rotatedCanvas.width = canvas.height;
+                rotatedCanvas.height = canvas.width;
+                const ctx = rotatedCanvas.getContext('2d');
+                
+                ctx.translate(rotatedCanvas.width, 0); 
+                ctx.rotate(Math.PI / 2);
+                ctx.drawImage(canvas, 0, 0);
+                
+                finalBase64 = rotatedCanvas.toDataURL('image/png');
+            } else {
+                // 💻 電腦模式：使用者由左往右簽，直接出圖，不翻轉
+                finalBase64 = signaturePad.toDataURL('image/png');
+            }
+
+            signatures[currentSigTarget] = finalBase64;
+            const statusEl = document.getElementById(`status-sig-${currentSigTarget}`);
+            statusEl.innerText = "✅ 已簽名";
+            statusEl.classList.replace('text-red-500', 'text-green-400');
+            
+            closeSignaturePad();
         }
 
         async function confirmExport() {
