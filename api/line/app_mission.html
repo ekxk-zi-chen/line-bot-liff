@@ -793,6 +793,16 @@
                     </label>
                 </div>
             </div>
+
+            <div class="mb-6">
+                <label class="block text-gray-300 text-sm font-bold mb-3">🛠️ 系統維護</label>
+                
+                <button id="update-btn" onclick="launchAppUpdate()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                    <span>🔄</span> 安卓版檢查並更新
+                </button>
+                
+                <p id="update-hint" class="text-[10px] text-gray-500 text-center mt-2">正在與裝甲進行通訊...</p>
+            </div>
             
             <button onclick="saveSettings()" class="w-full bg-gray-700 hover:bg-gray-600 border border-gray-500 text-white py-2.5 rounded-lg font-bold tracking-widest transition-all shadow-lg active:scale-95">儲存設定</button>
         </div>
@@ -2334,6 +2344,76 @@
             document.getElementById('details-image').classList.add('hidden');
         }
 
+        // ==========================================
+        // 🚀 智慧版：App 自動更新系統 (特大專屬)
+        // ==========================================
+
+        // 🌟 1. 自動從 Android 裝甲抓取版號 (抓不到就預設 1.0.0)
+        const CURRENT_APP_VERSION = (window.AndroidUpdater && typeof window.AndroidUpdater.getAppVersion === 'function') 
+                                    ? window.AndroidUpdater.getAppVersion() 
+                                    : "1.0.0";
+
+        let remoteUpdateInfo = null; // 用來存雲端的版本資訊
+
+        /**
+        * 📡 步驟 A：網頁載入時，先去問 JSON 有沒有新版
+        */
+        async function checkSystemUpdate() {
+            const btn = document.getElementById('update-btn');
+            const hint = document.getElementById('update-hint');
+            if (!btn || !hint) return;
+
+            try {
+                // 抓取雲端 version.json (加上 t= 防止快取)
+                const response = await fetch(`version.json?t=${Date.now()}`);
+                remoteUpdateInfo = await response.json();
+
+                // 核心比對邏輯：只要 JSON 的版號跟手機抓到的不一樣，就發光！
+                if (remoteUpdateInfo.latestVersion !== CURRENT_APP_VERSION) {
+                    btn.classList.remove('bg-blue-600');
+                    btn.classList.add('bg-orange-600', 'animate-pulse'); // 變橘色並閃爍
+                    btn.innerHTML = `<span>🚀</span> 發現新版本 ${remoteUpdateInfo.latestVersion}`;
+                    hint.innerHTML = `<span class="text-orange-400 font-bold">更新重點：${remoteUpdateInfo.releaseNote}</span>`;
+                } else {
+                    hint.innerText = `當前版本 v${CURRENT_APP_VERSION} (已是最新)`;
+                }
+            } catch (e) {
+                console.error("版本檢查失敗:", e);
+                hint.innerText = `目前版本 v${CURRENT_APP_VERSION} (無法連接更新伺服器)`;
+            }
+        }
+
+        /**
+        * 🚀 步驟 B：點擊按鈕執行下載
+        */
+        function launchAppUpdate() {
+            if (!remoteUpdateInfo) {
+                alert("尚未取得雲端更新資訊，請檢查網路！");
+                return;
+            }
+
+            // 自動計算 APK 直連網址
+            const currentPath = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+            const fullApkUrl = remoteUpdateInfo.apkUrl.startsWith('http') 
+                            ? remoteUpdateInfo.apkUrl 
+                            : `${currentPath}/${remoteUpdateInfo.apkUrl}`;
+
+            if (window.AndroidUpdater && typeof window.AndroidUpdater.startAppUpdate === 'function') {
+                alert(`準備下載版本：${remoteUpdateInfo.latestVersion}\n下載完成後，請點擊「安裝」覆蓋舊版。`);
+                window.AndroidUpdater.startAppUpdate(fullApkUrl);
+            } else {
+                // 瀏覽器模式，直接開新分頁載
+                if (confirm(`發現新版本 ${remoteUpdateInfo.latestVersion}，是否使用瀏覽器下載 APK？`)) {
+                    window.location.href = fullApkUrl;
+                }
+            }
+        }
+
+        // 🌟 3. 確保網頁載入後，自動啟動檢查
+        window.addEventListener('load', () => {
+            // 稍微延遲一下，等 Android 橋樑連線穩定
+            setTimeout(checkSystemUpdate, 1500);
+        });
 
     </script>
     <script src="splash/hnfa_splash.js"></script>
