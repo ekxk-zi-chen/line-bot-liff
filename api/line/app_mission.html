@@ -1626,7 +1626,10 @@
             if (!signaturePad) {
                 signaturePad = new SignaturePad(canvas, {
                     backgroundColor: 'rgba(255, 255, 255, 0)', // 透明背景
-                    penColor: 'black'
+                    penColor: 'black',
+                    // 👇 在這裡加入這兩行，數字越大越粗（預設通常是 0.5 到 2.5）
+                    minWidth: 2, // 最小寬度
+                    maxWidth: 5  // 最大寬度
                 });
             } else {
                 signaturePad.clear();
