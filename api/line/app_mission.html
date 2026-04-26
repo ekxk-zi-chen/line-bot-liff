@@ -901,42 +901,53 @@
         </div>
     </div>
 
-    <div id="signature-modal" class="fixed inset-0 bg-black z-[100] hidden flex-row overflow-hidden">
+    <div id="signature-modal" class="fixed inset-0 bg-black z-[100] hidden flex-col overflow-hidden">
         
-        <div id="sig-control-panel" class="w-24 h-full bg-gray-900 border-r border-gray-700 flex flex-col items-center justify-between py-6 shrink-0 transition-all">
+        <div id="sig-control-panel" class="w-full h-20 bg-gray-900 border-b border-gray-700 flex flex-row items-center justify-between px-6 py-2 shrink-0 transition-all duration-300">
             
-            <button onclick="closeSignaturePad()" class="sig-btn bg-gray-700 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl active:scale-90">
-                ✕
-            </button>
-
-            <button onclick="toggleSignatureRotation()" class="sig-btn bg-indigo-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl active:scale-90 shadow-lg shadow-indigo-900/50">
-                🔄
-            </button>
-
-            <div class="sig-btn-text text-center">
-                <span id="sig-pad-title" class="text-white font-bold tracking-widest text-base block">簽名區域</span>
-                <span id="sig-mode-label" class="text-gray-500 text-[10px]">電腦模式</span>
+            <div class="sig-btn-text flex flex-col items-start">
+                <span id="sig-pad-title" class="text-white font-bold tracking-widest text-lg">清點人員簽名</span>
+                <span id="sig-mode-label" class="text-gray-500 text-xs">電腦模式 (由左至右)</span>
             </div>
 
-            <button onclick="signaturePad.clear()" class="sig-btn bg-gray-700 text-gray-300 px-3 py-2 rounded-lg text-xs font-bold active:scale-90">
-                重寫
-            </button>
+            <div class="flex items-center gap-4">
+                <button onclick="toggleSignatureRotation()" class="sig-btn bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 active:scale-95 transition-all shadow-lg">
+                    <span class="text-xl">🔄</span>
+                    <span class="hidden sm:inline text-sm font-bold">切換簽名模式</span>
+                </button>
 
-            <button onclick="saveSignature()" class="sig-btn bg-green-600 text-white w-14 h-14 rounded-full flex items-center justify-center font-bold text-sm shadow-xl active:scale-95">
-                完成
-            </button>
+                <button onclick="signaturePad.clear()" class="sig-btn bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-sm font-bold active:scale-90">
+                    重寫
+                </button>
+
+                <button onclick="saveSignature()" class="sig-btn bg-green-600 text-white px-6 py-2 rounded-lg font-bold text-sm shadow-xl active:scale-95">
+                    完成簽名
+                </button>
+
+                <button onclick="closeSignaturePad()" class="sig-btn bg-red-600/20 text-red-500 w-10 h-10 rounded-full flex items-center justify-center text-xl active:scale-90">
+                    ✕
+                </button>
+            </div>
         </div>
 
-        <div class="flex-1 h-full bg-white relative">
+        <div class="flex-1 bg-white relative">
             <div id="sig-guide-line" class="absolute h-[1px] w-[80%] border-t border-dashed border-gray-300 pointer-events-none left-[10%] bottom-[30%] z-0"></div>
             <canvas id="signature-canvas" class="w-full h-full touch-none relative z-10"></canvas>
         </div>
     </div>
 
     <style>
-        /* 旋轉動畫類別 */
+        /* 手機旋轉模式下的按鈕樣式 */
         .rotate-90-mod { transform: rotate(-90deg) !important; }
-        .sig-btn, .sig-btn-text { transition: transform 0.3s ease; }
+        /* 手機模式下的控制面板佈局 (變成左側窄欄) */
+        .sig-panel-mobile {
+            width: 80px !important;
+            height: 100% !important;
+            flex-direction: column !important;
+            border-right-width: 1px !important;
+            border-bottom-width: 0px !important;
+            padding: 24px 0 !important;
+        }
     </style>
 
     <datalist id="note-suggestions">
@@ -1671,26 +1682,47 @@
         function toggleSignatureRotation() {
             isMobileMode = !isMobileMode;
             
-            const btns = document.querySelectorAll('.sig-btn, .sig-btn-text');
+            const modal = document.getElementById('signature-modal');
+            const panel = document.getElementById('sig-control-panel');
+            const btns = document.querySelectorAll('.sig-btn');
+            const titleText = document.querySelector('.sig-btn-text');
             const guideLine = document.getElementById('sig-guide-line');
             const modeLabel = document.getElementById('sig-mode-label');
 
             if (isMobileMode) {
-                // 手機模式：按鈕轉向、輔助線變垂直
-                btns.forEach(el => el.classList.add('rotate-90-mod'));
+                // 📱 切換到手機模式
+                modal.classList.replace('flex-col', 'flex-row'); // 改為橫向排列(側邊欄)
+                panel.classList.add('sig-panel-mobile');         // 縮小寬度變側邊欄
+                btns.forEach(btn => btn.classList.add('rotate-90-mod'));
+                titleText.classList.add('rotate-90-mod');
+                
+                // 輔助線轉為垂直
                 guideLine.className = "absolute w-[1px] h-[80%] border-l border-dashed border-gray-300 pointer-events-none top-[10%] right-[30%] z-0";
-                modeLabel.innerText = "手機模式";
+                
+                modeLabel.innerText = "手機模式 (請將頂部朝左簽名)";
                 modeLabel.classList.replace('text-gray-500', 'text-yellow-500');
             } else {
-                // 電腦模式：按鈕正立、輔助線變水平
-                btns.forEach(el => el.classList.remove('rotate-90-mod'));
+                // 💻 回到電腦模式
+                modal.classList.replace('flex-row', 'flex-col'); // 改為縱向排列(頂部欄)
+                panel.classList.remove('sig-panel-mobile');      // 回復頂部寬欄
+                btns.forEach(btn => btn.classList.remove('rotate-90-mod'));
+                titleText.classList.remove('rotate-90-mod');
+                
+                // 輔助線轉為水平
                 guideLine.className = "absolute h-[1px] w-[80%] border-t border-dashed border-gray-300 pointer-events-none left-[10%] bottom-[30%] z-0";
-                modeLabel.innerText = "電腦模式";
+                
+                modeLabel.innerText = "電腦模式 (由左至右)";
                 modeLabel.classList.replace('text-yellow-500', 'text-gray-500');
             }
+
+            // 💡 重新設定畫布大小，避免筆跡跑掉
+            const canvas = document.getElementById('signature-canvas');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            signaturePad.clear(); // 切換模式時強制清空，確保比例正確
         }
 
-        // 🚀 最終儲存 (大判斷)
+        // 🚀 儲存判斷邏輯
         function saveSignature() {
             if (signaturePad.isEmpty()) return alert("請簽名後再確認！");
             
@@ -1698,7 +1730,7 @@
             let finalBase64 = '';
 
             if (isMobileMode) {
-                // 📱 手機模式：執行旋轉 90 度魔法
+                // 📱 手機模式：需要將直簽的圖旋轉 90 度轉正
                 const rotatedCanvas = document.createElement('canvas');
                 rotatedCanvas.width = canvas.height;
                 rotatedCanvas.height = canvas.width;
@@ -1707,20 +1739,19 @@
                 ctx.translate(rotatedCanvas.width, 0); 
                 ctx.rotate(Math.PI / 2);
                 ctx.drawImage(canvas, 0, 0);
-                
                 finalBase64 = rotatedCanvas.toDataURL('image/png');
             } else {
-                // 💻 電腦模式：直接出圖，不翻轉
+                // 💻 電腦模式：使用者本來就是由左寫到右，直接出圖！
                 finalBase64 = signaturePad.toDataURL('image/png');
             }
 
+            // 儲存至全域變數
             signatures[currentSigTarget] = finalBase64;
             
-            // 更新 UI 狀態
+            // 更新匯出彈窗狀態
             const statusEl = document.getElementById(`status-sig-${currentSigTarget}`);
             statusEl.innerText = "✅ 已簽名";
-            statusEl.classList.remove('text-red-500');
-            statusEl.classList.add('text-green-400');
+            statusEl.classList.replace('text-red-500', 'text-green-400');
             
             closeSignaturePad();
         }
