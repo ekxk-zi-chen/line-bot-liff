@@ -895,7 +895,7 @@
                 </button>
             </div>
             <div class="flex gap-2 border-t border-gray-700 pt-3">
-                <button onclick="closeModal('export-settings-modal')" class="flex-1 bg-gray-600 text-white py-2 rounded-lg font-bold">取消</button>
+                <button onclick="closeModal('export-settings-modal'); unlockScreenOrientation();" class="flex-1 bg-gray-600 text-white py-2 rounded-lg font-bold">取消</button>
                 <button onclick="executeFinalExport()" class="flex-1 bg-purple-600 text-white py-2 rounded-lg font-bold">確認匯出 PDF</button>
             </div>
         </div>
@@ -1751,6 +1751,9 @@
         async function confirmExport() {
             if (selectedItems.size === 0) return alert("請選擇裝備");
             // 重置簽名狀態
+            // 🔒 1. 開啟流程時，強制鎖定螢幕為直立！
+            lockScreenOrientation();
+
             signatures = { checker: null, borrower: null };
             document.getElementById('status-sig-checker').className = 'text-sm font-bold text-red-500';
             document.getElementById('status-sig-checker').innerText = "❌ 未簽名";
@@ -1767,6 +1770,7 @@
             
             
             toggleLoader(true, "簽名打包並產生 PDF 中...");
+
             try {
                 const res = await callGasApi({ 
                     action: 'export_equipment_report', 
@@ -1791,10 +1795,31 @@
                 alert(e.message);
             } finally {
                 toggleLoader(false);
+
+                // 🔓 2. 不管是成功送出還是發生錯誤，流程結束就解除鎖定！
+                unlockScreenOrientation();
             }
         }
 
+        // 🔒 鎖定螢幕為直立 (Portrait)
+        async function lockScreenOrientation() {
+            try {
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('portrait-primary');
+                }
+            } catch (e) {
+                console.log("裝置不支援 Web 鎖定", e);
+            }
+        }
 
+        // 🔓 解除螢幕鎖定
+        function unlockScreenOrientation() {
+            try {
+                if (screen.orientation && screen.orientation.unlock) {
+                    screen.orientation.unlock();
+                }
+            } catch (e) {}
+        }
 
         // 🔥 [修改] 加入 subCategory 處理
         function openEditModal(mode, id) {
