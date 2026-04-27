@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>特搜戰情大廳</title>
+    <meta name="theme-color" content="#1a1a1a">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background-color: #1a1a1a; color: #e0e0e0; font-family: -apple-system, sans-serif; }
+        .input-dark { width: 100%; background-color: #374151; color: white; padding: 10px 14px; border-radius: 12px; border: 1px solid #4b5563; outline: none; font-size: 14px; }
+        .input-dark:focus { border-color: #f59e0b; background-color: #4b5563; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen px-4 py-10">
+
+    <div id="login-screen" class="hidden w-full max-w-md bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700">
+        <div class="text-center mb-6">
+            <div class="text-4xl mb-2">🏛️</div>
+            <h1 class="text-xl font-bold text-white tracking-wider">特搜戰情總部大廳</h1>
+            <p class="text-xs text-gray-400 mt-1">請先驗證您的身分</p>
+        </div>
+
+        <div class="flex mb-6 bg-gray-900 p-1 rounded-lg border border-gray-700 text-center">
+            <button onclick="switchAuthTab('login')" id="tab-login" class="flex-1 py-2 rounded-md text-sm font-bold transition-all bg-indigo-600 text-white">登入</button>
+            <button onclick="switchAuthTab('bind')" id="tab-bind" class="flex-1 py-2 rounded-md text-sm font-bold transition-all text-gray-400">信箱綁定</button>
+            <button onclick="switchAuthTab('signup')" id="tab-signup" class="flex-1 py-2 rounded-md text-sm font-bold transition-all text-gray-400">註冊申請</button>
+        </div>
+
+        <div id="form-login" class="space-y-4">
+            <input type="email" id="login-email" placeholder="電子信箱" class="input-dark py-3">
+            <input type="password" id="login-password" placeholder="密碼" class="input-dark py-3">
+            <button onclick="handleLogin()" id="login-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg mt-2 transition-transform active:scale-95">進入大廳</button>
+        </div>
+
+        <div id="form-bind" class="hidden space-y-4">
+            <div class="text-xs text-yellow-400 bg-yellow-900/30 p-2 rounded border border-yellow-700 mb-2">
+                💡 老隊員請輸入您在系統登記的信箱，並設定密碼以完成綁定。
+            </div>
+            <input type="email" id="bind-email" placeholder="輸入已登記的電子信箱" class="input-dark py-3">
+            <div class="grid grid-cols-2 gap-2">
+                <input type="password" id="bind-password" placeholder="設定密碼 (至少6碼)" class="input-dark py-3 text-sm">
+                <input type="password" id="bind-confirm" placeholder="確認密碼" class="input-dark py-3 text-sm">
+            </div>
+            <button onclick="handleBind()" id="bind-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg mt-2 transition-transform active:scale-95">確認綁定</button>
+        </div>
+
+        <div id="form-signup" class="hidden space-y-3">
+            <div class="grid grid-cols-2 gap-2">
+                <input type="email" id="reg-email" placeholder="電子信箱" class="input-dark text-sm">
+                <input type="text" id="reg-name" placeholder="真實姓名" class="input-dark text-sm">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <input type="password" id="reg-password" placeholder="設定密碼" class="input-dark text-sm">
+                <input type="password" id="reg-confirm" placeholder="確認密碼" class="input-dark text-sm">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <select id="reg-unit" onchange="toggleOtherUnit()" class="input-dark text-sm bg-gray-700"><option value="">載入中...</option></select>
+                <input type="text" id="reg-title" placeholder="職稱 (如隊員)" class="input-dark text-sm">
+            </div>
+            <input type="text" id="reg-unit-other" placeholder="👉 請輸入單位名稱" class="input-dark hidden text-sm border-indigo-500">
+            <input type="tel" id="reg-phone" placeholder="連絡電話" class="input-dark text-sm">
+            <textarea id="reg-note" placeholder="申請備註" class="input-dark text-sm h-16 py-2"></textarea>
+            <button onclick="handleRealSignUp()" id="signup-btn" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg mt-2 transition-transform active:scale-95">提交註冊</button>
+        </div>
+    </div>
+
+    <div id="lobby-menu" class="hidden w-full max-w-md bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700 text-center">
+        <h2 class="text-2xl font-bold text-white mb-2">特搜戰情大廳</h2>
+        <p class="text-gray-400 text-sm mb-6">歡迎登入，請選擇您要前往的系統</p>
+        
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <button onclick="window.location.href='app_mission.html'" class="bg-gray-700 hover:bg-gray-600 border border-gray-600 p-6 rounded-xl flex flex-col items-center justify-center gap-3 transition-all active:scale-95 shadow-lg">
+                <span class="text-4xl">🎒</span>
+                <span class="text-white font-bold">裝備管理</span>
+            </button>
+            
+            <button onclick="alert('建置中...敬請期待！')" class="bg-gray-700/50 border border-gray-600/50 p-6 rounded-xl flex flex-col items-center justify-center gap-3 transition-all cursor-not-allowed">
+                <span class="text-4xl opacity-50">🗺️</span>
+                <span class="text-gray-400 font-bold">戰術地圖</span>
+            </button>
+        </div>
+
+        <button onclick="handleLogout()" class="text-red-400 text-sm font-bold py-2 px-4 border border-red-900 rounded-lg hover:bg-red-900/50 transition-colors">登出系統</button>
+    </div>
+
+    <script>
+        // 🌟 初始化 Supabase
+        const SUPABASE_URL = 'https://gltzwtqcrdpdumzitbib.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdHp3dHFjcmRwZHVteml0YmliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNzQyODcsImV4cCI6MjA3Mjk1MDI4N30.6svHYwJUM8aZF71pY0N3Wx4KiaSMN-GiibyLGZDsygE';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // 頁籤切換邏輯
+        function switchAuthTab(type) {
+            const tabs = ['login', 'bind', 'signup'];
+            tabs.forEach(t => {
+                const isCurrent = (t === type);
+                const btn = document.getElementById(`tab-${t}`);
+                if (isCurrent) {
+                    btn.className = `flex-1 py-2 rounded-md text-sm font-bold transition-all text-white ${t === 'login' ? 'bg-indigo-600' : t === 'bind' ? 'bg-blue-600' : 'bg-green-600'}`;
+                } else {
+                    btn.className = "flex-1 py-2 rounded-md text-sm font-bold transition-all text-gray-400";
+                }
+                document.getElementById(`form-${t}`).classList.toggle('hidden', !isCurrent);
+            });
+        }
+
+        function toggleOtherUnit() {
+            const unitVal = document.getElementById('reg-unit').value;
+            const otherInput = document.getElementById('reg-unit-other');
+            if (unitVal === '其他' || unitVal === 'OTHER') {
+                otherInput.classList.remove('hidden');
+                otherInput.focus();
+            } else {
+                otherInput.classList.add('hidden');
+            }
+        }
+
+        async function loadDynamicUnits() {
+            const { data, error } = await _supabase.rpc('get_existing_units');
+            const unitSelect = document.getElementById('reg-unit');
+            if (data && data.length > 0) {
+                let html = '<option value="">選擇單位</option>';
+                data.forEach(item => { html += `<option value="${item.unit_name}">${item.unit_name}</option>`; });
+                html += '<option value="OTHER">--- 其他 (手動輸入) ---</option>';
+                unitSelect.innerHTML = html;
+            }
+        }
+
+        // ==========================================
+        // 🚀 核心：接駁車與認證邏輯
+        // ==========================================
+        
+        // 登入成功後的處理
+        function processLoginSuccess() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirectUrl = urlParams.get('redirect');
+
+            if (redirectUrl) {
+                // 🎫 有車票！立刻把人載過去 (包含推播單號等參數)
+                window.location.href = decodeURIComponent(redirectUrl);
+            } else {
+                // 🏠 沒車票，顯示大廳選單
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('lobby-menu').classList.remove('hidden');
+            }
+        }
+
+        // 登入按鈕
+        async function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const btn = document.getElementById('login-btn');
+            if (!email || !password) return alert("請輸入帳號密碼！");
+            
+            btn.innerText = "驗證中..."; btn.disabled = true;
+            const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                alert("登入失敗：" + error.message);
+                btn.innerText = "進入大廳"; btn.disabled = false;
+                return;
+            }
+            processLoginSuccess();
+        }
+
+        // 綁定按鈕
+        async function handleBind() {
+            const email = document.getElementById('bind-email').value.trim();
+            const pw = document.getElementById('bind-password').value;
+            const pwConfirm = document.getElementById('bind-confirm').value; 
+            const btn = document.getElementById('bind-btn');
+
+            if (!email || !pw) return alert("請輸入信箱與密碼！");
+            if (pw !== pwConfirm) return alert("⚠️ 兩次密碼輸入不一致！");
+            if (pw.length < 6) return alert("密碼至少 6 碼！");
+
+            btn.innerText = "驗證中..."; btn.disabled = true;
+            try {
+                const { data: userName } = await _supabase.rpc('get_user_name_by_email', { p_email: email });
+                if (!userName) return alert("❌ 找不到此信箱！如果您是新進人員，請切換至註冊申請。");
+
+                const { error: authErr } = await _supabase.auth.signUp({ email, password: pw });
+                if (authErr) throw authErr;
+
+                alert(`🎉 綁定成功！歡迎回來，${userName}！`);
+                processLoginSuccess();
+            } catch (err) {
+                alert("綁定失敗：" + err.message);
+            } finally {
+                btn.innerText = "確認綁定"; btn.disabled = false;
+            }
+        }
+
+        // 註冊按鈕
+        async function handleRealSignUp() {
+            const email = document.getElementById('reg-email').value.trim();
+            const pw = document.getElementById('reg-password').value;
+            const pwConfirm = document.getElementById('reg-confirm').value;
+            const name = document.getElementById('reg-name').value.trim();
+            let unit = document.getElementById('reg-unit').value;
+            
+            if (unit === '其他' || unit === 'OTHER') unit = document.getElementById('reg-unit-other').value.trim();
+            const title = document.getElementById('reg-title').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const note = document.getElementById('reg-note').value.trim();
+            const btn = document.getElementById('signup-btn');
+
+            if (!email || !name || !pw || !unit) return alert("請填寫必填欄位");
+            if (pw !== pwConfirm) return alert("兩次密碼輸入不一致");
+            if (pw.length < 6) return alert("密碼至少 6 碼");
+
+            btn.innerText = "提交中..."; btn.disabled = true;
+            try {
+                const { data: userName } = await _supabase.rpc('get_user_name_by_email', { p_email: email });
+                if (userName) return alert(`⚠️ 信箱已存在！請至「信箱綁定」設定密碼。`);
+
+                const { error: authErr } = await _supabase.auth.signUp({ email, password: pw });
+                if (authErr) throw authErr;
+
+                const fakeUserId = "APP_" + Math.random().toString(36).substr(2, 9);
+                const { data: regRes, error: regErr } = await _supabase.rpc('handle_new_user_registration', {
+                    p_name: name, p_unit: unit, p_email: email, p_user_id: fakeUserId, p_phone: phone, p_title: title, p_note: note
+                });
+
+                if (regErr) throw regErr;
+                if (!regRes.success) throw new Error(regRes.message);
+
+                alert("🎉 註冊成功！資料已提交。");
+                processLoginSuccess();
+            } catch (err) {
+                alert("錯誤：" + err.message);
+            } finally {
+                btn.innerText = "提交註冊"; btn.disabled = false;
+            }
+        }
+
+        // 登出邏輯
+        async function handleLogout() {
+            await _supabase.auth.signOut();
+            window.location.reload();
+        }
+
+        // 網頁載入時檢查狀態
+        async function checkSessionOnLoad() {
+            await loadDynamicUnits();
+            const { data, error } = await _supabase.auth.getSession();
+            if (data.session) {
+                processLoginSuccess();
+            } else {
+                document.getElementById('login-screen').classList.remove('hidden');
+            }
+        }
+
+        window.addEventListener('load', checkSessionOnLoad);
+    </script>
+</body>
+</html>
