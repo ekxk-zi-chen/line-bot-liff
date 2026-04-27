@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>特搜任務戰情中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
+    <script src="mission_folder/web_push.js"></script>
+    <script src="mission_folder/supabase_config.js"></script>
+    <style>
+        body { background-color: #1a1a1a; color: #e0e0e0; font-family: -apple-system, sans-serif; }
+        .input-dark { width: 100%; background-color: #374151; color: white; padding: 10px 14px; border-radius: 12px; border: 1px solid #4b5563; outline: none; }
+        .tab-btn.active { border-bottom: 3px solid #f59e0b; color: #f59e0b; }
+        .loader { border: 4px solid #333; border-top: 4px solid #4CAF50; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="p-4 pb-20">
+
+    <div id="header" class="mb-6 text-center relative">
+        <h1 class="text-xl font-bold text-orange-400 mb-2">📡 任務戰情中心</h1>
+        <div class="flex justify-center items-center gap-2">
+            <p id="user-info" class="text-xs text-gray-400">識別中...</p>
+            <button onclick="window.location.href='lobby.html'" class="bg-blue-900/60 text-blue-300 px-3 py-0.5 rounded border border-blue-700 text-xs font-bold">🏠 大廳</button>
+        </div>
+    </div>
+
+    <div class="flex border-b border-gray-700 mb-6 text-sm font-bold">
+        <button onclick="switchTab('query')" id="tab-query" class="tab-btn flex-1 py-3 active">📋 任務看板</button>
+        <button onclick="switchTab('report')" id="tab-report" class="tab-btn flex-1 py-3">📝 任務回報</button>
+        <button onclick="switchTab('ai')" id="tab-ai" class="tab-btn flex-1 py-3">🤖 AI 戰情</button>
+    </div>
+
+    <div id="loader" class="loader hidden"></div>
+
+    <div id="view-query" class="space-y-4">
+        <div id="query-list" class="text-center text-gray-500 py-10">正在載入進行中任務...</div>
+    </div>
+
+    <div id="view-report" class="hidden space-y-4">
+        <div id="report-list" class="text-center text-gray-500 py-10">正在載入回報紀錄...</div>
+    </div>
+
+    <div id="view-ai" class="hidden space-y-4">
+        <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+            <label class="block text-xs text-gray-400 mb-2 font-bold">請輸入分析目標或災害名稱</label>
+            <input type="text" id="ai-input" class="input-dark mb-4" placeholder="例如：花蓮地震災情分析...">
+            <div class="flex gap-2">
+                <button onclick="askAI('text')" class="flex-1 bg-indigo-600 py-3 rounded-lg font-bold text-sm shadow-lg active:scale-95 transition-all">💬 AI 分析</button>
+                <button onclick="askAI('ppt')" class="flex-1 bg-red-600 py-3 rounded-lg font-bold text-sm shadow-lg active:scale-95 transition-all">📊 製作簡報</button>
+            </div>
+        </div>
+        <div id="ai-response" class="hidden p-4 bg-gray-800 rounded-xl border-l-4 border-green-500 text-sm leading-relaxed"></div>
+    </div>
+
+    <script>
+
+        let userEmail = "";
+
+        // 切換分頁
+        function switchTab(tab) {
+            const views = ['query', 'report', 'ai'];
+            views.forEach(v => {
+                document.getElementById(`view-${v}`).classList.toggle('hidden', v !== tab);
+                document.getElementById(`tab-${v}`).classList.toggle('active', v === tab);
+            });
+            // 切換時自動重新抓資料
+            if (tab === 'query') loadTasks();
+            if (tab === 'report') loadReports();
+        }
+
+        // 登入驗證 (接駁車機制)
+        async function checkSession() {
+            const { data } = await _supabase.auth.getSession();
+            if (data.session) {
+                userEmail = data.session.user.email;
+                document.getElementById('user-info').innerText = `隊員：${userEmail.split('@')[0]}`;
+                // 順便把推播權限跟 Token 更新了
+                if (typeof requestWebPushPermission === 'function') requestWebPushPermission();
+                loadTasks(); // 預設載入看板
+            } else {
+                window.location.href = `lobby.html?redirect=${encodeURIComponent(window.location.href)}`;
+            }
+        }
+
+        // 這裡會放置你原本在 task.js 裡面的邏輯 (loadTasks, loadReports, askAI 等)
+        function loadTasks() { console.log("載入看板資料..."); }
+        function loadReports() { console.log("載入回報資料..."); }
+        async function askAI(mode) { alert("AI 正在分析中..."); }
+
+        window.onload = checkSession;
+    </script>
+</body>
+</html>

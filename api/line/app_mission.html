@@ -25,6 +25,7 @@
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
     
     <link rel="stylesheet" href="mission_folder/tour_guide_style.css">
+    <script src="mission_folder/supabase_config.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
     <style>
@@ -913,11 +914,6 @@
 
     <script>
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwPPgRYU_hsKv1rb9H1Rqo49sMh4P4UjY5559lGUEzhwpM_eIroz_W9xBYuvfCU87b-/exec"; // 保留給 PDF 跟 AI 用的
-
-        // 🔥 1. 初始化 Supabase 引擎 (請填入你的專案網址跟 ANON KEY)
-        const SUPABASE_URL = 'https://gltzwtqcrdpdumzitbib.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdHp3dHFjcmRwZHVteml0YmliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNzQyODcsImV4cCI6MjA3Mjk1MDI4N30.6svHYwJUM8aZF71pY0N3Wx4KiaSMN-GiibyLGZDsygE';
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); // <--- 改名了
 
         let userId = "", userEmail = "", displayName = "", equipmentCache = [], currentCustodian = 'All', isExportMode = false, selectedItems = new Set(), loaderInterval;
         let activeCats = new Set(); let activeSubCats = new Set(); let activeLocs = new Set(); let activeNotes = new Set();
