@@ -8,10 +8,10 @@
 // 🔥 1. 任務回報 (完整版：保留梯次、備註)
 // ============================================
 async function showReportPage() {
-    document.getElementById('view-equipment').classList.add('hidden');
-    document.getElementById('view-query').classList.add('hidden');
-    document.getElementById('view-ai').classList.add('hidden');
-    document.getElementById('view-report').classList.remove('hidden');
+    document.getElementById('view-equipment')?.classList.add('hidden');
+    document.getElementById('view-query')?.classList.add('hidden');
+    document.getElementById('view-ai')?.classList.add('hidden');
+    document.getElementById('view-report')?.classList.remove('hidden');
 
     toggleLoader(true, "同步任務中...");
     try {
@@ -70,10 +70,10 @@ async function submitReport(aid, mid, fin) {
 // 🔥 2. 任務看板 (完整版：保留展開、日誌、折疊)
 // ============================================
 async function showQueryPage() {
-    document.getElementById('view-equipment').classList.add('hidden');
-    document.getElementById('view-report').classList.add('hidden');
-    document.getElementById('view-ai').classList.add('hidden');
-    document.getElementById('view-query').classList.remove('hidden');
+    document.getElementById('view-equipment')?.classList.add('hidden');
+    document.getElementById('view-report')?.classList.add('hidden');
+    document.getElementById('view-ai')?.classList.add('hidden');
+    document.getElementById('view-query')?.classList.remove('hidden');
 
     toggleLoader(true, "連線戰情中心...");
     try {
