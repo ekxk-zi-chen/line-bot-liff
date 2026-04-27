@@ -17,7 +17,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 
     <script src="mission_folder/web_push.js"></script>
-    
+
     <style>
         body { background-color: #1a1a1a; color: #e0e0e0; font-family: -apple-system, sans-serif; }
         .input-dark { width: 100%; background-color: #374151; color: white; padding: 10px 14px; border-radius: 12px; border: 1px solid #4b5563; outline: none; font-size: 14px; }
@@ -143,13 +143,21 @@
         // 🚀 核心：接駁車與認證邏輯
         // ==========================================
         
-        // 登入成功後的處理
-        function processLoginSuccess() {
+        // 登入成功後的處理 (🚨 加上 user 參數)
+        async function processLoginSuccess(user) {
+            // 1. 告訴全域變數你是誰，這樣 web_push.js 拿到 Token 才知道要存給哪個信箱
+            window.userEmail = user.email;
+
+            // 2. 🚨 扣下扳機！主動呼叫推播權限詢問視窗！(就是少了這行)
+            if (typeof requestWebPushPermission === 'function') {
+                await requestWebPushPermission();
+            }
+
             const urlParams = new URLSearchParams(window.location.search);
             const redirectUrl = urlParams.get('redirect');
 
             if (redirectUrl) {
-                // 🎫 有車票！立刻把人載過去 (包含推播單號等參數)
+                // 🎫 有車票！立刻把人載過去
                 window.location.href = decodeURIComponent(redirectUrl);
             } else {
                 // 🏠 沒車票，顯示大廳選單
