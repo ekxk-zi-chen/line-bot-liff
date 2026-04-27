@@ -185,6 +185,12 @@ function showInAppNotification(payload) {
 
     const toast = document.createElement('div');
     toast.className = "fixed top-4 left-4 right-4 bg-indigo-900/95 border border-indigo-500 text-white p-4 rounded-xl shadow-2xl z-[100] transform transition-transform duration-300 -translate-y-[150%] backdrop-blur-sm";
+    // 💡 智慧判斷：我現在在哪個網頁？
+    // 如果網址包含 lobby，按鈕的動作就是「跳轉並帶上車票」；否則就是原地的 checkDeepLink
+    const actionScript = window.location.pathname.includes('lobby.html') 
+        ? `window.location.href='app_mission.html?notifId=${notifId}'` 
+        : `checkDeepLink('${notifId}')`;
+
     toast.innerHTML = `
         <div class="flex justify-between items-start">
             <div>
@@ -193,7 +199,7 @@ function showInAppNotification(payload) {
             </div>
             <button class="text-gray-400 hover:text-white p-1 text-xl" onclick="this.parentElement.parentElement.classList.add('-translate-y-[150%]'); setTimeout(() => this.parentElement.parentElement.remove(), 300)">✕</button>
         </div>
-        ${notifId ? `<button class="mt-3 w-full bg-indigo-600 hover:bg-indigo-500 py-2 rounded-lg font-bold text-sm shadow border border-indigo-400 active:scale-95 transition-transform" onclick="checkDeepLink('${notifId}'); this.parentElement.classList.add('-translate-y-[150%]'); setTimeout(() => this.parentElement.remove(), 300)">立即查看</button>` : ''}
+        ${notifId ? `<button class="mt-3 w-full bg-indigo-600 hover:bg-indigo-500 py-2 rounded-lg font-bold text-sm shadow border border-indigo-400 active:scale-95 transition-transform" onclick="${actionScript}; this.parentElement.classList.add('-translate-y-[150%]'); setTimeout(() => this.parentElement.remove(), 300)">立即查看</button>` : ''}
     `;
     document.body.appendChild(toast);
     requestAnimationFrame(() => toast.classList.remove('-translate-y-[150%]'));
