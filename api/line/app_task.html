@@ -5,18 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>特搜任務戰情中心</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="mission_folder/supabase_config.js"></script>
+
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
     <script src="mission_folder/web_push.js"></script>
     <script src="mission_folder/task.js"></script>
-    <script src="mission_folder/supabase_config.js"></script>
+    
     <style>
         body { background-color: #1a1a1a; color: #e0e0e0; font-family: -apple-system, sans-serif; }
         .input-dark { width: 100%; background-color: #374151; color: white; padding: 10px 14px; border-radius: 12px; border: 1px solid #4b5563; outline: none; }
         .tab-btn.active { border-bottom: 3px solid #f59e0b; color: #f59e0b; }
+        
+        /* 卡片與按鈕樣式 (task.js 會用到) */
+        .card { background-color: #2d2d2d; border-radius: 12px; padding: 16px; margin-bottom: 12px; border-left: 5px solid #f59e0b; }
+        .btn { width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; margin-top: 8px; cursor: pointer; text-align: center; }
+        .btn-blue { background-color: #2196F3; color: white; border: none; }
+        .btn-green { background-color: #4CAF50; color: white; border: none; }
+        .btn-red { background-color: #f44336; color: white; border: none; }
+        
         .loader { border: 4px solid #333; border-top: 4px solid #4CAF50; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* 任務看版展開特效 */
+        .mission-detail { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .mission-detail.open { max-height: 800px; }
+        .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
     </style>
 </head>
 <body class="p-4 pb-20">
@@ -25,7 +41,7 @@
         <h1 class="text-xl font-bold text-orange-400 mb-2">📡 任務戰情中心</h1>
         <div class="flex justify-center items-center gap-2">
             <p id="user-info" class="text-xs text-gray-400">識別中...</p>
-            <button onclick="window.location.href='lobby.html'" class="bg-blue-900/60 text-blue-300 px-3 py-0.5 rounded border border-blue-700 text-xs font-bold">🏠 大廳</button>
+            <button onclick="window.location.href='lobby.html'" class="bg-blue-900/60 text-blue-300 px-3 py-0.5 rounded border border-blue-700 text-xs font-bold tracking-widest">🏠 回大廳</button>
         </div>
     </div>
 
@@ -36,64 +52,119 @@
     </div>
 
     <div id="loader" class="loader hidden"></div>
+    <div id="loader-text" class="text-center text-green-400 text-sm hidden mb-4 font-bold"></div>
 
     <div id="view-report" class="hidden">
-        <h2 class="text-lg font-bold mb-2">📝 您的任務回報</h2>
+        <h2 class="text-lg font-bold mb-2 text-yellow-400">📝 您的任務回報</h2>
         <div id="report-list"></div>
     </div>
+    
     <div id="view-query" class="hidden">
-        <h2 class="text-lg font-bold mb-2">🔍 進行中任務看板</h2>
+        <h2 class="text-lg font-bold mb-2 text-blue-400">🔍 進行中任務看板</h2>
         <div id="query-list"></div>
     </div>
 
     <div id="view-ai" class="hidden">
-        <h2 class="text-lg font-bold mb-2">🤖 AI 戰情/簡報中心</h2>
+        <h2 class="text-lg font-bold mb-2 text-purple-400">🤖 AI 戰情/簡報中心</h2>
         <div class="bg-gray-800 p-3 rounded mb-3 border border-gray-700">
-            <p class="text-sm text-gray-400 mb-1">請輸入目標</p><input type="text" id="ai-input" class="input-dark"
-                placeholder="例如: 土耳其...">
+            <p class="text-sm text-gray-400 mb-1">請輸入目標</p>
+            <input type="text" id="ai-input" class="input-dark" placeholder="例如: 土耳其...">
         </div>
-        <div class="flex gap-2 mb-3"><button onclick="safeExecute(this, () => askAI('text'))"
-                class="btn btn-blue flex-1">💬 分析</button><button onclick="safeExecute(this, () => askAI('ppt'))"
-                class="btn btn-red flex-1">📊 簡報</button></div>
-        <a href="https://drive.google.com/drive/folders/1XAtHLGeo2fQH3wO5Lfq5_IjunbkIqzn_" target="_blank"
-            class="btn block text-center mb-4" style="background-color: #FF9800; color: white;">📂 開啟歸檔</a>
-        <div id="ai-response" class="mt-4 p-4 bg-gray-800 rounded border-l-4 border-green-500 hidden"></div>
+        <div class="flex gap-2 mb-3">
+            <button onclick="safeExecute(this, () => askAI('text'))" class="btn btn-blue flex-1 m-0">💬 分析</button>
+            <button onclick="safeExecute(this, () => askAI('ppt'))" class="btn btn-red flex-1 m-0">📊 簡報</button>
+        </div>
+        <a href="https://drive.google.com/drive/folders/1XAtHLGeo2fQH3wO5Lfq5_IjunbkIqzn_" target="_blank" class="btn block text-center mb-4" style="background-color: #FF9800; color: white;">📂 開啟歸檔</a>
+        <div id="ai-response" class="mt-4 p-4 bg-gray-800 rounded border-l-4 border-green-500 hidden text-sm text-gray-200 leading-relaxed"></div>
     </div>
 
     <script>
-
+        // --- 核心變數與工具 ---
         let userEmail = "";
+        let userId = "";
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwPPgRYU_hsKv1rb9H1Rqo49sMh4P4UjY5559lGUEzhwpM_eIroz_W9xBYuvfCU87b-/exec";
 
-        // 切換分頁
+        // 動畫控制器 (task.js 需要)
+        function toggleLoader(show, text = "處理中...") {
+            const loader = document.getElementById('loader');
+            const loaderText = document.getElementById('loader-text');
+            if (show) {
+                loader.classList.remove('hidden');
+                loaderText.classList.remove('hidden');
+                loaderText.innerText = text;
+            } else {
+                loader.classList.add('hidden');
+                loaderText.classList.add('hidden');
+            }
+        }
+
+        // 呼叫 GAS 後端引擎 (task.js 需要)
+        async function callGasApi(payload) {
+            const res = await fetch(GAS_API_URL, { method: "POST", body: JSON.stringify({ ...payload, source: 'liff' }) });
+            return await res.json();
+        }
+
+        // 安全點擊按鈕
+        async function safeExecute(btn, fn) { btn.disabled = true; await fn(); btn.disabled = false; }
+
+
+        // --- UI 與邏輯 ---
         function switchTab(tab) {
             const views = ['query', 'report', 'ai'];
             views.forEach(v => {
                 document.getElementById(`view-${v}`).classList.toggle('hidden', v !== tab);
                 document.getElementById(`tab-${v}`).classList.toggle('active', v === tab);
             });
-            // 切換時自動重新抓資料
-            if (tab === 'query') loadTasks();
-            if (tab === 'report') loadReports();
+            
+            // 🚨 這裡改回呼叫 task.js 裡面真正有用的函數！
+            if (tab === 'query') {
+                // 因為我們用隱藏的方式切換，如果剛才不在這個畫面，要確保 UI 淨空重載
+                if(typeof showQueryPage === 'function') showQueryPage();
+            }
+            if (tab === 'report') {
+                if(typeof showReportPage === 'function') showReportPage();
+            }
         }
 
-        // 登入驗證 (接駁車機制)
+        async function askAI(mode) {
+            const q = document.getElementById('ai-input').value; 
+            if (!q) return alert("請輸入分析目標"); 
+            toggleLoader(true, "AI 努力分析中...");
+            try {
+                const r = await callGasApi({ action: mode === 'ppt' ? 'make_briefing_ppt' : 'ask_ai', userId, question: q, query: q });
+                document.getElementById('ai-response').classList.remove('hidden');
+                document.getElementById('ai-response').innerHTML = mode === 'ppt' ? `<a href="${r.url}" target="_blank" class="btn block text-center bg-green-600 p-2 rounded">下載簡報</a>` : r.answer;
+            } catch (e) { 
+                alert(e.message); 
+            } finally { 
+                toggleLoader(false); 
+            }
+        }
+
+        // --- 登入驗證與入口 ---
         async function checkSession() {
             const { data } = await _supabase.auth.getSession();
             if (data.session) {
                 userEmail = data.session.user.email;
                 document.getElementById('user-info').innerText = `隊員：${userEmail.split('@')[0]}`;
-                // 順便把推播權限跟 Token 更新了
+                
+                // 🚨 重要：向資料庫要真正的 userId，這才是 GAS 後端認得的 ID
+                try {
+                    const { data: dbUserId } = await _supabase.rpc('get_user_id_by_email', { p_email: userEmail });
+                    userId = dbUserId || data.session.user.id;
+                } catch(e) {
+                    console.error("無法取得 UserId", e);
+                }
+
+                // 啟動推播與預設畫面
                 if (typeof requestWebPushPermission === 'function') requestWebPushPermission();
-                loadTasks(); // 預設載入看板
+                switchTab('query'); // 預設打開任務看板
+                
             } else {
+                // 沒登入，踢回大廳
                 window.location.href = `lobby.html?redirect=${encodeURIComponent(window.location.href)}`;
             }
         }
-
-        // 這裡會放置你原本在 task.js 裡面的邏輯 (loadTasks, loadReports, askAI 等)
-        function loadTasks() { console.log("載入看板資料..."); }
-        function loadReports() { console.log("載入回報資料..."); }
-        async function askAI(mode) { alert("AI 正在分析中..."); }
 
         window.onload = checkSession;
     </script>
