@@ -180,7 +180,7 @@
                 btn.innerText = "進入大廳"; btn.disabled = false;
                 return;
             }
-            processLoginSuccess();
+            processLoginSuccess(data.user);
         }
 
         // 綁定按鈕
@@ -203,7 +203,7 @@
                 if (authErr) throw authErr;
 
                 alert(`🎉 綁定成功！歡迎回來，${userName}！`);
-                processLoginSuccess();
+                processLoginSuccess(data.session.user);
             } catch (err) {
                 alert("綁定失敗：" + err.message);
             } finally {
@@ -246,7 +246,7 @@
                 if (!regRes.success) throw new Error(regRes.message);
 
                 alert("🎉 註冊成功！資料已提交。");
-                processLoginSuccess();
+                processLoginSuccess(data.session.user);
             } catch (err) {
                 alert("錯誤：" + err.message);
             } finally {
@@ -265,7 +265,7 @@
             await loadDynamicUnits();
             const { data, error } = await _supabase.auth.getSession();
             if (data.session) {
-                processLoginSuccess();
+                processLoginSuccess(data.session.user);
             } else {
                 document.getElementById('login-screen').classList.remove('hidden');
             }
