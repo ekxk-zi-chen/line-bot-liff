@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>誤餐費申請</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../mission_folder/supabase_config.js"></script>
+    <style>
+        body { background-color: #0b0f1a; color: #e2e8f0; font-family: -apple-system, sans-serif; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; }
+        .input-neon { background: #1a2234; border: 1px solid #334155; color: #fff; padding: 10px 12px; border-radius: 8px; width: 100%; outline: none; transition: 0.3s; font-size: 16px !important;}
+        .input-neon:focus { border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
+        .btn-glow { background: linear-gradient(135deg, #0ea5e9, #2563eb); color: white; padding: 16px; border-radius: 12px; font-weight: bold; width: 100%; transition: 0.3s; }
+        .btn-glow:active { transform: scale(0.98); opacity: 0.9; }
+        .btn-glow:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; box-shadow: none; }
+        .badge-add { background: #06b6d4; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .item-card { border-left: 4px solid #38bdf8; margin-bottom: 12px; }
+        .loader { border: 3px solid #1e293b; border-top: 3px solid #38bdf8; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="p-4 pb-12">
+    <div class="max-w-md mx-auto">
+        
+        <header class="mb-6 relative flex items-center justify-center">
+            <button onclick="window.location.href='app_docs.html'" class="absolute left-0 text-cyan-400 bg-cyan-900/30 px-3 py-1.5 rounded-lg text-sm border border-cyan-800 active:scale-95 transition-transform">◀ 返回</button>
+            <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">誤餐費申請</h1>
+        </header>
+
+        <div class="glass p-5 mb-6">
+            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">所屬單位</label>
+            <select id="unit" class="input-neon mb-5 text-sm">
+                <option>特搜大隊山域義消</option>
+                <option>特搜大隊水域義消</option>
+                <option>特搜大隊空拍義消</option>
+                <option>特搜大隊</option>
+                <option>吉安分隊</option>
+            </select>
+
+            <div class="flex gap-4">
+                <div class="flex-1">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">月份</label>
+                    <select id="month" class="input-neon text-sm" onchange="updateDays()"></select>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">日期</label>
+                    <select id="day" class="input-neon text-sm"></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold text-blue-300">品項清單</h2>
+            <button onclick="addItem()" class="badge-add shadow-lg">+</button>
+        </div>
+        
+        <div id="itemsContainer"></div>
+
+        <div class="glass p-5 mb-8 border-t-2 border-cyan-500">
+            <div class="flex justify-between items-center">
+                <span class="text-slate-400">預計總金額</span>
+                <span id="totalDisplay" class="text-3xl font-black text-cyan-400">$ 0</span>
+            </div>
+        </div>
+
+        <button id="submitBtn" onclick="submitForm()" class="btn-glow shadow-xl flex items-center justify-center gap-3">
+            <span id="submitText">生成檔案並開啟</span>
+            <div id="loader" class="loader"></div>
+        </button>
+    </div>
+
+    <script>
+        // --- 🔒 防護機制 ---
+        async function checkSession() {
+            const { data } = await _supabase.auth.getSession();
+            if (!data.session) {
+                window.location.href = `../lobby.html?redirect=${encodeURIComponent(window.location.href)}`;
+            } else {
+                init(); // 驗證通過才初始化表單
+            }
+        }
+        window.onload = checkSession;
+
+        // --- 📝 表單邏輯 ---
+        let itemCount = 0;
+        // 🚨 這裡填入你主系統正在用的 GAS API 網址 (與裝備系統相同那個)
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwPPgRYU_hsKv1rb9H1Rqo49sMh4P4UjY5559lGUEzhwpM_eIroz_W9xBYuvfCU87b-/exec"; 
+
+        function init() {
+            const now = new Date();
+            const mSelect = document.getElementById('month');
+            for(let i=1; i<=12; i++) {
+                let opt = new Option(i + '月', i);
+                if(i === now.getMonth() + 1) opt.selected = true;
+                mSelect.add(opt);
+            }
+            updateDays();
+            document.getElementById('day').value = now.getDate();
+            addItem();
+        }
+
+        function updateDays() {
+            const month = document.getElementById('month').value;
+            const daySelect = document.getElementById('day');
+            const daysInMonth = new Date(new Date().getFullYear(), month, 0).getDate();
+            daySelect.innerHTML = '';
+            for(let i=1; i<=daysInMonth; i++) {
+                daySelect.add(new Option(i + '日', i));
+            }
+        }
+
+        function addItem() {
+            if(itemCount >= 8) return alert('最多只能新增 8 項喔！');
+            itemCount++;
+            const div = document.createElement('div');
+            div.className = 'glass p-4 mb-3 item-card relative pt-8';
+            div.id = 'row' + itemCount;
+            
+            div.innerHTML = `
+                <button onclick="removeItem(${itemCount})" class="absolute top-2 right-3 text-slate-500 text-xs hover:text-red-400">✕ 移除項目</button>
+                <div class="flex gap-2 mb-3">
+                    <div class="w-1/2"><label class="text-[10px] text-slate-500 ml-1">品名</label><input type="text" value="便當" class="input-neon text-base row-n"></div>
+                    <div class="w-1/4"><label class="text-[10px] text-slate-500 ml-1">規格</label><input type="text" class="input-neon text-base row-s text-center"></div>
+                    <div class="w-1/4"><label class="text-[10px] text-slate-500 ml-1">單位</label><input type="text" value="盒" class="input-neon text-base row-u text-center"></div>
+                </div>
+                <div class="flex gap-2 items-end bg-slate-800 bg-opacity-40 p-2 rounded-lg">
+                    <div class="w-1/3"><label class="text-[10px] text-slate-400 ml-1">數量</label><input type="number" placeholder="0" class="input-neon text-base row-q" oninput="calc(${itemCount})"></div>
+                    <div class="w-1/3"><label class="text-[10px] text-slate-400 ml-1">單價</label><input type="number" value="100" class="input-neon text-base row-p" oninput="calc(${itemCount})"></div>
+                    <div class="w-1/3 flex flex-col items-center justify-center pb-2">
+                        <span class="text-[10px] text-slate-400 mb-1">小計</span>
+                        <span class="text-cyan-400 font-bold text-lg row-t-display">0</span>
+                    </div>
+                    <input type="hidden" class="row-t">
+                </div>
+            `;
+            document.getElementById('itemsContainer').appendChild(div);
+            calc(itemCount); 
+        }
+
+        function removeItem(id) { document.getElementById('row' + id).remove(); itemCount--; updateTotal(); }
+        function calc(id) {
+            const row = document.getElementById('row' + id);
+            const q = row.querySelector('.row-q').value || 0, p = row.querySelector('.row-p').value || 0;
+            const t = q * p;
+            row.querySelector('.row-t').value = t; row.querySelector('.row-t-display').innerText = t;
+            updateTotal();
+        }
+        function updateTotal() {
+            let total = 0;
+            document.querySelectorAll('.row-t').forEach(el => total += parseFloat(el.value || 0));
+            document.getElementById('totalDisplay').innerText = '$ ' + total;
+        }
+
+        // 🚀 關鍵：放棄 google.script.run，改用現代化 Fetch API
+        async function submitForm() {
+            const btn = document.getElementById('submitBtn');
+            const loader = document.getElementById('loader');
+            const submitText = document.getElementById('submitText');
+            
+            const items = [];
+            document.querySelectorAll('#itemsContainer > div').forEach(row => {
+                items.push({
+                    n: row.querySelector('.row-n').value, s: row.querySelector('.row-s').value,
+                    u: row.querySelector('.row-u').value, q: row.querySelector('.row-q').value,
+                    p: row.querySelector('.row-p').value, t: row.querySelector('.row-t').value
+                });
+            });
+
+            if(items.length === 0 || (!items[0].n && !items[0].q)) return alert('請至少填寫一項品名或數量！');
+
+            btn.disabled = true;
+            loader.style.display = 'block';
+            submitText.innerText = "總部資料處理中...";
+
+            const payloadData = {
+                unit: document.getElementById('unit').value,
+                month: document.getElementById('month').value,
+                day: document.getElementById('day').value,
+                items: items
+            };
+
+            // 📦 打包要送出的資料
+            const requestBody = {
+                action: 'generate_meal_fee', 
+                data: payloadData,
+                source: 'liff' 
+            };
+
+
+            try {
+                const res = await fetch(GAS_API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                
+
+                // 🚨 關鍵除錯：不要直接轉 JSON！先拿「純文字」看他到底回了什麼鬼東西！
+                const rawText = await res.text();
+
+                let result;
+                try {
+                    // 嘗試把這段文字當成 JSON 解析
+                    result = JSON.parse(rawText);
+                } catch (parseErr) {
+                    throw new Error(`收到無效格式！原始內容為: ${rawText}`);
+                }
+                
+                if (result.success && result.url) {
+                    window.open(result.url, '_blank');
+                } else {
+                    alert("生成失敗：" + (result.message || result.error || "未知錯誤，請看 F12"));
+                }
+            } catch (err) {
+                alert("網路或系統錯誤：" + err.message);
+            } finally {
+                btn.disabled = false;
+                loader.style.display = 'none';
+                submitText.innerText = "生成檔案並開啟";
+            }
+        }
+    </script>
+</body>
+</html>
