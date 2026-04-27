@@ -385,28 +385,7 @@
 
     <div id="loader" class="loader"></div>
 
-    <div id="view-report" class="hidden">
-        <h2 class="text-lg font-bold mb-2">📝 您的任務回報</h2>
-        <div id="report-list"></div>
-    </div>
-    <div id="view-query" class="hidden">
-        <h2 class="text-lg font-bold mb-2">🔍 進行中任務看板</h2>
-        <div id="query-list"></div>
-    </div>
-
-    <div id="view-ai" class="hidden">
-        <h2 class="text-lg font-bold mb-2">🤖 AI 戰情/簡報中心</h2>
-        <div class="bg-gray-800 p-3 rounded mb-3 border border-gray-700">
-            <p class="text-sm text-gray-400 mb-1">請輸入目標</p><input type="text" id="ai-input" class="input-dark"
-                placeholder="例如: 土耳其...">
-        </div>
-        <div class="flex gap-2 mb-3"><button onclick="safeExecute(this, () => askAI('text'))"
-                class="btn btn-blue flex-1">💬 分析</button><button onclick="safeExecute(this, () => askAI('ppt'))"
-                class="btn btn-red flex-1">📊 簡報</button></div>
-        <a href="https://drive.google.com/drive/folders/1XAtHLGeo2fQH3wO5Lfq5_IjunbkIqzn_" target="_blank"
-            class="btn block text-center mb-4" style="background-color: #FF9800; color: white;">📂 開啟歸檔</a>
-        <div id="ai-response" class="mt-4 p-4 bg-gray-800 rounded border-l-4 border-green-500 hidden"></div>
-    </div>
+    
 
     <div id="view-equipment" class="hidden h-full flex flex-col">
 
@@ -1013,7 +992,6 @@
 
     </script>
 
-    <script src="mission_folder/task.js"></script>
     <script src="mission_folder/return.js"></script>
     <script src="mission_folder/borrow.js"></script>
     
