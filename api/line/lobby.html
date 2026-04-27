@@ -7,6 +7,17 @@
     <meta name="theme-color" content="#1a1a1a">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="rescue192.png">
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
+
+    <script src="mission_folder/web_push.js"></script>
+    
     <style>
         body { background-color: #1a1a1a; color: #e0e0e0; font-family: -apple-system, sans-serif; }
         .input-dark { width: 100%; background-color: #374151; color: white; padding: 10px 14px; border-radius: 12px; border: 1px solid #4b5563; outline: none; font-size: 14px; }
@@ -253,6 +264,10 @@
         }
 
         window.addEventListener('load', checkSessionOnLoad);
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').then(() => console.log("大廳同步完畢"));
+        }
     </script>
 </body>
 </html>
