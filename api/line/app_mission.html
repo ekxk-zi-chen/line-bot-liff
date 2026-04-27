@@ -349,71 +349,6 @@
 
 <body class="p-4">
 
-    <div id="login-screen"
-        class="fixed inset-0 bg-gray-900 hidden flex-col items-center justify-center z-[100] px-4 overflow-y-auto pt-10 pb-10">
-        <div class="w-full max-w-md bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700">
-            <div class="text-center mb-6">
-                <div class="text-4xl mb-2">🚒</div>
-                <h1 class="text-xl font-bold text-white tracking-wider">花蓮特搜戰情中心</h1>
-            </div>
-
-            <div class="flex mb-6 bg-gray-900 p-1 rounded-lg border border-gray-700 text-center">
-                <button onclick="switchAuthTab('login')" id="tab-login"
-                    class="flex-1 py-2 rounded-md text-sm font-bold transition-all bg-indigo-600 text-white">登入</button>
-                <button onclick="switchAuthTab('bind')" id="tab-bind"
-                    class="flex-1 py-2 rounded-md text-sm font-bold transition-all text-gray-400">信箱綁定</button>
-                <button onclick="switchAuthTab('signup')" id="tab-signup"
-                    class="flex-1 py-2 rounded-md text-sm font-bold transition-all text-gray-400">註冊申請</button>
-            </div>
-
-            <div id="form-login" class="space-y-4">
-                <input type="email" id="login-email" placeholder="電子信箱" class="input-dark py-3">
-                <input type="password" id="login-password" placeholder="密碼" class="input-dark py-3">
-                <button onclick="handleLogin()" id="login-btn"
-                    class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg mt-2">安全登入</button>
-            </div>
-
-            <div id="form-bind" class="hidden space-y-4">
-                <div class="text-xs text-yellow-400 bg-yellow-900/30 p-2 rounded border border-yellow-700 mb-2">
-                    💡 老隊員請輸入您在系統登記的信箱，並設定 App 登入密碼以完成綁定。
-                </div>
-                <input type="email" id="bind-email" placeholder="輸入已登記的電子信箱" class="input-dark py-3">
-
-                <div class="grid grid-cols-2 gap-2">
-                    <input type="password" id="bind-password" placeholder="設定密碼 (至少6碼)" class="input-dark py-3 text-sm">
-                    <input type="password" id="bind-confirm" placeholder="確認密碼" class="input-dark py-3 text-sm">
-                </div>
-
-                <button onclick="handleBind()" id="bind-btn"
-                    class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg mt-2">確認綁定</button>
-            </div>
-
-            <div id="form-signup" class="hidden space-y-3">
-                <div class="grid grid-cols-2 gap-2">
-                    <input type="email" id="reg-email" placeholder="電子信箱" class="input-dark text-sm">
-                    <input type="text" id="reg-name" placeholder="真實姓名" class="input-dark text-sm">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <input type="password" id="reg-password" placeholder="設定密碼" class="input-dark text-sm">
-                    <input type="password" id="reg-confirm" placeholder="確認密碼" class="input-dark text-sm">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <select id="reg-unit" onchange="toggleOtherUnit()" class="input-dark text-sm bg-gray-700">
-                        <option value="">載入單位中...</option>
-                    </select>
-                    <input type="text" id="reg-title" placeholder="職稱 (如隊員)" class="input-dark text-sm">
-                </div>
-                <input type="text" id="reg-unit-other" placeholder="👉 請輸入單位名稱"
-                    class="input-dark hidden text-sm border-indigo-500">
-                <input type="tel" id="reg-phone" placeholder="連絡電話" class="input-dark text-sm">
-                <textarea id="reg-note" placeholder="申請備註" class="input-dark text-sm h-16 py-2"></textarea>
-
-                <button onclick="handleRealSignUp()" id="signup-btn"
-                    class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg mt-2">提交新註冊</button>
-            </div>
-        </div>
-    </div>
-
     <div id="boar-overlay" class="hidden">
         <div id="boar-anim" class="boar-scene">🐗</div>
         <p id="boar-text" class="boar-text">資料處理中...</p>
@@ -433,8 +368,16 @@
         <div class="relative flex justify-center items-center h-6">
             <div class="flex items-center gap-2">
                 <p id="user-info" class="text-sm text-gray-400">識別中...</p>
+                
+                <button onclick="window.location.href='lobby.html'"
+                    class="bg-blue-900/60 hover:bg-blue-800 text-blue-300 px-2 py-0.5 rounded border border-blue-700 text-xs transition-colors shadow-sm">
+                    🏠 大廳
+                </button>
+                
                 <button onclick="handleLogout()"
-                    class="bg-red-900/60 hover:bg-red-800 text-red-300 px-2 py-0.5 rounded border border-red-700 text-xs transition-colors">登出</button>
+                    class="bg-red-900/60 hover:bg-red-800 text-red-300 px-2 py-0.5 rounded border border-red-700 text-xs transition-colors shadow-sm">
+                    登出
+                </button>
             </div>
 
             <select id="custodian-filter" onchange="switchCustodian(this.value)"
@@ -1096,124 +1039,62 @@
         // =========================================
         // 🔒 App 專屬：Supabase 登入與自動驗證系統
         // =========================================
-
-        // 🚀 自動從資料庫抓取「現有單位」並填入註冊選單
-        async function loadDynamicUnits() {
-            const { data, error } = await _supabase.rpc('get_existing_units');
-            const unitSelect = document.getElementById('reg-unit');
-
-            if (error) {
-                console.error("抓取單位失敗:", error);
-                unitSelect.innerHTML = '<option value="">手動輸入單位</option>';
-                return;
-            }
-
-            if (data && data.length > 0) {
-                let html = '<option value="">選擇單位</option>';
-                data.forEach(item => {
-                    html += `<option value="${item.unit_name}">${item.unit_name}</option>`;
-                });
-                html += '<option value="OTHER">--- 其他 (手動輸入) ---</option>';
-                unitSelect.innerHTML = html;
-            }
-        }
-
-        // 1. 處理使用者點擊登入
-        async function handleLogin() {
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            const btn = document.getElementById('login-btn');
-            if (!email || !password) { alert("請輸入帳號密碼！"); return; }
-            btn.innerText = "驗證中..."; btn.disabled = true;
-
-            const { data, error } = await _supabase.auth.signInWithPassword({ email, password }); // <--- 改名
-            if (error) {
-                alert("登入失敗：" + error.message);
-                btn.innerText = "安全登入"; btn.disabled = false;
-                return;
-            }
-            enterSystem(data.user);
-        }
-
-        // --- 🚪 登出系統與清除本地快取 ---
+        // --- 🚪 登出系統與踢回大廳 ---
         async function handleLogout() {
             if (!confirm("確定要登出並清除登入狀態嗎？")) return;
 
             toggleLoader(true, "登出中...");
             try {
-                // 1. 呼叫 Supabase 登出，這行會「自動幫你把 LocalStorage 裡的憑證刪光光」
+                // 1. 呼叫 Supabase 登出，清除通行證
                 await _supabase.auth.signOut();
 
-                // 2. 清除網頁內存變數 (失憶)
+                // 2. 清除網頁內存變數
                 userId = "";
                 userEmail = "";
                 displayName = "";
                 isUserAdmin = false;
                 equipmentCache = [];
 
-                // 3. 把管理員按鈕重新封印隱藏
-                document.getElementById('btn-add-eq').classList.add('hidden');
-                document.getElementById('btn-batch-borrow').classList.add('hidden');
-                document.getElementById('btn-batch-return').classList.add('hidden');
-
-                // 4. 切換畫面：隱藏裝備清單，顯示登入畫面
-                document.getElementById('view-equipment').classList.add('hidden');
-                document.getElementById('login-screen').classList.remove('hidden');
-
-                // 5. 順便把密碼框清空，保護隱私
-                document.getElementById('login-password').value = "";
+                // 3. 🚨 登出成功後，直接把人送回大廳！
+                window.location.href = 'lobby.html';
 
             } catch (error) {
                 console.error("登出失敗:", error);
-                alert("登出時發生錯誤");
+                alert("登出時發生錯誤：" + error.message);
             } finally {
-                toggleLoader(false);
+                // 其實跳轉網頁後 loader 就會自動消失，但寫著比較保險
+                toggleLoader(false); 
             }
         }
 
-        // 2. 成功登入後，動態賦予身分並解鎖畫面
+        // 2. 成功登入後，動態賦予身分並解鎖畫面 (🚀 移除舊大廳殘留代碼版)
         async function enterSystem(user) {
-            userEmail = user.email; // 先記錄信箱
+            userEmail = user.email;
 
             try {
-                // 1. 抓取真實姓名
                 const { data: realName } = await _supabase.rpc('get_user_name_by_email', { p_email: userEmail });
                 displayName = (realName) ? realName : userEmail.split('@')[0];
 
-                // 🔥 2. 獲取資料庫真正認得的 user_id (修復所有權限的核心)
                 const { data: dbUserId } = await _supabase.rpc('get_user_id_by_email', { p_email: userEmail });
-                userId = dbUserId || user.id; // 如果資料庫有 ID 就用資料庫的，沒有才用備案
+                userId = dbUserId || user.id;
 
-                // 🔥 登入成功後：判斷推播 Token 更新方式
                 if (window.tempFCMToken) {
-                    // 情境 A：有 Android 殼傳 Token 過來
-                    console.log("偵測到 Android 暫存 Token，準備執行補登...");
                     performTokenUpdate(window.tempFCMToken);
                 } else {
-                    // 情境 B：沒有殼 (iOS PWA / 電腦版瀏覽器)，主動討 Token
-                    if (typeof requestWebPushPermission === 'function') {
-                        requestWebPushPermission();
-                    }
+                    if (typeof requestWebPushPermission === 'function') requestWebPushPermission();
                 }
 
-                // 更新 UI
                 document.getElementById('user-info').innerText = `隊員：${displayName}`;
 
-                // 3. 切換介面
-                document.getElementById('login-screen').classList.add('hidden');
+                // 🔥 修正：登入畫面已經被我們拔掉了，所以這裡只要「顯示裝備系統」就好！
                 document.getElementById('view-equipment').classList.remove('hidden');
                 
-                // 3. 檢查通知單號 (冷啟動)
-                await checkDeepLink();
-                
-                // 4. 檢查權限並載入資料
+                if (typeof checkDeepLink === 'function') await checkDeepLink();
                 await checkAdminRole();
                 await loadEquipment();
 
-                // 👇 換成這兩行：回報登入完畢，並呼叫交管中心
                 AppState.system.isSystemEntered = true;
-                tryRunTutorial();
-
+                if (typeof tryRunTutorial === 'function') tryRunTutorial();
 
             } catch (err) {
                 console.error("進入系統發生崩潰:", err);
@@ -1223,154 +1104,20 @@
             }
         }
 
-        // --- 🔐 畫面切換邏輯 (三頁籤切換) ---
-        function switchAuthTab(type) {
-            const tabs = ['login', 'bind', 'signup'];
-            tabs.forEach(t => {
-                const isCurrent = (t === type);
-                // 處理按鈕顏色
-                const btn = document.getElementById(`tab-${t}`);
-                if (isCurrent) {
-                    btn.className = `flex-1 py-2 rounded-md text-sm font-bold transition-all text-white ${t === 'login' ? 'bg-indigo-600' : t === 'bind' ? 'bg-blue-600' : 'bg-green-600'}`;
-                } else {
-                    btn.className = "flex-1 py-2 rounded-md text-sm font-bold transition-all text-gray-400";
-                }
-                // 處理表單顯示
-                document.getElementById(`form-${t}`).classList.toggle('hidden', !isCurrent);
-            });
-        }
-
-        // --- 🏢 切換「其他單位」輸入框 ---
-        function toggleOtherUnit() {
-            const unitVal = document.getElementById('reg-unit').value;
-            const otherInput = document.getElementById('reg-unit-other');
-            if (unitVal === '其他' || unitVal === 'OTHER') {
-                otherInput.classList.remove('hidden');
-                otherInput.focus();
-            } else {
-                otherInput.classList.add('hidden');
-            }
-        }
-
-        // --- 🔗 處理老隊員信箱綁定 ---
-        async function handleBind() {
-            const email = document.getElementById('bind-email').value.trim();
-            const pw = document.getElementById('bind-password').value;
-            const pwConfirm = document.getElementById('bind-confirm').value; // 抓取確認密碼的值
-            const btn = document.getElementById('bind-btn');
-
-            if (!email || !pw) return alert("請輸入信箱與密碼！");
-            if (pw !== pwConfirm) return alert("⚠️ 兩次密碼輸入不一致，請重新確認！"); // 加入比對檢查
-            if (pw.length < 6) return alert("密碼至少需要 6 碼！");
-
-            btn.innerText = "驗證中..."; btn.disabled = true;
-
-            try {
-                // 🔥 呼叫第 11 個特權函數查名字
-                const { data: userName, error: checkErr } = await _supabase.rpc('get_user_name_by_email', { p_email: email });
-
-                // 🚨 如果 userName 是 null，代表資料庫真的沒這個信箱
-                if (!userName) {
-                    alert("❌ 找不到此信箱！\n如果您是新進人員，請切換至右側的「註冊申請」填寫資料。");
-                    return;
-                }
-
-                // 2. 找到了！幫他在 Supabase 建立登入密碼
-                const { error: authErr } = await _supabase.auth.signUp({ email, password: pw });
-                if (authErr) throw authErr;
-
-                alert(`🎉 綁定成功！歡迎回來，${userName}！\n系統將自動為您登入。`);
-
-                // 自動登入
-                document.getElementById('login-email').value = email;
-                document.getElementById('login-password').value = pw;
-                handleLogin();
-
-            } catch (err) {
-                alert("綁定失敗：" + err.message);
-            } finally {
-                btn.innerText = "確認綁定"; btn.disabled = false;
-            }
-        }
-
-        // --- 📝 處理新進隊員註冊 ---
-        async function handleRealSignUp() {
-            const email = document.getElementById('reg-email').value.trim();
-            const pw = document.getElementById('reg-password').value;
-            const pwConfirm = document.getElementById('reg-confirm').value;
-            const name = document.getElementById('reg-name').value.trim();
-
-            let unit = document.getElementById('reg-unit').value;
-            if (unit === '其他' || unit === 'OTHER') {
-                unit = document.getElementById('reg-unit-other').value.trim();
-                if (!unit) return alert("請手動輸入您的單位名稱！");
-            }
-
-            const title = document.getElementById('reg-title').value.trim();
-            const phone = document.getElementById('reg-phone').value.trim();
-            const note = document.getElementById('reg-note').value.trim();
-            const btn = document.getElementById('signup-btn');
-
-            if (!email || !name || !pw) return alert("請填寫必填欄位 (信箱、姓名、密碼)");
-            if (pw !== pwConfirm) return alert("兩次密碼輸入不一致");
-            if (pw.length < 6) return alert("密碼長度至少需要 6 碼");
-
-            btn.innerText = "提交中..."; btn.disabled = true;
-
-            try {
-                // 1. 檢查是否重複 (使用你原本的邏輯)
-                const { data: userName } = await _supabase.rpc('get_user_name_by_email', { p_email: email });
-                if (userName) {
-                    alert(`⚠️ ${userName} 您好，這個信箱已經在系統中了！\n請直接切換至中間的「信箱綁定」來設定 App 密碼，不需重新註冊。`);
-                    btn.innerText = "提交新註冊"; btn.disabled = false;
-                    return;
-                }
-
-                // 2. 建立 Supabase 登入帳號
-                const { error: authErr } = await _supabase.auth.signUp({ email, password: pw });
-                if (authErr) throw authErr;
-
-                // 🔥 3. 改用 RPC 寫入 users 資料表 (解決權限問題，並保留你所有欄位)
-                const fakeUserId = "APP_" + Math.random().toString(36).substr(2, 9);
-                const { data: regRes, error: regErr } = await _supabase.rpc('handle_new_user_registration', {
-                    p_name: name,
-                    p_unit: unit,
-                    p_email: email,
-                    p_user_id: fakeUserId,
-                    p_phone: phone,
-                    p_title: title,
-                    p_note: note
-                });
-
-                if (regErr) throw regErr;
-                if (!regRes.success) throw new Error(regRes.message);
-
-                alert("🎉 註冊成功！資料已提交。\n系統將自動為您登入。");
-
-                document.getElementById('login-email').value = email;
-                document.getElementById('login-password').value = pw;
-                handleLogin();
-
-            } catch (err) {
-                alert("錯誤：" + err.message);
-            } finally {
-                btn.innerText = "提交新註冊"; btn.disabled = false;
-            }
-        }
-
+        // 🛡️ 門口守衛：只管驗證，沒票就踢回大廳！
         async function checkSessionOnLoad() {
             document.getElementById('loader').classList.add('hidden');
 
-            // 抓取單位清單
-            await loadDynamicUnits();
-
             const { data, error } = await _supabase.auth.getSession();
             if (data.session) {
+                // ✅ 有通行證，放行進入裝備系統
                 enterSystem(data.session.user);
             } else {
-                // 🔥 新增這兩行：確定沒登入時，才把登入畫面顯示出來
-                document.getElementById('login-screen').classList.remove('hidden');
-                document.getElementById('login-screen').classList.add('flex');
+                // ❌ 沒通行證！
+                // 把目前的網址（包含可能帶有的 ?notifId=xxx）包裝成車票
+                const currentUrl = encodeURIComponent(window.location.href);
+                // 踢回大廳，並把車票塞給他
+                window.location.href = `lobby.html?redirect=${currentUrl}`;
             }
         }
 
