@@ -230,30 +230,6 @@
         }
 
         /* =========================================
-           4. 任務看板專用 (Mission Board)
-           ========================================= */
-        .mission-detail {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
-            background-color: #333;
-            border-radius: 0 0 12px 12px;
-        }
-
-        .mission-detail.open {
-            max-height: 800px;
-            border-top: 1px solid #444;
-        }
-
-        .line-clamp-3 {
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        /* =========================================
            5. 捲軸與彈窗 (Modals & Scrollbars)
            ========================================= */
         /* 自定義捲軸 */
@@ -1770,16 +1746,7 @@
                     ${subInfo}
                 </div>`;
         }
-        // AI
-        function showAiPage() { document.getElementById('view-ai').classList.remove('hidden'); }
-        async function askAI(mode) {
-            const q = document.getElementById('ai-input').value; if (!q) return alert("請輸入"); toggleLoader(true);
-            try {
-                const r = await callGasApi({ action: mode === 'ppt' ? 'make_briefing_ppt' : 'ask_ai', userId, question: q, query: q });
-                document.getElementById('ai-response').classList.remove('hidden');
-                document.getElementById('ai-response').innerHTML = mode === 'ppt' ? `<a href="${r.url}" target="_blank" class="btn block text-center bg-green-600 p-2 rounded">下載簡報</a>` : r.answer;
-            } catch (e) { alert(e.message) } finally { toggleLoader(false) }
-        }
+        
         async function safeExecute(btn, fn) { btn.disabled = true; await fn(); btn.disabled = false; }
 
         // 🔥 [新增] 打開詳細資料跳窗
