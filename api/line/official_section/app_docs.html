@@ -8,8 +8,140 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../mission_folder/supabase_config.js"></script>
     <style>
-        body { background-color: #0b0f1a; color: #e2e8f0; font-family: -apple-system, sans-serif; }
-        .glass-card { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        /* 🚨 關鍵修復：把底色交給 html，讓 body 透明 */
+        html {
+            background: linear-gradient(to bottom, #02040a 0%, #0f172a 100%);
+            min-height: 100vh;
+        }
+
+        /* ✨ 全新加入：科技流光條 (群組 1 - 三道青藍色快光) */
+        html::before {
+            content: ""; position: fixed; inset: 0;
+            background-image: 
+                linear-gradient(to bottom, transparent, rgba(56,189,248,0.8) 80%, #fff 100%),
+                linear-gradient(to bottom, transparent, rgba(129,140,248,0.6) 80%, #fff 100%),
+                linear-gradient(to bottom, transparent, rgba(56,189,248,0.5) 80%, #fff 100%);
+            background-size: 2px 25vh, 1px 35vh, 2px 15vh; /* 不同粗細與長度 */
+            background-repeat: no-repeat;
+            z-index: -2;
+            animation: data-rain-1 4s infinite linear;
+            pointer-events: none;
+        }
+
+        /* ✨ 全新加入：科技流光條 (群組 2 - 兩道紫藍色慢光，錯開時間產生隨機感) */
+        html::after {
+            content: ""; position: fixed; inset: 0;
+            background-image: 
+                linear-gradient(to bottom, transparent, rgba(129,140,248,0.7) 80%, #fff 100%),
+                linear-gradient(to bottom, transparent, rgba(56,189,248,0.9) 80%, #fff 100%);
+            background-size: 3px 20vh, 1px 40vh;
+            background-repeat: no-repeat;
+            z-index: -2;
+            animation: data-rain-2 6s infinite linear 1.5s; /* 延遲 1.5 秒觸發 */
+            pointer-events: none;
+        }
+
+        /* 控制流光墜落的路徑與位置 */
+        @keyframes data-rain-1 {
+            0% { background-position: 15vw -30vh, 55vw -50vh, 85vw -20vh; opacity: 0; }
+            10% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { background-position: 15vw 120vh, 55vw 100vh, 85vw 130vh; opacity: 0; }
+        }
+
+        @keyframes data-rain-2 {
+            0% { background-position: 30vw -20vh, 75vw -40vh; opacity: 0; }
+            10% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { background-position: 30vw 130vh, 75vw 110vh; opacity: 0; }
+        }
+
+        body { 
+            background-color: transparent; 
+            /* 增添星空點綴：直接畫在 body 上，讓天空不無聊 */
+            background-image: 
+                radial-gradient(1px 1px at 20% 30%, rgba(255, 255, 255, 0.4) 100%, transparent),
+                radial-gradient(1.5px 1.5px at 70% 10%, rgba(255, 255, 255, 0.5) 100%, transparent),
+                radial-gradient(1px 1px at 40% 60%, rgba(255, 255, 255, 0.3) 100%, transparent),
+                radial-gradient(2px 2px at 80% 40%, rgba(255, 255, 255, 0.2) 100%, transparent);
+            color: #e2e8f0; 
+            font-family: -apple-system, sans-serif; 
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* 1. 山脈剪影背景 (強化山脊邊緣的光澤) */
+        body::before {
+            content: ""; position: fixed; bottom: 0; left: 0; width: 100%; height: 45vh;
+            /* 讓山頂邊緣帶點青藍色螢光，底部融入黑暗 */
+            background: linear-gradient(to bottom, #1e3a8a 0%, #0f172a 15%, #02040a 100%);
+            clip-path: polygon(0% 100%, 0% 70%, 15% 40%, 30% 65%, 45% 30%, 60% 55%, 75% 20%, 90% 60%, 100% 45%, 100% 100%);
+            z-index: -1; 
+            opacity: 0.9;
+        }
+
+        /* 2. 閃電雷擊特效 (躲在山脈後方照亮天空) */
+        body::after {
+            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.8) 0%, transparent 60%);
+            opacity: 0; z-index: -2; pointer-events: none;
+            animation: lightning-flash 3s infinite;
+        }
+
+        @keyframes lightning-flash {
+            /* 增加等待時間的比例，或讓閃爍過程更短促 */
+            0%, 90%, 95%, 100% { opacity: 0; } 
+            92%, 94% { opacity: 0.3; } /* 前兆微光 */
+            93% { opacity: 0; }
+            97% { opacity: 0.8; } /* 強力主雷擊 */
+        }
+
+        /* 3. 卡片科技感：加上毛玻璃與邊框流光 */
+        .glass-card { 
+            background: rgba(15, 23, 42, 0.75); 
+            backdrop-filter: blur(16px); 
+            border: 1px solid rgba(129, 140, 248, 0.3); 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            position: relative; overflow: hidden;
+        }
+
+        .glass-card::after {
+            content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(129, 140, 248, 0.15), transparent);
+            transform: rotate(45deg);
+            animation: card-shimmer 4s infinite linear;
+        }
+
+        @keyframes card-shimmer {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
+        }
+        /* 🌠 空間跳躍：向螢幕中心極速放大 + 亮度過載 */
+        .exit-warp {
+            transform: scale(8) !important; /* 縮放倍率調大，衝擊感更強 */
+            opacity: 0 !important;
+            filter: brightness(3) blur(10px) !important; /* 產生光暈模糊感 */
+            transition: all 0.5s cubic-bezier(0.7, 0, 0.3, 1) !important;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* 💡 白閃特效容器 */
+        .overload-flash {
+            position: fixed;
+            inset: 0;
+            background: white;
+            opacity: 0;
+            z-index: 1000;
+            pointer-events: none;
+            transition: opacity 0.3s ease-in;
+        }
+
+        .overload-flash.active {
+            opacity: 0.7; /* 閃白強度 */
+        }
     </style>
 </head>
 <body class="p-4 flex flex-col min-h-screen">
@@ -18,13 +150,13 @@
         <h1 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-300 tracking-wider">📁 公文專區</h1>
         <div class="flex justify-center items-center gap-2 mt-2">
             <p id="user-info" class="text-xs text-slate-400">識別中...</p>
-            <button onclick="window.location.href='../lobby.html'" class="bg-slate-800 text-cyan-300 px-3 py-1 rounded-full border border-cyan-800 text-xs font-bold transition-all active:scale-95">🏠 回大廳</button>
+            <button onclick="warpSpeed('../lobby.html', this)" class="bg-slate-800 text-cyan-300 px-3 py-1 rounded-full border border-cyan-800 text-xs font-bold transition-all active:scale-95">🏠 回大廳</button>
         </div>
     </div>
 
     <div class="grid grid-cols-1 gap-4 max-w-md mx-auto w-full">
         
-        <button onclick="window.location.href='app_meal_fee.html'" class="glass-card p-6 rounded-2xl flex items-center gap-4 transition-all active:scale-95 hover:border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+        <button onclick="warpSpeed('app_meal_fee.html', this)" class="glass-card p-6 rounded-2xl flex items-center gap-4 transition-all active:scale-95 hover:border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
             <div class="bg-cyan-900/50 p-3 rounded-full text-3xl">🍱</div>
             <div class="text-left">
                 <h3 class="text-lg font-bold text-cyan-400">搶救業務</h3>
@@ -59,7 +191,34 @@
                 window.location.href = `../lobby.html?redirect=${encodeURIComponent(window.location.href)}`;
             }
         }
+
+        function warpSpeed(url, element) {
+            // 1. 建立白閃圖層
+            let flash = document.querySelector('.overload-flash');
+            if (!flash) {
+                flash = document.createElement('div');
+                flash.className = 'overload-flash';
+                document.body.appendChild(flash);
+            }
+
+            // 2. 啟動按鈕「自爆式」放大動畫
+            element.classList.add('exit-warp');
+
+            // 3. 0.15 秒後引爆白光
+            setTimeout(() => {
+                flash.classList.add('active');
+            }, 150);
+
+            // 4. 0.5 秒後準時傳送回大廳
+            setTimeout(() => {
+                window.location.href = url;
+            }, 500);
+        }
+
+
         window.onload = checkSession;
+
+        
     </script>
 </body>
 </html>
