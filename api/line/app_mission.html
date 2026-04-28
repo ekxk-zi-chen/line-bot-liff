@@ -1560,11 +1560,12 @@
             renderExportPhotoPreview();
         }
 
-        // 🌟 執行最終匯出 (打包加入 photos)
+        // 🌟 執行最終匯出 (極簡分流版：iOS 綠色按鈕分享 / 安卓直接開網址)
         async function executeFinalExport() {
             const reason = document.getElementById('export-reason-input').value.trim();
+            const exportBtn = document.querySelector("button[onclick='executeFinalExport()']") || document.querySelector("button[onclick='handleIOSShare()']");
             
-            toggleLoader(true, "簽名打包並產生 PDF 中...");
+            toggleLoader(true, "打包並產生 PDF 中...");
             try {
                 const res = await callGasApi({ 
                     action: 'export_equipment_report', 
@@ -1574,22 +1575,94 @@
                     reason: reason,
                     checkerSig: signatures.checker,
                     borrowerSig: signatures.borrower,
-                    photos: exportPhotosBase64 // 👈 把壓縮好的照片陣列送出！
+                    photos: exportPhotosBase64 
                 });
                 
-                if (res.url) {
-                    closeModal('export-settings-modal');
+                if (res.success && res.url) { 
+                    // 偵測裝置屬性
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
                     const isAndroid = /Android/i.test(navigator.userAgent);
-                    if (isAndroid) window.location.href = res.url; 
-                    else window.open(res.url, '_blank');
+
+                    if (isIOS && res.base64) {
+                        // 🍎 iOS 路線：變成綠色按鈕，等待純淨點擊來觸發 Share API
+                        window.currentPdfData = {
+                            base64: res.base64,
+                            fileName: res.fileName || "裝備報表.pdf"
+                        };
+
+                        if (exportBtn) {
+                            exportBtn.innerText = "📤 報表就緒，點擊分享！";
+                            exportBtn.className = "flex-1 bg-green-600 text-white py-2 rounded-lg font-bold animate-pulse shadow-[0_0_15px_rgba(22,163,74,0.6)] transition-all";
+                            exportBtn.onclick = handleIOSShare; 
+                        }
+                        // 這裡要先關閉動畫，讓蘋果隊員可以按鈕
+                        toggleLoader(false); 
+                    } else {
+                        // 🤖 安卓/電腦路線：最原始、最單純的直接開啟 Google Drive 網址！
+                        closeModal('export-settings-modal');
+                        
+                        if (isAndroid) {
+                            window.location.href = res.url; // 安卓直接跳轉
+                        } else {
+                            window.open(res.url, '_blank'); // 電腦開新分頁
+                        }
+                        
+                        toggleLoader(false); 
+                    }
                 } else {
-                    alert("匯出失敗: " + res.message);
+                    alert("匯出失敗: " + (res.message || "未知的系統錯誤"));
+                    toggleLoader(false);
                 }
             } catch (e) {
-                alert(e.message);
-            } finally {
+                alert("系統通訊錯誤：" + e.message);
                 toggleLoader(false);
             }
+        }
+
+        // 🍎 iOS 專屬分享執行動作
+        async function handleIOSShare() {
+            if (!window.currentPdfData) return alert("找不到報表資料！");
+            
+            const exportBtn = document.querySelector("button[onclick='handleIOSShare()']");
+            if (exportBtn) exportBtn.innerText = "⏳ 處理中...";
+
+            try {
+                const { base64, fileName } = window.currentPdfData;
+                const blob = b64toBlob(base64, 'application/pdf');
+                const file = new File([blob], fileName, { type: 'application/pdf' });
+
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: '特搜大隊裝備報表',
+                        text: '請查收裝備清單'
+                    });
+                    closeModal('export-settings-modal'); 
+                } else {
+                    alert("您的裝置暫不支援原生分享。");
+                }
+            } catch (err) {
+                console.log("分享失敗或取消", err);
+                if (exportBtn) {
+                    exportBtn.innerText = "📤 再次點擊分享"; 
+                }
+            }
+        }
+
+        // 🛠️ 輔助函數：將 Base64 轉換回實體的 Blob 檔案 (保留給 iOS 使用)
+        function b64toBlob(b64Data, contentType = '', sliceSize = 512) {
+            const byteCharacters = atob(b64Data);
+            const byteArrays = [];
+            for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+                const slice = byteCharacters.slice(offset, offset + sliceSize);
+                const byteNumbers = new Array(slice.length);
+                for (let i = 0; i < slice.length; i++) {
+                    byteNumbers[i] = slice.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                byteArrays.push(byteArray);
+            }
+            return new Blob(byteArrays, { type: contentType });
         }
 
 
