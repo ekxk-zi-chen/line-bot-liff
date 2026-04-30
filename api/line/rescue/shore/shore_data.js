@@ -1630,62 +1630,85 @@
         result.innerHTML = `<div class="result">缺少必要資料，無法計算！</div>`;
       }
     }
-// ⛶ 全螢幕切換引擎 (延遲精準撐滿版)
+// ⛶ 全螢幕切換引擎 (終極暴力破解版：無視任何 CSS 阻擋)
 function toggleFullScreen() {
   const container = document.getElementById("viewer-container");
   const btn = document.getElementById("fs-btn");
   const viewer = document.getElementById("threejs-box-viewer");
+  // 🚀 關鍵：直接抓出 3D 畫布本體！
+  const canvas = viewer.querySelector("canvas");
 
   if (!container.classList.contains('fullscreen-mode')) {
-    // 1. 進入全螢幕狀態
+    // 1. 進入全螢幕
     container.classList.add('fullscreen-mode');
     btn.innerText = "✖ 關閉全螢幕";
-    viewer.style.height = "100%"; // 讓內部容器自動撐滿
     
-    // 2. 🚀 關鍵修復：給瀏覽器 50 毫秒的時間去把容器真正放大，再重繪 3D
+    // 🔥 暴力破解：直接把 Canvas 設為絕對固定，強制撐爆手機長寬！
+    if(canvas) {
+      canvas.style.position = "fixed";
+      canvas.style.top = "0";
+      canvas.style.left = "0";
+      canvas.style.width = "100vw";
+      canvas.style.height = "100vh";
+      canvas.style.zIndex = "9998"; // 確保它浮在所有東西上面
+    }
+    btn.style.zIndex = "9999"; // 按鈕要比畫布更高
+
     setTimeout(() => {
-      if(window.current3D) {
+      if (window.current3D) {
         const { renderer, camera, scene, controls } = window.current3D;
         
-        // 抓取「已經放大的」容器精確尺寸
-        const w = container.clientWidth;
-        const h = container.clientHeight;
-        
-        renderer.setSize(w, h);
-        camera.aspect = w / h;
+        // 強制灌入螢幕真實像素
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
 
-        // 重新鎖定視野中心
+        // 🎯 重新鎖定模型幾何中心
         const box = new THREE.Box3().setFromObject(scene);
         const center = box.getCenter(new THREE.Vector3());
-        controls.target.copy(center); 
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+                        
+        // 讓鏡頭「稍微靠近並拉高」，完美填滿畫面
+        camera.position.set(center.x, center.y + maxDim * 0.8, center.z + maxDim * 1.5);
+                        
+        controls.target.copy(center);
         camera.lookAt(center);
         controls.update();
       }
     }, 50);
 
   } else {
-    // 1. 退出全螢幕
+    // 2. 退出全螢幕
     container.classList.remove('fullscreen-mode');
     btn.innerText = "⛶ 全螢幕";
-    viewer.style.height = "350px"; 
     
-    // 2. 一樣稍微延遲，等容器縮小後再重繪
+    // 🔥 乖乖把 Canvas 放回原本的盒子裡
+    if(canvas) {
+      canvas.style.position = "relative";
+      canvas.style.width = "100%";
+      canvas.style.height = "350px";
+      canvas.style.zIndex = "1";
+    }
+    
     setTimeout(() => {
-      if(window.current3D) {
+      if (window.current3D) {
         const { renderer, camera, scene, controls } = window.current3D;
-        
         const w = viewer.clientWidth || 400;
+        
         renderer.setSize(w, 350);
         camera.aspect = w / 350;
         camera.updateProjectionMatrix();
 
         const box = new THREE.Box3().setFromObject(scene);
         const center = box.getCenter(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+                        
+        camera.position.set(center.x, center.y + maxDim * 0.8, center.z + maxDim * 1.5);
         controls.target.copy(center);
-        camera.lookAt(center);
         controls.update();
       }
     }, 50);
   }
 }
+
