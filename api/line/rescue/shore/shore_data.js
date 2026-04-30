@@ -1617,7 +1617,7 @@
         animate();
 
         // 🚀 新增：將當前的渲染器與相機存起來，讓全螢幕函數可以呼叫它
-        window.current3D = { renderer: renderer, camera: camera };
+        window.current3D = { renderer: renderer, camera: camera, scene: scene, controls: controls };
         
         // 🚀 自動將寬度調整為手機螢幕寬度 (取代原本寫死的 400)
         const containerW = document.getElementById("threejs-box-viewer").clientWidth || 400;
@@ -1630,7 +1630,7 @@
         result.innerHTML = `<div class="result">缺少必要資料，無法計算！</div>`;
       }
     }
-        // ⛶ 全螢幕切換引擎
+    // ⛶ 全螢幕切換引擎 (狙擊鎖定置中版)
     function toggleFullScreen() {
       const container = document.getElementById("viewer-container");
       const btn = document.getElementById("fs-btn");
@@ -1640,26 +1640,42 @@
         // 進入全螢幕
         container.classList.add('fullscreen-mode');
         btn.innerText = "✖ 關閉全螢幕";
-        viewer.style.height = "100vh"; // 撐滿高度
+        viewer.style.height = "100vh"; 
         
         // 更新 3D 引擎尺寸
         if(window.current3D) {
-          window.current3D.renderer.setSize(window.innerWidth, window.innerHeight);
-          window.current3D.camera.aspect = window.innerWidth / window.innerHeight;
-          window.current3D.camera.updateProjectionMatrix();
+          const { renderer, camera, scene, controls } = window.current3D;
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+
+          // 🎯 核心黑科技：計算這堆木頭的「幾何正中心」，強制相機看向那邊
+          const box = new THREE.Box3().setFromObject(scene);
+          const center = box.getCenter(new THREE.Vector3());
+          controls.target.copy(center); // 旋轉中心鎖定
+          camera.lookAt(center);        // 視線鎖定
+          controls.update();            // 刷新畫面
         }
       } else {
         // 退出全螢幕
         container.classList.remove('fullscreen-mode');
         btn.innerText = "⛶ 全螢幕";
-        viewer.style.height = "350px"; // 恢復原本高度
+        viewer.style.height = "350px"; 
         
         // 恢復 3D 引擎尺寸
         if(window.current3D) {
+          const { renderer, camera, scene, controls } = window.current3D;
           const w = viewer.clientWidth || 400;
-          window.current3D.renderer.setSize(w, 350);
-          window.current3D.camera.aspect = w / 350;
-          window.current3D.camera.updateProjectionMatrix();
+          renderer.setSize(w, 350);
+          camera.aspect = w / 350;
+          camera.updateProjectionMatrix();
+
+          // 縮小後一樣保持置中
+          const box = new THREE.Box3().setFromObject(scene);
+          const center = box.getCenter(new THREE.Vector3());
+          controls.target.copy(center);
+          camera.lookAt(center);
+          controls.update();
         }
       }
     }
