@@ -1630,52 +1630,62 @@
         result.innerHTML = `<div class="result">缺少必要資料，無法計算！</div>`;
       }
     }
-    // ⛶ 全螢幕切換引擎 (狙擊鎖定置中版)
-    function toggleFullScreen() {
-      const container = document.getElementById("viewer-container");
-      const btn = document.getElementById("fs-btn");
-      const viewer = document.getElementById("threejs-box-viewer");
+// ⛶ 全螢幕切換引擎 (延遲精準撐滿版)
+function toggleFullScreen() {
+  const container = document.getElementById("viewer-container");
+  const btn = document.getElementById("fs-btn");
+  const viewer = document.getElementById("threejs-box-viewer");
 
-      if (!container.classList.contains('fullscreen-mode')) {
-        // 進入全螢幕
-        container.classList.add('fullscreen-mode');
-        btn.innerText = "✖ 關閉全螢幕";
-        viewer.style.height = "100vh"; 
+  if (!container.classList.contains('fullscreen-mode')) {
+    // 1. 進入全螢幕狀態
+    container.classList.add('fullscreen-mode');
+    btn.innerText = "✖ 關閉全螢幕";
+    viewer.style.height = "100%"; // 讓內部容器自動撐滿
+    
+    // 2. 🚀 關鍵修復：給瀏覽器 50 毫秒的時間去把容器真正放大，再重繪 3D
+    setTimeout(() => {
+      if(window.current3D) {
+        const { renderer, camera, scene, controls } = window.current3D;
         
-        // 更新 3D 引擎尺寸
-        if(window.current3D) {
-          const { renderer, camera, scene, controls } = window.current3D;
-          renderer.setSize(window.innerWidth, window.innerHeight);
-          camera.aspect = window.innerWidth / window.innerHeight;
-          camera.updateProjectionMatrix();
-
-          // 🎯 核心黑科技：計算這堆木頭的「幾何正中心」，強制相機看向那邊
-          const box = new THREE.Box3().setFromObject(scene);
-          const center = box.getCenter(new THREE.Vector3());
-          controls.target.copy(center); // 旋轉中心鎖定
-          camera.lookAt(center);        // 視線鎖定
-          controls.update();            // 刷新畫面
-        }
-      } else {
-        // 退出全螢幕
-        container.classList.remove('fullscreen-mode');
-        btn.innerText = "⛶ 全螢幕";
-        viewer.style.height = "350px"; 
+        // 抓取「已經放大的」容器精確尺寸
+        const w = container.clientWidth;
+        const h = container.clientHeight;
         
-        // 恢復 3D 引擎尺寸
-        if(window.current3D) {
-          const { renderer, camera, scene, controls } = window.current3D;
-          const w = viewer.clientWidth || 400;
-          renderer.setSize(w, 350);
-          camera.aspect = w / 350;
-          camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
 
-          // 縮小後一樣保持置中
-          const box = new THREE.Box3().setFromObject(scene);
-          const center = box.getCenter(new THREE.Vector3());
-          controls.target.copy(center);
-          camera.lookAt(center);
-          controls.update();
-        }
+        // 重新鎖定視野中心
+        const box = new THREE.Box3().setFromObject(scene);
+        const center = box.getCenter(new THREE.Vector3());
+        controls.target.copy(center); 
+        camera.lookAt(center);
+        controls.update();
       }
-    }
+    }, 50);
+
+  } else {
+    // 1. 退出全螢幕
+    container.classList.remove('fullscreen-mode');
+    btn.innerText = "⛶ 全螢幕";
+    viewer.style.height = "350px"; 
+    
+    // 2. 一樣稍微延遲，等容器縮小後再重繪
+    setTimeout(() => {
+      if(window.current3D) {
+        const { renderer, camera, scene, controls } = window.current3D;
+        
+        const w = viewer.clientWidth || 400;
+        renderer.setSize(w, 350);
+        camera.aspect = w / 350;
+        camera.updateProjectionMatrix();
+
+        const box = new THREE.Box3().setFromObject(scene);
+        const center = box.getCenter(new THREE.Vector3());
+        controls.target.copy(center);
+        camera.lookAt(center);
+        controls.update();
+      }
+    }, 50);
+  }
+}
