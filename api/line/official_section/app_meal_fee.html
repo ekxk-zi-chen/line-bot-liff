@@ -400,15 +400,13 @@
 
                     // 0.6 秒後打開檔案
                     setTimeout(() => {
-                        // 🚀 偵測是否為蘋果 iOS 裝置
-                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                        // 🚀 100% 原汁原味還原 mission 的邏輯
+                        const isAndroid = /Android/i.test(navigator.userAgent);
 
-                        if (isIOS) {
-                            // 🍎 iOS 路線：維持您原本的開新分頁 (保持現狀)
-                            window.open(result.url, '_blank');
+                        if (isAndroid) {
+                            window.location.href = result.url; // 🤖 安卓直接跳轉
                         } else {
-                            // 🤖 安卓 & 💻 桌機電腦路線：直接在當前頁面跳轉過去，絕不被攔截！
-                            window.location.href = result.url;
+                            window.open(result.url, '_blank'); // 💻🍎 其他 (電腦、iOS) 開新分頁
                         }
 
                         // 清理現場
