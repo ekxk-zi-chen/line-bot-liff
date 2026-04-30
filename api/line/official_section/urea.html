@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>尿素申請</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../mission_folder/supabase_config.js"></script>
+    <style>
+        /* 🚨 防滑動干擾防線 */
+        html, body { overscroll-behavior-x: none; touch-action: pan-y; }
+        
+        /* 繼承您最喜歡的藍圖施工感與等寬字體 */
+        html { background-color: #030712; min-height: 100vh; }
+        body { 
+            background-color: transparent; color: #e2e8f0; 
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
+            letter-spacing: 0.5px; position: relative; overflow-x: hidden; min-height: 100vh; margin: 0;
+        }
+
+        /* 背景流體與火花 */
+        body::before {
+            content: ""; position: fixed; bottom: -100px; left: -50%; width: 200%; height: 300px;
+            background: radial-gradient(ellipse at center, rgba(168, 85, 247, 0.2) 0%, transparent 70%); /* 改點紫色系區隔誤餐費 */
+            border-radius: 40% 45% 42% 38%; animation: water-flow 12s infinite linear; z-index: -1;
+        }
+        @keyframes water-flow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        body::after {
+            content: ""; position: fixed; inset: 0;
+            background-image: radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.15) 1px, transparent 1px);
+            background-size: 40px 40px; animation: spark-drift 20s infinite linear; z-index: -2;
+        }
+        @keyframes spark-drift { 0% { background-position: 0 0; } 100% { background-position: 40px 100vh; } }
+
+        .glass { 
+            background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(15px); 
+            border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6); position: relative; z-index: 10;
+        }
+
+        /* 施工藍圖輸入框 */
+        .input-neon { 
+            background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; color: #fff; 
+            font-family: inherit; outline: none; transition: 0.3s; font-size: 15px !important;
+            padding: 8px 12px !important; line-height: 1.5; border-radius: 8px; width: 100%;
+        }
+        .input-neon:focus { 
+            border-color: #d8b4fe; box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+            animation: electricity-pulse 0.15s infinite alternate;
+        }
+        @keyframes electricity-pulse { from { border-color: #c084fc; } to { border-color: #f3e8ff; } }
+
+        /* 車牌號碼專用樣式 */
+        .plate-box {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            background: #cbd5e1; border-radius: 8px; padding: 4px; border: 2px solid #475569;
+        }
+        .plate-input {
+            background: white; color: black; font-weight: 900; text-align: center;
+            font-size: 18px; padding: 4px; border-radius: 4px; width: 80px; text-transform: uppercase;
+        }
+        .plate-dash { color: black; font-weight: 900; font-size: 20px; }
+
+        /* 超頻按鈕 (紫色系) */
+        .btn-glow { 
+            position: relative; background: linear-gradient(90deg, #7e22ce, #a855f7, #c084fc, #7e22ce);
+            background-size: 300% 100%; color: white; padding: 16px; border-radius: 12px; font-weight: 900; width: 100%; 
+            letter-spacing: 3px; overflow: hidden; border: 1px solid rgba(255,255,255,0.3);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4); transition: all 0.3s; animation: flow-shimmer 3s linear infinite;
+        }
+        .btn-glow.overloading {
+            animation: btn-shake 0.1s infinite alternate, flow-shimmer 0.5s linear infinite !important;
+            filter: brightness(1.5) contrast(1.2); box-shadow: 0 0 30px #d8b4fe;
+        }
+        @keyframes btn-shake { 0% { transform: translate(1px, 1px); } 100% { transform: translate(-1px, -1px); } }
+        @keyframes flow-shimmer { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
+
+        /* 特效 */
+        .exit-supernova { transform: scale(8) !important; filter: brightness(15) contrast(2) blur(10px) !important; opacity: 0 !important; transition: all 0.6s cubic-bezier(0.7, 0, 0.3, 1) !important; }
+        .plasma-flash { position: fixed; inset: 0; background: radial-gradient(circle, #fff 0%, #d8b4fe 40%, transparent 100%); opacity: 0; z-index: 999; pointer-events: none; transition: opacity 0.3s ease; }
+        .plasma-flash.active { opacity: 0.9; }
+        .screen-vortex-exit { transform: rotate(1080deg) scale(0) !important; filter: blur(20px) brightness(2) !important; opacity: 0 !important; transition: all 0.8s cubic-bezier(0.7, 0, 0.3, 1) !important; }
+        .max-w-md { transition: transform 0.8s, opacity 0.8s; }
+        .badge-add { background: linear-gradient(135deg, #a855f7, #6366f1); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: transform 0.2s;}
+        .badge-add:active { transform: scale(0.85) rotate(90deg); }
+        .loader { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #fff; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="p-4 pb-12">
+    <div class="max-w-md mx-auto">
+        <header class="mb-6 relative flex items-center justify-center">
+            <button onclick="vortexExit('app_docs.html', this)" class="absolute left-0 text-purple-400 font-bold">◀ 返回</button>
+            <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-300">尿素申請</h1>
+        </header>
+
+        <div class="glass p-5 mb-4">
+            <div class="flex gap-4 mb-4">
+                <div class="flex-1">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">月份</label>
+                    <select id="month" class="input-neon text-sm" onchange="updateDays()"></select>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">日期</label>
+                    <select id="day" class="input-neon text-sm"></select>
+                </div>
+            </div>
+            
+            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">車輛呼號</label>
+            <select id="car_n" class="input-neon mb-2 text-sm" onchange="handleCarChange()">
+                <option value="">-- 請選擇車輛 --</option>
+                <option value="特搜71">特搜71</option>
+                <option value="特搜72">特搜72</option>
+                <option value="特搜74">特搜74</option>
+                <option value="特搜75">特搜75</option>
+                <option value="特搜81">特搜81</option>
+                <option value="自行填寫">自行填寫 (其他)</option>
+            </select>
+            
+            <input type="text" id="car_n_custom" class="input-neon text-sm mb-4 hidden" placeholder="請輸入車輛名稱 (例如: 吉安71)">
+
+            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">車牌號碼</label>
+            <div class="plate-box mb-2">
+                <input type="text" id="car_l1" class="plate-input" placeholder="ABC" maxlength="4">
+                <span class="plate-dash">-</span>
+                <input type="text" id="car_l2" class="plate-input" placeholder="1234" maxlength="4">
+            </div>
+
+            <label class="block text-xs font-bold text-slate-400 uppercase mt-4 mb-2">申請原因</label>
+            <select id="reson_select" class="input-neon text-sm mb-2" onchange="handleReasonChange()">
+                <option value="">-- 請選擇原因 --</option>
+                <option value="自行購買尿素添加">自行購買尿素添加</option>
+                <option value="至加油站添加尿素">至加油站添加尿素</option>
+                <option value="自行填寫">自行填寫</option>
+            </select>
+            <input type="text" id="reson_custom" class="input-neon text-sm hidden" placeholder="請輸入自訂原因...">
+        </div>
+
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold text-purple-300">品項清單</h2>
+            <button onclick="addItem()" class="badge-add shadow-lg">+</button>
+        </div>
+        
+        <div id="itemsContainer"></div>
+
+        <div class="glass p-5 mb-8 border-t-2 border-purple-500">
+            <div class="flex justify-between items-center">
+                <span class="text-slate-400">預計總金額</span>
+                <span id="totalDisplay" class="text-3xl font-black text-purple-400">$ 0</span>
+            </div>
+        </div>
+
+        <button id="submitBtn" onclick="submitForm()" class="btn-glow shadow-xl flex items-center justify-center gap-3">
+            <span id="submitText" class="font-bold tracking-wider">生成檔案並開啟</span>
+            <div id="loader" class="loader"></div>
+        </button>
+    </div>
+
+    <script>
+        // 🔒 iOS 防滑動干擾
+        window.addEventListener('touchstart', function(e) {
+            if (e.pageX < 30 || e.pageX > window.innerWidth - 30) {}
+        }, { passive: true });
+
+        // 🚨 這裡填入您主系統的 GAS API 網址 (與誤餐費相同)
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwPPgRYU_hsKv1rb9H1Rqo49sMh4P4UjY5559lGUEzhwpM_eIroz_W9xBYuvfCU87b-/exec"; 
+
+        // 🚗 戰術資料庫：車牌對應表 (指揮官請自行修改這裡的真實車牌)
+        const carDatabase = {
+            "特搜71": { l1: "ABC", l2: "1111" },
+            "特搜72": { l1: "DEF", l2: "2222" },
+            "特搜74": { l1: "GHI", l2: "4444" },
+            "特搜75": { l1: "JKL", l2: "5555" },
+            "特搜81": { l1: "MNO", l2: "8181" }
+        };
+
+        window.onload = function() { init(); };
+        let itemCount = 0;
+
+        function init() {
+            const now = new Date();
+            const mSelect = document.getElementById('month');
+            for(let i=1; i<=12; i++) {
+                let opt = new Option(i + '月', i);
+                if(i === now.getMonth() + 1) opt.selected = true;
+                mSelect.add(opt);
+            }
+            updateDays();
+            document.getElementById('day').value = now.getDate();
+            addItem(); // 預設新增第一行品項
+        }
+
+        function updateDays() {
+            const month = document.getElementById('month').value;
+            const daySelect = document.getElementById('day');
+            const daysInMonth = new Date(new Date().getFullYear(), month, 0).getDate();
+            daySelect.innerHTML = '';
+            for(let i=1; i<=daysInMonth; i++) {
+                daySelect.add(new Option(i + '日', i));
+            }
+        }
+
+        // 🚗 處理車輛選擇連動
+        function handleCarChange() {
+            const carVal = document.getElementById('car_n').value;
+            const customInput = document.getElementById('car_n_custom'); // 抓取自填框
+            const l1 = document.getElementById('car_l1');
+            const l2 = document.getElementById('car_l2');
+            
+            // 控制自填名稱框的顯示/隱藏
+            if (carVal === "自行填寫") {
+                customInput.classList.remove('hidden');
+                // 既然是自填車輛，車牌也清空讓使用者自己填
+                l1.value = ""; 
+                l2.value = ""; 
+            } else {
+                customInput.classList.add('hidden');
+                customInput.value = ""; 
+                
+                // 自動帶入戰術資料庫裡的車牌
+                if (carDatabase[carVal]) {
+                    l1.value = carDatabase[carVal].l1;
+                    l2.value = carDatabase[carVal].l2;
+                } else {
+                    l1.value = ""; l2.value = ""; 
+                }
+            }
+        }
+
+        // 📝 處理原因選擇連動 (改變 ITEM1 內容)
+        function handleReasonChange() {
+            const resonVal = document.getElementById('reson_select').value;
+            const customInput = document.getElementById('reson_custom');
+            
+            // 判斷是否顯示自訂輸入框
+            if (resonVal === "自行填寫") {
+                customInput.classList.remove('hidden');
+            } else {
+                customInput.classList.add('hidden');
+                customInput.value = ""; 
+            }
+
+            // 嘗試抓取第一行品項並自動填寫
+            const row1 = document.getElementById('row1');
+            if (row1) {
+                const nameInput = row1.querySelector('.row-n');
+                const unitInput = row1.querySelector('.row-u');
+                
+                if (resonVal === "自行購買尿素添加") {
+                    nameInput.value = "國光牌AdBlue車用尿素10公升裝";
+                    unitInput.value = "升";
+                } else if (resonVal === "至加油站添加尿素") {
+                    nameInput.value = "國光牌AdBlue車用尿素(散裝)";
+                    unitInput.value = "升";
+                }
+            }
+        }
+
+        function addItem() {
+            if(itemCount >= 8) return alert('最多只能新增 8 項！');
+            itemCount++;
+            const div = document.createElement('div');
+            div.className = 'glass p-4 mb-3 relative pt-8';
+            div.id = 'row' + itemCount;
+            
+            div.innerHTML = `
+                <button onclick="removeItem(${itemCount})" class="absolute top-2 right-3 text-slate-500 text-xs hover:text-red-400 font-bold">✕ 移除</button>
+                <div class="flex gap-2 mb-3">
+                    <div class="w-1/2"><label class="text-[10px] text-slate-400 ml-1">品名</label><input type="text" class="input-neon text-base row-n"></div>
+                    <div class="w-1/4"><label class="text-[10px] text-slate-400 ml-1">規格</label><input type="text" class="input-neon text-base row-s text-center"></div>
+                    <div class="w-1/4"><label class="text-[10px] text-slate-400 ml-1">單位</label><input type="text" class="input-neon text-base row-u text-center"></div>
+                </div>
+                <div class="flex gap-2 items-end bg-slate-900 bg-opacity-60 p-2 rounded-lg border border-slate-700">
+                    <div class="w-1/3"><label class="text-[10px] text-slate-400 ml-1">數量</label><input type="number" placeholder="0" class="input-neon text-base row-q" oninput="calc(${itemCount})"></div>
+                    <div class="w-1/3"><label class="text-[10px] text-slate-400 ml-1">單價</label><input type="number" placeholder="0" class="input-neon text-base row-p" oninput="calc(${itemCount})"></div>
+                    <div class="w-1/3 flex flex-col items-center justify-center pb-2">
+                        <span class="text-[10px] text-slate-500 mb-1">小計</span>
+                        <span class="text-purple-400 font-black text-lg row-t-display">0</span>
+                    </div>
+                    <input type="hidden" class="row-t">
+                </div>
+            `;
+            document.getElementById('itemsContainer').appendChild(div);
+        }
+
+        function removeItem(id) { document.getElementById('row' + id).remove(); itemCount--; updateTotal(); }
+        function calc(id) {
+            const row = document.getElementById('row' + id);
+            // 確保抓到的是數字
+            const q = parseFloat(row.querySelector('.row-q').value) || 0;
+            const p = parseFloat(row.querySelector('.row-p').value) || 0;
+            
+            // 🚀 核心黑科技：Math.floor() 無條件捨去小數點
+            const t = Math.floor(q * p); 
+            
+            row.querySelector('.row-t').value = t; 
+            row.querySelector('.row-t-display').innerText = t;
+            updateTotal();
+        }
+        function updateTotal() {
+            let total = 0;
+            document.querySelectorAll('.row-t').forEach(el => total += parseFloat(el.value || 0));
+            document.getElementById('totalDisplay').innerText = '$ ' + total;
+        }
+
+        // 🚀 執行送出
+        async function submitForm() {
+            const btn = document.getElementById('submitBtn');
+            const loader = document.getElementById('loader');
+            const submitText = document.getElementById('submitText');
+            
+            // 抓取品項
+            const items = [];
+            document.querySelectorAll('#itemsContainer > div').forEach(row => {
+                items.push({
+                    n: row.querySelector('.row-n').value, s: row.querySelector('.row-s').value,
+                    u: row.querySelector('.row-u').value, q: row.querySelector('.row-q').value,
+                    p: row.querySelector('.row-p').value, t: row.querySelector('.row-t').value
+                });
+            });
+
+            // 判斷車輛呼號最後的值 (如果選自填，就抓自填框的值)
+            const carSelect = document.getElementById('car_n').value;
+            const carFinal = (carSelect === "自行填寫") ? document.getElementById('car_n_custom').value : carSelect;
+
+            // 判斷原因欄位最後的值
+            const resonSelect = document.getElementById('reson_select').value;
+            const resonFinal = (resonSelect === "自行填寫") ? document.getElementById('reson_custom').value : resonSelect;
+
+            // 準備封包 (送給 GAS)
+            const payloadData = {
+                form_type: 'urea', // 🌟 [戰術核心] 告訴 GAS 這是尿素申請
+                unit: "花蓮縣消防局", 
+                month: document.getElementById('month').value,
+                day: document.getElementById('day').value,
+                car_n: carFinal, // 這裡會自動代入選單名稱或自填名稱
+                car_l1: document.getElementById('car_l1').value,
+                car_l2: document.getElementById('car_l2').value,
+                reson: resonFinal,
+                items: items
+            };
+            
+            btn.disabled = true;
+            btn.classList.add('overloading'); 
+            loader.style.display = 'block';
+            submitText.innerText = "正在火速趕製表單... 👷‍♂️";
+
+            const requestBody = { action: 'generate_meal_fee', data: payloadData, source: 'liff' };
+
+            try {
+                const res = await fetch(GAS_API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify(requestBody)
+                });
+                const rawText = await res.text();
+                let result;
+                try { result = JSON.parse(rawText); } catch(e) { throw new Error(`格式解析錯誤: ${rawText}`); }
+                
+                if (result.success && result.url) {
+                    let flash = document.querySelector('.plasma-flash');
+                    if (!flash) { flash = document.createElement('div'); flash.className = 'plasma-flash'; document.body.appendChild(flash); }
+                    
+                    btn.classList.add('exit-supernova');
+                    setTimeout(() => flash.classList.add('active'), 100);
+                    setTimeout(() => {
+                        window.open(result.url, '_blank');
+                        flash.classList.remove('active');
+                        btn.classList.remove('exit-supernova', 'overloading');
+                    }, 600);
+                } else {
+                    btn.classList.remove('overloading'); alert("生成失敗：" + (result.message || "未知錯誤"));
+                }
+            } catch (err) {
+                btn.classList.remove('overloading'); alert("網路或系統錯誤：" + err.message);
+            } finally {
+                btn.disabled = false; loader.style.display = 'none'; submitText.innerText = "生成檔案並開啟";
+            }
+        }
+
+        // 漩渦退場
+        function vortexExit(url, element) {
+            const container = document.querySelector('.max-w-md');
+            const rect = element.getBoundingClientRect();
+            container.style.transformOrigin = `${rect.left + rect.width / 2}px ${rect.top + rect.height / 2}px`;
+            element.style.transition = "all 0.4s ease"; element.style.transform = "rotate(360deg) scale(0)";
+            container.classList.add('screen-vortex-exit');
+            setTimeout(() => { window.location.href = url; }, 750);
+        }
+    </script>
+</body>
+</html>
