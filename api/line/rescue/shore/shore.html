@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- 🔒 認證三連 1 & 2：引入 Supabase 裝甲與設定檔 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../../mission_folder/supabase_config.js"></script>
+
+  <title>支撐相關</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body,
+    html {
+      font-size: 18px;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      display: flex;
+      height: 100%;
+    }
+
+    .sidebar {
+      width: 240px;
+      background-color: #2c3e50;
+      color: white;
+      padding: 60px 20px 20px;
+      overflow-y: auto;
+      transition: transform 0.3s ease;
+      position: relative;
+      /* 讓返回鍵相對側邊欄定位 */
+    }
+
+    .sidebar h2 {
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .sidebar ul li {
+      margin: 12px 0;
+      cursor: pointer;
+      color: #ecf0f1;
+      font-size: 20px;
+      /* 或你想要的字体大小 */
+    }
+
+    .sidebar ul li:hover {
+      color: #1abc9c;
+    }
+
+    .main-content {
+      flex-grow: 1;
+      padding: 20px;
+      padding-top: 60px;
+      /* ✅ 大螢幕版 */
+      overflow-y: auto;
+    }
+
+    .menu-button {
+      display: none;
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background-color: #2c3e50;
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 1000;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 4px;
+      color: #333;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 8px;
+      font-size: 16px;
+    }
+
+    /*以下放裝備清單css*/
+    .group-container {
+      margin-bottom: 20px;
+      border-left: 6px solid #3498db;
+      padding: 10px 15px;
+      border-radius: 8px;
+      background: #f4f4f4;
+    }
+
+    .item-summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 5px;
+      border: 1px solid #ddd;
+    }
+
+    .item-details {
+      display: none;
+      margin-top: 10px;
+      padding: 10px;
+      background: #fff;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+    }
+
+    .item-detail-content {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+    }
+
+    .item-text {
+      flex: 1;
+    }
+
+    .item-img {
+      flex: 0 0 120px;
+    }
+
+    .item-img img {
+      max-width: 100%;
+      border-radius: 4px;
+    }
+
+    /*裝備清單新增到這裡*/
+    @media (max-width: 768px) {
+      .main-content {
+        padding-top: 30px;
+        /* 手機離頂部有點距離 */
+      }
+
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100%;
+        z-index: 999;
+        transform: translateX(-100%);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .menu-button {
+        display: block;
+      }
+
+      .container {
+        flex-direction: column;
+      }
+
+      /*以下是裝備清單*/
+      .item-detail-content {
+        flex-direction: column;
+      }
+
+      .item-img {
+        flex: unset;
+      }
+
+      /*裝備清單結束*/
+    }
+
+    select,
+    input {
+      margin: 2px 0;
+      padding: 2px 4px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background-color: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    select:focus,
+    input:focus {
+      border-color: #4a90e2;
+      box-shadow: 0 0 5px rgba(74, 144, 226, 0.5);
+    }
+
+    button {
+      margin: 10px 0;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      /* 綠色 */
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    button:hover {
+      background-color: #45a049;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    button:active {
+      background-color: #3e8e41;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      /* 透明度降低，看起來灰掉 */
+      cursor: not-allowed;
+      /* 滑鼠游標變成禁止符號 */
+      background-color: #ccc;
+      /* 背景顏色改淡灰 */
+      color: #666;
+      /* 字體顏色改淡灰 */
+      pointer-events: none;
+      /* 禁止任何滑鼠事件 */
+    }
+
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #ecf0f1;
+      border-left: 4px solid #1abc9c;
+    }
+
+    .result-section {
+      margin-bottom: 16px;
+    }
+
+    .result-section h3 {
+      border-bottom: 2px solid #1abc9c;
+      padding-bottom: 4px;
+      margin-bottom: 10px;
+      color: #16a085;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px dashed #ccc;
+    }
+
+    .result-label {
+      flex: 1;
+      color: #333;
+    }
+
+    .result-value {
+      flex: 0 0 auto;
+      font-weight: bold;
+      color: #e67e22;
+    }
+
+    /*以下放裝備清單新增手機介面*/
+    .toggle-btn {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /*說明書連結*/
+    .link-button {
+      display: inline-block;
+      padding: 4px 8px;
+      background-color: #3498db;
+      color: white;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 14px;
+      margin-left: 6px;
+    }
+
+    /* 背景合成页面的响应式样式 */
+    @media (max-width: 768px) {
+      #compositeViewer {
+        height: 60vh !important;
+      }
+
+      input[type="file"],
+      select,
+      button {
+        font-size: 16px !important;
+        /* 防止iOS缩放 */
+        padding: 12px !important;
+      }
+
+      input[type="range"] {
+        width: 150px !important;
+      }
+    }
+
+    /* 控制按钮样式 */
+    .composite-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .composite-controls button {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    /* 添加到现有的 CSS 中 */
+    .back-button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      position: absolute;
+      /* 改為絕對定位 */
+      bottom: 20px;
+      /* 距離底部 20px */
+      left: 20px;
+      /* 距離左側 20px */
+      right: 20px;
+      /* 距離右側 20px */
+      width: auto;
+      /* 自動寬度 */
+    }
+
+    .back-button:hover {
+      background-color: #2980b9;
+    }
+
+    /* 📱 手機版專屬返回按鈕 (放在選單旁邊) */
+    .back-mobile-btn {
+      display: none;
+      position: fixed;
+      top: 10px;
+      left: 80px; /* 🚀 偏移 80px，剛好放在選單按鈕的右邊 */
+      background-color: #e67e22; /* 警戒橘色 */
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 1000;
+      border-radius: 4px;
+    }
+
+    @media (max-width: 768px) {
+      .back-mobile-btn {
+        display: block; /* 手機版才顯示 */
+      }
+    }
+
+    /* ⛶ 3D 全螢幕力場 */
+    .fullscreen-mode {
+      position: fixed !important;
+      top: 0; left: 0;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 9999;
+      margin: 0 !important;
+      border-radius: 0 !important;
+      background: #111 !important;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <button class="menu-button" onclick="toggleSidebar()">選單</button>
+
+  <!-- 🚀 新增：手機版專用返回按鈕 -->
+  <button class="back-mobile-btn" onclick="window.location.href='../app_rescue.html'">◀ 返回</button>
+
+  <div class="container">
+    <div class="sidebar" id="sidebar">
+      <h2>數學不好</h2>
+      <ul>
+        <li onclick="showCalculationForm()">計算</li>
+
+        <li onclick="showBackgroundComposite()">背景合成</li> <!-- 新增这行 -->
+        <br>
+        <!-- 添加返回按钮 -->
+        <li class="back-button" onclick="window.location.href='../app_rescue.html'">返回</li>
+
+      </ul>
+    </div>
+    <div class="main-content" id="main-content">
+
+      <h2>套一句花搜搜二的名言:<br>
+        <span style="color: red;">成也支撐敗也支撐</span>
+        <p><strong>說明：</strong></p>
+        <ul style="padding-left: 30px; line-height: 1.6;">
+          <li>支撐種類包含：<br>箱型支撐、牆面支撐、斜樓板支撐</li>
+          <li>可根據現場測量資料自動計算所需支撐長度與材料</li>
+          <li>計算結果會區分為<br>「臨時支撐」<br>「完整支撐」</li>
+        </ul>
+        <ul style="padding-left: 28px; line-height: 1.6; background-color: #ffe5e5;">
+          <li style="color: red; font-weight: bold;">小朋友才計較得很精細</li>
+        </ul>
+
+        <p style="color: #666; font-size: 14px;">請點選左側選單來開始選擇計算類型。</p>
+    </div>
+  </div>
+  <!-- ...existing code... -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.124.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.124.0/examples/js/controls/OrbitControls.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- ...existing code... -->
+  <script src="shore_data.js"></script>
+  <script src="shore_data2.js"></script>
+
+
+  <script>
+
+    // 添加在 script 開頭，現有變量後面
+    let currentCalculationData = null;
+    let currentCalculationType = null;
+    // 全局变量用于存储合成相关的状态
+    let compositeScene = null;
+    let compositeCamera = null;
+    let compositeRenderer = null;
+    let currentModel = null;
+    let backgroundImageElement = null;
+
+
+
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("open");
+    }
+
+
+
+
+    ////////////////////////////////////////////
+
+
+
+
+
+
+
+
+
+    // 添加全局变量来跟踪实际渲染尺寸
+    let actualRenderSize = { width: 0, height: 0 };
+    // 在 script 开头添加全局变量来保存相机状态
+    let cameraState = {
+      position: new THREE.Vector3(),
+      target: new THREE.Vector3(),
+      fov: 60
+    };
+
+    function initCompositeViewer() {
+      const container = document.getElementById('compositeViewer');
+      if (!container) return;
+
+      if (compositeRenderer) {
+        compositeRenderer.dispose();
+      }
+
+      compositeScene = new THREE.Scene();
+      compositeScene.background = null;
+
+      const rect = container.getBoundingClientRect();
+      const containerWidth = Math.floor(rect.width);
+      const containerHeight = Math.floor(rect.height);
+
+      console.log('初始化尺寸:', containerWidth, 'x', containerHeight);
+
+      compositeCamera = new THREE.PerspectiveCamera(
+        60,
+        containerWidth / containerHeight,
+        0.01,
+        10000
+      );
+
+      compositeCamera.position.set(6, 6, 6);
+
+      compositeRenderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        preserveDrawingBuffer: true
+      });
+
+      compositeRenderer.setSize(containerWidth, containerHeight);
+      compositeRenderer.setClearColor(0x000000, 0);
+
+      container.innerHTML = '';
+      container.appendChild(compositeRenderer.domElement);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      compositeScene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(10, 20, 15);
+      compositeScene.add(directionalLight);
+
+      const controls = new THREE.OrbitControls(compositeCamera, compositeRenderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.1;
+
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        compositeRenderer.render(compositeScene, compositeCamera);
+      }
+      animate();
+
+      // 🔥 簡化版 resize - 只更新尺寸,不碰相機位置!
+      let resizeTimeout;
+      window.addEventListener('resize', function () {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(function () {
+          const container = document.getElementById('compositeViewer');
+          if (!container || !compositeRenderer || !compositeCamera) return;
+
+          const newRect = container.getBoundingClientRect();
+          const newWidth = Math.floor(newRect.width);
+          const newHeight = Math.floor(newRect.height);
+
+          console.log('🔄 強制視窗調整:', newWidth, 'x', newHeight);
+
+          // 🔥 強制更新
+          compositeRenderer.setSize(newWidth, newHeight);
+          compositeCamera.aspect = newWidth / newHeight;
+          compositeCamera.updateProjectionMatrix();
+
+          // 確保重新渲染
+          compositeRenderer.render(compositeScene, compositeCamera);
+        }, 100); // 縮短延遲時間
+      });
+
+      backgroundImageElement = document.getElementById('backgroundImage');
+    }
+    // 改進的模型加載函數，確保適當的縮放
+    function loadModelForComposite() {
+      if (!compositeScene) return;
+
+      // 清除现有模型
+      if (currentModel) {
+        compositeScene.remove(currentModel);
+        currentModel = null;
+      }
+
+      const modelType = document.getElementById('modelType').value;
+
+      if (!modelType) {
+        alert('请先选择模型类型！');
+        return;
+      }
+
+      // 如果没有计算数据，尝试从表单获取
+      if (!currentCalculationData) {
+        if (!tryGetCurrentFormData(modelType)) {
+          alert('請先進行支撐計算或填寫表單數據！');
+          return;
+        }
+      }
+
+      // 根据类型调用对应的创建函数
+      let modelGroup;
+      switch (modelType) {
+        case 'box':
+          modelGroup = createBoxScene(currentCalculationData);
+          break;
+        case 'wall':
+          modelGroup = createWallScene(currentCalculationData);
+          break;
+        case 'floor':
+          modelGroup = createFloorScene(currentCalculationData);
+          break;
+      }
+
+      if (modelGroup) {
+        currentModel = modelGroup;
+        compositeScene.add(currentModel);
+
+        // 關鍵：設置適當的初始縮放
+        const box = new THREE.Box3().setFromObject(currentModel);
+        const size = box.getSize(new THREE.Vector3());
+        const maxSize = Math.max(size.x, size.y, size.z);
+
+        // 根據模型大小自動調整縮放
+        let initialScale = 1.0;
+        if (maxSize > 10) {
+          initialScale = 8.0 / maxSize;
+        } else if (maxSize < 1) {
+          initialScale = 1.5 / maxSize;
+        }
+
+        currentModel.scale.set(initialScale, initialScale, initialScale);
+
+        // 更新縮放滑塊
+        document.getElementById('scaleSlider').value = initialScale;
+        document.getElementById('scaleValue').textContent = Math.round(initialScale * 100) + '%';
+
+        // 居中模型
+        setTimeout(() => {
+          centerModel();
+        }, 100);
+      }
+    }
+    function checkRendererState() {
+      const container = document.getElementById('compositeViewer');
+      const rect = container.getBoundingClientRect();
+      console.log('=== 渲染器狀態檢查 ===');
+      console.log('容器實際尺寸:', rect.width, 'x', rect.height);
+      console.log('渲染器畫布尺寸:', compositeRenderer.domElement.width, 'x', compositeRenderer.domElement.height);
+      console.log('相機比例:', compositeCamera.aspect);
+      console.log('視窗大小:', window.innerWidth, 'x', window.innerHeight);
+      console.log('設備像素比:', window.devicePixelRatio);
+    }
+    // 新增：從表單獲取當前數據
+    function tryGetCurrentFormData(type) {
+      const lengthInput = document.getElementById('length');
+      if (!lengthInput || !lengthInput.value) return false;
+
+      const formData = {
+        "測量長度": parseFloat(lengthInput.value)
+      };
+
+      // 根據類型獲取其他參數
+      const inputs = {
+        'box': ['top', 'bottom', 'wedge', 'spacing', 'connector'],
+        'wall': ['top', 'bottom', 'wedge', 'spacing', 'connector', 'stopper', 'angle'],
+        'floor': ['top', 'bottom', 'spacing', 'connector', 'stopper', 'angle']
+      };
+
+      inputs[type].forEach(key => {
+        const input = document.getElementById(key);
+        if (input && input.value) {
+          formData[key === 'top' ? '頂板厚度' :
+            key === 'bottom' ? '底板厚度' :
+              key === 'wedge' ? '楔型木厚度' :
+                key === 'spacing' ? '支撐柱間距' :
+                  key === 'connector' ? '連接柱寬度' :
+                    key === 'stopper' ? '止檔寬度' :
+                      key === 'angle' ? '角度' : key] = parseFloat(input.value);
+        }
+      });
+
+      currentCalculationData = formData;
+      currentCalculationType = type;
+      return true;
+    }
+
+    // 新增：從現有計算創建模型
+    function createModelFromCalculation(type) {
+      if (!currentCalculationData) return;
+
+      currentModel = new THREE.Group();
+      compositeScene.add(currentModel);
+
+      let modelGroup;
+      switch (type) {
+        case 'box':
+          modelGroup = createBoxScene(currentCalculationData);
+          break;
+        case 'wall':
+          modelGroup = createWallScene(currentCalculationData);
+          break;
+        case 'floor':
+          modelGroup = createFloorScene(currentCalculationData);
+          break;
+        default:
+          return;
+      }
+
+      // 將創建的模型添加到當前模型
+      currentModel.add(modelGroup);
+
+      // 設置合適的初始縮放
+      currentModel.scale.set(0.8, 0.8, 0.8);
+    }
+    // 為合成創建箱型支撐模型
+    function createBoxModelForComposite() {
+      if (!currentCalculationData || currentCalculationType !== "box") {
+        alert('請先進行相形支撐計算！');
+        return;
+      }
+
+      // 清除现有模型
+      if (currentModel) {
+        compositeScene.remove(currentModel);
+      }
+
+      currentModel = createBoxScene(currentCalculationData);
+      compositeScene.add(currentModel);
+      centerModel();
+    }
+
+    // 為合成創建牆面支撐模型
+    function createWallModelForComposite() {
+      if (!currentCalculationData || currentCalculationType !== "wall") {
+        alert('請先進行牆面支撐計算！');
+        return;
+      }
+
+      // 清除现有模型
+      if (currentModel) {
+        compositeScene.remove(currentModel);
+      }
+
+      currentModel = createWallScene(currentCalculationData);
+      compositeScene.add(currentModel);
+      centerModel();
+    }
+    // 為合成創建斜樓板支撐模型
+    function createFloorModelForComposite() {
+      if (!currentCalculationData || currentCalculationType !== "floor") {
+        alert('請先進行斜樓板支撐計算！');
+        return;
+      }
+
+      // 清除现有模型
+      if (currentModel) {
+        compositeScene.remove(currentModel);
+      }
+
+      currentModel = createFloorScene(currentCalculationData);
+      compositeScene.add(currentModel);
+      centerModel();
+    }
+    // 上传背景图片
+    document.addEventListener('DOMContentLoaded', function () {
+      // 文件上传处理
+      document.addEventListener('change', function (e) {
+        if (e.target.id === 'backgroundUpload') {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+              backgroundImageElement.src = event.target.result;
+              backgroundImageElement.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+          }
+        }
+      });
+    });
+
+    // 拍照功能（移动设备）
+    function capturePhoto() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('您的瀏覽器不支援拍照功能,請使用「上傳背景圖片」。');
+        return;
+      }
+
+      // 創建拍照界面
+      const cameraModal = document.createElement('div');
+      cameraModal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  `;
+
+      const video = document.createElement('video');
+      video.style.cssText = `
+    max-width: 90%;
+    max-height: 70%;
+    background: #000;
+  `;
+      video.setAttribute('playsinline', ''); // iOS 需要
+      video.setAttribute('autoplay', '');
+
+      const buttonContainer = document.createElement('div');
+      buttonContainer.style.cssText = `
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+  `;
+
+      const captureBtn = document.createElement('button');
+      captureBtn.textContent = '📷 拍照';
+      captureBtn.style.cssText = `
+    padding: 15px 30px;
+    font-size: 18px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  `;
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = '❌ 取消';
+      cancelBtn.style.cssText = `
+    padding: 15px 30px;
+    font-size: 18px;
+    background: #f44336;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  `;
+
+      buttonContainer.appendChild(captureBtn);
+      buttonContainer.appendChild(cancelBtn);
+      cameraModal.appendChild(video);
+      cameraModal.appendChild(buttonContainer);
+      document.body.appendChild(cameraModal);
+
+      // 啟動相機
+      navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment', // 使用後置鏡頭
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      })
+        .then(function (stream) {
+          video.srcObject = stream;
+          video.play();
+
+          // 拍照按鈕
+          captureBtn.onclick = function () {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+
+            // 設定為背景圖片
+            backgroundImageElement.src = canvas.toDataURL('image/jpeg', 0.9);
+            backgroundImageElement.style.display = 'block';
+
+            // 停止相機並關閉
+            stream.getTracks().forEach(track => track.stop());
+            document.body.removeChild(cameraModal);
+
+            alert('✅ 照片已設定為背景!');
+          };
+
+          // 取消按鈕
+          cancelBtn.onclick = function () {
+            stream.getTracks().forEach(track => track.stop());
+            document.body.removeChild(cameraModal);
+          };
+        })
+        .catch(function (error) {
+          console.error('無法訪問相機:', error);
+          document.body.removeChild(cameraModal);
+          alert('無法訪問相機: ' + error.message + '\n\n請確認:\n1. 已授予相機權限\n2. 使用 HTTPS 連線\n3. 或使用「上傳背景圖片」功能');
+        });
+    }
+
+    // 清除背景
+    function clearBackground() {
+      backgroundImageElement.style.display = 'none';
+      document.getElementById('backgroundUpload').value = '';
+    }
+
+
+    // 重置模型位置
+    function resetModelPosition() {
+      if (currentModel) {
+        currentModel.position.set(0, 0, 0);
+        currentModel.rotation.set(0, 0, 0);
+        currentModel.scale.set(1, 1, 1);
+        document.getElementById('scaleSlider').value = 1;
+        document.getElementById('scaleValue').textContent = '100%';
+      }
+    }
+
+    // 修复模型居中函数
+    function centerModel() {
+      if (currentModel && compositeCamera) {
+        // 重置位置和旋转
+        currentModel.position.set(0, 0, 0);
+        currentModel.rotation.set(0, 0, 0);
+
+        // 计算边界框并居中
+        const box = new THREE.Box3().setFromObject(currentModel);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+
+        // 将模型中心移动到原点
+        currentModel.position.sub(center);
+
+        // 调整相机视图
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = compositeCamera.fov * (Math.PI / 180);
+
+        // 计算确保模型完全可见的距离
+        let cameraZ = Math.abs(maxDim / Math.sin(fov / 2));
+        cameraZ = cameraZ * 1.5; // 增加额外边距
+
+        if (window.innerWidth <= 768) {
+          compositeCamera.position.set(0, 0, cameraZ * 1.2);
+        } else {
+          compositeCamera.position.set(0, 0, cameraZ);
+        }
+
+        compositeCamera.lookAt(0, 0, 0);
+        compositeCamera.updateProjectionMatrix();
+
+        // 重置控制器目标
+        const controls = compositeRenderer.domElement._controls;
+        if (controls) {
+          controls.target.set(0, 0, 0);
+          controls.update();
+        }
+
+        // 保存相机状态
+        if (typeof saveCameraState === 'function') {
+          saveCameraState();
+        }
+      }
+    }
+    // 刷新模型
+    function refreshModel() {
+      loadModelForComposite();
+    }
+
+    // 全新的精确导出函数 - 完全匹配预览
+    function exportComposite() {
+      if (!compositeRenderer) {
+        alert('請先初始化合成場景!');
+        return;
+      }
+
+      document.getElementById('compositeResult').innerHTML = '<div style="color: blue; padding: 10px;">⏳ 正在生成圖片...</div>';
+
+      const format = document.getElementById('exportFormat').value;
+      const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+
+      // 使用與預覽完全相同的尺寸計算
+      const container = document.getElementById('compositeViewer');
+      const rect = container.getBoundingClientRect();
+      const targetWidth = Math.floor(rect.width);
+      const targetHeight = Math.floor(rect.height);
+
+      console.log('匯出尺寸計算:', {
+        容器: `${rect.width} × ${rect.height}`,
+        最終: `${targetWidth} × ${targetHeight}`,
+        渲染器: `${compositeRenderer.domElement.width} × ${compositeRenderer.domElement.height}`
+      });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      const ctx = canvas.getContext('2d');
+
+      // 白色背景
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, targetWidth, targetHeight);
+
+      // 🔥 關鍵修復：背景圖片使用與預覽完全相同的 object-fit: contain 邏輯
+      if (backgroundImageElement && backgroundImageElement.style.display !== 'none' && backgroundImageElement.naturalWidth > 0) {
+        const img = backgroundImageElement;
+        const containerRatio = targetWidth / targetHeight;
+        const imgRatio = img.naturalWidth / img.naturalHeight;
+
+        let drawWidth, drawHeight, offsetX, offsetY;
+
+        // 完全複製 object-fit: contain 的計算邏輯
+        if (imgRatio > containerRatio) {
+          // 圖片較寬，以寬度為基準
+          drawWidth = targetWidth;
+          drawHeight = targetWidth / imgRatio;
+          offsetX = 0;
+          offsetY = (targetHeight - drawHeight) / 2;
+        } else {
+          // 圖片較高，以高度為基準
+          drawHeight = targetHeight;
+          drawWidth = targetHeight * imgRatio;
+          offsetX = (targetWidth - drawWidth) / 2;
+          offsetY = 0;
+        }
+
+        console.log('背景圖繪製參數:', {
+          原始尺寸: `${img.naturalWidth} × ${img.naturalHeight}`,
+          繪製尺寸: `${drawWidth} × ${drawHeight}`,
+          偏移: `(${offsetX}, ${offsetY})`,
+          比例: `容器: ${containerRatio}, 圖片: ${imgRatio}`
+        });
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+      }
+
+      // 🔥 3D 內容 - 確保與背景圖相同的尺寸和位置
+      if (compositeRenderer && compositeRenderer.domElement) {
+        // 直接繪製渲染器內容，使用相同的尺寸
+        ctx.drawImage(compositeRenderer.domElement, 0, 0, targetWidth, targetHeight);
+      }
+
+      const link = document.createElement('a');
+      link.download = '支撐合成圖_' + new Date().getTime() + '.' + format;
+      link.href = canvas.toDataURL(mimeType, 0.95);
+      link.click();
+
+      document.getElementById('compositeResult').innerHTML =
+        '<div style="color: green; padding: 10px;">✅ 匯出成功! (' + targetWidth + '×' + targetHeight + ')</div>';
+    }
+    function debugCompositeLayout() {
+      const container = document.getElementById('compositeViewer');
+      const rect = container.getBoundingClientRect();
+      const bg = document.getElementById('backgroundImage');
+
+      const containerRatio = rect.width / rect.height;
+      const imgRatio = bg.naturalWidth / bg.naturalHeight;
+
+      let drawWidth, drawHeight, offsetX, offsetY;
+
+      if (imgRatio > containerRatio) {
+        drawWidth = rect.width;
+        drawHeight = rect.width / imgRatio;
+        offsetX = 0;
+        offsetY = (rect.height - drawHeight) / 2;
+      } else {
+        drawHeight = rect.height;
+        drawWidth = rect.height * imgRatio;
+        offsetX = (rect.width - drawWidth) / 2;
+        offsetY = 0;
+      }
+
+      console.log('=== 合成佈局調試 ===');
+      console.log('容器:', rect.width.toFixed(1), '×', rect.height.toFixed(1));
+      console.log('背景圖原始:', bg.naturalWidth, '×', bg.naturalHeight);
+      console.log('背景圖顯示:', bg.width, '×', bg.height);
+      console.log('比例 - 容器:', containerRatio.toFixed(3), '圖片:', imgRatio.toFixed(3));
+      console.log('計算繪製:', drawWidth.toFixed(1), '×', drawHeight.toFixed(1));
+      console.log('計算偏移:', `(${offsetX.toFixed(1)}, ${offsetY.toFixed(1)})`);
+      console.log('渲染器:', compositeRenderer.domElement.width, '×', compositeRenderer.domElement.height);
+      console.log('=== 調試結束 ===');
+    }
+
+
+    // 顯示背景合成功能界面
+    function showBackgroundComposite() {
+      const container = document.getElementById("main-content");
+      container.innerHTML = `
+      <h2>背景合成功能</h2>
+      
+      <!-- 新增：加載計算結果 -->
+      <div style="margin-bottom: 20px; padding: 15px; background: #e8f4f8; border-radius: 8px;">
+        <h3>0. 加載計算結果</h3>
+        <button onclick="loadCalculationResult()" ${!currentCalculationData ? 'disabled' : ''}>
+          📥 加載最近計算的支撐模型
+        </button>
+        <span style="margin-left: 10px; color: #666;">
+          ${currentCalculationData ? `已保存: ${currentCalculationType}支撐` : '請先進行支撐計算'}
+        </span>
+      </div>
+
+      
+      <!-- 背景图片上传区域 -->
+      <div style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+        <h3>1. 上傳背景圖片</h3>
+        <input type="file" id="backgroundUpload" accept="image/*" style="margin-bottom: 10px;">
+        <button onclick="capturePhoto()" style="margin-left: 10px;">📷 拍照</button>
+        <button onclick="clearBackground()" style="margin-left: 10px;">❌ 清除背景</button>
+      </div>
+
+      <!-- 3D模型选择 -->
+      <div style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+        <h3>2. 選擇3D模型</h3>
+        <select id="modelType" onchange="loadModelForComposite()">
+          <option value="">請先計算支撐以生成模型</option>
+          <option value="box">箱型支撐</option>
+          <option value="wall">牆面支撐</option>
+          <option value="floor">斜樓板支撐</option>
+        </select>
+        <button onclick="refreshModel()" style="margin-left: 10px;">🔄 刷新模型</button>
+      </div>
+
+      <!-- 控制面板 -->
+      <div style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+        <h3>3. 調整模型</h3>
+        <div>
+          <label>縮放: </label>
+          <input type="range" id="scaleSlider" min="0.1" max="3" step="0.1" value="1" onchange="updateModelScale(this.value)" style="width: 200px;">
+          <span id="scaleValue">100%</span>
+        </div>
+        <div style="margin-top: 10px;">
+          <button onclick="resetModelPosition()">↺ 重置位置</button>
+          <button onclick="centerModel()" style="margin-left: 10px;">🎯 置中對齊</button>
+        </div>
+      </div>
+
+      <!-- 合成顯示區域 -->
+      <div style="position: relative; width: 100%; height: 70vh; border: 2px dashed #ccc; background: white; overflow: hidden;">
+        <img id="backgroundImage" style="width: 100%; height: 100%; object-fit: contain; display: none;">
+        <div id="compositeViewer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+      </div>
+
+      <!-- 導出按鈕 -->
+      <div style="margin-top: 20px; text-align: center;">
+        <button onclick="exportComposite()" style="padding: 12px 24px; font-size: 18px;">💾 匯出合成圖片</button>
+        <button onclick="shareComposite()" style="padding: 12px 24px; font-size: 18px; background-color: #06c755; color: white; border: none; border-radius: 8px; margin-left: 10px;">📱 分享圖片</button>
+        <select id="exportFormat" style="margin-left: 10px; padding: 10px;">
+          <option value="png">PNG格式</option>
+          <option value="jpg">JPG格式</option>
+        </select>
+      </div>
+
+      <div id="compositeResult" style="margin-top: 20px;"></div>
+      `;
+
+      // 初始化合成查看器
+      initCompositeViewer();
+
+      if (window.innerWidth <= 768) {
+        document.getElementById("sidebar").classList.remove("open");
+      }
+    }
+
+    // 修复分享功能
+    function shareComposite() {
+      if (!compositeRenderer) {
+        alert('請先初始化合成場景!');
+        return;
+      }
+
+      document.getElementById('compositeResult').innerHTML = '<div style="color: blue; padding: 10px;">⏳ 正在生成分享圖片...</div>';
+
+      const container = document.getElementById('compositeViewer');
+      const rect = container.getBoundingClientRect();
+      const targetWidth = Math.floor(rect.width);
+      const targetHeight = Math.floor(rect.height);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, targetWidth, targetHeight);
+
+      if (backgroundImageElement && backgroundImageElement.style.display !== 'none' && backgroundImageElement.naturalWidth > 0) {
+        const img = backgroundImageElement;
+        const containerRatio = targetWidth / targetHeight;
+        const imgRatio = img.naturalWidth / img.naturalHeight;
+        let drawWidth, drawHeight, offsetX, offsetY;
+
+        if (imgRatio > containerRatio) {
+          drawWidth = targetWidth;
+          drawHeight = targetWidth / imgRatio;
+          offsetX = 0;
+          offsetY = (targetHeight - drawHeight) / 2;
+        } else {
+          drawHeight = targetHeight;
+          drawWidth = targetHeight * imgRatio;
+          offsetX = (targetWidth - drawWidth) / 2;
+          offsetY = 0;
+        }
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+      }
+
+      if (compositeRenderer && compositeRenderer.domElement) {
+        ctx.drawImage(compositeRenderer.domElement, 0, 0, targetWidth, targetHeight);
+      }
+
+      canvas.toBlob(function (blob) {
+        if (!blob) {
+          alert('生成圖片失敗!');
+          return;
+        }
+
+        const file = new File([blob], '支撐模型合成圖_' + new Date().getTime() + '.png', { type: 'image/png' });
+
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({
+            files: [file],
+            title: '支撐模型合成圖'
+          }).then(function () {
+            document.getElementById('compositeResult').innerHTML = '<div style="color: green; padding: 10px;">✅ 分享成功!</div>';
+          }).catch(function (error) {
+            const link = document.createElement('a');
+            link.download = file.name;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            document.getElementById('compositeResult').innerHTML = '<div style="color: orange; padding: 10px;">📥 已下載圖片</div>';
+          });
+        } else {
+          const link = document.createElement('a');
+          link.download = file.name;
+          link.href = URL.createObjectURL(blob);
+          link.click();
+          document.getElementById('compositeResult').innerHTML = '<div style="color: orange; padding: 10px;">📥 已下載圖片</div>';
+        }
+      }, 'image/png');
+    }
+    // 改进的备用下载功能
+    function fallbackDownload(canvas, type = '匯出') {
+      const link = document.createElement('a');
+      link.download = `支撐模型合成圖_${new Date().getTime()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+      document.getElementById('compositeResult').innerHTML = `
+        <div style="color: orange; padding: 10px; background: #fff8e6; border-radius: 5px;">
+            📥 已自動下載圖片（瀏覽器不支援直接分享）<br>
+            📐 尺寸: ${canvas.width}×${canvas.height}
+        </div>
+    `;
+    }
+    // 添加调试函数来检查尺寸
+    function debugSizeInfo() {
+      const container = document.getElementById('compositeViewer');
+      const renderer = compositeRenderer;
+
+      if (container && renderer) {
+        const containerRect = container.getBoundingClientRect();
+        console.log('=== 尺寸调试信息 ===');
+        console.log('容器 client:', container.clientWidth, 'x', container.clientHeight);
+        console.log('容器 bounding:', Math.floor(containerRect.width), 'x', Math.floor(containerRect.height));
+        console.log('渲染器:', renderer.domElement.width, 'x', renderer.domElement.height);
+        console.log('实际渲染尺寸:', actualRenderSize.width, 'x', actualRenderSize.height);
+        console.log('设备像素比:', window.devicePixelRatio);
+        console.log('=== 调试结束 ===');
+      }
+    }
+
+    // 在初始化后调用调试
+    setTimeout(debugSizeInfo, 1000);
+    function lockModelState() {
+      if (!currentModel) return;
+
+      // 保存當前模型狀態
+      currentModel.userData.originalState = {
+        position: currentModel.position.clone(),
+        rotation: currentModel.rotation.clone(),
+        scale: currentModel.scale.clone(),
+        visible: currentModel.visible
+      };
+    }
+
+    // 恢復模型狀態
+    function restoreModelState() {
+      if (!currentModel || !currentModel.userData.originalState) return;
+
+      const state = currentModel.userData.originalState;
+      currentModel.position.copy(state.position);
+      currentModel.rotation.copy(state.rotation);
+      currentModel.scale.copy(state.scale);
+      currentModel.visible = state.visible;
+    }
+    // 添加邊界檢查函數，確保模型不會被意外剪裁
+    function checkModelBounds() {
+      if (!currentModel || !compositeCamera) return;
+
+      const box = new THREE.Box3().setFromObject(currentModel);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+
+      // 檢查模型是否在相機視錐體內
+      const frustum = new THREE.Frustum();
+      frustum.setFromProjectionMatrix(
+        new THREE.Matrix4().multiplyMatrices(
+          compositeCamera.projectionMatrix,
+          compositeCamera.matrixWorldInverse
+        )
+      );
+
+      const modelInFrustum = frustum.intersectsBox(box);
+
+      if (!modelInFrustum) {
+        console.warn('模型部分或全部在視圖外，建議重新居中');
+        return false;
+      }
+
+      return true;
+    }
+
+    // 定期檢查模型邊界（可選）
+    setInterval(() => {
+      if (currentModel) {
+        checkModelBounds();
+      }
+    }, 2000);
+
+    // 專門針對手機優化的匯出功能
+    function exportComposite() {
+      if (!compositeRenderer || !compositeCamera) {
+        alert('請先初始化合成場景!');
+        return;
+      }
+
+      document.getElementById('compositeResult').innerHTML = '<div style="color: blue; padding: 10px;">⏳ 正在生成圖片...</div>';
+
+      // 🔥🔥🔥 關鍵修復：強制重新同步渲染器尺寸！
+      const container = document.getElementById('compositeViewer');
+      const currentRect = container.getBoundingClientRect();
+      const currentWidth = Math.floor(currentRect.width);
+      const currentHeight = Math.floor(currentRect.height);
+
+      console.log('🔥 當前實際容器尺寸:', currentWidth, 'x', currentHeight);
+      console.log('🔥 渲染器當前尺寸:', compositeRenderer.domElement.width, 'x', compositeRenderer.domElement.height);
+
+      // 🔥 強制更新渲染器和相機到當前實際尺寸
+      compositeRenderer.setSize(currentWidth, currentHeight);
+      compositeCamera.aspect = currentWidth / currentHeight;
+      compositeCamera.updateProjectionMatrix();
+
+      // 🔥 強制重新渲染一次，確保內容正確
+      compositeRenderer.render(compositeScene, compositeCamera);
+
+      const format = document.getElementById('exportFormat').value;
+      const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+
+      const canvas = document.createElement('canvas');
+      canvas.width = currentWidth;
+      canvas.height = currentHeight;
+      const ctx = canvas.getContext('2d');
+
+      // 白色背景
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, currentWidth, currentHeight);
+
+      // 背景圖片 - 使用與預覽相同的 object-fit: contain 邏輯
+      if (backgroundImageElement && backgroundImageElement.style.display !== 'none' && backgroundImageElement.naturalWidth > 0) {
+        const img = backgroundImageElement;
+        const containerRatio = currentWidth / currentHeight;
+        const imgRatio = img.naturalWidth / img.naturalHeight;
+
+        let drawWidth, drawHeight, offsetX, offsetY;
+
+        if (imgRatio > containerRatio) {
+          drawWidth = currentWidth;
+          drawHeight = currentWidth / imgRatio;
+          offsetX = 0;
+          offsetY = (currentHeight - drawHeight) / 2;
+        } else {
+          drawHeight = currentHeight;
+          drawWidth = currentHeight * imgRatio;
+          offsetX = (currentWidth - drawWidth) / 2;
+          offsetY = 0;
+        }
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+      }
+
+      // 🔥 現在繪製同步後的渲染器內容
+      ctx.drawImage(compositeRenderer.domElement, 0, 0, currentWidth, currentHeight);
+
+      const link = document.createElement('a');
+      link.download = '支撐合成圖_' + new Date().getTime() + '.' + format;
+      link.href = canvas.toDataURL(mimeType, 0.95);
+      link.click();
+
+      document.getElementById('compositeResult').innerHTML =
+        '<div style="color: green; padding: 10px;">✅ 匯出成功! (' + currentWidth + '×' + currentHeight + ')</div>';
+
+      console.log('🔥 最終匯出尺寸:', currentWidth, 'x', currentHeight);
+    }
+    // 成功訊息顯示
+    function showSuccessMessage(width, height, type) {
+      const sizeMB = (width * height * 4 / 1024 / 1024).toFixed(2);
+      document.getElementById('compositeResult').innerHTML = `
+    <div style="color: green; padding: 10px; background: #f0fff0; border-radius: 5px;">
+      ✅ ${type}成功！<br>
+      📐 尺寸: ${width} × ${height} 像素<br>
+      💾 估計大小: ~${sizeMB}MB<br>
+      📱 ${window.innerWidth <= 768 ? '手機優化' : '桌面模式'}<br>
+      🎯 與預覽完全一致
+    </div>
+  `;
+    }
+
+    // 下載圖片
+    function downloadImage(canvas, type) {
+      const link = document.createElement('a');
+      link.download = `支撐合成圖_${new Date().getTime()}.png`;
+      link.href = canvas.toDataURL('image/png', 0.95);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showSuccessMessage(canvas.width, canvas.height, type);
+    }
+
+
+    // 更新模型縮放 - 手機優化
+    function updateModelScale(scale) {
+      if (currentModel) {
+        currentModel.scale.set(scale, scale, scale);
+        const percent = Math.round(scale * 100);
+        document.getElementById('scaleValue').textContent = `${percent}%`;
+
+        // 手機上提供觸覺反饋
+        if (window.innerWidth <= 768 && 'vibrate' in navigator) {
+          navigator.vibrate(10);
+        }
+      }
+    }
+
+
+    // 加載最近的計算結果
+    function loadCalculationResult() {
+      if (!currentCalculationData) {
+        alert('請先進行支撐計算！');
+        return;
+      }
+
+      // 設置模型類型
+      document.getElementById('modelType').value = currentCalculationType;
+
+      // 顯示加載信息
+      document.getElementById('compositeResult').innerHTML = `
+    <div style="color: blue; padding: 10px; background: #f0f8ff; border-radius: 5px;">
+      📥 正在加載 ${currentCalculationType} 支撐模型...
+    </div>
+  `;
+
+      // 短暫延遲後加載模型，確保UI更新
+      setTimeout(() => {
+        loadModelForComposite();
+
+        // 顯示成功消息
+        document.getElementById('compositeResult').innerHTML = `
+      <div style="color: green; padding: 10px; background: #f0fff0; border-radius: 5px;">
+        ✅ 成功加載 ${currentCalculationType} 支撐模型！
+      </div>
+    `;
+      }, 100);
+    }
+
+
+    // 🔒 認證三連 3：執行身分盤查 (沒票就踢回大廳)
+    async function checkSession() {
+      try {
+        const { data, error } = await _supabase.auth.getSession();
+        
+        // 如果沒有 session，代表沒登入，強制遣返上一層的大廳
+        if (error || !data.session) {
+          console.warn("🚨 偵測到未授權存取，強制遣返！");
+          window.location.href = `../../lobby.html?redirect=${encodeURIComponent(window.location.href)}`;
+        } else {
+          console.log(`✅ 身分確認！歡迎隊員：${data.session.user.email}`);
+        }
+      } catch (err) {
+        console.error("驗證系統無回應，安全起見強制遣返：", err);
+        window.location.href = '../../lobby.html';
+      }
+    }
+
+    // 🚀 在網頁載入完成時，第一時間啟動盤查
+    window.addEventListener('load', checkSession);
+  </script>
+
+</body>
+
+</html>

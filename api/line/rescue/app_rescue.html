@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>救援專區</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../mission_folder/supabase_config.js"></script>
+    <style>
+        /* 🚨 底色透明與流光背景 */
+        html { background: linear-gradient(to bottom, #02040a 0%, #1e1b4b 100%); min-height: 100vh; }
+        body { 
+            background-color: transparent; color: #e2e8f0; 
+            font-family: -apple-system, sans-serif; overflow-x: hidden; position: relative; min-height: 100vh; margin: 0;
+            background-image: 
+                radial-gradient(1px 1px at 20% 30%, rgba(255, 255, 255, 0.4) 100%, transparent),
+                radial-gradient(1.5px 1.5px at 70% 10%, rgba(255, 255, 255, 0.5) 100%, transparent),
+                radial-gradient(1px 1px at 40% 60%, rgba(255, 255, 255, 0.3) 100%, transparent);
+        }
+
+        /* 橘色科技流光條 */
+        html::before {
+            content: ""; position: fixed; inset: 0;
+            background-image: 
+                linear-gradient(to bottom, transparent, rgba(249,115,22,0.8) 80%, #fff 100%),
+                linear-gradient(to bottom, transparent, rgba(251,146,60,0.6) 80%, #fff 100%);
+            background-size: 2px 25vh, 1px 35vh; background-repeat: no-repeat; z-index: -2;
+            animation: data-rain-1 4s infinite linear; pointer-events: none;
+        }
+
+        @keyframes data-rain-1 {
+            0% { background-position: 25vw -30vh, 75vw -50vh; opacity: 0; }
+            10% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { background-position: 25vw 120vh, 75vw 100vh; opacity: 0; }
+        }
+
+        /* 毛玻璃卡片 */
+        .glass-card { 
+            background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); 
+            border: 1px solid rgba(251, 146, 60, 0.3); box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            position: relative; overflow: hidden;
+        }
+
+        /* 空間跳躍與白閃 */
+        .exit-warp {
+            transform: scale(8) !important; opacity: 0 !important; filter: brightness(3) blur(10px) !important;
+            transition: all 0.5s cubic-bezier(0.7, 0, 0.3, 1) !important; pointer-events: none; z-index: 999;
+        }
+        .overload-flash {
+            position: fixed; inset: 0; background: white; opacity: 0; z-index: 1000; pointer-events: none; transition: opacity 0.3s ease-in;
+        }
+        .overload-flash.active { opacity: 0.8; }
+    </style>
+</head>
+<body class="p-4 flex flex-col min-h-screen">
+
+    <div id="header" class="mb-8 text-center relative mt-4">
+        <h1 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-300 tracking-wider">🚒 救援專區</h1>
+        <div class="flex justify-center items-center gap-2 mt-2">
+            <p id="user-info" class="text-xs text-slate-400">識別中...</p>
+            <button onclick="warpSpeed('../lobby.html', this)" class="bg-slate-800 text-orange-300 px-3 py-1 rounded-full border border-orange-800 text-xs font-bold transition-all active:scale-95">🏠 回大廳</button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 max-w-md mx-auto w-full">
+        
+        <!-- 卡片一：支撐 (導向 shore 資料夾) -->
+        <button onclick="warpSpeed('shore/shore.html', this)" class="glass-card p-6 rounded-2xl flex items-center gap-4 transition-all active:scale-95 hover:border-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.2)]">
+            <div class="bg-orange-900/50 p-3 rounded-full text-3xl">🪵</div>
+            <div class="text-left">
+                <h3 class="text-lg font-bold text-orange-400">建築物支撐</h3>
+                <p class="text-xs text-slate-400 mt-1">木材計算、AR 背景合成</p>
+            </div>
+        </button>
+
+        <!-- 卡片二：建置中 -->
+        <button onclick="alert('指揮官，繩索救援模組建置中！🚧')" class="glass-card p-6 rounded-2xl flex items-center gap-4 transition-all active:scale-95 border-dashed border-slate-600 opacity-60">
+            <div class="bg-slate-800 p-3 rounded-full text-3xl text-slate-500">🪢</div>
+            <div class="text-left">
+                <h3 class="text-lg font-bold text-slate-300">繩索救援</h3>
+                <p class="text-xs text-slate-500 mt-1">系統力學計算 (建置中)</p>
+            </div>
+        </button>
+
+        <!-- 卡片三：建置中 -->
+        <button onclick="alert('指揮官，水域救援模組建置中！🚧')" class="glass-card p-6 rounded-2xl flex items-center gap-4 transition-all active:scale-95 border-dashed border-slate-600 opacity-60">
+            <div class="bg-slate-800 p-3 rounded-full text-3xl text-slate-500">🌊</div>
+            <div class="text-left">
+                <h3 class="text-lg font-bold text-slate-300">水域救援</h3>
+                <p class="text-xs text-slate-500 mt-1">水文資料與搜救熱區 (建置中)</p>
+            </div>
+        </button>
+
+    </div>
+
+    <script>
+        // 🔒 認證三連防呆
+        async function checkSession() {
+            const { data } = await _supabase.auth.getSession();
+            if (data.session) {
+                document.getElementById('user-info').innerText = `隊員：${data.session.user.email.split('@')[0]}`;
+            } else {
+                window.location.href = `../lobby.html?redirect=${encodeURIComponent(window.location.href)}`;
+            }
+        }
+
+        // 🌟 空間跳躍特效
+        function warpSpeed(url, element) {
+            let flash = document.querySelector('.overload-flash');
+            if (!flash) {
+                flash = document.createElement('div');
+                flash.className = 'overload-flash';
+                document.body.appendChild(flash);
+            }
+            element.classList.add('exit-warp');
+            setTimeout(() => { flash.classList.add('active'); }, 150);
+            setTimeout(() => { window.location.href = url; }, 500);
+        }
+
+        window.onload = checkSession;
+    </script>
+</body>
+</html>
