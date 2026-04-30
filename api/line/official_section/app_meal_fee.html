@@ -400,7 +400,17 @@
 
                     // 0.6 秒後打開檔案
                     setTimeout(() => {
-                        window.open(result.url, '_blank');
+                        // 🚀 偵測是否為蘋果 iOS 裝置
+                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+                        if (isIOS) {
+                            // 🍎 iOS 路線：維持您原本的開新分頁 (保持現狀)
+                            window.open(result.url, '_blank');
+                        } else {
+                            // 🤖 安卓 & 💻 桌機電腦路線：直接在當前頁面跳轉過去，絕不被攔截！
+                            window.location.href = result.url;
+                        }
+
                         // 清理現場
                         flash.classList.remove('active');
                         btn.classList.remove('exit-supernova', 'overloading');
