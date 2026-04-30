@@ -310,9 +310,15 @@
         function removeItem(id) { document.getElementById('row' + id).remove(); itemCount--; updateTotal(); }
         function calc(id) {
             const row = document.getElementById('row' + id);
-            const q = row.querySelector('.row-q').value || 0, p = row.querySelector('.row-p').value || 0;
-            const t = q * p;
-            row.querySelector('.row-t').value = t; row.querySelector('.row-t-display').innerText = t;
+            // 確保抓到的是數字
+            const q = parseFloat(row.querySelector('.row-q').value) || 0;
+            const p = parseFloat(row.querySelector('.row-p').value) || 0;
+            
+            // 🚀 核心黑科技：Math.floor() 無條件捨去小數點
+            const t = Math.floor(q * p); 
+            
+            row.querySelector('.row-t').value = t; 
+            row.querySelector('.row-t-display').innerText = t;
             updateTotal();
         }
         function updateTotal() {
