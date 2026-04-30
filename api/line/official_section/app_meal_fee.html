@@ -422,7 +422,6 @@
                         type: "blob",
                         mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     });
-                    
                     const fileName = `${templateData.TIME_M}月份誤餐費_${templateData.UNIT}.docx`;
                     
                     // 建立/抓取閃光層
@@ -433,39 +432,24 @@
                     btn.classList.add('exit-supernova');
                     setTimeout(() => flash.classList.add('active'), 100);
 
-                    // 延遲觸發下載或分享，並恢復按鈕
-                    setTimeout(async () => {
-                        // 🚀 偵測裝置屬性
-                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                    // 延遲後，不直接下載，而是「改變按鈕狀態」等待隊員親自點擊
+                    setTimeout(() => {
+                        // 將做好的檔案存到全域變數，備用
+                        window.currentWordData = { blob: out, fileName: fileName };
 
-                        if (isIOS && navigator.canShare) {
-                            // 🍎 iOS 路線：直接啟動原生分享選單
-                            try {
-                                // 把 Blob 包裝成實體 File 檔案
-                                const file = new File([out], fileName, { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
-                                
-                                if (navigator.canShare({ files: [file] })) {
-                                    await navigator.share({
-                                        files: [file],
-                                        title: '誤餐費申請單',
-                                        text: '請查收誤餐費申請單 Word 檔'
-                                    });
-                                } else {
-                                    saveAs(out, fileName); // 萬一不支援，退回直接下載
-                                }
-                            } catch (err) {
-                                console.log("iOS 分享取消或失敗", err);
-                                // 使用者按取消不用報錯，默默收起即可
-                            }
-                        } else {
-                            // 🤖 安卓 & 💻 電腦路線：直接啟動超高速下載！
-                            saveAs(out, fileName);
-                        }
-                        
-                        // 清理現場
+                        // 恢復按鈕外觀，並改裝成「發射鍵」
                         flash.classList.remove('active');
                         btn.classList.remove('exit-supernova', 'overloading');
-                        btn.disabled = false; loader.style.display = 'none'; submitText.innerText = "生成檔案";
+                        btn.disabled = false; 
+                        loader.style.display = 'none'; 
+                        
+                        // 🚀 關鍵：按鈕變身！
+                        submitText.innerText = "📤 報表就緒，點擊分享/下載！";
+                        btn.style.background = "linear-gradient(90deg, #16a34a, #22c55e, #4ade80, #16a34a)"; // 變成安全的綠色
+                        btn.classList.add('animate-pulse'); // 加上呼吸燈特效
+
+                        // 綁定新的「發射」事件
+                        btn.onclick = handleFinalExport;
                     }, 600);
 
                 } catch (err) {
@@ -474,6 +458,36 @@
                     alert("產出檔案發生錯誤：" + err.message);
                 }
             });
+        }
+        
+        // 🚀 終極發射動作：由隊員親自點擊，絕對不會被瀏覽器攔截！
+        async function handleFinalExport() {
+            if (!window.currentWordData) return alert("找不到檔案實體！");
+            
+            const { blob, fileName } = window.currentWordData;
+            const file = new File([blob], fileName, { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+            const exportBtn = document.getElementById('submitBtn');
+
+            try {
+                // 不分蘋果或安卓，只要手機支援原生分享 (可以傳 Line、存檔)，就啟動它！
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: '誤餐費申請單',
+                        text: '請查收誤餐費申請單 Word 檔'
+                    });
+                } else {
+                    // 如果是用舊版瀏覽器或桌機電腦，退回使用傳統的強制下載
+                    saveAs(blob, fileName);
+                    alert("✅ 檔案已下載！");
+                }
+            } catch (err) {
+                console.log("分享被取消或失敗", err);
+                // 💡 終極防線：如果隊員在分享選單按了取消，或是分享失敗，我們強制幫他下載下來保底！
+                saveAs(blob, fileName);
+                exportBtn.innerText = "✅ 已下載至手機/電腦";
+                exportBtn.classList.remove('animate-pulse');
+            }
         }
 
         // 🚀 戰術導航：根據模式觸發不同動畫
