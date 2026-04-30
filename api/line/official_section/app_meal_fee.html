@@ -7,6 +7,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../mission_folder/supabase_config.js"></script>
+    <!-- 🚀 前端無損產檔黑科技引擎 (Docxtemplater & PizZip & FileSaver) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.37.11/docxtemplater.js"></script>
+    <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip-utils.js"></script>
     <style>
         /* 🚨 關鍵修復：底色交給 html */
         html {
@@ -327,7 +332,12 @@
             document.getElementById('totalDisplay').innerText = '$ ' + total;
         }
 
-        // 🚀 最終修訂：超頻過載 + 超新星爆炸版
+        // 🚀 讀取本地範本的輔助函數
+        function loadFile(url, callback) {
+            PizZipUtils.getBinaryContent(url, callback);
+        }
+
+        // 🚀 終極版：純前端產出 Word 檔 (無損不跑版)
         async function submitForm() {
             const btn = document.getElementById('submitBtn');
             const loader = document.getElementById('loader');
@@ -335,99 +345,135 @@
             
             // 1. 抓取品項資料
             const items = [];
+            let totalAmount = 0;
             document.querySelectorAll('#itemsContainer > div').forEach(row => {
-                items.push({
-                    n: row.querySelector('.row-n').value, s: row.querySelector('.row-s').value,
-                    u: row.querySelector('.row-u').value, q: row.querySelector('.row-q').value,
-                    p: row.querySelector('.row-p').value, t: row.querySelector('.row-t').value
-                });
+                const q = row.querySelector('.row-q').value;
+                const n = row.querySelector('.row-n').value;
+                if(n || q) {
+                    const itemTotal = Math.floor(parseFloat(row.querySelector('.row-t').value) || 0);
+                    items.push({
+                        n: n, s: row.querySelector('.row-s').value,
+                        u: row.querySelector('.row-u').value, q: q,
+                        p: row.querySelector('.row-p').value, t: itemTotal.toString()
+                    });
+                    totalAmount += itemTotal;
+                }
             });
 
-            // 檢查是否填寫
-            if(items.length === 0 || (!items[0].n && !items[0].q)) return alert('請至少填寫一項品名或數量！');
+            if(items.length === 0) return alert('請至少填寫一項品項！');
 
-            // 2. 啟動過載視覺效果
+            // 啟動過載視覺效果
             btn.disabled = true;
             btn.classList.add('overloading'); 
             loader.style.display = 'block';
-            submitText.innerText = "⚡ 火速處理中...";
+            submitText.innerText = "⚡ 正在生成本地 Word 檔...";
 
-            const payloadData = {
-                form_type: 'meal_fee', // 👈 新增這一行
-                unit: document.getElementById('unit').value,
-                month: document.getElementById('month').value,
-                day: document.getElementById('day').value,
-                items: items
-            };
-
-            const requestBody = {
-                action: 'generate_meal_fee', 
-                data: payloadData,
-                source: 'liff' 
-            };
-
-            try {
-                const res = await fetch(GAS_API_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify(requestBody)
-                });
+            // 2. 準備要塞進 Word 的資料字典
+            let templateData = {
+                UNIT: document.getElementById('unit').value,
+                TIME_M: document.getElementById('month').value,
+                TIME_D: document.getElementById('day').value,
+                ITEM_A: totalAmount.toString(),
                 
-                // 3. 先拿純文字
-                const rawText = await res.text();
-                let result;
+                // 🚀 更安全、更純粹的 Word 底層分頁指令
+                PAGE_BREAK: '<w:br w:type="page"/>'
+            };
 
-                // 4. 解析 JSON (這步要在判斷 success 之前！)
-                try {
-                    result = JSON.parse(rawText);
-                } catch (parseErr) {
-                    throw new Error(`收到無效格式！原始內容為: ${rawText}`);
+            // 將品項填入 ITEM1_N ~ ITEM8_N
+            for(let i = 0; i < 8; i++) {
+                const idx = i + 1;
+                const item = items[i];
+                templateData[`ITEM${idx}_N`] = item ? item.n : "";
+                templateData[`ITEM${idx}_S`] = item ? item.s : "";
+                templateData[`ITEM${idx}_U`] = item ? item.u : "";
+                templateData[`ITEM${idx}_Q`] = item ? item.q : "";
+                templateData[`ITEM${idx}_P`] = item ? item.p : "";
+                templateData[`ITEM${idx}_T`] = item ? item.t : "";
+            }
+
+            // 處理數字拆分 N8, N7... (模擬原本 GAS 邏輯)
+            const fullAmountStr = "實付$" + totalAmount;
+            const chars = fullAmountStr.split('').reverse(); 
+            for (let j = 1; j <= 8; j++) {
+                templateData[`N${9 - j}`] = chars[j - 1] || ''; 
+            }
+
+            // 3. 核心黑科技：讀取本機的 docx 範本並替換字串
+            loadFile("template_meal_fee.docx", function (error, content) {
+                if (error) {
+                    btn.classList.remove('overloading');
+                    btn.disabled = false; loader.style.display = 'none'; submitText.innerText = "生成檔案並下載";
+                    return alert("讀取 Word 範本失敗，請確認 'template_meal_fee.docx' 已放入專案！\n" + error);
                 }
-                
-                // 5. 判斷成功並觸發炫炮退場
-                if (result.success && result.url) {
+
+                try {
+                    const zip = new PizZip(content);
+                    const doc = new window.docxtemplater(zip, { 
+                        paragraphLoop: true, 
+                        linebreaks: true,
+                        delimiters: { start: '{{', end: '}}' } // 🚀 關鍵修復：強制引擎認得雙括號！
+                    });
+                    
+                    // 執行資料替換
+                    doc.render(templateData);
+                    
+                    // 生成最終的 Word Blob 檔案
+                    const out = doc.getZip().generate({
+                        type: "blob",
+                        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    });
+                    
+                    const fileName = `${templateData.TIME_M}月份誤餐費_${templateData.UNIT}.docx`;
+                    
                     // 建立/抓取閃光層
                     let flash = document.querySelector('.plasma-flash');
-                    if (!flash) {
-                        flash = document.createElement('div');
-                        flash.className = 'plasma-flash';
-                        document.body.appendChild(flash);
-                    }
+                    if (!flash) { flash = document.createElement('div'); flash.className = 'plasma-flash'; document.body.appendChild(flash); }
 
                     // 💥 引爆超新星特效
                     btn.classList.add('exit-supernova');
                     setTimeout(() => flash.classList.add('active'), 100);
 
-                    // 0.6 秒後打開檔案
-                    setTimeout(() => {
-                        // 🚀 100% 原汁原味還原 mission 的邏輯
-                        const isAndroid = /Android/i.test(navigator.userAgent);
+                    // 延遲觸發下載或分享，並恢復按鈕
+                    setTimeout(async () => {
+                        // 🚀 偵測裝置屬性
+                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-                        if (isAndroid) {
-                            window.location.href = result.url; // 🤖 安卓直接跳轉
+                        if (isIOS && navigator.canShare) {
+                            // 🍎 iOS 路線：直接啟動原生分享選單
+                            try {
+                                // 把 Blob 包裝成實體 File 檔案
+                                const file = new File([out], fileName, { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+                                
+                                if (navigator.canShare({ files: [file] })) {
+                                    await navigator.share({
+                                        files: [file],
+                                        title: '誤餐費申請單',
+                                        text: '請查收誤餐費申請單 Word 檔'
+                                    });
+                                } else {
+                                    saveAs(out, fileName); // 萬一不支援，退回直接下載
+                                }
+                            } catch (err) {
+                                console.log("iOS 分享取消或失敗", err);
+                                // 使用者按取消不用報錯，默默收起即可
+                            }
                         } else {
-                            window.open(result.url, '_blank'); // 💻🍎 其他 (電腦、iOS) 開新分頁
+                            // 🤖 安卓 & 💻 電腦路線：直接啟動超高速下載！
+                            saveAs(out, fileName);
                         }
-
+                        
                         // 清理現場
                         flash.classList.remove('active');
                         btn.classList.remove('exit-supernova', 'overloading');
+                        btn.disabled = false; loader.style.display = 'none'; submitText.innerText = "生成檔案";
                     }, 600);
 
-                } else {
+                } catch (err) {
                     btn.classList.remove('overloading');
-                    alert("生成失敗：" + (result.message || "未知錯誤"));
+                    btn.disabled = false; loader.style.display = 'none'; submitText.innerText = "生成檔案";
+                    alert("產出檔案發生錯誤：" + err.message);
                 }
-
-            } catch (err) {
-                btn.classList.remove('overloading');
-                alert("網路或系統錯誤：" + err.message);
-            } finally {
-                // 確保狀態恢復
-                btn.disabled = false;
-                loader.style.display = 'none';
-                submitText.innerText = "生成檔案並開啟";
-            }
+            });
         }
 
         // 🚀 戰術導航：根據模式觸發不同動畫
