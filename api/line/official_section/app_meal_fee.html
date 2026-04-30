@@ -347,6 +347,7 @@
             submitText.innerText = "⚡ 火速處理中...";
 
             const payloadData = {
+                form_type: 'meal_fee', // 👈 新增這一行
                 unit: document.getElementById('unit').value,
                 month: document.getElementById('month').value,
                 day: document.getElementById('day').value,
