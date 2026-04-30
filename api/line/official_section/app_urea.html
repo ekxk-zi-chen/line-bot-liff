@@ -376,19 +376,41 @@
                 let result;
                 try { result = JSON.parse(rawText); } catch(e) { throw new Error(`格式解析錯誤: ${rawText}`); }
                 
+                // 5. 判斷成功並觸發炫炮退場
                 if (result.success && result.url) {
+                    // 建立/抓取閃光層
                     let flash = document.querySelector('.plasma-flash');
-                    if (!flash) { flash = document.createElement('div'); flash.className = 'plasma-flash'; document.body.appendChild(flash); }
-                    
+                    if (!flash) {
+                        flash = document.createElement('div');
+                        flash.className = 'plasma-flash';
+                        document.body.appendChild(flash);
+                    }
+
+                    // 💥 引爆超新星特效
                     btn.classList.add('exit-supernova');
                     setTimeout(() => flash.classList.add('active'), 100);
+
+                    // 0.6 秒後打開檔案
                     setTimeout(() => {
-                        window.open(result.url, '_blank');
+                        // 🚀 偵測是否為蘋果 iOS 裝置
+                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+                        if (isIOS) {
+                            // 🍎 iOS 路線：維持您原本的開新分頁 (保持現狀)
+                            window.open(result.url, '_blank');
+                        } else {
+                            // 🤖 安卓 & 💻 桌機電腦路線：直接在當前頁面跳轉過去，絕不被攔截！
+                            window.location.href = result.url;
+                        }
+
+                        // 清理現場
                         flash.classList.remove('active');
                         btn.classList.remove('exit-supernova', 'overloading');
                     }, 600);
+
                 } else {
-                    btn.classList.remove('overloading'); alert("生成失敗：" + (result.message || "未知錯誤"));
+                    btn.classList.remove('overloading');
+                    alert("生成失敗：" + (result.message || "未知錯誤"));
                 }
             } catch (err) {
                 btn.classList.remove('overloading'); alert("網路或系統錯誤：" + err.message);
