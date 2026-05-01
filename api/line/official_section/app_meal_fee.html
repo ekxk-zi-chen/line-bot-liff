@@ -514,7 +514,7 @@
                         window.AndroidBridge.saveWordFile(base64String, fileName);
                         
                         if(btn) {
-                            btn.innerText = "✅ 已交由 APP 下載";
+                            btn.innerText = "✅ 已存檔並啟動分享";
                             btn.classList.remove('animate-pulse');
                         }
                     } catch (e) {
@@ -530,7 +530,7 @@
                     alert("⚠️ 警告：您使用的是 Line/FB 內建瀏覽器，這會阻擋下載！\n請點擊右上角「以預設瀏覽器開啟」！");
                 } else {
                     // 💡 如果您在平板的 APP 裡看到這個 Alert，代表 APK 沒更新成功，或是 WebView 沒掛載到 AndroidBridge！
-                    alert("⚠️ 雷達警告：未偵測到 Kotlin APP 橋接通道！將嘗試使用傳統網頁下載。");
+                    alert("⚠️ 版本太舊，請刪掉app重新下載。網頁稍後會自動下載檔案");
                 }
 
                 // 傳統網頁暴力下載 (電腦瀏覽器或手機 Chrome 會走這裡)
