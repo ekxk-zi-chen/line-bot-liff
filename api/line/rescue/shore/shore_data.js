@@ -1621,14 +1621,14 @@ function toggleFullScreen() {
     // 將容器拔出，丟到 body 最外層
     document.body.appendChild(container);
     
-    // ⚠️ 【絕對滿版黑科技】：放棄 100%，改用 100vw 和 100dvh，強迫無死角填滿手機！
-    container.style.cssText = "position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100vw !important; height: 100dvh !important; z-index: 999999 !important; background: #030712 !important; margin: 0 !important; padding: 0 !important; border-radius: 0 !important; display: block !important;";
+    // ⚠️ 【絕對滿版黑科技】：放棄 100vh，直接用 top/bottom/left/right 鎖死螢幕四個角落！
+    container.style.cssText = "position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100% !important; height: 100% !important; max-width: none !important; max-height: none !important; z-index: 999999 !important; background: #000000 !important; margin: 0 !important; padding: 0 !important; border-radius: 0 !important; display: block !important;";
     
-    // 按鈕定死在右上角
-    btn.style.cssText = "position: absolute !important; top: max(20px, env(safe-area-inset-top)) !important; right: 20px !important; z-index: 1000000 !important; background: #ef4444 !important; color: white !important; padding: 12px 24px !important; font-size: 16px !important; border-radius: 8px !important; border: 2px solid white !important; font-weight: bold !important;";
+    // 按鈕定死在右上角，保證絕對點得到
+    btn.style.cssText = "position: absolute !important; top: 20px !important; right: 20px !important; z-index: 1000000 !important; background: #ef4444 !important; color: white !important; padding: 12px 24px !important; font-size: 16px !important; border-radius: 8px !important; border: 2px solid white !important; font-weight: bold !important;";
     
-    // Viewer 畫布也強制 100dvh
-    viewer.style.cssText = "position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100vw !important; height: 100dvh !important;";
+    // Viewer 強制填滿 Container
+    viewer.style.cssText = "position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100% !important; height: 100% !important;";
     
     document.body.style.overflow = "hidden"; // 鎖死背景
     window.scrollTo(0, 0); // 強制捲到最上，消除手機網址列干擾
