@@ -555,6 +555,14 @@
           renderer.render(scene, camera);
         }
         animate();
+        // 🚀 核心補丁：將渲染器存起來，讓全螢幕函數抓得到它來放大畫布！
+        window.current3D = { renderer: renderer, camera: camera, scene: scene, controls: controls };
+        
+        // 自動將初始寬度對齊手機螢幕
+        const containerW = document.getElementById("threejs-box-viewer").clientWidth || window.innerWidth - 40;
+        renderer.setSize(containerW, 350);
+        camera.aspect = containerW / 350;
+        camera.updateProjectionMatrix();
 
       } else {
         result.innerHTML = `<div class="result">缺少必要資料，無法計算！</div>`;
@@ -1053,7 +1061,14 @@
           renderer.render(scene, camera);
         }
         animate();
-
+        // 🚀 核心補丁：將渲染器存起來，讓全螢幕函數抓得到它來放大畫布！
+        window.current3D = { renderer: renderer, camera: camera, scene: scene, controls: controls };
+        
+        // 自動將初始寬度對齊手機螢幕
+        const containerW = document.getElementById("threejs-box-viewer").clientWidth || window.innerWidth - 40;
+        renderer.setSize(containerW, 350);
+        camera.aspect = containerW / 350;
+        camera.updateProjectionMatrix();
 
 
       } else {
@@ -1593,7 +1608,7 @@
         result.innerHTML = `<div class="result">缺少必要資料，無法計算！</div>`;
       }
     }
-// ⛶ 全螢幕切換引擎 (最終修復畫布切割版 - 真實像素鎖定)
+// ⛶ 全螢幕切換引擎 (極簡穩定防當機版)
 function toggleFullScreen() {
   const container = document.getElementById("viewer-container");
   const btn = document.getElementById("fs-btn");
@@ -1610,6 +1625,7 @@ function toggleFullScreen() {
     container.setAttribute("data-fullscreen", "true");
     btn.innerText = "✖ 關閉全螢幕";
     
+    // 建立替身
     let placeholder = document.getElementById("viewer-placeholder");
     if (!placeholder) {
         placeholder = document.createElement("div");
@@ -1618,70 +1634,77 @@ function toggleFullScreen() {
         container.parentNode.insertBefore(placeholder, container);
     }
     
-    // 將容器拔出，丟到 body 最外層
+    // 拔出 DOM 樹，移至最外層
     document.body.appendChild(container);
     
-    // 🔥 終極黑科技：直接抓取手機當下的真實寬高，強行寫入 px！
-    const screenW = window.innerWidth;
-    const screenH = window.innerHeight;
+    // 🚨 穩定的全螢幕 CSS：直接使用 window.innerHeight 物理鎖死高度
+    const h = window.innerHeight;
+    const w = window.innerWidth;
     
-    container.style.cssText = `position: fixed !important; top: 0 !important; left: 0 !important; width: ${screenW}px !important; height: ${screenH}px !important; z-index: 999999 !important; background: #000000 !important; margin: 0 !important; padding: 0 !important; border-radius: 0 !important; display: block !important;`;
+    container.style.cssText = `position: fixed !important; top: 0 !important; left: 0 !important; width: ${w}px !important; height: ${h}px !important; z-index: 999999 !important; background: #000000 !important; margin: 0 !important; padding: 0 !important; border-radius: 0 !important; display: block !important;`;
     
     btn.style.cssText = "position: absolute !important; top: 20px !important; right: 20px !important; z-index: 1000000 !important; background: #ef4444 !important; color: white !important; padding: 12px 24px !important; font-size: 16px !important; border-radius: 8px !important; border: 2px solid white !important; font-weight: bold !important;";
     
-    // Viewer 也強制寫入真實 px
-    viewer.style.cssText = `position: absolute !important; top: 0 !important; left: 0 !important; width: ${screenW}px !important; height: ${screenH}px !important;`;
+    viewer.style.cssText = `position: absolute !important; top: 0 !important; left: 0 !important; width: ${w}px !important; height: ${h}px !important; margin: 0 !important; padding: 0 !important;`;
     
-    document.body.style.overflow = "hidden"; // 鎖死背景
+    document.body.style.overflow = "hidden"; // 鎖死背景滾動
     window.scrollTo(0, 0); 
     
-    // 【畫面與模型置中校正】
+    // 🚨 安全重繪 3D 畫面 (加入 try-catch 防止任何報錯卡死)
     setTimeout(() => {
-      if(window.current3D) {
-        const { renderer, camera, scene, controls } = window.current3D;
-        
-        // 🚨 核心修復：渲染器 (Canvas) 直接吃真實物理像素，絕對不再被 CSS 切割！
-        renderer.setSize(screenW, screenH);
-        renderer.domElement.style.width = "100%";
-        renderer.domElement.style.height = "100%";
-        
-        camera.aspect = screenW / screenH;
-        camera.updateProjectionMatrix();
+        try {
+            if(window.current3D && window.current3D.renderer) {
+                const { renderer, camera, scene, controls } = window.current3D;
+                const currentW = window.innerWidth;
+                const currentH = window.innerHeight;
+                
+                // 強制讓 Canvas 滿版
+                renderer.setSize(currentW, currentH);
+                renderer.domElement.style.cssText = "width: 100% !important; height: 100% !important; display: block !important;";
+                
+                camera.aspect = currentW / currentH;
+                camera.updateProjectionMatrix();
 
-        const box = new THREE.Box3().setFromObject(scene);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z);
-        
-        let cameraZ = Math.abs((maxDim / 2) / Math.tan(camera.fov * Math.PI / 180 / 2));
-        if (camera.aspect < 1) {
-            cameraZ = cameraZ / camera.aspect; 
+                // 簡單計算置中，避免過度複雜的運算
+                const box = new THREE.Box3().setFromObject(scene);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                
+                let cameraZ = Math.abs((maxDim / 2) / Math.tan(camera.fov * Math.PI / 180 / 2));
+                if (camera.aspect < 1) cameraZ /= camera.aspect; 
+                cameraZ *= 1.3; 
+                
+                camera.position.set(center.x, center.y + (maxDim * 0.2), center.z + cameraZ);
+                controls.target.copy(center);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+        } catch (error) {
+            console.error("全螢幕 3D 重繪失敗，但已攔截錯誤避免卡死:", error);
         }
-        cameraZ *= 1.3; 
-        
-        camera.position.set(center.x, center.y + (maxDim * 0.2), center.z + cameraZ);
-        controls.target.copy(center);
-        controls.update();
-        renderer.render(scene, camera);
-      }
     }, 100);
 
-    // 🚨 防禦機制：如果手機翻轉或網址列縮放，即時更新真實像素
+    // 翻轉螢幕時的處理
     window.fsResizeHandler = function() {
         if (container.getAttribute("data-fullscreen") === "true") {
-            const newW = window.innerWidth;
-            const newH = window.innerHeight;
-            container.style.width = newW + "px";
-            container.style.height = newH + "px";
-            viewer.style.width = newW + "px";
-            viewer.style.height = newH + "px";
-            
-            if(window.current3D) {
-                window.current3D.renderer.setSize(newW, newH);
-                window.current3D.camera.aspect = newW / newH;
-                window.current3D.camera.updateProjectionMatrix();
-                window.current3D.renderer.render(window.current3D.scene, window.current3D.camera);
-            }
+            setTimeout(() => {
+                try {
+                    const newW = window.innerWidth;
+                    const newH = window.innerHeight;
+                    container.style.width = newW + "px";
+                    container.style.height = newH + "px";
+                    viewer.style.width = newW + "px";
+                    viewer.style.height = newH + "px";
+                    
+                    if(window.current3D && window.current3D.renderer) {
+                        window.current3D.renderer.setSize(newW, newH);
+                        window.current3D.camera.aspect = newW / newH;
+                        window.current3D.camera.updateProjectionMatrix();
+                        window.current3D.renderer.render(window.current3D.scene, window.current3D.camera);
+                    }
+                } catch (e) {}
+            }, 100);
         }
     };
     window.addEventListener("resize", window.fsResizeHandler);
@@ -1693,7 +1716,6 @@ function toggleFullScreen() {
     container.setAttribute("data-fullscreen", "false");
     btn.innerText = "⛶ 全螢幕";
     
-    // 拔除翻轉監聽
     if (window.fsResizeHandler) window.removeEventListener("resize", window.fsResizeHandler);
     
     const placeholder = document.getElementById("viewer-placeholder");
@@ -1703,34 +1725,35 @@ function toggleFullScreen() {
     
     container.style.cssText = "position: relative; width: 100%; background: #111; border-radius: 8px; overflow: hidden; margin-top: 15px;";
     btn.style.cssText = "position: absolute; top: 10px; right: 10px; z-index: 100; background: rgba(255,255,255,0.2); color: white; padding: 6px 12px; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; backdrop-filter: blur(5px);";
-    viewer.style.cssText = "width: 100%; height: 350px;";
+    viewer.style.cssText = "position: relative; width: 100%; height: 350px;";
     document.body.style.overflow = "auto";
     
     setTimeout(() => {
-      if(window.current3D) {
-        const { renderer, camera, scene, controls } = window.current3D;
-        const w = viewer.clientWidth || window.innerWidth - 40; 
-        
-        renderer.setSize(w, 350);
-        renderer.domElement.style.width = "100%";
-        renderer.domElement.style.height = "100%";
-        
-        camera.aspect = w / 350;
-        camera.updateProjectionMatrix();
+        try {
+            if(window.current3D && window.current3D.renderer) {
+                const { renderer, camera, scene, controls } = window.current3D;
+                const currentW = viewer.clientWidth || window.innerWidth - 40; 
+                
+                renderer.setSize(currentW, 350);
+                renderer.domElement.style.cssText = "width: 100% !important; height: 100% !important; display: block !important;";
+                
+                camera.aspect = currentW / 350;
+                camera.updateProjectionMatrix();
 
-        const box = new THREE.Box3().setFromObject(scene);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z);
-        
-        let cameraZ = Math.abs((maxDim / 2) / Math.tan(camera.fov * Math.PI / 180 / 2));
-        cameraZ *= 1.3;
-        
-        camera.position.set(center.x, center.y + (maxDim * 0.2), center.z + cameraZ);
-        controls.target.copy(center);
-        controls.update();
-        renderer.render(scene, camera);
-      }
+                const box = new THREE.Box3().setFromObject(scene);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                
+                let cameraZ = Math.abs((maxDim / 2) / Math.tan(camera.fov * Math.PI / 180 / 2));
+                cameraZ *= 1.3;
+                
+                camera.position.set(center.x, center.y + (maxDim * 0.2), center.z + cameraZ);
+                controls.target.copy(center);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+        } catch (e) {}
     }, 100);
   }
 }
