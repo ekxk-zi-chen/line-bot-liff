@@ -179,8 +179,22 @@
     let currentModel = null;
     let backgroundImageElement = null;
 
-    // 🚀 戰術導航分頁切換邏輯
+    // 🚀 戰術導航分頁切換邏輯 (終極防呆防殘影版)
     function switchTab(tabId) {
+      // 🛡️ 防呆 1：如果目前在全螢幕模式，強制先「安全關閉」全螢幕，恢復所有網頁狀態！
+      const container = document.getElementById("viewer-container");
+      if (container && container.classList.contains('fullscreen-mode')) {
+          const btn = document.getElementById("fs-btn");
+          if (btn) btn.click(); // 模擬點擊關閉，確保所有 CSS 和 body.overflow 恢復正常
+      }
+
+      // 🛡️ 防呆 2：切換標籤前，強制殺死合成區的所有殘留場景！
+      if (compositeRenderer) {
+          compositeRenderer.dispose();
+          const viewerDiv = document.getElementById('compositeViewer');
+          if (viewerDiv) viewerDiv.innerHTML = ''; // 清空畫布
+      }
+
       // 1. 切換標籤的發光狀態
       document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
       document.getElementById('tab-' + tabId).classList.add('active');
@@ -223,42 +237,33 @@
       fov: 60
     };
 
+    // 🚀 重新初始化合成畫布 (確保每次只會有「一個」渲染器)
     function initCompositeViewer() {
       const container = document.getElementById('compositeViewer');
       if (!container) return;
 
+      // 徹底銷毀舊的渲染器與場景
       if (compositeRenderer) {
-        compositeRenderer.dispose();
+          compositeRenderer.dispose();
+          compositeRenderer.forceContextLoss();
       }
+      container.innerHTML = '';
 
+      // 重新建立乾淨的場景
       compositeScene = new THREE.Scene();
       compositeScene.background = null;
 
       const rect = container.getBoundingClientRect();
-      const containerWidth = Math.floor(rect.width);
-      const containerHeight = Math.floor(rect.height);
+      const containerWidth = Math.floor(rect.width) || 400; // 防呆預設寬度
+      const containerHeight = Math.floor(rect.height) || 350;
 
-      console.log('初始化尺寸:', containerWidth, 'x', containerHeight);
-
-      compositeCamera = new THREE.PerspectiveCamera(
-        60,
-        containerWidth / containerHeight,
-        0.01,
-        10000
-      );
-
+      compositeCamera = new THREE.PerspectiveCamera(60, containerWidth / containerHeight, 0.01, 10000);
       compositeCamera.position.set(6, 6, 6);
 
-      compositeRenderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: true,
-        preserveDrawingBuffer: true
-      });
-
+      compositeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
       compositeRenderer.setSize(containerWidth, containerHeight);
       compositeRenderer.setClearColor(0x000000, 0);
 
-      container.innerHTML = '';
       container.appendChild(compositeRenderer.domElement);
 
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -272,57 +277,50 @@
       controls.enableDamping = true;
       controls.dampingFactor = 0.1;
 
+      // 綁定動畫迴圈
       function animate() {
+        // 如果渲染器已經被銷毀，立刻停止動畫，防止殭屍迴圈！
+        if (!document.getElementById('compositeViewer')) return;
         requestAnimationFrame(animate);
         controls.update();
         compositeRenderer.render(compositeScene, compositeCamera);
       }
       animate();
 
-      // 🔥 簡化版 resize - 只更新尺寸,不碰相機位置!
-      let resizeTimeout;
-      window.addEventListener('resize', function () {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(function () {
-          const container = document.getElementById('compositeViewer');
-          if (!container || !compositeRenderer || !compositeCamera) return;
-
-          const newRect = container.getBoundingClientRect();
-          const newWidth = Math.floor(newRect.width);
-          const newHeight = Math.floor(newRect.height);
-
-          console.log('🔄 強制視窗調整:', newWidth, 'x', newHeight);
-
-          // 🔥 強制更新
-          compositeRenderer.setSize(newWidth, newHeight);
-          compositeCamera.aspect = newWidth / newHeight;
-          compositeCamera.updateProjectionMatrix();
-
-          // 確保重新渲染
-          compositeRenderer.render(compositeScene, compositeCamera);
-        }, 100); // 縮短延遲時間
-      });
-
       backgroundImageElement = document.getElementById('backgroundImage');
     }
-    // 改進的模型加載函數，確保適當的縮放
+
+    // 改進的模型加載函數，確保適當的縮放 (徹底淨化版)
     function loadModelForComposite() {
       if (!compositeScene) return;
 
-      // 清除现有模型
-      if (currentModel) {
-        compositeScene.remove(currentModel);
-        currentModel = null;
-      }
+      // 🧹 終極淨化：把場景裡除了「燈光」以外的所有東西全部殺掉！
+      // 避免疊影、死當的模型殘留
+      const objectsToRemove = [];
+      compositeScene.traverse((child) => {
+          if (child.type === 'Group' || child.type === 'Mesh' || child.type === 'Line') {
+              objectsToRemove.push(child);
+          }
+      });
+      // 強制移除並釋放記憶體
+      objectsToRemove.forEach(obj => {
+          compositeScene.remove(obj);
+          if (obj.geometry) obj.geometry.dispose();
+          if (obj.material) {
+              if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+              else obj.material.dispose();
+          }
+      });
+      currentModel = null; // 重置指標
 
       const modelType = document.getElementById('modelType').value;
 
       if (!modelType) {
-        alert('请先选择模型类型！');
+        alert('請先選擇模型類型！');
         return;
       }
 
-      // 如果没有计算数据，尝试从表单获取
+      // 如果沒有計算數據，嘗試從表單獲取
       if (!currentCalculationData) {
         if (!tryGetCurrentFormData(modelType)) {
           alert('請先進行支撐計算或填寫表單數據！');
@@ -330,7 +328,7 @@
         }
       }
 
-      // 根据类型调用对应的创建函数
+      // 根據類型調用對應的創建函數
       let modelGroup;
       switch (modelType) {
         case 'box':
@@ -364,8 +362,12 @@
         currentModel.scale.set(initialScale, initialScale, initialScale);
 
         // 更新縮放滑塊
-        document.getElementById('scaleSlider').value = initialScale;
-        document.getElementById('scaleValue').textContent = Math.round(initialScale * 100) + '%';
+        const slider = document.getElementById('scaleSlider');
+        const scaleText = document.getElementById('scaleValue');
+        if (slider && scaleText) {
+            slider.value = initialScale;
+            scaleText.textContent = Math.round(initialScale * 100) + '%';
+        }
 
         // 居中模型
         setTimeout(() => {
@@ -373,6 +375,7 @@
         }, 100);
       }
     }
+    
     function checkRendererState() {
       const container = document.getElementById('compositeViewer');
       const rect = container.getBoundingClientRect();
@@ -735,32 +738,20 @@
       container.innerHTML = `
       <h2 class="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-300 mb-4">背景合成功能</h2>
       
-      <!-- 0. 加載計算結果 -->
-      <div class="glass p-4 mb-4">
-        <h3 class="text-cyan-400 font-bold mb-3 border-b border-cyan-800 pb-2 flex items-center gap-2"><span>📥</span> 加載計算結果</h3>
-        <button class="btn-glow w-full text-sm py-3 mb-2" onclick="loadCalculationResult()" ${!currentCalculationData ? 'disabled' : ''}>
-          加載最近計算的支撐模型
-        </button>
-        <div class="text-xs text-center mt-2 ${currentCalculationData ? 'text-green-400' : 'text-slate-400'}">
-          ${currentCalculationData ? `✅ 已保存: ${currentCalculationType}支撐` : '⚠️ 請先至「數據計算」進行計算'}
-        </div>
-      </div>
+      <!-- 🚨 這裡已經刪除了原本多餘的加載按鈕區塊 -->
 
       <!-- 1. 上傳背景圖片 -->
       <div class="glass p-4 mb-4">
+        <!-- ... (中間的背景上傳 HTML 保持不變) ... -->
         <h3 class="text-cyan-400 font-bold mb-3 border-b border-cyan-800 pb-2 flex items-center gap-2"><span>🖼️</span> 上傳背景圖片</h3>
-        
-        <!-- 檔案上傳鈕美化 -->
-        <input type="file" id="backgroundUpload" accept="image/*" 
-            class="mb-3 w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-cyan-900 file:text-cyan-300 hover:file:bg-cyan-800 transition-all cursor-pointer">
-        
+        <input type="file" id="backgroundUpload" accept="image/*" class="mb-3 w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-cyan-900 file:text-cyan-300 hover:file:bg-cyan-800 transition-all cursor-pointer">
         <div class="flex gap-2">
             <button class="flex-1 bg-slate-700 text-white rounded-lg py-2 text-sm font-bold border border-slate-600 active:scale-95 transition-transform" onclick="capturePhoto()">📷 拍照</button>
             <button class="flex-1 bg-red-900/40 text-red-300 rounded-lg py-2 text-sm font-bold border border-red-800 active:scale-95 transition-transform" onclick="clearBackground()">❌ 清除背景</button>
         </div>
       </div>
 
-      <!-- 2. 選擇3D模型 -->
+      <!-- 2. 選擇3D模型 (加入了 id 綁定) -->
       <div class="glass p-4 mb-4">
         <h3 class="text-cyan-400 font-bold mb-3 border-b border-cyan-800 pb-2 flex items-center gap-2"><span>📦</span> 選擇 3D 模型</h3>
         <select id="modelType" class="input-neon text-sm mb-3" onchange="loadModelForComposite()">
@@ -772,8 +763,9 @@
         <button class="w-full bg-slate-700 text-white rounded-lg py-2 text-sm font-bold border border-slate-600 active:scale-95 transition-transform" onclick="refreshModel()">🔄 刷新模型</button>
       </div>
 
-      <!-- 3. 調整模型 -->
+      <!-- 3. 調整模型 (保持不變) -->
       <div class="glass p-4 mb-4">
+        <!-- ... (調整模型的 HTML 保持不變) ... -->
         <h3 class="text-cyan-400 font-bold mb-3 border-b border-cyan-800 pb-2 flex items-center gap-2"><span>⚙️</span> 調整模型</h3>
         <div class="flex items-center gap-3 mb-4">
           <label class="text-slate-300 text-sm whitespace-nowrap">模型縮放</label>
@@ -786,15 +778,14 @@
         </div>
       </div>
 
-      <!-- 4. 合成顯示區域 (超帥氣 HUD 螢幕感) -->
+      <!-- 4. 合成顯示區域 (保持不變) -->
       <div class="relative w-full aspect-[3/4] md:h-[60vh] border-2 border-dashed border-cyan-700 rounded-lg bg-black/60 overflow-hidden mb-4 shadow-[0_0_20px_rgba(14,165,233,0.15)] flex items-center justify-center">
-        <!-- 待命文字 -->
         <span class="absolute text-cyan-800/50 font-black text-2xl tracking-widest pointer-events-none">NO SIGNAL</span>
         <img id="backgroundImage" class="absolute w-full h-full object-contain hidden z-10">
         <div id="compositeViewer" class="absolute top-0 left-0 w-full h-full z-20"></div>
       </div>
 
-      <!-- 5. 導出按鈕 -->
+      <!-- 5. 導出按鈕 (保持不變) -->
       <div class="glass p-4 mb-4 flex flex-col gap-3">
         <select id="exportFormat" class="input-neon text-sm text-center">
           <option value="png">PNG 無損格式</option>
@@ -809,9 +800,21 @@
       <div id="compositeResult" class="mt-4 text-sm text-center"></div>
       `;
 
-      // 重新初始化 3D 場景
+      // 1. 重新初始化 3D 場景
       initCompositeViewer();
-    } 
+
+      // 🚀 2. 黑科技：如果有計算資料，直接自動載入！不需隊員動手！
+      if (currentCalculationData && currentCalculationType) {
+          setTimeout(() => {
+              const selectEl = document.getElementById('modelType');
+              if (selectEl) {
+                  selectEl.value = currentCalculationType; // 自動切換選單
+                  loadModelForComposite();                 // 自動生成模型
+                  document.getElementById('compositeResult').innerHTML = '<div class="text-green-400 font-bold p-2">✅ 已自動載入剛剛計算的支撐模型！</div>';
+              }
+          }, 200); // 給渲染器 0.2 秒的準備時間
+      }
+    }
     // ==========================================
     // 🚀 終極高畫質合成引擎 (解決手機跑位與模糊問題)
     // ==========================================
@@ -879,71 +882,96 @@
         return { canvas, width: exportWidth, height: exportHeight };
     }
 
-    // 💾 匯出圖片
+    // 💾 匯出圖片 (支援安卓 WebView 暴力下載)
     async function exportComposite() {
         if (!compositeRenderer || !compositeCamera) return alert('請先初始化合成場景!');
-        document.getElementById('compositeResult').innerHTML = '<div class="text-cyan-400 p-2 animate-pulse font-bold">⏳ 正在生成高畫質圖片...</div>';
+        const resultDiv = document.getElementById('compositeResult');
+        resultDiv.innerHTML = '<div class="text-cyan-400 p-2 animate-pulse font-bold">⏳ 正在生成高畫質圖片...</div>';
 
-        const { canvas, width, height } = await generateCompositeCanvas();
-        const format = document.getElementById('exportFormat').value;
-        const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+        try {
+            const { canvas, width, height } = await generateCompositeCanvas();
+            const format = document.getElementById('exportFormat').value;
+            const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+            const fileName = '支撐合成圖_' + new Date().getTime() + '.' + format;
 
-        const link = document.createElement('a');
-        link.download = '支撐合成圖_' + new Date().getTime() + '.' + format;
-        link.href = canvas.toDataURL(mimeType, 0.95);
-        link.click();
+            // 🚀 終極暴力下載法 (繞過所有瀏覽器限制)
+            canvas.toBlob(function(blob) {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                }, 100);
 
-        document.getElementById('compositeResult').innerHTML =
-            `<div class="text-green-400 p-2 font-bold">✅ 匯出成功! (${width}×${height})</div>`;
+                resultDiv.innerHTML = `<div class="text-green-400 p-2 font-bold">✅ 匯出成功! (${width}×${height})</div>`;
+            }, mimeType, 0.95);
+        } catch (error) {
+            resultDiv.innerHTML = `<div class="text-red-400 p-2 font-bold">❌ 匯出失敗: ${error.message}</div>`;
+        }
     }
 
-    // 📱 分享圖片
+    // 📱 分享圖片 (優化安卓退回下載機制)
     async function shareComposite() {
         if (!compositeRenderer) return alert('請先初始化合成場景!');
-        document.getElementById('compositeResult').innerHTML = '<div class="text-cyan-400 p-2 animate-pulse font-bold">⏳ 正在準備高畫質分享...</div>';
+        const resultDiv = document.getElementById('compositeResult');
+        resultDiv.innerHTML = '<div class="text-cyan-400 p-2 animate-pulse font-bold">⏳ 正在準備高畫質分享...</div>';
 
-        const { canvas } = await generateCompositeCanvas();
+        try {
+            const { canvas } = await generateCompositeCanvas();
+            const format = document.getElementById('exportFormat').value;
+            const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+            const fileName = '支撐合成圖_' + new Date().getTime() + '.' + format;
 
-        canvas.toBlob(function (blob) {
-            if (!blob) return alert('生成圖片失敗!');
-            const file = new File([blob], '支撐模型合成圖_' + new Date().getTime() + '.png', { type: 'image/png' });
+            canvas.toBlob(function (blob) {
+                if (!blob) throw new Error('Blob 生成失敗');
+                
+                const file = new File([blob], fileName, { type: mimeType });
 
-            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                navigator.share({
-                    files: [file],
-                    title: '支撐模型合成圖'
-                }).then(() => {
-                    document.getElementById('compositeResult').innerHTML = '<div class="text-green-400 p-2 font-bold">✅ 分享成功!</div>';
-                }).catch(() => {
-                    fallbackDownloadLink(file, blob);
-                });
-            } else {
-                fallbackDownloadLink(file, blob);
-            }
-        }, 'image/png');
+                // 檢查是否支援原生分享 (iOS 或 新版 Chrome)
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    navigator.share({
+                        files: [file],
+                        title: '支撐模型合成圖'
+                    }).then(() => {
+                        resultDiv.innerHTML = '<div class="text-green-400 p-2 font-bold">✅ 分享成功!</div>';
+                    }).catch((err) => {
+                        console.log("分享被取消，退回下載", err);
+                        fallbackDownloadLink(blob, fileName);
+                    });
+                } else {
+                    // 安卓 WebView 通常不支援 canShare，直接走這裡
+                    fallbackDownloadLink(blob, fileName);
+                }
+            }, mimeType, 0.95);
+        } catch (error) {
+            resultDiv.innerHTML = `<div class="text-red-400 p-2 font-bold">❌ 處理失敗: ${error.message}</div>`;
+        }
     }
 
-    function fallbackDownloadLink(file, blob) {
-        const link = document.createElement('a');
-        link.download = file.name;
-        link.href = URL.createObjectURL(blob);
-        link.click();
-        document.getElementById('compositeResult').innerHTML = '<div class="text-orange-400 p-2 font-bold">📥 已自動下載圖片</div>';
+    // 安卓專用的備用下載通道
+    function fallbackDownloadLink(blob, fileName) {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        
+        setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }, 100);
+        
+        document.getElementById('compositeResult').innerHTML = '<div class="text-orange-400 p-2 font-bold">📥 裝置不支援分享，已自動轉為下載</div>';
     }
-    // 改进的备用下载功能
-    function fallbackDownload(canvas, type = '匯出') {
-      const link = document.createElement('a');
-      link.download = `支撐模型合成圖_${new Date().getTime()}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
 
-      document.getElementById('compositeResult').innerHTML = `
-        <div style="color: orange; padding: 10px; background: #fff8e6; border-radius: 5px;">
-            📥 已自動下載圖片（瀏覽器不支援直接分享）<br>
-            📐 尺寸: ${canvas.width}×${canvas.height}
-        </div>
-    `;
-    }
     // 添加调试函数来检查尺寸
     function debugSizeInfo() {
       const container = document.getElementById('compositeViewer');
