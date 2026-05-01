@@ -1,435 +1,163 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
-
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <!-- 🔒 認證三連 1 & 2：引入 Supabase 裝甲與設定檔 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>支撐相關</title>
+  
+  <!-- 引入 Tailwind CSS (快速排版必備) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 🔒 認證三連 1 & 2：引入 Supabase 裝甲與設定檔 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../../mission_folder/supabase_config.js"></script>
 
-  <title>支撐相關</title>
   <style>
-    * {
-      box-sizing: border-box;
+    /* 🚨 繼承特搜大隊統一風格 */
+    html, body { overscroll-behavior-x: none; touch-action: pan-y; }
+    html { background-color: #030712; min-height: 100vh; }
+    body { 
+        background-color: transparent; color: #e2e8f0; 
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
+        letter-spacing: 0.5px; position: relative; overflow-x: hidden; min-height: 100vh; margin: 0;
     }
 
-    body,
-    html {
-      font-size: 18px;
-      margin: 0;
-      padding: 0;
-      height: 100vh;
-      font-family: Arial, sans-serif;
+    /* 背景流體與火花 (科技藍) */
+    body::before {
+        content: ""; position: fixed; bottom: -100px; left: -50%; width: 200%; height: 300px;
+        background: radial-gradient(ellipse at center, rgba(14, 165, 233, 0.2) 0%, transparent 70%); 
+        border-radius: 40% 45% 42% 38%; animation: water-flow 12s infinite linear; z-index: -1;
+    }
+    @keyframes water-flow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    body::after {
+        content: ""; position: fixed; inset: 0;
+        background-image: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.15) 1px, transparent 1px);
+        background-size: 40px 40px; animation: spark-drift 20s infinite linear; z-index: -2;
+    }
+    @keyframes spark-drift { 0% { background-position: 0 0; } 100% { background-position: 40px 100vh; } }
+
+    /* 效能優化：強制開啟背景 GPU 加速 */
+    body::before, body::after {
+        transform: translateZ(0);
+        will-change: transform, background-position;
     }
 
-    .container {
-      display: flex;
-      height: 100%;
+    /* 玻璃態容器 */
+    .glass { 
+        background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(15px); 
+        border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.6); position: relative; z-index: 10;
     }
 
-    .sidebar {
-      width: 240px;
-      background-color: #2c3e50;
-      color: white;
-      padding: 60px 20px 20px;
-      overflow-y: auto;
-      transition: transform 0.3s ease;
-      position: relative;
-      /* 讓返回鍵相對側邊欄定位 */
+    /* 施工藍圖輸入框 */
+    .input-neon { 
+        background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; color: #fff; 
+        font-family: inherit; outline: none; transition: 0.3s; font-size: 15px !important;
+        padding: 8px 12px !important; line-height: 1.5; border-radius: 8px; width: 100%;
+    }
+    .input-neon:focus { 
+        border-color: #38bdf8; box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+    }
+    
+    select.input-neon:focus {
+        animation: none !important; 
+        border-color: #38bdf8;
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
     }
 
-    .sidebar h2 {
-      font-size: 20px;
-      margin-bottom: 16px;
+    /* 超頻按鈕 (科技藍系) */
+    .btn-glow { 
+        position: relative; background: linear-gradient(90deg, #0284c7, #38bdf8, #818cf8, #0284c7);
+        background-size: 300% 100%; color: white; padding: 12px 20px; border-radius: 8px; font-weight: bold; 
+        letter-spacing: 2px; overflow: hidden; border: 1px solid rgba(255,255,255,0.3);
+        box-shadow: 0 0 20px rgba(14, 165, 233, 0.4); transition: all 0.3s; animation: flow-shimmer 3s linear infinite;
+        cursor: pointer;
+    }
+    .btn-glow:active { transform: scale(0.95); }
+    .btn-glow:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; animation: none; box-shadow: none; border-color: #475569;}
+    @keyframes flow-shimmer { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
+
+    /* 戰術導航分頁 (取代原本的 Sidebar) */
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; background: rgba(15, 23, 42, 0.8); padding: 4px; border-radius: 12px; border: 1px solid #334155;}
+    .tab { flex: 1; text-align: center; padding: 10px; border-radius: 8px; cursor: pointer; color: #94a3b8; font-weight: bold; transition: 0.3s; }
+    .tab.active { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.5); box-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
+
+    /* 系統警告面板 (給名言用的) */
+    .alert-panel {
+        background: rgba(220, 38, 38, 0.1); border-left: 4px solid #ef4444; border-radius: 0 8px 8px 0; padding: 12px;
+        box-shadow: 0 4px 15px rgba(220, 38, 38, 0.2); margin-bottom: 20px;
     }
 
-    .sidebar ul {
-      list-style: none;
-      padding: 0;
-    }
+    /* 以下保留給 3D 繪圖與裝備清單的必要 CSS */
+    .result { margin-top: 20px; padding: 15px; background: rgba(15, 23, 42, 0.8); border-radius: 8px; border: 1px solid #38bdf8; box-shadow: 0 0 15px rgba(56, 189, 248, 0.1); }
+    .result-section { margin-bottom: 16px; }
+    .result-section h3 { border-bottom: 1px solid #38bdf8; padding-bottom: 4px; margin-bottom: 10px; color: #7dd3fc; }
+    .result-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #475569; }
+    .result-label { flex: 1; color: #cbd5e1; }
+    .result-value { flex: 0 0 auto; font-weight: bold; color: #facc15; } /* 金黃色凸顯數值 */
 
-    .sidebar ul li {
-      margin: 12px 0;
-      cursor: pointer;
-      color: #ecf0f1;
-      font-size: 20px;
-      /* 或你想要的字体大小 */
-    }
-
-    .sidebar ul li:hover {
-      color: #1abc9c;
-    }
-
-    .main-content {
-      flex-grow: 1;
-      padding: 20px;
-      padding-top: 60px;
-      /* ✅ 大螢幕版 */
-      overflow-y: auto;
-    }
-
-    .menu-button {
-      display: none;
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      background-color: #2c3e50;
-      color: white;
-      border: none;
-      padding: 10px 14px;
-      font-size: 16px;
-      cursor: pointer;
-      z-index: 1000;
-    }
-
-    .form-group {
-      margin-bottom: 12px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 4px;
-      color: #333;
-    }
-
-    .form-group input {
-      width: 100%;
-      padding: 8px;
-      font-size: 16px;
-    }
-
-    /*以下放裝備清單css*/
-    .group-container {
-      margin-bottom: 20px;
-      border-left: 6px solid #3498db;
-      padding: 10px 15px;
-      border-radius: 8px;
-      background: #f4f4f4;
-    }
-
-    .item-summary {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #fff;
-      padding: 10px;
-      border-radius: 6px;
-      margin-bottom: 5px;
-      border: 1px solid #ddd;
-    }
-
-    .item-details {
-      display: none;
-      margin-top: 10px;
-      padding: 10px;
-      background: #fff;
-      border-radius: 6px;
-      border: 1px solid #ddd;
-    }
-
-    .item-detail-content {
-      display: flex;
-      flex-direction: row;
-      gap: 10px;
-    }
-
-    .item-text {
-      flex: 1;
-    }
-
-    .item-img {
-      flex: 0 0 120px;
-    }
-
-    .item-img img {
-      max-width: 100%;
-      border-radius: 4px;
-    }
-
-    /*裝備清單新增到這裡*/
-    @media (max-width: 768px) {
-      .main-content {
-        padding-top: 30px;
-        /* 手機離頂部有點距離 */
-      }
-
-      .sidebar {
-        position: fixed;
-        left: 0;
-        top: 0;
-        height: 100%;
-        z-index: 999;
-        transform: translateX(-100%);
-      }
-
-      .sidebar.open {
-        transform: translateX(0);
-      }
-
-      .menu-button {
-        display: block;
-      }
-
-      .container {
-        flex-direction: column;
-      }
-
-      /*以下是裝備清單*/
-      .item-detail-content {
-        flex-direction: column;
-      }
-
-      .item-img {
-        flex: unset;
-      }
-
-      /*裝備清單結束*/
-    }
-
-    select,
-    input {
-      margin: 2px 0;
-      padding: 2px 4px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      background-color: #fff;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      transition: border-color 0.2s, box-shadow 0.2s;
-      outline: none;
-    }
-
-    select:focus,
-    input:focus {
-      border-color: #4a90e2;
-      box-shadow: 0 0 5px rgba(74, 144, 226, 0.5);
-    }
-
-    button {
-      margin: 10px 0;
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: #4CAF50;
-      /* 綠色 */
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      transition: background-color 0.3s, box-shadow 0.3s;
-    }
-
-    button:hover {
-      background-color: #45a049;
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    button:active {
-      background-color: #3e8e41;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
-
-    button:disabled {
-      opacity: 0.6;
-      /* 透明度降低，看起來灰掉 */
-      cursor: not-allowed;
-      /* 滑鼠游標變成禁止符號 */
-      background-color: #ccc;
-      /* 背景顏色改淡灰 */
-      color: #666;
-      /* 字體顏色改淡灰 */
-      pointer-events: none;
-      /* 禁止任何滑鼠事件 */
-    }
-
-    .result {
-      margin-top: 20px;
-      padding: 15px;
-      background-color: #ecf0f1;
-      border-left: 4px solid #1abc9c;
-    }
-
-    .result-section {
-      margin-bottom: 16px;
-    }
-
-    .result-section h3 {
-      border-bottom: 2px solid #1abc9c;
-      padding-bottom: 4px;
-      margin-bottom: 10px;
-      color: #16a085;
-    }
-
-    .result-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 4px 0;
-      border-bottom: 1px dashed #ccc;
-    }
-
-    .result-label {
-      flex: 1;
-      color: #333;
-    }
-
-    .result-value {
-      flex: 0 0 auto;
-      font-weight: bold;
-      color: #e67e22;
-    }
-
-    /*以下放裝備清單新增手機介面*/
-    .toggle-btn {
-      background-color: #3498db;
-      color: white;
-      border: none;
-      padding: 5px 10px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    /*說明書連結*/
-    .link-button {
-      display: inline-block;
-      padding: 4px 8px;
-      background-color: #3498db;
-      color: white;
-      border-radius: 6px;
-      text-decoration: none;
-      font-size: 14px;
-      margin-left: 6px;
-    }
-
-    /* 背景合成页面的响应式样式 */
-    @media (max-width: 768px) {
-      #compositeViewer {
-        height: 60vh !important;
-      }
-
-      input[type="file"],
-      select,
-      button {
-        font-size: 16px !important;
-        /* 防止iOS缩放 */
-        padding: 12px !important;
-      }
-
-      input[type="range"] {
-        width: 150px !important;
-      }
-    }
-
-    /* 控制按钮样式 */
-    .composite-controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin: 10px 0;
-    }
-
-    .composite-controls button {
-      flex: 1;
-      min-width: 120px;
-    }
-
-    /* 添加到现有的 CSS 中 */
-    .back-button {
-      background-color: #3498db;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 16px;
-      position: absolute;
-      /* 改為絕對定位 */
-      bottom: 20px;
-      /* 距離底部 20px */
-      left: 20px;
-      /* 距離左側 20px */
-      right: 20px;
-      /* 距離右側 20px */
-      width: auto;
-      /* 自動寬度 */
-    }
-
-    .back-button:hover {
-      background-color: #2980b9;
-    }
-
-    /* 📱 手機版專屬返回按鈕 (放在選單旁邊) */
-    .back-mobile-btn {
-      display: none;
-      position: fixed;
-      top: 10px;
-      left: 80px; /* 🚀 偏移 80px，剛好放在選單按鈕的右邊 */
-      background-color: #e67e22; /* 警戒橘色 */
-      color: white;
-      border: none;
-      padding: 10px 14px;
-      font-size: 16px;
-      cursor: pointer;
-      z-index: 1000;
-      border-radius: 4px;
-    }
+    .group-container { margin-bottom: 20px; border-left: 4px solid #38bdf8; padding: 10px 15px; border-radius: 8px; background: rgba(30, 41, 59, 0.6); }
+    .item-summary { display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.9); padding: 10px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #475569; }
+    .item-details { display: none; margin-top: 10px; padding: 10px; background: rgba(15, 23, 42, 0.9); border-radius: 6px; border: 1px solid #475569; }
+    .item-detail-content { display: flex; flex-direction: row; gap: 10px; }
+    .item-text { flex: 1; color: #cbd5e1; }
+    .item-img { flex: 0 0 120px; }
+    .item-img img { max-width: 100%; border-radius: 4px; border: 1px solid #475569; }
 
     @media (max-width: 768px) {
-      .back-mobile-btn {
-        display: block; /* 手機版才顯示 */
-      }
+      .item-detail-content { flex-direction: column; }
+      .item-img { flex: unset; }
     }
-
-    /* ⛶ 3D 全螢幕力場 */
+    /* ⛶ 3D 全螢幕力場 (終極防護版) */
     .fullscreen-mode {
-      position: fixed !important;
-      top: 0; left: 0;
-      width: 100vw !important;
-      height: 100vh !important;
-      z-index: 9999;
-      margin: 0 !important;
-      border-radius: 0 !important;
-      background: #111 !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 9999 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        background: #030712 !important; /* 特搜黑 */
     }
   </style>
-
 </head>
 
-<body>
+<body class="p-4 pb-12">
+  <div class="max-w-md mx-auto">
+      
+      <!-- 🌟 頂部標題與返回按鈕 -->
+      <header class="mb-6 relative flex items-center justify-center">
+          <button onclick="window.location.href='../app_rescue.html'" class="absolute left-0 text-cyan-400 font-bold z-50">◀ 返回</button>
+          <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">支撐工程模組</h1>
+      </header>
 
-  <button class="menu-button" onclick="toggleSidebar()">選單</button>
+      <!-- 🌟 戰術導航分頁 (取代 Sidebar) -->
+      <div class="tabs">
+          <div id="tab-calc" class="tab active" onclick="switchTab('calc')">數據計算</div>
+          <div id="tab-composite" class="tab" onclick="switchTab('composite')">背景合成</div>
+      </div>
 
-  <!-- 🚀 新增：手機版專用返回按鈕 -->
-  <button class="back-mobile-btn" onclick="window.location.href='../app_rescue.html'">◀ 返回</button>
+      <!-- 🌟 主要內容區塊 -->
+      <div id="main-content" class="glass p-5">
+          <!-- 預設顯示：系統提示與名言 -->
+          <div class="alert-panel mb-6">
+              <h2 class="text-red-400 font-bold mb-2">⚠️ 花搜搜二名言</h2>
+              <p class="text-white text-lg font-black tracking-widest mb-2">「成也支撐，敗也支撐」</p>
+              <div class="text-xs text-slate-300 space-y-1">
+                  <p>▶ 支撐種類包含：箱型支撐、牆面支撐、斜樓板支撐</p>
+                  <p>▶ 可根據現場測量資料自動計算所需支撐長度與材料</p>
+                  <p>▶ 計算結果分為「臨時支撐」與「完整支撐」</p>
+              </div>
+              <p class="text-red-400 font-bold text-xs mt-3 bg-red-900/30 p-2 rounded inline-block">小朋友才計較得很精細</p>
+          </div>
+          
+          <p class="text-center text-slate-400 text-sm animate-pulse">▶ 請點選上方標籤開始操作</p>
+      </div>
 
-  <div class="container">
-    <div class="sidebar" id="sidebar">
-      <h2>數學不好</h2>
-      <ul>
-        <li onclick="showCalculationForm()">計算</li>
-
-        <li onclick="showBackgroundComposite()">背景合成</li> <!-- 新增这行 -->
-
-      </ul>
-    </div>
-    <div class="main-content" id="main-content">
-
-      <h2>套一句花搜搜二的名言:<br>
-        <span style="color: red;">成也支撐敗也支撐</span>
-        <p><strong>說明：</strong></p>
-        <ul style="padding-left: 30px; line-height: 1.6;">
-          <li>支撐種類包含：<br>箱型支撐、牆面支撐、斜樓板支撐</li>
-          <li>可根據現場測量資料自動計算所需支撐長度與材料</li>
-          <li>計算結果會區分為<br>「臨時支撐」<br>「完整支撐」</li>
-        </ul>
-        <ul style="padding-left: 28px; line-height: 1.6; background-color: #ffe5e5;">
-          <li style="color: red; font-weight: bold;">小朋友才計較得很精細</li>
-        </ul>
-
-        <p style="color: #666; font-size: 14px;">請點選左側選單來開始選擇計算類型。</p>
-    </div>
   </div>
+
+  <!-- 原本的 3D 套件載入保留 -->
   <!-- ...existing code... -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.124.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.124.0/examples/js/controls/OrbitControls.min.js"></script>
@@ -451,7 +179,23 @@
     let currentModel = null;
     let backgroundImageElement = null;
 
+    // 🚀 戰術導航分頁切換邏輯
+    function switchTab(tabId) {
+      // 1. 切換標籤的發光狀態
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.getElementById('tab-' + tabId).classList.add('active');
 
+      // 2. 根據點擊的標籤，呼叫對應的畫面生成函數
+      if (tabId === 'calc') {
+        if (typeof showCalculationForm === 'function') {
+            showCalculationForm(); // 呼叫您原本的計算畫面
+        } else {
+            document.getElementById('main-content').innerHTML = '<p class="text-cyan-400 text-center mt-10">請選擇左方或上方選單進行操作。</p>';
+        }
+      } else if (tabId === 'composite') {
+        showBackgroundComposite(); // 呼叫背景合成畫面
+      }
+    }
 
     function toggleSidebar() {
       document.getElementById("sidebar").classList.toggle("open");
@@ -949,88 +693,8 @@
       loadModelForComposite();
     }
 
-    // 全新的精确导出函数 - 完全匹配预览
-    function exportComposite() {
-      if (!compositeRenderer) {
-        alert('請先初始化合成場景!');
-        return;
-      }
-
-      document.getElementById('compositeResult').innerHTML = '<div style="color: blue; padding: 10px;">⏳ 正在生成圖片...</div>';
-
-      const format = document.getElementById('exportFormat').value;
-      const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
-
-      // 使用與預覽完全相同的尺寸計算
-      const container = document.getElementById('compositeViewer');
-      const rect = container.getBoundingClientRect();
-      const targetWidth = Math.floor(rect.width);
-      const targetHeight = Math.floor(rect.height);
-
-      console.log('匯出尺寸計算:', {
-        容器: `${rect.width} × ${rect.height}`,
-        最終: `${targetWidth} × ${targetHeight}`,
-        渲染器: `${compositeRenderer.domElement.width} × ${compositeRenderer.domElement.height}`
-      });
-
-      const canvas = document.createElement('canvas');
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
-      const ctx = canvas.getContext('2d');
-
-      // 白色背景
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, targetWidth, targetHeight);
-
-      // 🔥 關鍵修復：背景圖片使用與預覽完全相同的 object-fit: contain 邏輯
-      if (backgroundImageElement && backgroundImageElement.style.display !== 'none' && backgroundImageElement.naturalWidth > 0) {
-        const img = backgroundImageElement;
-        const containerRatio = targetWidth / targetHeight;
-        const imgRatio = img.naturalWidth / img.naturalHeight;
-
-        let drawWidth, drawHeight, offsetX, offsetY;
-
-        // 完全複製 object-fit: contain 的計算邏輯
-        if (imgRatio > containerRatio) {
-          // 圖片較寬，以寬度為基準
-          drawWidth = targetWidth;
-          drawHeight = targetWidth / imgRatio;
-          offsetX = 0;
-          offsetY = (targetHeight - drawHeight) / 2;
-        } else {
-          // 圖片較高，以高度為基準
-          drawHeight = targetHeight;
-          drawWidth = targetHeight * imgRatio;
-          offsetX = (targetWidth - drawWidth) / 2;
-          offsetY = 0;
-        }
-
-        console.log('背景圖繪製參數:', {
-          原始尺寸: `${img.naturalWidth} × ${img.naturalHeight}`,
-          繪製尺寸: `${drawWidth} × ${drawHeight}`,
-          偏移: `(${offsetX}, ${offsetY})`,
-          比例: `容器: ${containerRatio}, 圖片: ${imgRatio}`
-        });
-
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-      }
-
-      // 🔥 3D 內容 - 確保與背景圖相同的尺寸和位置
-      if (compositeRenderer && compositeRenderer.domElement) {
-        // 直接繪製渲染器內容，使用相同的尺寸
-        ctx.drawImage(compositeRenderer.domElement, 0, 0, targetWidth, targetHeight);
-      }
-
-      const link = document.createElement('a');
-      link.download = '支撐合成圖_' + new Date().getTime() + '.' + format;
-      link.href = canvas.toDataURL(mimeType, 0.95);
-      link.click();
-
-      document.getElementById('compositeResult').innerHTML =
-        '<div style="color: green; padding: 10px;">✅ 匯出成功! (' + targetWidth + '×' + targetHeight + ')</div>';
-    }
+    
+    
     function debugCompositeLayout() {
       const container = document.getElementById('compositeViewer');
       const rect = container.getBoundingClientRect();
@@ -1065,163 +729,206 @@
     }
 
 
-    // 顯示背景合成功能界面
+    // 📸 顯示背景合成功能界面 (特搜大隊科技版)
     function showBackgroundComposite() {
       const container = document.getElementById("main-content");
       container.innerHTML = `
-      <h2>背景合成功能</h2>
+      <h2 class="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-300 mb-4">背景合成功能</h2>
       
-      <!-- 新增：加載計算結果 -->
-      <div style="margin-bottom: 20px; padding: 15px; background: #e8f4f8; border-radius: 8px;">
-        <h3>0. 加載計算結果</h3>
-        <button onclick="loadCalculationResult()" ${!currentCalculationData ? 'disabled' : ''}>
-          📥 加載最近計算的支撐模型
+      <!-- 0. 加載計算結果 -->
+      <div class="glass p-4 mb-4">
+        <h3 class="text-cyan-400 font-bold mb-3 border-b border-cyan-800 pb-2 flex items-center gap-2"><span>📥</span> 加載計算結果</h3>
+        <button class="btn-glow w-full text-sm py-3 mb-2" onclick="loadCalculationResult()" ${!currentCalculationData ? 'disabled' : ''}>
+          加載最近計算的支撐模型
         </button>
-        <span style="margin-left: 10px; color: #666;">
-          ${currentCalculationData ? `已保存: ${currentCalculationType}支撐` : '請先進行支撐計算'}
-        </span>
+        <div class="text-xs text-center mt-2 ${currentCalculationData ? 'text-green-400' : 'text-slate-400'}">
+          ${currentCalculationData ? `✅ 已保存: ${currentCalculationType}支撐` : '⚠️ 請先至「數據計算」進行計算'}
+        </div>
       </div>
 
-      
-      <!-- 背景图片上传区域 -->
-      <div style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
-        <h3>1. 上傳背景圖片</h3>
-        <input type="file" id="backgroundUpload" accept="image/*" style="margin-bottom: 10px;">
-        <button onclick="capturePhoto()" style="margin-left: 10px;">📷 拍照</button>
-        <button onclick="clearBackground()" style="margin-left: 10px;">❌ 清除背景</button>
+      <!-- 1. 上傳背景圖片 -->
+      <div class="glass p-4 mb-4">
+        <h3 class="text-cyan-400 font-bold mb-3 border-b border-cyan-800 pb-2 flex items-center gap-2"><span>🖼️</span> 上傳背景圖片</h3>
+        
+        <!-- 檔案上傳鈕美化 -->
+        <input type="file" id="backgroundUpload" accept="image/*" 
+            class="mb-3 w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-cyan-900 file:text-cyan-300 hover:file:bg-cyan-800 transition-all cursor-pointer">
+        
+        <div class="flex gap-2">
+            <button class="flex-1 bg-slate-700 text-white rounded-lg py-2 text-sm font-bold border border-slate-600 active:scale-95 transition-transform" onclick="capturePhoto()">📷 拍照</button>
+            <button class="flex-1 bg-red-900/40 text-red-300 rounded-lg py-2 text-sm font-bold border border-red-800 active:scale-95 transition-transform" onclick="clearBackground()">❌ 清除背景</button>
+        </div>
       </div>
 
-      <!-- 3D模型选择 -->
-      <div style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
-        <h3>2. 選擇3D模型</h3>
-        <select id="modelType" onchange="loadModelForComposite()">
-          <option value="">請先計算支撐以生成模型</option>
+      <!-- 2. 選擇3D模型 -->
+      <div class="glass p-4 mb-4">
+        <h3 class="text-cyan-400 font-bold mb-3 border-b border-cyan-800 pb-2 flex items-center gap-2"><span>📦</span> 選擇 3D 模型</h3>
+        <select id="modelType" class="input-neon text-sm mb-3" onchange="loadModelForComposite()">
+          <option value="">-- 請先計算支撐以生成模型 --</option>
           <option value="box">箱型支撐</option>
           <option value="wall">牆面支撐</option>
           <option value="floor">斜樓板支撐</option>
         </select>
-        <button onclick="refreshModel()" style="margin-left: 10px;">🔄 刷新模型</button>
+        <button class="w-full bg-slate-700 text-white rounded-lg py-2 text-sm font-bold border border-slate-600 active:scale-95 transition-transform" onclick="refreshModel()">🔄 刷新模型</button>
       </div>
 
-      <!-- 控制面板 -->
-      <div style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
-        <h3>3. 調整模型</h3>
-        <div>
-          <label>縮放: </label>
-          <input type="range" id="scaleSlider" min="0.1" max="3" step="0.1" value="1" onchange="updateModelScale(this.value)" style="width: 200px;">
-          <span id="scaleValue">100%</span>
+      <!-- 3. 調整模型 -->
+      <div class="glass p-4 mb-4">
+        <h3 class="text-cyan-400 font-bold mb-3 border-b border-cyan-800 pb-2 flex items-center gap-2"><span>⚙️</span> 調整模型</h3>
+        <div class="flex items-center gap-3 mb-4">
+          <label class="text-slate-300 text-sm whitespace-nowrap">模型縮放</label>
+          <input type="range" id="scaleSlider" min="0.1" max="3" step="0.1" value="1" onchange="updateModelScale(this.value)" class="w-full accent-cyan-500">
+          <span id="scaleValue" class="text-cyan-400 font-bold text-sm min-w-[45px] text-right">100%</span>
         </div>
-        <div style="margin-top: 10px;">
-          <button onclick="resetModelPosition()">↺ 重置位置</button>
-          <button onclick="centerModel()" style="margin-left: 10px;">🎯 置中對齊</button>
+        <div class="flex gap-2">
+          <button class="flex-1 bg-slate-700 text-white rounded-lg py-2 text-sm font-bold border border-slate-600 active:scale-95 transition-transform" onclick="resetModelPosition()">↺ 重置位置</button>
+          <button class="flex-1 bg-slate-700 text-white rounded-lg py-2 text-sm font-bold border border-slate-600 active:scale-95 transition-transform" onclick="centerModel()">🎯 置中對齊</button>
         </div>
       </div>
 
-      <!-- 合成顯示區域 -->
-      <div style="position: relative; width: 100%; height: 70vh; border: 2px dashed #ccc; background: white; overflow: hidden;">
-        <img id="backgroundImage" style="width: 100%; height: 100%; object-fit: contain; display: none;">
-        <div id="compositeViewer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+      <!-- 4. 合成顯示區域 (超帥氣 HUD 螢幕感) -->
+      <div class="relative w-full aspect-[3/4] md:h-[60vh] border-2 border-dashed border-cyan-700 rounded-lg bg-black/60 overflow-hidden mb-4 shadow-[0_0_20px_rgba(14,165,233,0.15)] flex items-center justify-center">
+        <!-- 待命文字 -->
+        <span class="absolute text-cyan-800/50 font-black text-2xl tracking-widest pointer-events-none">NO SIGNAL</span>
+        <img id="backgroundImage" class="absolute w-full h-full object-contain hidden z-10">
+        <div id="compositeViewer" class="absolute top-0 left-0 w-full h-full z-20"></div>
       </div>
 
-      <!-- 導出按鈕 -->
-      <div style="margin-top: 20px; text-align: center;">
-        <button onclick="exportComposite()" style="padding: 12px 24px; font-size: 18px;">💾 匯出合成圖片</button>
-        <button onclick="shareComposite()" style="padding: 12px 24px; font-size: 18px; background-color: #06c755; color: white; border: none; border-radius: 8px; margin-left: 10px;">📱 分享圖片</button>
-        <select id="exportFormat" style="margin-left: 10px; padding: 10px;">
-          <option value="png">PNG格式</option>
-          <option value="jpg">JPG格式</option>
+      <!-- 5. 導出按鈕 -->
+      <div class="glass p-4 mb-4 flex flex-col gap-3">
+        <select id="exportFormat" class="input-neon text-sm text-center">
+          <option value="png">PNG 無損格式</option>
+          <option value="jpg">JPG 壓縮格式</option>
         </select>
+        <div class="flex gap-2">
+            <button class="btn-glow flex-1 py-3 text-sm" onclick="exportComposite()">💾 匯出圖片</button>
+            <button class="flex-1 bg-green-600 text-white rounded-lg py-3 text-sm font-bold border border-green-500 shadow-[0_0_15px_rgba(22,163,74,0.4)] active:scale-95 transition-transform" onclick="shareComposite()">📱 分享</button>
+        </div>
       </div>
 
-      <div id="compositeResult" style="margin-top: 20px;"></div>
+      <div id="compositeResult" class="mt-4 text-sm text-center"></div>
       `;
 
-      // 初始化合成查看器
+      // 重新初始化 3D 場景
       initCompositeViewer();
+    } 
+    // ==========================================
+    // 🚀 終極高畫質合成引擎 (解決手機跑位與模糊問題)
+    // ==========================================
+    async function generateCompositeCanvas() {
+        const container = document.getElementById('compositeViewer');
+        const bgImg = document.getElementById('backgroundImage');
+        
+        // 抓取「當下」精確的 CSS 尺寸
+        const currentWidth = container.clientWidth;
+        const currentHeight = container.clientHeight;
+        
+        // 🚀 黑科技：讀取手機的 Retina 像素密度 (通常是 2 或 3，電腦是 1)
+        const dpr = window.devicePixelRatio || 1;
+        const exportWidth = currentWidth * dpr;
+        const exportHeight = currentHeight * dpr;
 
-      if (window.innerWidth <= 768) {
-        document.getElementById("sidebar").classList.remove("open");
-      }
+        // 1. 強制同步 3D 渲染器尺寸、比例與高畫素
+        compositeRenderer.setSize(currentWidth, currentHeight);
+        compositeRenderer.setPixelRatio(dpr); // 🚀 關鍵：讓 3D 渲染也變成高畫質
+        compositeCamera.aspect = currentWidth / currentHeight;
+        compositeCamera.updateProjectionMatrix();
+        compositeRenderer.render(compositeScene, compositeCamera);
+
+        // 2. 建立高畫質 Canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = exportWidth;
+        canvas.height = exportHeight;
+        const ctx = canvas.getContext('2d');
+
+        // 填滿白底
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, exportWidth, exportHeight);
+
+        // 3. 繪製背景圖 (精確放大對齊 object-fit: contain)
+        if (bgImg && bgImg.style.display !== 'none' && bgImg.naturalWidth > 0) {
+            const containerRatio = exportWidth / exportHeight;
+            const imgRatio = bgImg.naturalWidth / bgImg.naturalHeight;
+
+            let drawWidth, drawHeight, offsetX, offsetY;
+
+            if (imgRatio > containerRatio) {
+                drawWidth = exportWidth;
+                drawHeight = exportWidth / imgRatio;
+                offsetX = 0;
+                offsetY = (exportHeight - drawHeight) / 2;
+            } else {
+                drawHeight = exportHeight;
+                drawWidth = exportHeight * imgRatio;
+                offsetX = (exportWidth - drawWidth) / 2;
+                offsetY = 0;
+            }
+
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(bgImg, offsetX, offsetY, drawWidth, drawHeight);
+        }
+
+        // 4. 疊加 3D 渲染結果 (此時的 domElement 已經是高畫質尺寸)
+        ctx.drawImage(compositeRenderer.domElement, 0, 0, exportWidth, exportHeight);
+
+        // 5. 輸出完畢，把預覽畫質降回一般，避免手機發燙卡頓
+        compositeRenderer.setPixelRatio(1);
+        compositeRenderer.setSize(currentWidth, currentHeight);
+        
+        return { canvas, width: exportWidth, height: exportHeight };
     }
 
-    // 修复分享功能
-    function shareComposite() {
-      if (!compositeRenderer) {
-        alert('請先初始化合成場景!');
-        return;
-      }
+    // 💾 匯出圖片
+    async function exportComposite() {
+        if (!compositeRenderer || !compositeCamera) return alert('請先初始化合成場景!');
+        document.getElementById('compositeResult').innerHTML = '<div class="text-cyan-400 p-2 animate-pulse font-bold">⏳ 正在生成高畫質圖片...</div>';
 
-      document.getElementById('compositeResult').innerHTML = '<div style="color: blue; padding: 10px;">⏳ 正在生成分享圖片...</div>';
+        const { canvas, width, height } = await generateCompositeCanvas();
+        const format = document.getElementById('exportFormat').value;
+        const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
 
-      const container = document.getElementById('compositeViewer');
-      const rect = container.getBoundingClientRect();
-      const targetWidth = Math.floor(rect.width);
-      const targetHeight = Math.floor(rect.height);
+        const link = document.createElement('a');
+        link.download = '支撐合成圖_' + new Date().getTime() + '.' + format;
+        link.href = canvas.toDataURL(mimeType, 0.95);
+        link.click();
 
-      const canvas = document.createElement('canvas');
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
-      const ctx = canvas.getContext('2d');
+        document.getElementById('compositeResult').innerHTML =
+            `<div class="text-green-400 p-2 font-bold">✅ 匯出成功! (${width}×${height})</div>`;
+    }
 
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, targetWidth, targetHeight);
+    // 📱 分享圖片
+    async function shareComposite() {
+        if (!compositeRenderer) return alert('請先初始化合成場景!');
+        document.getElementById('compositeResult').innerHTML = '<div class="text-cyan-400 p-2 animate-pulse font-bold">⏳ 正在準備高畫質分享...</div>';
 
-      if (backgroundImageElement && backgroundImageElement.style.display !== 'none' && backgroundImageElement.naturalWidth > 0) {
-        const img = backgroundImageElement;
-        const containerRatio = targetWidth / targetHeight;
-        const imgRatio = img.naturalWidth / img.naturalHeight;
-        let drawWidth, drawHeight, offsetX, offsetY;
+        const { canvas } = await generateCompositeCanvas();
 
-        if (imgRatio > containerRatio) {
-          drawWidth = targetWidth;
-          drawHeight = targetWidth / imgRatio;
-          offsetX = 0;
-          offsetY = (targetHeight - drawHeight) / 2;
-        } else {
-          drawHeight = targetHeight;
-          drawWidth = targetHeight * imgRatio;
-          offsetX = (targetWidth - drawWidth) / 2;
-          offsetY = 0;
-        }
+        canvas.toBlob(function (blob) {
+            if (!blob) return alert('生成圖片失敗!');
+            const file = new File([blob], '支撐模型合成圖_' + new Date().getTime() + '.png', { type: 'image/png' });
 
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-      }
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({
+                    files: [file],
+                    title: '支撐模型合成圖'
+                }).then(() => {
+                    document.getElementById('compositeResult').innerHTML = '<div class="text-green-400 p-2 font-bold">✅ 分享成功!</div>';
+                }).catch(() => {
+                    fallbackDownloadLink(file, blob);
+                });
+            } else {
+                fallbackDownloadLink(file, blob);
+            }
+        }, 'image/png');
+    }
 
-      if (compositeRenderer && compositeRenderer.domElement) {
-        ctx.drawImage(compositeRenderer.domElement, 0, 0, targetWidth, targetHeight);
-      }
-
-      canvas.toBlob(function (blob) {
-        if (!blob) {
-          alert('生成圖片失敗!');
-          return;
-        }
-
-        const file = new File([blob], '支撐模型合成圖_' + new Date().getTime() + '.png', { type: 'image/png' });
-
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-          navigator.share({
-            files: [file],
-            title: '支撐模型合成圖'
-          }).then(function () {
-            document.getElementById('compositeResult').innerHTML = '<div style="color: green; padding: 10px;">✅ 分享成功!</div>';
-          }).catch(function (error) {
-            const link = document.createElement('a');
-            link.download = file.name;
-            link.href = URL.createObjectURL(blob);
-            link.click();
-            document.getElementById('compositeResult').innerHTML = '<div style="color: orange; padding: 10px;">📥 已下載圖片</div>';
-          });
-        } else {
-          const link = document.createElement('a');
-          link.download = file.name;
-          link.href = URL.createObjectURL(blob);
-          link.click();
-          document.getElementById('compositeResult').innerHTML = '<div style="color: orange; padding: 10px;">📥 已下載圖片</div>';
-        }
-      }, 'image/png');
+    function fallbackDownloadLink(file, blob) {
+        const link = document.createElement('a');
+        link.download = file.name;
+        link.href = URL.createObjectURL(blob);
+        link.click();
+        document.getElementById('compositeResult').innerHTML = '<div class="text-orange-400 p-2 font-bold">📥 已自動下載圖片</div>';
     }
     // 改进的备用下载功能
     function fallbackDownload(canvas, type = '匯出') {
@@ -1312,82 +1019,7 @@
       }
     }, 2000);
 
-    // 專門針對手機優化的匯出功能
-    function exportComposite() {
-      if (!compositeRenderer || !compositeCamera) {
-        alert('請先初始化合成場景!');
-        return;
-      }
-
-      document.getElementById('compositeResult').innerHTML = '<div style="color: blue; padding: 10px;">⏳ 正在生成圖片...</div>';
-
-      // 🔥🔥🔥 關鍵修復：強制重新同步渲染器尺寸！
-      const container = document.getElementById('compositeViewer');
-      const currentRect = container.getBoundingClientRect();
-      const currentWidth = Math.floor(currentRect.width);
-      const currentHeight = Math.floor(currentRect.height);
-
-      console.log('🔥 當前實際容器尺寸:', currentWidth, 'x', currentHeight);
-      console.log('🔥 渲染器當前尺寸:', compositeRenderer.domElement.width, 'x', compositeRenderer.domElement.height);
-
-      // 🔥 強制更新渲染器和相機到當前實際尺寸
-      compositeRenderer.setSize(currentWidth, currentHeight);
-      compositeCamera.aspect = currentWidth / currentHeight;
-      compositeCamera.updateProjectionMatrix();
-
-      // 🔥 強制重新渲染一次，確保內容正確
-      compositeRenderer.render(compositeScene, compositeCamera);
-
-      const format = document.getElementById('exportFormat').value;
-      const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
-
-      const canvas = document.createElement('canvas');
-      canvas.width = currentWidth;
-      canvas.height = currentHeight;
-      const ctx = canvas.getContext('2d');
-
-      // 白色背景
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, currentWidth, currentHeight);
-
-      // 背景圖片 - 使用與預覽相同的 object-fit: contain 邏輯
-      if (backgroundImageElement && backgroundImageElement.style.display !== 'none' && backgroundImageElement.naturalWidth > 0) {
-        const img = backgroundImageElement;
-        const containerRatio = currentWidth / currentHeight;
-        const imgRatio = img.naturalWidth / img.naturalHeight;
-
-        let drawWidth, drawHeight, offsetX, offsetY;
-
-        if (imgRatio > containerRatio) {
-          drawWidth = currentWidth;
-          drawHeight = currentWidth / imgRatio;
-          offsetX = 0;
-          offsetY = (currentHeight - drawHeight) / 2;
-        } else {
-          drawHeight = currentHeight;
-          drawWidth = currentHeight * imgRatio;
-          offsetX = (currentWidth - drawWidth) / 2;
-          offsetY = 0;
-        }
-
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-      }
-
-      // 🔥 現在繪製同步後的渲染器內容
-      ctx.drawImage(compositeRenderer.domElement, 0, 0, currentWidth, currentHeight);
-
-      const link = document.createElement('a');
-      link.download = '支撐合成圖_' + new Date().getTime() + '.' + format;
-      link.href = canvas.toDataURL(mimeType, 0.95);
-      link.click();
-
-      document.getElementById('compositeResult').innerHTML =
-        '<div style="color: green; padding: 10px;">✅ 匯出成功! (' + currentWidth + '×' + currentHeight + ')</div>';
-
-      console.log('🔥 最終匯出尺寸:', currentWidth, 'x', currentHeight);
-    }
+    
     // 成功訊息顯示
     function showSuccessMessage(width, height, type) {
       const sizeMB = (width * height * 4 / 1024 / 1024).toFixed(2);

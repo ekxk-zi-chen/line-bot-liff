@@ -1,128 +1,91 @@
+    // 📊 顯示計算初始介面 (特搜大隊科技版)
     function showCalculationForm() {
       const container = document.getElementById("main-content");
       container.innerHTML = `
-        <h2>支撐計算</h2>
-        <label>選擇計算類型：
-          <select id="calcType" onchange="renderCalcForm()">
-            <option value="">👉👉點我選擇支撐類型💡💡</option>
-            <option value="box">📦📦箱型支撐📦📦</option>
-            <option value="wall">🧱🧱牆面支撐🧱🧱</option>
-            <option value="floor">📐📐斜樓板支撐📐📐</option>
-          </select>
-        </label>
-        <div id="dynamicForm"></div>
+        <h2 class="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-300 mb-4">支撐數據計算</h2>
+        
+        <div class="glass p-4 mb-4">
+            <label class="block text-cyan-400 font-bold mb-2 flex items-center gap-2"><span>📐</span> 選擇計算類型</label>
+            <!-- 🚀 套用 input-neon -->
+            <select id="calcType" class="input-neon text-sm w-full" onchange="renderCalcForm()">
+                <option value="">-- 請選擇支撐類型 --</option>
+                <option value="box">📦 箱型支撐 (Box Shore)</option>
+                <option value="wall">🧱 牆面支撐 (Wall Shore)</option>
+                <option value="floor">📐 斜樓板支撐 (Sloped Floor Shore)</option>
+            </select>
+        </div>
+
+        <div id="dynamicForm" class="mb-4"></div>
         <div id="dynamicResult"></div>
       `;
-
-      if (window.innerWidth <= 768) {
-        document.getElementById("sidebar").classList.remove("open");
-      }
     }
 
+    // 🎛️ 動態渲染輸入表單 (特搜大隊科技版)
     function renderCalcForm() {
       const type = document.getElementById("calcType").value;
       const form = document.getElementById("dynamicForm");
       const result = document.getElementById("dynamicResult");
-      result.innerHTML = "";
+      result.innerHTML = ""; // 清空之前的結果
+
+      // 共用的輸入框外觀模板 (🚀 套用 input-neon 和特搜文字風格)
+      const inputTemplate = (id, label, value = "", extra = "") => `
+        <div class="mb-3">
+          <label for="${id}" class="block text-xs font-bold text-slate-400 uppercase mb-1">${label}</label>
+          <input type="number" id="${id}" value="${value}" class="input-neon text-sm w-full" ${extra} />
+        </div>
+      `;
 
       if (type === "box") {
         form.innerHTML = `
-          <div class="form-group">
-            <label for="length">測量長度 (cm)：</label>
-            <input type="number" id="length" />
-          </div>
-          <button onclick="calculateBox()">🧠計算箱型支撐📐</button>
-          <div class="form-group">
-            <label for="top">頂板厚度 (cm)：</label>
-            <input type="number" id="top" value="10" />
-          </div>
-          <div class="form-group">
-            <label for="bottom">底板厚度 (cm)：</label>
-            <input type="number" id="bottom" value="10" />
-          </div>
-          <div class="form-group">
-            <label for="wedge">楔型木厚度 (cm)：</label>
-            <input type="number" id="wedge" value="5" />
-          </div>
-          <div class="form-group">
-            <label for="spacing">支撐柱間距 (cm)：</label>
-            <input type="number" id="spacing" value="120" />
-          </div>
-          <div class="form-group">
-            <label for="connector">連接柱寬度 (cm)：</label>
-            <input type="number" id="connector" value="10" />
+          <div class="glass p-4 border-t-2 border-cyan-500">
+            ${inputTemplate("length", "測量長度 (cm)")}
+            ${inputTemplate("top", "頂板厚度 (cm)", "10")}
+            ${inputTemplate("bottom", "底板厚度 (cm)", "10")}
+            ${inputTemplate("wedge", "楔型木厚度 (cm)", "5")}
+            ${inputTemplate("spacing", "支撐柱間距 (cm)", "120")}
+            ${inputTemplate("connector", "連接柱寬度 (cm)", "10")}
+            
+            <!-- 🚀 套用 btn-glow -->
+            <button class="btn-glow w-full mt-4 flex items-center justify-center gap-2" onclick="calculateBox()">
+                <span>🧠</span> 開始計算箱型支撐
+            </button>
           </div>
         `;
       } else if (type === "wall") {
         form.innerHTML = `
-          <div class="form-group">
-            <label for="length">測量長度 (cm)：</label>
-            <input type="number" id="length" />
-          </div>
-          <button onclick="calculateWall()">🧠計算牆面支撐📐</button>
-          <div class="form-group">
-            <label for="top">頂板厚度 (cm)：</label>
-            <input type="number" id="top" value="10" />
-          </div>
-          <div class="form-group">
-            <label for="bottom">底板厚度 (cm)：</label>
-            <input type="number" id="bottom" value="10" />
-          </div>
-          <div class="form-group">
-            <label for="wedge">楔型木厚度 (cm)：</label>
-            <input type="number" id="wedge" value="10" />
-          </div>
-          <div class="form-group">
-            <label for="spacing">支撐柱間距 (cm)：</label>
-            <input type="number" id="spacing" value="120" />
-          </div>
-          <div class="form-group">
-            <label for="connector">連接柱寬度 (cm)：</label>
-            <input type="number" id="connector" value="15" />
-          </div>
-          <div class="form-group">
-            <label for="stopper">止檔寬度 (cm)：</label>
-            <input type="number" id="stopper" value="5" />
-          </div>
-          <div class="form-group">
-            <label for="angle">角度 (這裡只計算45度)：</label>
-            <input type="number" id="angle" value="45" readonly />
+          <div class="glass p-4 border-t-2 border-cyan-500">
+            ${inputTemplate("length", "測量長度 (cm)")}
+            ${inputTemplate("top", "頂板厚度 (cm)", "10")}
+            ${inputTemplate("bottom", "底板厚度 (cm)", "10")}
+            ${inputTemplate("wedge", "楔型木厚度 (cm)", "10")}
+            ${inputTemplate("spacing", "支撐柱間距 (cm)", "120")}
+            ${inputTemplate("connector", "連接柱寬度 (cm)", "15")}
+            ${inputTemplate("stopper", "止檔寬度 (cm)", "5")}
+            ${inputTemplate("angle", "角度 (固定45度)", "45", "readonly")}
+            
+            <!-- 🚀 套用 btn-glow -->
+            <button class="btn-glow w-full mt-4 flex items-center justify-center gap-2" onclick="calculateWall()">
+                <span>🧠</span> 開始計算牆面支撐
+            </button>
           </div>
         `;
       } else if (type === "floor") {
         form.innerHTML = `
-          <div class="form-group">
-            <label for="length">測量長度 (cm)：</label>
-            <input type="number" id="length" />
-          </div>
-          <button onclick="calculateFloor()">🧠計算樓板支撐📐</button>
-          <div class="form-group">
-            <label for="top">頂板厚度 (cm)：</label>
-            <input type="number" id="top" value="10" />
-          </div>
-          <div class="form-group">
-            <label for="bottom">底板厚度 (cm)：</label>
-            <input type="number" id="bottom" value="10" />
-          </div>
-          <div class="form-group">
-            <label for="spacing">支撐柱間距 (cm)：</label>
-            <input type="number" id="spacing" value="120" />
-          </div>
-          <div class="form-group">
-            <label for="connector">連接柱寬度 (cm)：</label>
-            <input type="number" id="connector" value="15" />
-          </div>
-          <div class="form-group">
-            <label for="stopper">止檔寬度 (cm)：</label>
-            <input type="number" id="stopper" value="5" />
-          </div>
-          <div class="form-group">
-            <label for="angle">角度 (最多45度)：</label>
-            <input type="number" id="angle" value="45" max="45"/>
+          <div class="glass p-4 border-t-2 border-cyan-500">
+            ${inputTemplate("length", "測量長度 (cm)")}
+            ${inputTemplate("top", "頂板厚度 (cm)", "10")}
+            ${inputTemplate("bottom", "底板厚度 (cm)", "10")}
+            ${inputTemplate("spacing", "支撐柱間距 (cm)", "120")}
+            ${inputTemplate("connector", "連接柱寬度 (cm)", "15")}
+            ${inputTemplate("stopper", "止檔寬度 (cm)", "5")}
+            ${inputTemplate("angle", "角度 (最多45度)", "45", 'max="45"')}
+            
+            <!-- 🚀 套用 btn-glow -->
+            <button class="btn-glow w-full mt-4 flex items-center justify-center gap-2" onclick="calculateFloor()">
+                <span>🧠</span> 開始計算斜樓板支撐
+            </button>
           </div>
         `;
-
-
       } else {
         form.innerHTML = "";
       }
@@ -1630,69 +1593,56 @@
         result.innerHTML = `<div class="result">缺少必要資料，無法計算！</div>`;
       }
     }
-// ⛶ 全螢幕切換引擎 (終極暴力破解版：無視任何 CSS 阻擋)
+// ⛶ 全螢幕切換引擎 (自動抬升視角版)
 function toggleFullScreen() {
   const container = document.getElementById("viewer-container");
   const btn = document.getElementById("fs-btn");
   const viewer = document.getElementById("threejs-box-viewer");
-  // 🚀 關鍵：直接抓出 3D 畫布本體！
-  const canvas = viewer.querySelector("canvas");
 
   if (!container.classList.contains('fullscreen-mode')) {
     // 1. 進入全螢幕
     container.classList.add('fullscreen-mode');
     btn.innerText = "✖ 關閉全螢幕";
     
-    // 🔥 暴力破解：直接把 Canvas 設為絕對固定，強制撐爆手機長寬！
-    if(canvas) {
-      canvas.style.position = "fixed";
-      canvas.style.top = "0";
-      canvas.style.left = "0";
-      canvas.style.width = "100vw";
-      canvas.style.height = "100vh";
-      canvas.style.zIndex = "9998"; // 確保它浮在所有東西上面
-    }
-    btn.style.zIndex = "9999"; // 按鈕要比畫布更高
-
+    // 讓畫布跟隨容器滿版
+    viewer.style.width = "100vw";
+    viewer.style.height = "100vh";
+    
     setTimeout(() => {
-      if (window.current3D) {
+      if(window.current3D) {
         const { renderer, camera, scene, controls } = window.current3D;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
         
-        // 強制灌入螢幕真實像素
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        camera.aspect = window.innerWidth / window.innerHeight;
+        renderer.setSize(w, h);
+        camera.aspect = w / h;
         camera.updateProjectionMatrix();
 
-        // 🎯 重新鎖定模型幾何中心
+        // 🎯 終極置中黑科技：重新計算這堆木頭的「幾何正中心」
         const box = new THREE.Box3().setFromObject(scene);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
-                        
-        // 讓鏡頭「稍微靠近並拉高」，完美填滿畫面
-        camera.position.set(center.x, center.y + maxDim * 0.8, center.z + maxDim * 1.5);
-                        
-        controls.target.copy(center);
-        camera.lookAt(center);
+
+        // 🚀 關鍵修復：把攝影機從地板「抬高」，架設在模型的斜上方
+        camera.position.set(center.x + maxDim * 1.2, center.y + maxDim * 0.8, center.z + maxDim * 1.5);
+        
+        // 🚀 關鍵修復：將狙擊準星從 (0,0,0) 改為瞄準模型的「腰部」
+        controls.target.copy(center); 
         controls.update();
       }
-    }, 50);
+    }, 100);
 
   } else {
     // 2. 退出全螢幕
     container.classList.remove('fullscreen-mode');
     btn.innerText = "⛶ 全螢幕";
     
-    // 🔥 乖乖把 Canvas 放回原本的盒子裡
-    if(canvas) {
-      canvas.style.position = "relative";
-      canvas.style.width = "100%";
-      canvas.style.height = "350px";
-      canvas.style.zIndex = "1";
-    }
+    viewer.style.width = "100%";
+    viewer.style.height = "350px"; 
     
     setTimeout(() => {
-      if (window.current3D) {
+      if(window.current3D) {
         const { renderer, camera, scene, controls } = window.current3D;
         const w = viewer.clientWidth || 400;
         
@@ -1700,15 +1650,16 @@ function toggleFullScreen() {
         camera.aspect = w / 350;
         camera.updateProjectionMatrix();
 
+        // 縮回小畫面時，一樣保持置中，不看地板
         const box = new THREE.Box3().setFromObject(scene);
         const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
-                        
-        camera.position.set(center.x, center.y + maxDim * 0.8, center.z + maxDim * 1.5);
+        
+        camera.position.set(center.x + maxDim * 1.2, center.y + maxDim * 0.8, center.z + maxDim * 1.5);
         controls.target.copy(center);
         controls.update();
       }
-    }, 50);
+    }, 100);
   }
 }
-
