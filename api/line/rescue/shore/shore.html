@@ -816,43 +816,35 @@
       }
     }
     // ==========================================
-    // 🚀 終極高畫質合成引擎 (解決手機跑位與模糊問題)
+    // 🚀 終極高畫質合成引擎 (絕對不跑位版)
     // ==========================================
     async function generateCompositeCanvas() {
         const container = document.getElementById('compositeViewer');
         const bgImg = document.getElementById('backgroundImage');
         
-        // 抓取「當下」精確的 CSS 尺寸
         const currentWidth = container.clientWidth;
         const currentHeight = container.clientHeight;
         
-        // 🚀 黑科技：讀取手機的 Retina 像素密度 (通常是 2 或 3，電腦是 1)
         const dpr = window.devicePixelRatio || 1;
         const exportWidth = currentWidth * dpr;
         const exportHeight = currentHeight * dpr;
 
-        // 1. 強制同步 3D 渲染器尺寸、比例與高畫素
-        compositeRenderer.setSize(currentWidth, currentHeight);
-        compositeRenderer.setPixelRatio(dpr); // 🚀 關鍵：讓 3D 渲染也變成高畫質
-        compositeCamera.aspect = currentWidth / currentHeight;
-        compositeCamera.updateProjectionMatrix();
-        compositeRenderer.render(compositeScene, compositeCamera);
+        // 🚨 修正跑位核心：不要碰 setSize 和 camera，只切換像素密度！
+        compositeRenderer.setPixelRatio(dpr);
+        // 強制同步渲染一幀高畫質
+        compositeRenderer.render(compositeScene, compositeCamera); 
 
-        // 2. 建立高畫質 Canvas
         const canvas = document.createElement('canvas');
         canvas.width = exportWidth;
         canvas.height = exportHeight;
         const ctx = canvas.getContext('2d');
 
-        // 填滿白底
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, exportWidth, exportHeight);
 
-        // 3. 繪製背景圖 (精確放大對齊 object-fit: contain)
         if (bgImg && bgImg.style.display !== 'none' && bgImg.naturalWidth > 0) {
             const containerRatio = exportWidth / exportHeight;
             const imgRatio = bgImg.naturalWidth / bgImg.naturalHeight;
-
             let drawWidth, drawHeight, offsetX, offsetY;
 
             if (imgRatio > containerRatio) {
@@ -866,18 +858,16 @@
                 offsetX = (exportWidth - drawWidth) / 2;
                 offsetY = 0;
             }
-
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(bgImg, offsetX, offsetY, drawWidth, drawHeight);
         }
 
-        // 4. 疊加 3D 渲染結果 (此時的 domElement 已經是高畫質尺寸)
         ctx.drawImage(compositeRenderer.domElement, 0, 0, exportWidth, exportHeight);
 
-        // 5. 輸出完畢，把預覽畫質降回一般，避免手機發燙卡頓
+        // 🚨 修正跑位核心：恢復原畫質後，必須「再渲染一次」，讓預覽畫面瞬間歸位釘死！
         compositeRenderer.setPixelRatio(1);
-        compositeRenderer.setSize(currentWidth, currentHeight);
+        compositeRenderer.render(compositeScene, compositeCamera);
         
         return { canvas, width: exportWidth, height: exportHeight };
     }
