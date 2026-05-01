@@ -7,6 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../mission_folder/supabase_config.js"></script>
+    <!-- 🚀 前端無損產檔黑科技引擎 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.37.11/docxtemplater.js"></script>
+    <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip-utils.js"></script>
+    <script src="word_export_engine.js"></script>
     <style>
         /* 🚨 防滑動干擾防線 */
         html, body { overscroll-behavior-x: none; touch-action: pan-y; }
@@ -32,7 +38,17 @@
             background-size: 40px 40px; animation: spark-drift 20s infinite linear; z-index: -2;
         }
         @keyframes spark-drift { 0% { background-position: 0 0; } 100% { background-position: 40px 100vh; } }
-
+        /* 🚨 效能優化：強制開啟背景 GPU 加速，減輕運算負擔 */
+        body::before, body::after {
+            transform: translateZ(0);
+            will-change: transform, background-position;
+        }
+        /* 🚨 效能優化：針對下拉選單關閉「極速閃爍」特效，避免跟原生選單打架 */
+        select.input-neon:focus {
+            animation: none !important; 
+            border-color: #d8b4fe; /* 誤餐費可改成 #7dd3fc */
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); /* 誤餐費可改成 rgba(56, 189, 248, 0.4) */
+        }
         .glass { 
             background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(15px); 
             border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 12px;
@@ -322,99 +338,126 @@
             document.getElementById('totalDisplay').innerText = '$ ' + total;
         }
 
-        // 🚀 執行送出
+        // 🚀 尿素專屬：本地秒開產檔邏輯
         async function submitForm() {
             const btn = document.getElementById('submitBtn');
             const loader = document.getElementById('loader');
             const submitText = document.getElementById('submitText');
             
-            // 抓取品項
+            // 1. 抓取品項與計算總額
             const items = [];
+            let totalAmount = 0;
             document.querySelectorAll('#itemsContainer > div').forEach(row => {
-                items.push({
-                    n: row.querySelector('.row-n').value, s: row.querySelector('.row-s').value,
-                    u: row.querySelector('.row-u').value, q: row.querySelector('.row-q').value,
-                    p: row.querySelector('.row-p').value, t: row.querySelector('.row-t').value
-                });
+                const q = row.querySelector('.row-q').value;
+                const n = row.querySelector('.row-n').value;
+                if(n || q) {
+                    const itemTotal = Math.floor(parseFloat(row.querySelector('.row-t').value) || 0);
+                    items.push({
+                        n: n, s: row.querySelector('.row-s').value,
+                        u: row.querySelector('.row-u').value, q: q,
+                        p: row.querySelector('.row-p').value, t: itemTotal.toString()
+                    });
+                    totalAmount += itemTotal;
+                }
             });
 
-            // 判斷車輛呼號最後的值 (如果選自填，就抓自填框的值)
+            if(items.length === 0) return alert('請至少填寫一項品項！');
+
+            // 判斷車輛與原因
             const carSelect = document.getElementById('car_n').value;
             const carFinal = (carSelect === "自行填寫") ? document.getElementById('car_n_custom').value : carSelect;
-
-            // 判斷原因欄位最後的值
             const resonSelect = document.getElementById('reson_select').value;
             const resonFinal = (resonSelect === "自行填寫") ? document.getElementById('reson_custom').value : resonSelect;
 
-            // 準備封包 (送給 GAS)
-            const payloadData = {
-                form_type: 'urea', // 🌟 [戰術核心] 告訴 GAS 這是尿素申請
-                unit: "花蓮縣消防局", 
-                month: document.getElementById('month').value,
-                day: document.getElementById('day').value,
-                car_n: carFinal, // 這裡會自動代入選單名稱或自填名稱
-                car_l1: document.getElementById('car_l1').value,
-                car_l2: document.getElementById('car_l2').value,
-                reson: resonFinal,
-                items: items
-            };
-            
             btn.disabled = true;
             btn.classList.add('overloading'); 
             loader.style.display = 'block';
-            submitText.innerText = "正在火速趕製表單... 👷‍♂️";
+            submitText.innerText = "⚡ 正在生成本地 Word 檔...";
 
-            const requestBody = { action: 'generate_meal_fee', data: payloadData, source: 'liff' };
+            // 2. 準備塞入 Word 的「尿素專屬」資料包
+            let templateData = {
+                UNIT: "花蓮縣消防局", // 依照 GAS 原有設定
+                TIME_M: document.getElementById('month').value,
+                TIME_D: document.getElementById('day').value,
+                CAR_N: carFinal,
+                CAR_L1: document.getElementById('car_l1').value,
+                CAR_L2: document.getElementById('car_l2').value,
+                RESON: resonFinal,
+                ITEM_A: totalAmount.toString(),
+                PAGE_BREAK: '<w:br w:type="page"/>'
+            };
 
-            try {
-                const res = await fetch(GAS_API_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify(requestBody)
-                });
-                const rawText = await res.text();
-                let result;
-                try { result = JSON.parse(rawText); } catch(e) { throw new Error(`格式解析錯誤: ${rawText}`); }
-                
-                // 5. 判斷成功並觸發炫炮退場
-                if (result.success && result.url) {
-                    // 建立/抓取閃光層
+            // 填入 8 行品項
+            for(let i = 0; i < 8; i++) {
+                const idx = i + 1;
+                const item = items[i];
+                templateData[`ITEM${idx}_N`] = item ? item.n : "";
+                templateData[`ITEM${idx}_S`] = item ? item.s : "";
+                templateData[`ITEM${idx}_U`] = item ? item.u : "";
+                templateData[`ITEM${idx}_Q`] = item ? item.q : "";
+                templateData[`ITEM${idx}_P`] = item ? item.p : "";
+                templateData[`ITEM${idx}_T`] = item ? item.t : "";
+            }
+
+            // 處理數字拆分 N8, N7...
+            const fullAmountStr = "實付$" + totalAmount;
+            const chars = fullAmountStr.split('').reverse(); 
+            for (let j = 1; j <= 8; j++) {
+                templateData[`N${9 - j}`] = chars[j - 1] || ''; 
+            }
+
+            // 3. 讀取「尿素專屬」範本並替換
+            // 🚨 提醒指揮官：請確保專案資料夾內已經放入 `template_urea.docx` 母版！
+            loadFile("template_urea.docx", function (error, content) {
+                if (error) {
+                    btn.classList.remove('overloading');
+                    btn.disabled = false; loader.style.display = 'none'; submitText.innerText = "生成檔案並開啟";
+                    return alert("讀取 Word 範本失敗，請確認 'template_urea.docx' 已放入！\n" + error);
+                }
+
+                try {
+                    const zip = new PizZip(content);
+                    const doc = new window.docxtemplater(zip, { 
+                        paragraphLoop: true, linebreaks: true,
+                        delimiters: { start: '{{', end: '}}' } 
+                    });
+                    
+                    doc.render(templateData);
+                    
+                    const out = doc.getZip().generate({
+                        type: "blob",
+                        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    });
+                    
+                    // 動態命名：X月份尿素申請_30日_國光牌尿素
+                    const itemName = items[0] ? items[0].n : "未命名品項";
+                    const fileName = `${templateData.TIME_M}月份尿素申請_${templateData.TIME_D}日_${itemName}.docx`;
+                    
                     let flash = document.querySelector('.plasma-flash');
-                    if (!flash) {
-                        flash = document.createElement('div');
-                        flash.className = 'plasma-flash';
-                        document.body.appendChild(flash);
-                    }
+                    if (!flash) { flash = document.createElement('div'); flash.className = 'plasma-flash'; document.body.appendChild(flash); }
 
-                    // 💥 引爆超新星特效
                     btn.classList.add('exit-supernova');
                     setTimeout(() => flash.classList.add('active'), 100);
 
-                    // 0.6 秒後打開檔案
                     setTimeout(() => {
-                        // 🚀 100% 原汁原味還原 mission 的邏輯
-                        const isAndroid = /Android/i.test(navigator.userAgent);
-
-                        if (isAndroid) {
-                            window.location.href = result.url; // 🤖 安卓直接跳轉
-                        } else {
-                            window.open(result.url, '_blank'); // 💻🍎 其他 (電腦、iOS) 開新分頁
-                        }
-
-                        // 清理現場
+                        window.currentWordData = { blob: out, fileName: fileName };
+                        
                         flash.classList.remove('active');
                         btn.classList.remove('exit-supernova', 'overloading');
+                        btn.disabled = false; loader.style.display = 'none'; 
+                        
+                        // 轉換為兩段式按鈕 (保留原本的紫色漸層風格)
+                        submitText.innerText = "📤 報表就緒，點擊分享！";
+                        btn.style.background = "linear-gradient(90deg, #7e22ce, #a855f7, #c084fc, #7e22ce)";
+                        btn.classList.add('animate-pulse');
+                        btn.onclick = handleFinalExport;
                     }, 600);
 
-                } else {
-                    btn.classList.remove('overloading');
-                    alert("生成失敗：" + (result.message || "未知錯誤"));
+                } catch (err) {
+                    btn.classList.remove('overloading'); btn.disabled = false; loader.style.display = 'none'; submitText.innerText = "生成檔案並開啟";
+                    alert("產出檔案發生錯誤：" + err.message);
                 }
-            } catch (err) {
-                btn.classList.remove('overloading'); alert("網路或系統錯誤：" + err.message);
-            } finally {
-                btn.disabled = false; loader.style.display = 'none'; submitText.innerText = "生成檔案並開啟";
-            }
+            });
         }
 
         // 漩渦退場
@@ -426,6 +469,7 @@
             container.classList.add('screen-vortex-exit');
             setTimeout(() => { window.location.href = url; }, 750);
         }
+
     </script>
 </body>
 </html>

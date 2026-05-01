@@ -12,6 +12,7 @@
     <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip-utils.js"></script>
+    <script src="word_export_engine.js"></script>
     <style>
         /* 🚨 關鍵修復：底色交給 html */
         html {
@@ -56,7 +57,17 @@
             0% { background-position: 0 0; }
             100% { background-position: 40px 100vh; }
         }
-
+        /* 🚨 效能優化：強制開啟背景 GPU 加速，減輕運算負擔 */
+        body::before, body::after {
+            transform: translateZ(0);
+            will-change: transform, background-position;
+        }
+        /* 🚨 效能優化：針對下拉選單關閉「極速閃爍」特效，避免跟原生選單打架 */
+        select.input-neon:focus {
+            animation: none !important; 
+            border-color: #d8b4fe; /* 誤餐費可改成 #7dd3fc */
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); /* 誤餐費可改成 rgba(56, 189, 248, 0.4) */
+        }
         .glass { 
             background: rgba(15, 23, 42, 0.7); 
             backdrop-filter: blur(15px); 
@@ -332,11 +343,6 @@
             document.getElementById('totalDisplay').innerText = '$ ' + total;
         }
 
-        // 🚀 讀取本地範本的輔助函數
-        function loadFile(url, callback) {
-            PizZipUtils.getBinaryContent(url, callback);
-        }
-
         // 🚀 終極版：純前端產出 Word 檔 (無損不跑版)
         async function submitForm() {
             const btn = document.getElementById('submitBtn');
@@ -458,104 +464,6 @@
                     alert("產出檔案發生錯誤：" + err.message);
                 }
             });
-        }
-        
-        // 🚀 最終發射動作：由隊員親自點擊，完美突破攔截！
-        async function handleFinalExport() {
-            if (!window.currentWordData) return alert("找不到檔案實體！");
-            
-            const { blob, fileName } = window.currentWordData;
-            const exportBtn = document.getElementById('submitBtn');
-            exportBtn.innerText = "⏳ 處理中...";
-
-            // 偵測裝置屬性
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-            try {
-                if (isIOS) {
-                    // 🍎 iOS 路線：直接啟動原生分享 (傳 Line、AirDrop)
-                    const file = new File([blob], fileName, { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
-                    
-                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        await navigator.share({
-                            files: [file],
-                            title: '誤餐費申請單',
-                            text: '請查收誤餐費 Word 檔'
-                        });
-                        exportBtn.innerText = "✅ 已分享";
-                        exportBtn.classList.remove('animate-pulse');
-                    } else {
-                        // 萬一不支援分享，退回直接下載
-                        fallbackDownload(blob, fileName, exportBtn);
-                    }
-                } else {
-                    // 🤖 安卓 / 💻 電腦路線：親自點擊觸發的原生下載，絕不會被擋！
-                    fallbackDownload(blob, fileName, exportBtn);
-                }
-            } catch (err) {
-                console.log("分享失敗或取消", err);
-                exportBtn.innerText = "📤 再次點擊分享/下載"; 
-            }
-        }
-
-        // 🛡️ 指揮官請放心，這段完全不影響 iOS 路線！
-        function fallbackDownload(blob, fileName, btn) {
-            // 🚀 檢查外面有沒有包著我們自己寫的 Kotlin Android APP，並且確認函數存在
-            if (window.AndroidBridge && typeof window.AndroidBridge.saveWordFile === 'function') {
-                // 🟢 成功連上 Kotlin APP 通道
-                const reader = new FileReader();
-                reader.readAsDataURL(blob);
-                reader.onloadend = function() {
-                    const base64data = reader.result;
-                    const base64String = base64data.split(',')[1]; // 拔掉標頭
-                    
-                    try {
-                        // 呼叫 Kotlin 的函數
-                        window.AndroidBridge.saveWordFile(base64String, fileName);
-                        
-                        if(btn) {
-                            btn.innerText = "✅ 已存檔並啟動分享";
-                            btn.classList.remove('animate-pulse');
-                        }
-                    } catch (e) {
-                        alert("❌ APP 通道傳輸失敗：" + e.message);
-                    }
-                }
-            } else {
-                // 🔴 嚴重警告：沒有抓到 Kotlin 通道！(這就是您平板沒反應的元凶)
-                const ua = navigator.userAgent || navigator.vendor || window.opera;
-                const isLineOrFB = (ua.indexOf("Line") > -1 || ua.indexOf("FBAN") > -1 || ua.indexOf("FBAV") > -1);
-                
-                if (isLineOrFB) {
-                    alert("⚠️ 警告：您使用的是 Line/FB 內建瀏覽器，這會阻擋下載！\n請點擊右上角「以預設瀏覽器開啟」！");
-                } else {
-                    // 💡 如果您在平板的 APP 裡看到這個 Alert，代表 APK 沒更新成功，或是 WebView 沒掛載到 AndroidBridge！
-                    alert("⚠️ 版本太舊，請刪掉app重新下載。網頁稍後會自動下載檔案");
-                }
-
-                // 傳統網頁暴力下載 (電腦瀏覽器或手機 Chrome 會走這裡)
-                try {
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = fileName;
-                    document.body.appendChild(a);
-                    a.click(); // 強制觸發下載
-                    
-                    setTimeout(() => {
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
-                    }, 100);
-
-                    if(btn) {
-                        btn.innerText = "✅ 檔案已下載";
-                        btn.classList.remove('animate-pulse');
-                    }
-                } catch (err) {
-                    alert("傳統下載發生錯誤：" + err.message);
-                }
-            }
         }
 
         // 🚀 戰術導航：根據模式觸發不同動畫
