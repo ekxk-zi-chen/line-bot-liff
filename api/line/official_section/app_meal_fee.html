@@ -498,24 +498,44 @@
             }
         }
 
-        // 🛠️ 輔助函數：最純淨、暴力的底層下載邏輯
+        // 🛠️ 輔助函數：最純淨、暴力的底層下載邏輯 (加入 Kotlin 橋接)
         function fallbackDownload(blob, fileName, btn) {
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click(); // 強制觸發下載
-            
-            setTimeout(() => {
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-            }, 100);
+            // 🚀 檢查外面有沒有包著我們自己寫的 Kotlin Android APP (我們等下會把通道命名為 'AndroidBridge')
+            if (window.AndroidBridge) {
+                // 如果在 APP 裡面，把 Blob 轉成 Base64 丟給 Kotlin
+                const reader = new FileReader();
+                reader.readAsDataURL(blob);
+                reader.onloadend = function() {
+                    const base64data = reader.result;
+                    // 拔掉前面的 "data:application/vnd...;base64," 標頭，只留純資料
+                    const base64String = base64data.split(',')[1];
+                    // 呼叫 Kotlin 的函數
+                    window.AndroidBridge.saveWordFile(base64String, fileName);
+                    
+                    if(btn) {
+                        btn.innerText = "✅ 已交由 APP 下載";
+                        btn.classList.remove('animate-pulse');
+                    }
+                }
+            } else {
+                // 如果是用一般的電腦網頁或手機瀏覽器，走傳統下載
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click(); // 強制觸發下載
+                
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                }, 100);
 
-            if(btn) {
-                btn.innerText = "✅ 檔案已下載";
-                btn.classList.remove('animate-pulse');
+                if(btn) {
+                    btn.innerText = "✅ 檔案已下載";
+                    btn.classList.remove('animate-pulse');
+                }
             }
         }
 
