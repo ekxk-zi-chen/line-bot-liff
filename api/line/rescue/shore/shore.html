@@ -904,7 +904,7 @@
             reader.onloadend = function() {
                 try {
                     // 直接硬塞進您 APP 的專屬通道
-                    window.AndroidBridge.saveWordFile(reader.result.split(',')[1], fileName);
+                    window.AndroidBridge.saveImageFile(reader.result.split(',')[1], fileName);
                     if(resultDiv) resultDiv.innerHTML = '<div class="text-green-400 p-2 font-bold">✅ 已交由 APP 存檔並啟動分享</div>';
                 } catch (e) { 
                     alert("❌ APP 通道傳輸失敗：" + e.message); 
