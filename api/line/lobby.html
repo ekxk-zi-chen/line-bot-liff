@@ -70,6 +70,33 @@
             border-color: #fb923c !important;
             box-shadow: 0 0 30px rgba(249, 115, 22, 0.5) !important;
         }
+
+        /* 👥 人員專區專用：指揮中心藍 */
+        .personnel-glow{
+            position: relative; /* 👈 關鍵一：把光點鎖定在按鈕範圍內 */
+            overflow: hidden;   /* 👈 關鍵二：超出按鈕範圍的光暈直接裁切掉 */
+            background: linear-gradient(135deg, #2563eb, #0ea5e9);
+            box-shadow:
+                0 0 15px rgba(37,99,235,.6),
+                0 0 30px rgba(14,165,233,.5),
+                inset 0 0 20px rgba(255,255,255,.15);
+        }
+
+        /* 藍色閃爍光點 */
+        .personnel-glow::before{
+            content:"";
+            position:absolute;
+            inset:0;
+            border-radius:1rem;
+            background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.7), transparent 40%);
+            opacity:.35;
+            animation: bluePulse 2.5s infinite;
+        }
+
+        @keyframes bluePulse{
+            0%,100%{opacity:.25}
+            50%{opacity:.55}
+        }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen px-4 py-10">
@@ -135,7 +162,7 @@
                 <span class="text-white font-bold">裝備管理</span>
             </button>
             
-             <!-- 🏗️ 救援專區卡片 (強化版：工程警戒橘) -->
+            <!-- 🏗️ 救援專區卡片 (強化版：工程警戒橘) -->
             <button onclick="window.location.href='rescue/app_rescue.html'" 
                 class="glass-card rescue-glow p-6 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all active:scale-95 shadow-xl">
                 <!-- 🎯 加個閃爍光點特效 -->
@@ -144,6 +171,18 @@
                     <span class="text-white font-bold tracking-widest"></span>
                 </div>
                 <span class="text-white font-bold tracking-widest">救援專區</span>
+            </button>
+
+            <!-- 人員專區 (改成藍色指揮風格) -->
+            <button onclick="window.location.href='personnel_control/app_personnel.html'"
+                class="glass-card personnel-glow p-6 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all active:scale-95 shadow-xl">
+
+                <div class="relative">
+                    <span class="text-4xl drop-shadow-lg">👥</span>
+                    <span class="text-white font-bold tracking-widest"></span>
+                </div>
+
+                <span class="text-white font-bold tracking-widest">人員專區</span>
             </button>
 
             <button onclick="window.location.href='app_task.html'" class="bg-orange-900/40 hover:bg-orange-800/60 border border-orange-700 p-6 rounded-xl flex flex-col items-center justify-center gap-3 transition-all active:scale-95 shadow-lg">
