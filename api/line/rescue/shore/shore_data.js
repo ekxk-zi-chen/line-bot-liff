@@ -1593,7 +1593,7 @@
         result.innerHTML = `<div class="result">缺少必要資料，無法計算！</div>`;
       }
     }
-// ⛶ 全螢幕切換引擎 (最終認罪版 - 絕對滿版、絕對置中)
+// ⛶ 全螢幕切換引擎 (物理高度暴力鎖死版)
 function toggleFullScreen() {
   const container = document.getElementById("viewer-container");
   const btn = document.getElementById("fs-btn");
@@ -1605,7 +1605,7 @@ function toggleFullScreen() {
 
   if (!isFullScreen) {
     // ==========================================
-    // 🚀 1. 進入全螢幕
+    // 🚀 1. 進入全螢幕：暴力拔出
     // ==========================================
     container.setAttribute("data-fullscreen", "true");
     btn.innerText = "✖ 關閉全螢幕";
@@ -1618,52 +1618,39 @@ function toggleFullScreen() {
         container.parentNode.insertBefore(placeholder, container);
     }
     
-    // 將容器拔出，丟到 body 最外層
+    // 移到 body 最外層，擺脫所有 CSS 結界
     document.body.appendChild(container);
     
-    // ⚠️ 【絕對滿版黑科技】：放棄 100vh，直接用 top/bottom/left/right 鎖死螢幕四個角落！
-    container.style.cssText = "position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100% !important; height: 100% !important; max-width: none !important; max-height: none !important; z-index: 999999 !important; background: #000000 !important; margin: 0 !important; padding: 0 !important; border-radius: 0 !important; display: block !important;";
+    // ⚠️ 使用 window.innerHeight 鎖死實際螢幕高度，不被網址列吃掉！
+    const screenH = window.innerHeight;
     
-    // 按鈕定死在右上角，保證絕對點得到
-    btn.style.cssText = "position: absolute !important; top: 20px !important; right: 20px !important; z-index: 1000000 !important; background: #ef4444 !important; color: white !important; padding: 12px 24px !important; font-size: 16px !important; border-radius: 8px !important; border: 2px solid white !important; font-weight: bold !important;";
+    container.style.cssText = "position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: " + screenH + "px !important; z-index: 999999 !important; background: #030712 !important; margin: 0 !important; padding: 0 !important; border-radius: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important;";
     
-    // Viewer 強制填滿 Container
-    viewer.style.cssText = "position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100% !important; height: 100% !important;";
+    btn.style.cssText = "position: absolute !important; top: max(20px, env(safe-area-inset-top)) !important; right: 20px !important; z-index: 1000000 !important; background: #ef4444 !important; color: white !important; padding: 12px 24px !important; font-size: 16px !important; border-radius: 8px !important; border: 2px solid white !important; font-weight: bold !important;";
     
-    document.body.style.overflow = "hidden"; // 鎖死背景
-    window.scrollTo(0, 0); // 強制捲到最上，消除手機網址列干擾
+    viewer.style.cssText = "position: absolute !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: " + screenH + "px !important;";
     
-    // 【畫面與模型置中校正】
+    document.body.style.overflow = "hidden"; 
+    window.scrollTo(0, 0); 
+    
     setTimeout(() => {
       if(window.current3D) {
         const { renderer, camera, scene, controls } = window.current3D;
-        
-        // 精確抓取當下「已經填滿螢幕的」真實長寬
-        const w = container.clientWidth;
-        const h = container.clientHeight;
-        
-        // 強制畫布 100% 展開
+        const w = window.innerWidth;
+        const h = window.innerHeight;
         renderer.setSize(w, h);
-        renderer.domElement.style.width = "100%";
-        renderer.domElement.style.height = "100%";
-        
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
 
-        // 抓取模型真實大小
         const box = new THREE.Box3().setFromObject(scene);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
         
-        // 依照手機螢幕比例，計算相機該退多遠才不會被切斷
         let cameraZ = Math.abs((maxDim / 2) / Math.tan(camera.fov * Math.PI / 180 / 2));
-        if (camera.aspect < 1) {
-            cameraZ = cameraZ / camera.aspect; // 專治手機直向壓縮
-        }
-        cameraZ *= 1.3; // 留 30% 畫面邊緣，不會貼臉
+        if (camera.aspect < 1) cameraZ /= camera.aspect; 
+        cameraZ *= 1.3; 
         
-        // 攝影機架設：看著正中心
         camera.position.set(center.x, center.y + (maxDim * 0.2), center.z + cameraZ);
         controls.target.copy(center);
         controls.update();
@@ -1673,7 +1660,7 @@ function toggleFullScreen() {
 
   } else {
     // ==========================================
-    // 🚀 2. 退出全螢幕
+    // 🚀 2. 退出全螢幕：塞回表單裡
     // ==========================================
     container.setAttribute("data-fullscreen", "false");
     btn.innerText = "⛶ 全螢幕";
@@ -1683,7 +1670,6 @@ function toggleFullScreen() {
         placeholder.parentNode.insertBefore(container, placeholder);
     }
     
-    // 恢復原本外觀
     container.style.cssText = "position: relative; width: 100%; background: #111; border-radius: 8px; overflow: hidden; margin-top: 15px;";
     btn.style.cssText = "position: absolute; top: 10px; right: 10px; z-index: 100; background: rgba(255,255,255,0.2); color: white; padding: 6px 12px; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; backdrop-filter: blur(5px);";
     viewer.style.cssText = "width: 100%; height: 350px;";
@@ -1693,11 +1679,7 @@ function toggleFullScreen() {
       if(window.current3D) {
         const { renderer, camera, scene, controls } = window.current3D;
         const w = viewer.clientWidth || window.innerWidth - 40; 
-        
         renderer.setSize(w, 350);
-        renderer.domElement.style.width = "100%";
-        renderer.domElement.style.height = "100%";
-        
         camera.aspect = w / 350;
         camera.updateProjectionMatrix();
 
