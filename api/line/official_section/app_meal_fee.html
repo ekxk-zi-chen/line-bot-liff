@@ -498,43 +498,62 @@
             }
         }
 
-        // 🛠️ 輔助函數：最純淨、暴力的底層下載邏輯 (加入 Kotlin 橋接)
+        // 🛡️ 指揮官請放心，這段完全不影響 iOS 路線！
         function fallbackDownload(blob, fileName, btn) {
-            // 🚀 檢查外面有沒有包著我們自己寫的 Kotlin Android APP (我們等下會把通道命名為 'AndroidBridge')
-            if (window.AndroidBridge) {
-                // 如果在 APP 裡面，把 Blob 轉成 Base64 丟給 Kotlin
+            // 🚀 檢查外面有沒有包著我們自己寫的 Kotlin Android APP，並且確認函數存在
+            if (window.AndroidBridge && typeof window.AndroidBridge.saveWordFile === 'function') {
+                // 🟢 成功連上 Kotlin APP 通道
                 const reader = new FileReader();
                 reader.readAsDataURL(blob);
                 reader.onloadend = function() {
                     const base64data = reader.result;
-                    // 拔掉前面的 "data:application/vnd...;base64," 標頭，只留純資料
-                    const base64String = base64data.split(',')[1];
-                    // 呼叫 Kotlin 的函數
-                    window.AndroidBridge.saveWordFile(base64String, fileName);
+                    const base64String = base64data.split(',')[1]; // 拔掉標頭
                     
-                    if(btn) {
-                        btn.innerText = "✅ 已交由 APP 下載";
-                        btn.classList.remove('animate-pulse');
+                    try {
+                        // 呼叫 Kotlin 的函數
+                        window.AndroidBridge.saveWordFile(base64String, fileName);
+                        
+                        if(btn) {
+                            btn.innerText = "✅ 已交由 APP 下載";
+                            btn.classList.remove('animate-pulse');
+                        }
+                    } catch (e) {
+                        alert("❌ APP 通道傳輸失敗：" + e.message);
                     }
                 }
             } else {
-                // 如果是用一般的電腦網頁或手機瀏覽器，走傳統下載
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click(); // 強制觸發下載
+                // 🔴 嚴重警告：沒有抓到 Kotlin 通道！(這就是您平板沒反應的元凶)
+                const ua = navigator.userAgent || navigator.vendor || window.opera;
+                const isLineOrFB = (ua.indexOf("Line") > -1 || ua.indexOf("FBAN") > -1 || ua.indexOf("FBAV") > -1);
                 
-                setTimeout(() => {
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                }, 100);
+                if (isLineOrFB) {
+                    alert("⚠️ 警告：您使用的是 Line/FB 內建瀏覽器，這會阻擋下載！\n請點擊右上角「以預設瀏覽器開啟」！");
+                } else {
+                    // 💡 如果您在平板的 APP 裡看到這個 Alert，代表 APK 沒更新成功，或是 WebView 沒掛載到 AndroidBridge！
+                    alert("⚠️ 雷達警告：未偵測到 Kotlin APP 橋接通道！將嘗試使用傳統網頁下載。");
+                }
 
-                if(btn) {
-                    btn.innerText = "✅ 檔案已下載";
-                    btn.classList.remove('animate-pulse');
+                // 傳統網頁暴力下載 (電腦瀏覽器或手機 Chrome 會走這裡)
+                try {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click(); // 強制觸發下載
+                    
+                    setTimeout(() => {
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                    }, 100);
+
+                    if(btn) {
+                        btn.innerText = "✅ 檔案已下載";
+                        btn.classList.remove('animate-pulse');
+                    }
+                } catch (err) {
+                    alert("傳統下載發生錯誤：" + err.message);
                 }
             }
         }
