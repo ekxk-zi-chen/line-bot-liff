@@ -405,3 +405,173 @@ input:focus, select:focus { outline: none; border-color: var(--neon-cyan) !impor
     .member-buttons { width: 100%; display: flex; gap: 8px; }
     .mini-btn { flex: 1; padding: 8px; text-align: center; }
 }
+/* ==========================================
+   ⚔️ 奪還戰術主權：強制沒收 JS 行內樣式配色
+   ========================================== */
+
+/* 1. 群組控制與原因管理主體 */
+.modal-content, 
+#mission-management-modal .modal-content, 
+#edit-personnel-modal .modal-content {
+    background: rgba(10, 15, 25, 0.98) !important; /* 強制深色底 */
+    border: 2px solid var(--neon-cyan) !important;
+    box-shadow: 0 0 25px rgba(0, 243, 255, 0.3) !important;
+}
+
+/* 2. 管理任務人員 (Mission Management) 專用補丁 */
+.mission-group {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid var(--border-dim) !important;
+}
+
+.mission-group-header {
+    background: rgba(0, 243, 255, 0.1) !important; /* 青藍色標題 */
+    border-left: 4px solid var(--neon-cyan) !important;
+    color: var(--neon-cyan) !important;
+}
+
+.mission-group-header div, .mission-group-header span {
+    color: var(--neon-cyan) !important;
+}
+
+.mission-item {
+    background: var(--bg-glass) !important;
+    border: 1px solid var(--border-dim) !important;
+    color: var(--text-bright) !important;
+}
+
+.mission-item:hover {
+    background: rgba(0, 243, 255, 0.1) !important;
+    border-color: var(--neon-cyan) !important;
+}
+
+/* 3. 編輯人員資料 (Edit Personnel) 專用補丁 */
+.edit-group-header {
+    background: rgba(0, 255, 102, 0.1) !important; /* 螢光綠標題 */
+    border-left: 4px solid var(--neon-green) !important;
+    color: var(--neon-green) !important;
+}
+
+.edit-group-header strong {
+    color: var(--neon-green) !important;
+}
+
+.edit-person-item {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid var(--border-dim) !important;
+    color: var(--text-bright) !important;
+}
+
+.edit-person-item strong {
+    color: var(--text-bright) !important;
+}
+
+/* 4. 原因管理 (Reason Management) 列表項 */
+.reason-management-item {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid var(--border-dim) !important;
+    color: var(--text-bright) !important;
+}
+
+/* 5. 修正彈窗內的搜尋框與按鈕 (奪取主權) */
+.modal-content input[type="text"], 
+.modal-content select, 
+.modal-content textarea {
+    background: #000 !important;
+    color: var(--neon-cyan) !important;
+    border: 1px solid var(--neon-cyan) !important;
+}
+
+/* 讓原本 JS 寫死綠色的全選按鈕變霓虹色 */
+#mission-management-modal button {
+    text-shadow: 0 0 5px rgba(255,255,255,0.5);
+}
+
+/* ==========================================
+   ⚔️ 終極主權奪還：群組控制與任務管理專用補丁
+   ========================================== */
+
+/* --- 1. 群組控制 (Group Control) 深度改造 --- */
+.group-control-item {
+    background: var(--bg-glass) !important;
+    border: 1px solid var(--border-dim) !important;
+    backdrop-filter: blur(10px) !important;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5) !important;
+}
+
+.group-control-header h4 {
+    color: var(--neon-cyan) !important;
+    text-shadow: 0 0 8px var(--neon-cyan) !important;
+}
+
+.group-members-list {
+    border-top: 1px solid var(--border-dim) !important; /* 殺掉原本的 #e0e0e0 線 */
+    background: transparent !important;
+}
+
+.member-item {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid rgba(0, 243, 255, 0.1) !important;
+    color: var(--text-bright) !important;
+}
+
+.member-item:hover {
+    border-color: var(--neon-cyan) !important;
+    background: rgba(0, 243, 255, 0.05) !important;
+}
+
+/* --- 2. 管理任務人員 (Mission Management) 深度改造 --- */
+#mission-management-modal .modal-content {
+    background: var(--bg-deep) !important; /* 確保底層全黑，讓光條透出 */
+}
+
+/* 任務群組外框 */
+.mission-group {
+    background: rgba(10, 15, 25, 0.6) !important;
+    border: 1px solid var(--border-dim) !important;
+    margin-bottom: 15px !important;
+}
+
+/* 任務標題列 */
+.mission-group-header {
+    background: rgba(0, 243, 255, 0.15) !important;
+    border-left: 5px solid var(--neon-cyan) !important;
+}
+
+.mission-group-header div {
+    color: var(--neon-cyan) !important;
+}
+
+/* 任務中的單一項目 */
+.mission-item {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid var(--border-dim) !important;
+}
+
+/* 修復任務清單底部的統計列與按鈕區 */
+#mission-management-modal .modal-content > div:last-child {
+    background: var(--bg-deep) !important; /* 殺掉底部的白色粘滯區 */
+    border-top: 1px solid var(--neon-cyan) !important;
+}
+
+/* --- 3. 霓虹化所有「全選/展開」等控制按鈕 --- */
+#mission-management-modal button, 
+#group-modal button.action-btn {
+    background: rgba(0, 243, 255, 0.1) !important;
+    border: 1px solid var(--neon-cyan) !important;
+    color: var(--neon-cyan) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+}
+
+#mission-management-modal button:hover, 
+#group-modal button.action-btn:hover {
+    background: var(--neon-cyan) !important;
+    color: #000 !important;
+    box-shadow: 0 0 20px var(--neon-cyan) !important;
+}
+
+/* 強制修改任務中狀態標籤的亮度 */
+.mission-item-status {
+    box-shadow: 0 0 10px rgba(0,0,0,0.5) !important;
+}
