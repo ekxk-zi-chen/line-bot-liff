@@ -23,6 +23,53 @@
         body { background-color: #1a1a1a; color: #e0e0e0; font-family: -apple-system, sans-serif; }
         .input-dark { width: 100%; background-color: #374151; color: white; padding: 10px 14px; border-radius: 12px; border: 1px solid #4b5563; outline: none; font-size: 14px; }
         .input-dark:focus { border-color: #f59e0b; background-color: #4b5563; }
+        /* 🎯 救援專區：警戒橘呼吸特效 */
+        .rescue-glow {
+            background: rgba(251, 146, 60, 0.03); /* 輕微的底色，消除暗淡感 */
+            border: 1px solid rgba(249, 115, 22, 0.4); /* 初始邊框加亮 */
+            position: relative;
+            overflow: hidden;
+            /* 核心：緩慢的呼吸律動，像引擎在待命 */
+            animation: rescue-pulse 4s infinite ease-in-out;
+        }
+
+        /* 呼吸脈衝特效：讓按鈕「活」過來 */
+        @keyframes rescue-pulse {
+            0%, 100% { 
+                box-shadow: 0 0 10px rgba(249, 115, 22, 0.1);
+                border-color: rgba(249, 115, 22, 0.3);
+            }
+            50% { 
+                box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
+                border-color: rgba(249, 115, 22, 0.8); /* 呼吸時邊框變亮 */
+                background: rgba(251, 146, 60, 0.08);
+            }
+        }
+
+        /* 背景流動感：消除靜態感 */
+        .rescue-glow::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(249, 115, 22, 0.08) 0%, transparent 70%);
+            animation: rotate-scan 10s infinite linear;
+            z-index: -1;
+        }
+
+        @keyframes rotate-scan {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* 點擊或懸停時的電力反應 */
+        .rescue-glow:active {
+            background: rgba(251, 146, 60, 0.2) !important;
+            border-color: #fb923c !important;
+            box-shadow: 0 0 30px rgba(249, 115, 22, 0.5) !important;
+        }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen px-4 py-10">
@@ -88,6 +135,17 @@
                 <span class="text-white font-bold">裝備管理</span>
             </button>
             
+             <!-- 🏗️ 救援專區卡片 (強化版：工程警戒橘) -->
+            <button onclick="window.location.href='rescue/app_rescue.html'" 
+                class="glass-card rescue-glow p-6 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all active:scale-95 shadow-xl">
+                <!-- 🎯 加個閃爍光點特效 -->
+                <div class="relative">
+                    <span class="text-4xl">🎯</span>
+                    <span class="text-white font-bold tracking-widest"></span>
+                </div>
+                <span class="text-white font-bold tracking-widest">救援專區</span>
+            </button>
+
             <button onclick="window.location.href='app_task.html'" class="bg-orange-900/40 hover:bg-orange-800/60 border border-orange-700 p-6 rounded-xl flex flex-col items-center justify-center gap-3 transition-all active:scale-95 shadow-lg">
                 <span class="text-4xl">📡</span>
                 <span class="text-white font-bold">任務戰情</span>
@@ -96,12 +154,6 @@
             <button onclick="window.location.href='official_section/app_docs.html'" class="bg-indigo-900/40 hover:bg-indigo-800/60 border border-indigo-700 p-6 rounded-xl flex flex-col items-center justify-center gap-3 transition-all active:scale-95 shadow-[0_0_15px_rgba(79,70,229,0.3)]">
                 <span class="text-4xl">📁</span>
                 <span class="text-white font-bold">公文專區</span>
-            </button>
-
-            <!-- 🏗️ 救援專區卡片 (工程警戒橘色系) -->
-            <button onclick="window.location.href='rescue/app_rescue.html'" class="glass-card p-6 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all active:scale-95 hover:border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.15)]">
-                <span class="text-4xl">🚒</span>
-                <span class="text-white font-bold">救援專區</span>
             </button>
 
             <button onclick="alert('建置中...')" class="bg-gray-700/50 border border-gray-600/50 p-6 rounded-xl flex flex-col items-center justify-center gap-3 transition-all cursor-not-allowed">
