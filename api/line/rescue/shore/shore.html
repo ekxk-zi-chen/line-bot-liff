@@ -179,28 +179,35 @@
     let currentModel = null;
     let backgroundImageElement = null;
 
-    // 🚀 戰術導航分頁切換邏輯 (終極防卡死版)
+    // 🚀 戰術導航分頁切換邏輯 (終極防呆防殘影版)
     function switchTab(tabId) {
-      // 🛡️ 終極防呆：如果在全螢幕狀態切換標籤，強制呼叫 toggleFullScreen 安全退回，否則 DOM 會卡死在畫面上！
+      // 🛡️ 防呆 1：如果目前在全螢幕模式，強制先「安全關閉」全螢幕，恢復所有網頁狀態！
       const container = document.getElementById("viewer-container");
-      if (container && container.getAttribute("data-fullscreen") === "true") {
-          if (typeof toggleFullScreen === 'function') toggleFullScreen();
+      if (container && container.classList.contains('fullscreen-mode')) {
+          const btn = document.getElementById("fs-btn");
+          if (btn) btn.click(); // 模擬點擊關閉，確保所有 CSS 和 body.overflow 恢復正常
       }
 
-      // 殺死所有合成區殘留的場景
+      // 🛡️ 防呆 2：切換標籤前，強制殺死合成區的所有殘留場景！
       if (compositeRenderer) {
           compositeRenderer.dispose();
           const viewerDiv = document.getElementById('compositeViewer');
-          if (viewerDiv) viewerDiv.innerHTML = ''; 
+          if (viewerDiv) viewerDiv.innerHTML = ''; // 清空畫布
       }
 
+      // 1. 切換標籤的發光狀態
       document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
       document.getElementById('tab-' + tabId).classList.add('active');
 
+      // 2. 根據點擊的標籤，呼叫對應的畫面生成函數
       if (tabId === 'calc') {
-        if (typeof showCalculationForm === 'function') showCalculationForm();
+        if (typeof showCalculationForm === 'function') {
+            showCalculationForm(); // 呼叫您原本的計算畫面
+        } else {
+            document.getElementById('main-content').innerHTML = '<p class="text-cyan-400 text-center mt-10">請選擇左方或上方選單進行操作。</p>';
+        }
       } else if (tabId === 'composite') {
-        if (typeof showBackgroundComposite === 'function') showBackgroundComposite();
+        showBackgroundComposite(); // 呼叫背景合成畫面
       }
     }
 
@@ -230,31 +237,30 @@
       fov: 60
     };
 
-    // 🚀 初始化合成畫布 (像素鎖死版)
+    // 🚀 重新初始化合成畫布 (確保每次只會有「一個」渲染器)
     function initCompositeViewer() {
       const container = document.getElementById('compositeViewer');
       if (!container) return;
 
+      // 徹底銷毀舊的渲染器與場景
       if (compositeRenderer) {
           compositeRenderer.dispose();
           compositeRenderer.forceContextLoss();
       }
       container.innerHTML = '';
 
+      // 重新建立乾淨的場景
       compositeScene = new THREE.Scene();
       compositeScene.background = null;
 
       const rect = container.getBoundingClientRect();
-      const containerWidth = rect.width || 400;
-      const containerHeight = rect.height || 350;
+      const containerWidth = Math.floor(rect.width) || 400; // 防呆預設寬度
+      const containerHeight = Math.floor(rect.height) || 350;
 
       compositeCamera = new THREE.PerspectiveCamera(60, containerWidth / containerHeight, 0.01, 10000);
       compositeCamera.position.set(6, 6, 6);
 
       compositeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-      
-      // 🔥 核心修復：一開始就注入手機的高畫素密度，匯出時絕對不去動它，保證絕不跑位拉長！
-      compositeRenderer.setPixelRatio(window.devicePixelRatio || 1);
       compositeRenderer.setSize(containerWidth, containerHeight);
       compositeRenderer.setClearColor(0x000000, 0);
 
@@ -271,7 +277,9 @@
       controls.enableDamping = true;
       controls.dampingFactor = 0.1;
 
+      // 綁定動畫迴圈
       function animate() {
+        // 如果渲染器已經被銷毀，立刻停止動畫，防止殭屍迴圈！
         if (!document.getElementById('compositeViewer')) return;
         requestAnimationFrame(animate);
         controls.update();
@@ -280,17 +288,6 @@
       animate();
 
       backgroundImageElement = document.getElementById('backgroundImage');
-      
-      // 監聽視窗改變，精確更新尺寸
-      window.addEventListener('resize', function () {
-          const newContainer = document.getElementById('compositeViewer');
-          if (!newContainer || !compositeRenderer || !compositeCamera) return;
-          const newRect = newContainer.getBoundingClientRect();
-          compositeRenderer.setSize(newRect.width, newRect.height);
-          compositeCamera.aspect = newRect.width / newRect.height;
-          compositeCamera.updateProjectionMatrix();
-          compositeRenderer.render(compositeScene, compositeCamera);
-      });
     }
 
     // 改進的模型加載函數，確保適當的縮放 (徹底淨化版)
@@ -819,54 +816,70 @@
       }
     }
     // ==========================================
-    // 🚀 針對性修復：終極合成引擎 (絕對鎖定物理像素，100% 不跑位、不拉長)
+    // 🚀 終極高畫質合成引擎 (解決手機跑位與模糊問題)
     // ==========================================
     async function generateCompositeCanvas() {
+        const container = document.getElementById('compositeViewer');
         const bgImg = document.getElementById('backgroundImage');
-        const webglCanvas = compositeRenderer.domElement;
         
-        // 🚨 核心防跑位修復：直接讀取 WebGL 畫布當下的「真實像素寬高」
-        // 絕對不使用 clientWidth/Height 或任何小數點重算，徹底根除「整體往下拉長」與「第一次分享會位移」的問題！
-        const targetWidth = webglCanvas.width;
-        const targetHeight = webglCanvas.height;
+        // 抓取「當下」精確的 CSS 尺寸
+        const currentWidth = container.clientWidth;
+        const currentHeight = container.clientHeight;
+        
+        // 🚀 黑科技：讀取手機的 Retina 像素密度 (通常是 2 或 3，電腦是 1)
+        const dpr = window.devicePixelRatio || 1;
+        const exportWidth = currentWidth * dpr;
+        const exportHeight = currentHeight * dpr;
 
+        // 1. 強制同步 3D 渲染器尺寸、比例與高畫素
+        compositeRenderer.setSize(currentWidth, currentHeight);
+        compositeRenderer.setPixelRatio(dpr); // 🚀 關鍵：讓 3D 渲染也變成高畫質
+        compositeCamera.aspect = currentWidth / currentHeight;
+        compositeCamera.updateProjectionMatrix();
+        compositeRenderer.render(compositeScene, compositeCamera);
+
+        // 2. 建立高畫質 Canvas
         const canvas = document.createElement('canvas');
-        canvas.width = targetWidth;
-        canvas.height = targetHeight;
+        canvas.width = exportWidth;
+        canvas.height = exportHeight;
         const ctx = canvas.getContext('2d');
 
         // 填滿白底
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, targetWidth, targetHeight);
+        ctx.fillRect(0, 0, exportWidth, exportHeight);
 
-        // 背景圖：使用完全一樣的物理像素尺寸進行 object-fit 計算，保證等比貼合
+        // 3. 繪製背景圖 (精確放大對齊 object-fit: contain)
         if (bgImg && bgImg.style.display !== 'none' && bgImg.naturalWidth > 0) {
-            const containerRatio = targetWidth / targetHeight;
+            const containerRatio = exportWidth / exportHeight;
             const imgRatio = bgImg.naturalWidth / bgImg.naturalHeight;
+
             let drawWidth, drawHeight, offsetX, offsetY;
 
             if (imgRatio > containerRatio) {
-                drawWidth = targetWidth;
-                drawHeight = targetWidth / imgRatio;
+                drawWidth = exportWidth;
+                drawHeight = exportWidth / imgRatio;
                 offsetX = 0;
-                offsetY = (targetHeight - drawHeight) / 2;
+                offsetY = (exportHeight - drawHeight) / 2;
             } else {
-                drawHeight = targetHeight;
-                drawWidth = targetHeight * imgRatio;
-                offsetX = (targetWidth - drawWidth) / 2;
+                drawHeight = exportHeight;
+                drawWidth = exportHeight * imgRatio;
+                offsetX = (exportWidth - drawWidth) / 2;
                 offsetY = 0;
             }
+
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(bgImg, offsetX, offsetY, drawWidth, drawHeight);
         }
 
-        // 🚨 終極防護：直接將現在的 3D 畫面像素「原封不動」印上去
-        // 絕對不去動相機、不去動 renderer.setSize，杜絕一切拉長與跳動的可能！
-        compositeRenderer.render(compositeScene, compositeCamera);
-        ctx.drawImage(webglCanvas, 0, 0); 
+        // 4. 疊加 3D 渲染結果 (此時的 domElement 已經是高畫質尺寸)
+        ctx.drawImage(compositeRenderer.domElement, 0, 0, exportWidth, exportHeight);
+
+        // 5. 輸出完畢，把預覽畫質降回一般，避免手機發燙卡頓
+        compositeRenderer.setPixelRatio(1);
+        compositeRenderer.setSize(currentWidth, currentHeight);
         
-        return { canvas, width: targetWidth, height: targetHeight };
+        return { canvas, width: exportWidth, height: exportHeight };
     }
 
     // 💾 匯出圖片 (支援安卓 WebView 暴力下載)
