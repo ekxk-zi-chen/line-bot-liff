@@ -892,41 +892,38 @@
         }
     }
 
-    function imageFallbackDownload(blob, fileName, resultDiv, isShareIntent) {
-        // 🚨 1. 對接 Kotlin APP 通道：注意這裡呼叫的是 saveImageFile！
-        if (window.AndroidBridge && typeof window.AndroidBridge.saveImageFile === 'function') {
+    // ==========================================
+    // 🚀 底層下載邏輯 (完全照抄您成功的 Word 引擎通道)
+    // ==========================================
+    function imageFallbackDownload(blob, fileName, resultDiv) {
+        // 🚨 關鍵修復：把暗號改回您 APP 聽得懂的 saveWordFile！
+        // APP 底層其實不管你是 Word 還是圖片，只要給它 Base64 和檔名，它就會存！
+        if (window.AndroidBridge && typeof window.AndroidBridge.saveWordFile === 'function') {
             const reader = new FileReader();
             reader.readAsDataURL(blob);
             reader.onloadend = function() {
                 try {
-                    // 將 base64 字串傳給 Kotlin，讓 Android 決定要單純儲存還是觸發分享
-                    window.AndroidBridge.saveImageFile(reader.result.split(',')[1], fileName);
-                    resultDiv.innerHTML = isShareIntent 
-                        ? '<div class="text-green-400 p-2 font-bold">✅ 已存檔並交由 APP 分享!</div>'
-                        : '<div class="text-green-400 p-2 font-bold">✅ 已存檔至設備!</div>';
+                    // 直接硬塞進您 APP 的專屬通道
+                    window.AndroidBridge.saveWordFile(reader.result.split(',')[1], fileName);
+                    if(resultDiv) resultDiv.innerHTML = '<div class="text-green-400 p-2 font-bold">✅ 已交由 APP 存檔並啟動分享</div>';
                 } catch (e) { 
                     alert("❌ APP 通道傳輸失敗：" + e.message); 
                 }
-            };
-        } 
-        // 🚀 2. 傳統網頁暴力下載通道 (電腦版、普通手機瀏覽器)
-        else {
+            }
+        } else {
+            // 傳統網頁暴力下載通道 (對應沒有 APP 的環境)
             const ua = navigator.userAgent || navigator.vendor || window.opera;
             if (ua.indexOf("Line") > -1 || ua.indexOf("FBAN") > -1 || ua.indexOf("FBAV") > -1) {
                 alert("⚠️ 警告：您使用的是 Line/FB 內建瀏覽器，這會阻擋下載！\n請點擊右上角「以預設瀏覽器開啟」！");
             }
-            
             try {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.style.display = 'none';
-                a.href = url; 
-                a.download = fileName;
-                document.body.appendChild(a); 
-                a.click();
+                a.href = url; a.download = fileName;
+                document.body.appendChild(a); a.click();
                 setTimeout(() => { window.URL.revokeObjectURL(url); document.body.removeChild(a); }, 100);
-                
-                resultDiv.innerHTML = '<div class="text-green-400 p-2 font-bold">✅ 檔案已下載/匯出</div>';
+                if(resultDiv) resultDiv.innerHTML = '<div class="text-green-400 p-2 font-bold">✅ 檔案已下載</div>';
             } catch (err) { 
                 alert("傳統下載發生錯誤：" + err.message); 
             }
@@ -934,69 +931,69 @@
     }
 
     // ==========================================
-    // 🚀 終極按鈕行為：匯出圖片
+    // 🚀 按鈕：匯出圖片 (單純下載)
     // ==========================================
     async function exportComposite() {
         if (!compositeRenderer || !compositeCamera) return alert('請先初始化合成場景!');
         const resultDiv = document.getElementById('compositeResult');
-        resultDiv.innerHTML = '<div class="text-cyan-400 p-2 animate-pulse font-bold">⏳ 正在處理匯出...</div>';
+        resultDiv.innerHTML = '<div class="text-cyan-400 p-2 animate-pulse font-bold">⏳ 處理中...</div>';
 
         try {
-            const { canvas } = await generateCompositeCanvas(); // 呼叫我們完美無瑕的截圖引擎
+            const { canvas } = await generateCompositeCanvas(); // 呼叫底層完美截圖引擎
             const format = document.getElementById('exportFormat').value;
             const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
             const fileName = '支撐合成圖_' + new Date().getTime() + '.' + format;
 
             canvas.toBlob(function(blob) {
-                // 第三個參數 false 代表「這是下載，不要觸發 iOS 分享」
-                executeImageExport(blob, fileName, resultDiv, false); 
+                // 直接丟給底層通道
+                imageFallbackDownload(blob, fileName, resultDiv);
             }, mimeType, 0.95);
         } catch (error) {
-            resultDiv.innerHTML = `<div class="text-red-400 p-2 font-bold">❌ 匯出失敗: ${error.message}</div>`;
+            resultDiv.innerHTML = `<div class="text-red-400 p-2 font-bold">❌ 失敗: ${error.message}</div>`;
         }
     }
 
     // ==========================================
-    // 🚀 終極按鈕行為：分享圖片
+    // 🚀 按鈕：分享圖片 (iOS 原生分享 + 安卓 APP 分流)
     // ==========================================
     async function shareComposite() {
         if (!compositeRenderer) return alert('請先初始化合成場景!');
         const resultDiv = document.getElementById('compositeResult');
-        resultDiv.innerHTML = '<div class="text-cyan-400 p-2 animate-pulse font-bold">⏳ 正在準備分享...</div>';
+        resultDiv.innerHTML = '<div class="text-cyan-400 p-2 animate-pulse font-bold">⏳ 處理中...</div>';
 
         try {
-            const { canvas } = await generateCompositeCanvas(); // 呼叫我們完美無瑕的截圖引擎
+            const { canvas } = await generateCompositeCanvas();
             const format = document.getElementById('exportFormat').value;
             const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
             const fileName = '支撐合成圖_' + new Date().getTime() + '.' + format;
 
-            canvas.toBlob(function (blob) {
-                // 第三個參數 true 代表「這是分享，iOS 優先開啟分享面板」
-                executeImageExport(blob, fileName, resultDiv, true); 
+            canvas.toBlob(async function (blob) {
+                // 判斷是否為 iOS
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                
+                if (isIOS) {
+                    const file = new File([blob], fileName, { type: mimeType });
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share({ files: [file], title: '支撐合成圖', text: '請查收圖片' });
+                            resultDiv.innerHTML = '<div class="text-green-400 p-2 font-bold">✅ 已分享</div>';
+                        } catch (err) {
+                            console.log("分享取消或失敗，退回下載", err);
+                            imageFallbackDownload(blob, fileName, resultDiv);
+                        }
+                    } else {
+                        imageFallbackDownload(blob, fileName, resultDiv);
+                    }
+                } else {
+                    // 安卓 / 電腦版直接走您的 APP 通道
+                    imageFallbackDownload(blob, fileName, resultDiv);
+                }
             }, mimeType, 0.95);
         } catch (error) {
-            resultDiv.innerHTML = `<div class="text-red-400 p-2 font-bold">❌ 處理失敗: ${error.message}</div>`;
+            resultDiv.innerHTML = `<div class="text-red-400 p-2 font-bold">❌ 失敗: ${error.message}</div>`;
         }
     }
     
-    // 安卓專用的備用下載通道
-    function fallbackDownloadLink(blob, fileName) {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        
-        setTimeout(() => {
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-        }, 100);
-        
-        document.getElementById('compositeResult').innerHTML = '<div class="text-orange-400 p-2 font-bold">📥 裝置不支援分享，已自動轉為下載</div>';
-    }
-
     // 添加调试函数来检查尺寸
     function debugSizeInfo() {
       const container = document.getElementById('compositeViewer');
