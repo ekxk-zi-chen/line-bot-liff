@@ -666,3 +666,55 @@ button[onclick="confirmBatchAdd()"]:hover {
     text-shadow: 0 0 8px var(--neon-orange) !important;
     font-size: 18px !important;
 }
+
+/* ==========================================
+   ⚔️ 歷史紀錄詳細時序 (History Detail) 專用主權補丁
+   ========================================== */
+
+/* 1. 修正彈窗背景與標題 */
+#history-detail-modal .modal-content {
+    background: rgba(10, 15, 25, 0.95) !important;
+    border: 1px solid var(--neon-cyan) !important;
+    box-shadow: 0 0 30px rgba(0, 243, 255, 0.2), inset 0 0 15px rgba(0, 243, 255, 0.1) !important;
+}
+
+#history-detail-modal h3, 
+#history-detail-modal h4 {
+    color: var(--neon-cyan) !important;
+    text-shadow: 0 0 8px rgba(0, 243, 255, 0.4) !important;
+    border-bottom-color: var(--border-dim) !important;
+    margin-bottom: 15px !important;
+}
+
+/* 2. 針對 JS 動態注入的 timeline-item 進行強制奪權 */
+.timeline-item {
+    background: rgba(255, 255, 255, 0.03) !important; /* 徹底殺掉原本的 #f9f9f9 白底 */
+    border: 1px solid var(--border-dim) !important;
+    border-left: 4px solid var(--neon-green) !important; /* 換成螢光綠 */
+    color: var(--text-bright) !important;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    border-radius: 6px !important;
+    padding: 12px 15px !important;
+}
+
+/* 懸停時的雷射掃描感 */
+.timeline-item:hover {
+    background: rgba(0, 255, 102, 0.1) !important;
+    border-color: rgba(0, 255, 102, 0.3) !important;
+    box-shadow: 0 0 15px rgba(0, 255, 102, 0.2) !important;
+    transform: translateX(6px) !important;
+}
+
+/* 3. 警告狀態 (外出/應勤) 的時序紀錄 */
+.timeline-item.warning {
+    background: rgba(255, 0, 85, 0.05) !important; /* 徹底殺掉原本的 #fff5f5 粉紅底 */
+    border-left: 4px solid var(--neon-red) !important; /* 換成警戒紅 */
+    border-color: rgba(255, 0, 85, 0.2) !important;
+}
+
+/* 警告狀態懸停時的脈衝感 */
+.timeline-item.warning:hover {
+    background: rgba(255, 0, 85, 0.15) !important;
+    border-color: rgba(255, 0, 85, 0.5) !important;
+    box-shadow: 0 0 15px rgba(255, 0, 85, 0.3) !important;
+}
