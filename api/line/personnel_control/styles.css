@@ -580,3 +580,89 @@ input:focus, select:focus { outline: none; border-color: var(--neon-cyan) !impor
 .group-control-item {
     display: block !important;
 }
+
+/* ==========================================
+   ⚔️ 批次新增人員 (Batch Add) 專用主權補丁
+   ========================================== */
+
+/* --- 1. 待新增清單的外部大框 --- */
+#batch-person-list {
+    background: rgba(10, 15, 25, 0.6) !important; /* 殺掉原本的白灰底 */
+    border: 1px solid var(--border-dim) !important;
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* --- 2. 清單內的每一個人員項目 --- */
+#batch-person-list > div {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid var(--border-dim) !important;
+    color: var(--text-bright) !important;
+    transition: 0.3s !important;
+}
+
+#batch-person-list > div:hover {
+    background: rgba(0, 243, 255, 0.1) !important;
+    border-color: var(--neon-cyan) !important;
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.1) !important;
+    transform: translateX(3px) !important;
+}
+
+/* 修正清單內的名字與群組文字顏色 */
+#batch-person-list strong {
+    color: var(--text-bright) !important;
+}
+#batch-person-list div[style*="color: #666"] {
+    color: var(--text-dim) !important;
+}
+
+/* --- 3. 霓虹按鈕全境覆蓋 --- */
+
+/* A. 項目右側的「取消」按鈕 (改為警戒紅) */
+#batch-person-list button {
+    background: rgba(255, 0, 85, 0.1) !important;
+    color: var(--neon-red) !important;
+    border: 1px solid var(--neon-red) !important;
+}
+#batch-person-list button:hover {
+    background: var(--neon-red) !important;
+    color: #fff !important;
+    box-shadow: 0 0 15px var(--neon-red) !important;
+}
+
+/* B. 輸入姓名旁邊的「加入」按鈕 (改為螢光綠) */
+button[onclick="addPersonToList()"] {
+    background: rgba(0, 255, 102, 0.1) !important;
+    color: var(--neon-green) !important;
+    border: 1px solid var(--neon-green) !important;
+}
+button[onclick="addPersonToList()"]:hover {
+    background: var(--neon-green) !important;
+    color: #000 !important;
+    box-shadow: 0 0 15px var(--neon-green) !important;
+}
+
+/* C. 最下方的「確認新增」巨型按鈕 (改為青藍脈衝) */
+button[onclick="confirmBatchAdd()"] {
+    background: rgba(0, 243, 255, 0.1) !important;
+    color: var(--neon-cyan) !important;
+    border: 1px solid var(--neon-cyan) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 2px !important;
+    margin-top: 5px !important;
+}
+button[onclick="confirmBatchAdd()"]:hover {
+    background: var(--neon-cyan) !important;
+    color: #000 !important;
+    box-shadow: 0 0 25px var(--neon-cyan) !important;
+}
+
+/* --- 4. 標題與數據計數器 --- */
+#batch-add-modal label {
+    color: var(--neon-cyan) !important;
+    text-shadow: 0 0 5px rgba(0, 243, 255, 0.3) !important;
+}
+#batch-count {
+    color: var(--neon-orange) !important;
+    text-shadow: 0 0 8px var(--neon-orange) !important;
+    font-size: 18px !important;
+}
