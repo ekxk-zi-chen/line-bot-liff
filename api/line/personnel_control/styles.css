@@ -575,3 +575,8 @@ input:focus, select:focus { outline: none; border-color: var(--neon-cyan) !impor
 .mission-item-status {
     box-shadow: 0 0 10px rgba(0,0,0,0.5) !important;
 }
+
+/* 🚨 強制修復群組排版：解除 Flex 橫向擠壓，恢復垂直條列 */
+.group-control-item {
+    display: block !important;
+}

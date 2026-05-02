@@ -275,22 +275,17 @@ function updateStats() {
     }
 }
 
-// 渲染群組控制按鈕
+// 渲染群組控制按鈕 (精準排版修正版)
 function renderGroupControls() {
     const container = document.getElementById('group-controls');
     container.innerHTML = '';
-
     const data = currentView === 'personnel' ? currentData.employees : currentData.equipment;
 
     const groups = {};
     data.forEach(item => {
         const groupKey = currentView === 'personnel' ? item.group : item.category;
-        if (groupKey && !groups[groupKey]) {
-            groups[groupKey] = [];
-        }
-        if (groupKey) {
-            groups[groupKey].push(item);
-        }
+        if (groupKey && !groups[groupKey]) groups[groupKey] = [];
+        if (groupKey) groups[groupKey].push(item);
     });
 
     Object.keys(groups).forEach(groupName => {
@@ -307,28 +302,17 @@ function renderGroupControls() {
             </button>
         `;
 
-        // 群組按鈕
+        // 🎯 群組按鈕區 (復原，只留下全部歸隊 / 全部外出)
         const groupButtons = document.createElement('div');
         groupButtons.className = 'group-buttons';
 
         if (userRole === '管理') {
-            // 管理員看到按鈕
-            // 群組按鈕的部分應該像這樣：
             groupButtons.innerHTML = `
-                <button class="boo-btn" onclick="batchUpdateGroupStatus('${groupName}', '${currentView === 'personnel' ? 'BoO' : '在隊'}')">
-                    全部${currentView === 'personnel' ? '歸隊' : '在隊'}
-                </button>
-                <button class="out-btn" onclick="batchUpdateGroupStatus('${groupName}', '${currentView === 'personnel' ? '外出' : '應勤'}')">
-                    全部${currentView === 'personnel' ? '外出' : '應勤'}
-                </button>
+                <button class="boo-btn" onclick="batchUpdateGroupStatus('${groupName}', '${currentView === 'personnel' ? 'BoO' : '在隊'}')">全部${currentView === 'personnel' ? '歸隊' : '在隊'}</button>
+                <button class="out-btn" onclick="batchUpdateGroupStatus('${groupName}', '${currentView === 'personnel' ? '外出' : '應勤'}')">全部${currentView === 'personnel' ? '外出' : '應勤'}</button>
             `;
         } else {
-            // 一般用戶看不到按鈕，只看到提示
-            groupButtons.innerHTML = `
-                <div class="group-status-info">
-                    群組操作僅限管理員使用
-                </div>
-            `;
+            groupButtons.innerHTML = `<div class="group-status-info">群組操作僅限管理員使用</div>`;
         }
 
         // 成員列表（預設隱藏）
@@ -344,62 +328,44 @@ function renderGroupControls() {
             const statusClass = getStatusClass(member.status);
             const statusText = getStatusDisplayText(member.status);
 
-            // 檢查是否有最後原因或從歷史解析
             let currentReason = '';
             if (member.lastReason) {
                 currentReason = member.lastReason;
             } else if (member.status === '外出' || member.status === '應勤') {
-                // 從歷史解析最後一次的原因
                 const historyLines = (member.time_history || '').split('\n').filter(line => line.trim());
-                const lastEntry = historyLines[0] || '';
-                const reasonMatch = lastEntry.match(/\((.*?)\)/);
-                if (reasonMatch) {
-                    currentReason = reasonMatch[1];
+                if (historyLines[0]) {
+                    const reasonMatch = historyLines[0].match(/\((.*?)\)/);
+                    if (reasonMatch) currentReason = reasonMatch[1];
                 }
             }
 
+            // 乾淨俐落的成員選項
             memberItem.innerHTML = `
-                <div class="member-info">
-                    <span class="member-name">${displayName}</span>
-                    <span class="member-status ${statusClass}">${statusText}</span>
-                </div>
-                <div class="member-buttons">
-                    ${userRole === '管理' ? `
-                        <button class="mini-btn boo ${member.status === 'BoO' || member.status === '在隊' ? 'active' : ''}"
-                                onclick="updateStatus(${member.id}, '${currentView === 'personnel' ? 'BoO' : '在隊'}')">
-                            ${currentView === 'personnel' ? 'BoO' : '在隊'}
-                        </button>
-                        <button class="mini-btn out ${member.status === '外出' || member.status === '應勤' ? 'active' : ''}"
-                                onclick="updateStatus(${member.id}, '${currentView === 'personnel' ? '外出' : '應勤'}')">
-                            ${currentView === 'personnel' ? '外出' : '應勤'}
-                        </button>
-                    ` : `
-                        <div class="mini-status ${statusClass}">
-                            ${statusText}
+                <label style="display: flex; align-items: center; width: 100%; gap: 15px; cursor: pointer; margin: 0; padding: 5px;">
+                    ${userRole === '管理' ? `<input type="checkbox" class="group-member-checkbox" data-group="${groupName}" data-id="${member.id}" style="transform: scale(1.4); margin-left: 5px; accent-color: var(--neon-orange);">` : ''}
+                    <div class="member-info" style="flex: 1; display: flex; justify-content: space-between; align-items: center;">
+                        <span class="member-name" style="font-size: 16px;">${displayName}</span>
+                        <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                            <span class="member-status ${statusClass}" style="padding: 4px 10px; font-size: 12px;">${statusText}</span>
+                            ${currentReason && (member.status === '外出' || member.status === '應勤') ? `<span class="member-reason" style="font-size: 11px; color: var(--neon-red); background: rgba(255,0,85,0.1); padding: 2px 6px; border-radius: 4px; border: 1px dashed rgba(255,0,85,0.4);">原因: ${currentReason}</span>` : ''}
                         </div>
-                    `}
-                </div>
+                    </div>
+                </label>
             `;
-
-            // 如果有原因，顯示原因
-            if (currentReason && (member.status === '外出' || member.status === '應勤')) {
-                const reasonDiv = document.createElement('div');
-                reasonDiv.className = 'member-reason';
-                reasonDiv.textContent = `原因: ${currentReason}`;
-                reasonDiv.style.cssText = `
-                    width: 100%;
-                    text-align: left;
-                    font-size: 10px;
-                    color: #888;
-                    margin-top: 5px;
-                    padding-top: 5px;
-                    border-top: 1px dashed #eee;
-                `;
-                memberItem.appendChild(reasonDiv);
-            }
-
             membersList.appendChild(memberItem);
         });
+
+        // 🚨 終極修正：將「外出選取單位」按鈕加在名單展開後的「最最下方」，並且貼齊右側！
+        if (userRole === '管理') {
+            const actionFooter = document.createElement('div');
+            actionFooter.style.cssText = "display: flex; justify-content: flex-end; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-dim);";
+            actionFooter.innerHTML = `
+                <button onclick="updateSelectedInGroup('${groupName}', '${currentView === 'personnel' ? '外出' : '應勤'}')" style="padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; background: rgba(255, 170, 0, 0.15); border: 1px solid var(--neon-orange); color: var(--neon-orange); text-align: center; box-shadow: 0 0 10px rgba(255, 170, 0, 0.2);">
+                    <i class="fas fa-check-square"></i> 外出選取單位
+                </button>
+            `;
+            membersList.appendChild(actionFooter); // 掛載到 membersList 內部最下方
+        }
 
         groupDiv.appendChild(groupHeader);
         groupDiv.appendChild(groupButtons);
@@ -408,6 +374,21 @@ function renderGroupControls() {
     });
 }
 
+// 🚀 新增：觸發選取單位的操作
+function updateSelectedInGroup(groupName, newStatus) {
+    // 抓出該群組有被打勾的元素
+    const checkboxes = document.querySelectorAll(`.group-member-checkbox[data-group="${groupName}"]:checked`);
+    if (checkboxes.length === 0) {
+        showNotification('⚠️ 請先勾選要外出的單位');
+        return;
+    }
+    
+    // 把選中的 ID 轉換成陣列
+    const ids = Array.from(checkboxes).map(cb => parseInt(cb.dataset.id));
+    
+    // 呼叫批次更新，並把選取的 IDs 當作秘密武器傳進去
+    batchUpdateGroupStatus(groupName, newStatus, ids);
+}
 
 // 展開/收起群組成員
 // 展開/收起群組成員 - 修正版
@@ -466,82 +447,86 @@ function toggleGroupMembers(groupName) {
     }
 }
 
-// 批次更新群組狀態
-// 批次更新群組狀態 - 修正版
-async function batchUpdateGroupStatus(groupName, newStatus) {
-    // 檢查權限
-    if (userRole !== '管理') {
-        showNotification('只有管理員可以批次更新');
-        return;
-    }
+// ==========================================
+// 🚀 批次/選取 更新控制塔
+// ==========================================
 
-    // 如果是要設定為外出或應勤，先詢問原因
+// 批次更新群組狀態 (支援傳入 specificIds)
+async function batchUpdateGroupStatus(groupName, newStatus, specificIds = null) {
+    if (userRole !== '管理') return showNotification('只有管理員可以批次更新');
+
     if (newStatus === '外出' || newStatus === '應勤') {
-        showGroupReasonModal(groupName, newStatus);
+        // 開啟原因彈窗，並把選取的 IDs 傳遞過去
+        showGroupReasonModal(groupName, newStatus, specificIds);
     } else {
-        // 歸隊或在隊，直接更新（無需原因）
-        const reason = ''; // 歸隊不需原因
-        await performBatchGroupUpdateViaAPI(groupName, newStatus, reason);
+        await performBatchGroupUpdateViaAPI(groupName, newStatus, '', specificIds);
     }
 }
 
 
-// ==========================================
-// 🚀 批次處理：群組操作 (直連版)
-// ==========================================
-async function performBatchGroupUpdateViaAPI(groupName, newStatus, reason) {
+// 實際執行 Supabase 更新 (支援局部更新)
+async function performBatchGroupUpdateViaAPI(groupName, newStatus, reason, specificIds = null) {
     try {
-        showNotification(`🚀 正在更新群組：${groupName}...`);
         const data = currentView === 'personnel' ? currentData.employees : currentData.equipment;
         
-        // 篩選出該群組的項目
-        const groupItems = data.filter(item => {
+        // 篩出群組人員
+        let groupItems = data.filter(item => {
             const groupKey = currentView === 'personnel' ? item.group : item.category;
             return groupKey === groupName;
         });
 
-        // 執行批次寫入
+        // 🚨 如果有 IDs，就只針對勾選的人進行更新
+        if (specificIds) {
+            groupItems = groupItems.filter(item => specificIds.includes(item.id));
+        }
+
+        showNotification(`🚀 正在更新 ${groupItems.length} 筆資料...`);
+
+        // 啟動靜音模式 (skipReload = true) 寫入資料庫
         const promises = groupItems.map(item => performStatusUpdateDirect(item.id, newStatus, reason, true));
         await Promise.all(promises);
 
+        // 全部寫完後，一次性重整大畫面
         await loadDataFromSupabase();
         renderView();
-        showNotification(`✅ 群組 ${groupName} 更新完成，共 ${groupItems.length} 筆資料`);
+        showNotification(`✅ 群組更新完成，共 ${groupItems.length} 筆資料`);
     } catch (error) {
         console.error('群組更新失敗：', error);
         showNotification(`❌ 群組更新失敗：${error.message}`);
     }
 }
-// 顯示群組原因選擇彈窗
-function showGroupReasonModal(groupName, newStatus) {
+
+// 顯示群組原因選擇彈窗 (支援局部選取過濾)
+function showGroupReasonModal(groupName, newStatus, specificIds = null) {
     const data = currentView === 'personnel' ? currentData.employees : currentData.equipment;
-    const groupItems = data.filter(item => {
+    let groupItems = data.filter(item => {
         const groupKey = currentView === 'personnel' ? item.group : item.category;
         return groupKey === groupName;
     });
 
-    if (groupItems.length === 0) return;
-
-    // 完全移除現有的彈窗
-    const existingModal = document.getElementById('group-reason-modal');
-    if (existingModal) {
-        existingModal.remove();
+    // 🚨 如果有傳入 specificIds，就只留下有打勾的人！
+    if (specificIds) {
+        groupItems = groupItems.filter(item => specificIds.includes(item.id));
     }
 
+    if (groupItems.length === 0) return;
+
+    const existingModal = document.getElementById('group-reason-modal');
+    if (existingModal) existingModal.remove();
+
+    // 標題顯示即將外出的真實人數
     const title = `${groupName} - 請選擇${currentView === 'personnel' ? '外出' : '應勤'}原因`;
 
-    // 創建全新的彈窗
     const reasonModal = document.createElement('div');
     reasonModal.id = 'group-reason-modal';
     reasonModal.className = 'modal';
 
-    // 修改原因選項點擊事件處理
     reasonModal.innerHTML = `
         <div class="modal-content reason-modal-content">
             <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
             <h3>${title}</h3>
             <div class="modal-body">
-                <p>將為 ${groupItems.length} 個項目設定相同原因：</p>
+                <p>將為 ${groupItems.length} 個選取項目設定相同原因：</p>
                 <div class="reason-options" id="group-reason-options">
                     ${currentReasons.map(reason =>
         `<div class="reason-option" onclick="selectGroupReason(this, '${groupName}', '${newStatus}')">${reason}</div>`
@@ -560,8 +545,11 @@ function showGroupReasonModal(groupName, newStatus) {
 
     document.body.appendChild(reasonModal);
     reasonModal.style.display = 'block';
+    
+    // 綁定資料，讓 confirm 函數抓得到
     reasonModal.dataset.groupName = groupName;
     reasonModal.dataset.newStatus = newStatus;
+    if (specificIds) reasonModal.dataset.specificIds = JSON.stringify(specificIds);
 }
 
 // 確認群組原因並更新
@@ -574,7 +562,6 @@ async function confirmGroupReasonUpdate(groupName, newStatus) {
 
     if (selectedOption) {
         selectedReason = selectedOption.textContent;
-
         if (selectedReason === '其他') {
             const customInput = reasonModal.querySelector('#group-custom-reason-input input');
             selectedReason = customInput?.value.trim() || '';
@@ -582,15 +569,17 @@ async function confirmGroupReasonUpdate(groupName, newStatus) {
     }
 
     if (!selectedReason && (newStatus === '外出' || newStatus === '應勤')) {
-        showNotification('請選擇或輸入原因');
-        return;
+        return showNotification('請選擇或輸入原因');
     }
 
-    // 移除彈窗
-    reasonModal.remove();
+    // 解開之前藏在視窗上的 IDs
+    let specificIds = null;
+    if (reasonModal.dataset.specificIds) {
+        specificIds = JSON.parse(reasonModal.dataset.specificIds);
+    }
 
-    // 執行 API 批次更新
-    await performBatchGroupUpdateViaAPI(groupName, newStatus, selectedReason);
+    reasonModal.remove();
+    await performBatchGroupUpdateViaAPI(groupName, newStatus, selectedReason, specificIds);
 }
 
 // 選擇群組原因
