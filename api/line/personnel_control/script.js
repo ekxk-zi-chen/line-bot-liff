@@ -781,7 +781,7 @@ async function renderCards() {
     // 顯示資料統計
     const statsDiv = document.createElement('div');
     statsDiv.className = 'data-stats';
-    statsDiv.innerHTML = `<p>共 ${data.length} 筆資料</p>`;
+    statsDiv.innerHTML = `<p>此任務共 ${data.length} 參與人員</p>`;
     statsDiv.style.cssText = `
         grid-column: 1 / -1;
         background-color: #f0f0f0;
