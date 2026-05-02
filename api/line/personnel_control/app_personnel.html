@@ -35,6 +35,10 @@
             <button class="view-btn" data-view="vehicle">
                 <i class="fas fa-car"></i>車輛
             </button>
+            <!-- 🚨 緊急撤離按鈕 (智慧燈號版) -->
+            <button class="view-btn" onclick="openEvacSystem()" style="border-color: var(--neon-red); color: var(--neon-red); background: rgba(255,0,85,0.1);">
+                <i class="fas fa-exclamation-triangle" id="evac-alert-icon" style="color: var(--text-dim); transition: 0.3s;"></i>撤離
+            </button>
         </div>
     </header>
     
@@ -253,6 +257,48 @@
     <div id="sync-status" class="sync-status" style="display: none;">
         <i class="fas fa-cloud"></i>
         <span class="sync-text"></span>
+    </div>
+
+    <!-- 🚨 緊急撤離回報系統彈窗 (全螢幕高對比版) -->
+    <div class="modal" id="evac-modal" style="z-index: 9999;">
+        <div class="modal-content" style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; margin: 0; border-radius: 0; background: var(--bg-deep); display: flex; flex-direction: column; padding: 0;">
+            
+            <!-- 頂部黏滯面板 -->
+            <div style="position: sticky; top: 0; background: rgba(10, 15, 25, 0.95); backdrop-filter: blur(10px); padding: 15px; border-bottom: 2px solid var(--neon-red); z-index: 10;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="color: var(--neon-red); margin: 0; display: flex; align-items: center; gap: 10px; border: none; padding: 0;">
+                        <i class="fas fa-radiation fa-spin"></i> 緊急撤離管制
+                    </h3>
+                    <div style="display: flex; gap: 10px;">
+                        <!-- 🚨 終止撤離的核彈按鈕 -->
+                        <button id="evac-cancel-alert-btn" onclick="cancelEvacAlert()" style="padding: 8px 12px; background: transparent; border: 1px solid var(--neon-red); color: var(--neon-red); border-radius: 6px; font-weight: bold;">
+                            <i class="fas fa-power-off"></i> 取消警報
+                        </button>
+                        <!-- 單純關閉視窗的按鈕 -->
+                        <button onclick="closeEvacWindow()" style="padding: 8px 15px; background: rgba(255,255,255,0.1); border: 1px solid var(--text-dim); color: var(--text-bright); border-radius: 6px; font-weight: bold;">
+                            關閉視窗
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 數字儀表板 -->
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1; background: rgba(0, 255, 102, 0.1); border: 1px solid var(--neon-green); border-radius: 8px; padding: 10px; text-align: center;">
+                        <div style="color: var(--neon-green); font-size: 12px; font-weight: bold;">已安全回報</div>
+                        <div id="evac-safe-count" style="color: var(--neon-green); font-size: 28px; font-weight: bold; text-shadow: 0 0 10px var(--neon-green);">0</div>
+                    </div>
+                    <div style="flex: 1; background: rgba(255, 0, 85, 0.1); border: 1px solid var(--neon-red); border-radius: 8px; padding: 10px; text-align: center;">
+                        <div style="color: var(--neon-red); font-size: 12px; font-weight: bold;">尚未回報 (失聯)</div>
+                        <div id="evac-missing-count" style="color: var(--neon-red); font-size: 28px; font-weight: bold; text-shadow: 0 0 10px var(--neon-red);">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 名單容器 -->
+            <div id="evac-list-container" style="flex: 1; overflow-y: auto; padding: 15px;">
+                <!-- 動態生成名單 -->
+            </div>
+        </div>
     </div>
 </body>
 

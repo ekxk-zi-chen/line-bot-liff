@@ -718,3 +718,77 @@ button[onclick="confirmBatchAdd()"]:hover {
     border-color: rgba(255, 0, 85, 0.5) !important;
     box-shadow: 0 0 15px rgba(255, 0, 85, 0.3) !important;
 }
+
+/* ==========================================
+   🚨 緊急撤離系統專用特效 (3D 機械立體感 + LED)
+   ========================================== */
+
+.evac-card {
+    padding: 16px 10px;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    user-select: none;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.evac-card.clickable {
+    cursor: pointer;
+}
+
+/* 鎖定狀態：降低透明度，不能點擊 */
+.evac-card.locked {
+    cursor: not-allowed;
+    opacity: 0.6;
+    filter: grayscale(0.5);
+}
+
+/* ❌ 尚未回報 (失聯)：立體凸出 + 紅色 LED 循環跑動 */
+.evac-missing {
+    background: var(--bg-panel) !important;
+    color: var(--text-bright) !important;
+    border: 1px solid var(--border-dim) !important;
+    
+    /* 核心 3D 凸出感：利用下方強烈的多重陰影將按鈕「頂」起來 */
+    box-shadow: 0 6px 0 var(--neon-red), 0 10px 15px rgba(255, 0, 85, 0.4) !important;
+    transform: translateY(-4px); /* 向上浮起 */
+    
+    /* LED 虛線背景 */
+    background-image: repeating-linear-gradient(
+        45deg,
+        rgba(255, 0, 85, 0.1),
+        rgba(255, 0, 85, 0.1) 10px,
+        rgba(255, 0, 85, 0.35) 10px,
+        rgba(255, 0, 85, 0.35) 20px
+    ) !important;
+    background-size: 28px 28px !important;
+    animation: danger-stripe 0.8s linear infinite !important;
+}
+
+/* 按壓失聯按鈕時的機械回饋：壓扁陰影 */
+.evac-card.clickable.evac-missing:active {
+    transform: translateY(2px);
+    box-shadow: 0 0 0 var(--neon-red), 0 2px 5px rgba(255, 0, 85, 0.4) !important;
+}
+
+/* ✅ 已回報安全：凹陷沒入 + 幽綠色微光 */
+.evac-safe {
+    background: rgba(0, 255, 102, 0.05) !important;
+    color: var(--neon-green) !important;
+    border: 1px solid rgba(0, 255, 102, 0.3) !important;
+    
+    /* 核心 3D 凹陷感：利用強烈的內部陰影，感覺按鈕被按進了螢幕裡 */
+    box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(0, 255, 102, 0.15) !important;
+    transform: translateY(2px); /* 保持在被按下的位置 */
+    text-shadow: 0 0 8px rgba(0, 255, 102, 0.5) !important;
+}
+
+/* LED 燈條無窮循環動畫 */
+@keyframes danger-stripe {
+    0% { background-position: 0 0; }
+    100% { background-position: 28px 0; }
+}

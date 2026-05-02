@@ -121,8 +121,10 @@ async function loadDataFromSupabase() {
                 time_status: item.time_status || getCurrentTime(),
                 time_history: item.time_history || '',
                 lastReason: item.reason || '', 
+                evac_status: item.evac_status || 'NONE', // 🚨 絕對不能漏掉這行保險栓！
                 rawData: item
             }));
+        
         } else {
             const { data, error } = await _supabase
                 .from('equipment_control')
@@ -272,6 +274,23 @@ function updateStats() {
     } else {
         labels[0].textContent = '在隊';
         labels[1].textContent = '應勤';
+    }
+    // 🚨 檢查是否有撤離任務正在進行 (控制全域閃爍)
+    if (currentView === 'personnel') {
+        // 只要面板上 (is_active=true) 有任何人的撤離狀態不是 'NONE'，就代表警報尚未被指揮官解除
+        const isEvacOngoing = currentData.employees.some(p => p.evac_status && p.evac_status !== 'NONE');
+        const evacIcon = document.getElementById('evac-alert-icon');
+        if (evacIcon) {
+            if (isEvacOngoing) {
+                evacIcon.style.animation = 'heartbeat 0.8s infinite';
+                evacIcon.style.color = 'var(--neon-red)';
+                evacIcon.style.textShadow = '0 0 10px var(--neon-red)';
+            } else {
+                evacIcon.style.animation = 'none';
+                evacIcon.style.color = 'var(--text-dim)';
+                evacIcon.style.textShadow = 'none';
+            }
+        }
     }
 }
 
@@ -4456,3 +4475,200 @@ style.textContent = `
 document.head.appendChild(style);
 
 console.log('系統初始化完成，等待使用者操作...');
+// ==========================================
+// 🚨 緊急撤離回報系統 (E.E.R.S) - 嚴謹全域版
+// ==========================================
+let evacInterval = null;
+
+// 1. 開啟撤離系統
+async function openEvacSystem() {
+    const modal = document.getElementById('evac-modal');
+    const cancelAlertBtn = document.getElementById('evac-cancel-alert-btn');
+    
+    // 判斷是否已經有撤離任務正在進行 (只要有人的狀態不是 NONE 就算)
+    const isEvacOngoing = currentData.employees.some(p => p.evac_status && p.evac_status !== 'NONE');
+
+    if (userRole === '管理') {
+        cancelAlertBtn.style.display = 'block';
+        if (!isEvacOngoing) {
+            // 啟動前 Double Check
+            const choice = confirm("⚠️ 目前無撤離警報。\n\n是否要 [發布緊急撤離]？\n(這會將任務面板上『所有人』標記為失聯！)");
+            if (choice) {
+                await executeEvacAlert();
+            } else {
+                return; // 選擇取消則不開啟視窗
+            }
+        }
+    } else {
+        cancelAlertBtn.style.display = 'none';
+        if (!isEvacOngoing) return showNotification('目前平安，無撤離警報。');
+        showNotification('🚨 撤離警報！請盡速點擊自己的名字回報安全！');
+    }
+
+    // 顯示視窗並鎖定背景
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // 立即渲染畫面
+    renderEvacList();
+
+    // 🔥 啟動高頻強制同步 (只要進入此畫面，每 10 秒去抓最新狀態)
+    if (evacInterval) clearInterval(evacInterval);
+    evacInterval = setInterval(async () => {
+        await loadDataFromSupabase(); 
+        renderEvacList();
+    }, 10000);
+}
+
+// 2. 🚨 取消警報 -> 徹底結束撤離狀態
+async function cancelEvacAlert() {
+    if (confirm("⚠️ 確定要【取消撤離警報】嗎？\n\n這將結束本次撤離，所有人員恢復正常狀態，警報燈號將會熄滅！")) {
+        try {
+            // 把所有參加任務的人 (is_active) 狀態洗回 NONE
+            const activeIds = currentData.employees.map(p => p.id);
+            if (activeIds.length > 0) {
+                // 瞬間修改本地記憶體
+                currentData.employees.forEach(p => p.evac_status = 'NONE');
+                // 同步寫入雲端
+                await _supabase.from('personnel_control').update({ evac_status: 'NONE' }).in('id', activeIds);
+            }
+            
+            showNotification('✅ 撤離警報已解除！');
+            
+            // 關閉視窗與輪詢
+            closeEvacWindow();
+            
+            // 更新大畫面 (熄滅驚嘆號)
+            renderView(); 
+        } catch (err) {
+            showNotification('❌ 解除警報失敗：' + err.message);
+        }
+    }
+}
+
+// 3. 關閉視窗 (單純隱藏介面，警報繼續)
+function closeEvacWindow() {
+    document.getElementById('evac-modal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+    
+    // 停止 10 秒輪詢
+    if (evacInterval) {
+        clearInterval(evacInterval);
+        evacInterval = null; 
+    }
+}
+
+// 4. 執行發布撤離 (將所有 is_active = true 的人設為 MISSING)
+async function executeEvacAlert() {
+    try {
+        const activeIds = currentData.employees.map(p => p.id);
+        if (activeIds.length === 0) return showNotification('⚠️ 目前沒有任何人員參與任務！');
+
+        document.getElementById('evac-list-container').innerHTML = '<div style="text-align:center; padding:20px; color:var(--neon-cyan);">撤離協議啟動中...</div>';
+        
+        // 瞬間修改本地記憶體
+        currentData.employees.forEach(p => p.evac_status = 'MISSING');
+        
+        // 批次寫入：所有人變成失聯
+        const { error } = await _supabase.from('personnel_control').update({ evac_status: 'MISSING' }).in('id', activeIds);
+        if (error) throw error;
+        
+        renderEvacList();
+        renderView(); // 刷新主畫面讓驚嘆號亮起
+        showNotification('🚨 撤離警報已發布！');
+    } catch (err) {
+        showNotification('❌ 發布失敗：' + err.message);
+    }
+}
+
+// 5. 渲染名單畫面 (徹底拔除對「外出」狀態的依賴)
+function renderEvacList() {
+    const container = document.getElementById('evac-list-container');
+    
+    // 🚨 只要在面板上的人 (currentData.employees)，不管是不是外出，全部列入撤離名單！
+    const targetPeople = currentData.employees;
+    
+    // 計算人數：只要不是 SAFE，就通通算作 MISSING (包含初始狀態)
+    const safeCount = targetPeople.filter(p => p.evac_status === 'SAFE').length;
+    const missingCount = targetPeople.length - safeCount;
+    
+    document.getElementById('evac-safe-count').textContent = safeCount;
+    document.getElementById('evac-missing-count').textContent = missingCount;
+
+    if (targetPeople.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:#666;">無參與任務之人員。</div>';
+        return;
+    }
+
+    const groups = {};
+    targetPeople.forEach(item => {
+        const g = item.group || '未分組';
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(item);
+    });
+
+    let html = '';
+    Object.keys(groups).forEach(groupName => {
+        html += `
+            <div style="margin-bottom: 20px;">
+                <div style="color: var(--text-dim); border-bottom: 1px dashed var(--border-dim); padding-bottom: 5px; margin-bottom: 15px; font-weight: bold; letter-spacing: 1px;">
+                    ${groupName} (${groups[groupName].length}人)
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 15px;">
+        `;
+        
+        groups[groupName].forEach(p => {
+            const displayName = p.detail_name || p.name;
+            const isSafe = (p.evac_status === 'SAFE');
+            const statusClass = isSafe ? 'evac-safe' : 'evac-missing';
+            
+            const isMe = currentUser ? (currentUser.displayName === p.name || currentUser.displayName === p.detail_name) : false;
+            const canClick = (userRole === '管理' || isMe);
+            
+            const clickAction = canClick 
+                ? `toggleEvacStatus(${p.id}, '${p.evac_status}')` 
+                : `showNotification('⚠️ 只能回報自己的安全狀態！')`;
+            const pointerClass = canClick ? 'clickable' : 'locked';
+
+            html += `
+                <div class="evac-card ${statusClass} ${pointerClass}" onclick="${clickAction}" data-id="${p.id}">
+                    ${displayName}
+                </div>
+            `;
+        });
+        
+        html += `</div></div>`;
+    });
+    
+    container.innerHTML = html;
+}
+
+// 6. 點擊切換狀態
+async function toggleEvacStatus(id, currentEvacStatus) {
+    const newStatus = (currentEvacStatus === 'SAFE') ? 'MISSING' : 'SAFE';
+    
+    // 瞬間改變 UI 
+    const card = document.querySelector(`.evac-card[data-id="${id}"]`);
+    if (card) {
+        card.className = `evac-card ${newStatus === 'SAFE' ? 'evac-safe' : 'evac-missing'} clickable`;
+        card.onclick = () => toggleEvacStatus(id, newStatus);
+    }
+
+    // 瞬間修改本地記憶體，防止 10 秒輪詢時讀到舊資料
+    const person = currentData.employees.find(p => p.id === id);
+    if (person) {
+        person.evac_status = newStatus;
+    }
+
+    // 立即刷新統計數字
+    renderEvacList();
+
+    try {
+        const { error } = await _supabase.from('personnel_control').update({ evac_status: newStatus }).eq('id', id);
+        if (error) throw error;
+    } catch (err) {
+        showNotification('更新失敗，請檢查網路連線！');
+        await loadDataFromSupabase();
+        renderEvacList();
+    }
+}
