@@ -1417,7 +1417,7 @@ function enableAdminFeatures() {
     adminToolbar.id = 'admin-toolbar';
     adminToolbar.style.cssText = `
         position: fixed;
-        top: 60px;  // 從 70px 改為 60px，往上移一點
+        top: 120px;  // 從 70px 改為 60px，往上移一點
         right: 10px;
         z-index: 1000;
         background-color: rgba(255, 255, 255, 0.95);

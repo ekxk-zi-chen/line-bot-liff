@@ -15,16 +15,33 @@
     
     <!-- 3. 本系統的主邏輯 -->
     <script src="script.js"></script>
+
+    <!-- ========================================== -->
+    <!-- 🎮 遊戲化導覽系統 (Driver.js) 資源引入 -->
+    <!-- ========================================== -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
+    
+    <!-- ♻️ 1. 樣式：直接共用任務模組那套完美的「戰術黑化 CSS」！ -->
+    <!-- 注意路徑：如果是放在 personnel_control 裡面，記得用 ../ 退回上一層找 mission_folder -->
+    <link rel="stylesheet" href="../mission_folder/tour_guide_style.css">
+    
+    <!-- 🎯 2. 腳本：專屬於人員系統的導覽邏輯 -->
+    <script src="personnel_tour.js"></script>
 </head>
 
 <body>
     <!-- 標題區 -->
-    <header class="header">
+    <header class="header" style="position: relative;"> <!-- 確保有 relative 定位 -->
         <div class="logo">
-            <!-- 🚀 路徑修正：返回按鈕直接退回上一層的大廳 -->
-            <button class="back-btn" onclick="window.location.href='../lobby.html'">←</button>
+            <button class="back-btn" onclick="window.location.href='../lobby.html'">🏠</button>
             管制系統
         </div>
+        
+        <!-- 💡 導覽呼叫按鈕 (放在右上角) -->
+        <button id="btn-help-personnel" onclick="startPersonnelTutorial()" style="position: absolute; left: 10px; top: 10px; background: none; border: none; color: var(--text-dim); font-size: 24px; cursor: pointer; transition: 0.3s;" onmouseover="this.style.color='var(--neon-cyan)'" onmouseout="this.style.color='var(--text-dim)'">
+            ❓
+        </button>
         <div class="view-switcher">
             <button class="view-btn active" data-view="personnel">
                 <i class="fas fa-users"></i>人員
@@ -81,7 +98,7 @@
                     <span>快速控制</span>
                 </button>
 
-                <button class="control-btn" onclick="toggleHistoryPanel()">
+                <button id="tour-history-btn" class="control-btn" onclick="toggleHistoryPanel()">
                     <i class="fas fa-history"></i>
                     <span>歷史</span>
                 </button>
