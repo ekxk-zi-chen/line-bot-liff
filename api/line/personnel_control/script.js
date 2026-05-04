@@ -4576,6 +4576,9 @@ let evacInterval = null;
 
 // 1. 開啟撤離系統
 async function openEvacSystem() {
+    // 🎯 戰術隱身：開啟撤離視窗時，隱藏右上角的節能按鈕
+    const settingsFab = document.getElementById('settings-fab');
+    if (settingsFab) settingsFab.style.display = 'none';
     const modal = document.getElementById('evac-modal');
     const cancelAlertBtn = document.getElementById('evac-cancel-alert-btn');
     
@@ -4634,6 +4637,8 @@ async function cancelEvacAlert() {
                 currentData.employees.forEach(p => p.evac_status = 'NONE');
                 // 同步寫入雲端
                 await _supabase.from('personnel_control').update({ evac_status: 'NONE' }).in('id', activeIds);
+                // 🟢 連動關閉全域廣播
+                await _supabase.from('system_settings').update({ is_evac_active: false, updated_at: new Date().toISOString() }).eq('id', 1);
             }
             
             showNotification('✅ 撤離警報已解除！');
@@ -4658,9 +4663,10 @@ function closeEvacWindow() {
         clearInterval(evacInterval);
         evacInterval = null; 
     }
-
-    // 🎯 核心修復：直接呼叫 switchView 模擬您「點擊人員/裝備標籤」的動作
-    // 這會強制引擎重新判定狀態，100% 瞬間刷新紅光、按鈕與卡片！
+    // 🎯 戰術歸建：關閉視窗後，恢復右上角的節能按鈕
+    const settingsFab = document.getElementById('settings-fab');
+    if (settingsFab) settingsFab.style.display = 'flex';
+    // 之前改好的強制跳回人員面板指令
     switchView('personnel');
 }
 
@@ -4677,6 +4683,8 @@ async function executeEvacAlert() {
         
         // 批次寫入：所有人變成失聯
         const { error } = await _supabase.from('personnel_control').update({ evac_status: 'MISSING' }).in('id', activeIds);
+        // 🚨 連動開啟全域廣播
+        await _supabase.from('system_settings').update({ is_evac_active: true, updated_at: new Date().toISOString() }).eq('id', 1);
         if (error) throw error;
         
         renderEvacList();
