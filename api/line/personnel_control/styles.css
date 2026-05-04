@@ -995,3 +995,18 @@ body.effects-disabled .control-btn::before {
     display: none !important;
     animation: none !important;
 }
+
+/* 🛑 節能模式啟動時：無情斬斷所有耗能特效！ */
+body.effects-disabled .status-btn.active,
+body.effects-disabled #quick-evac-fab.missing,
+body.effects-disabled .evac-missing {
+    /* 1. 殺掉呼吸動畫，心跳停止 */
+    animation: none !important;
+    
+    /* 2. 順便拔掉靜態的厚重陰影與發光，徹底解放 GPU */
+    box-shadow: none !important; 
+    text-shadow: none !important;
+    
+    /* 3. 給它一個低調的單色邊框，維持辨識度即可 */
+    border: 1px solid currentColor !important;
+}
