@@ -3530,24 +3530,41 @@ async function deleteSinglePersonnel(id, name) {
 }
 
 // ==========================================
-// 🚀 批次新增人員：準備視窗 (直連版)
+// 🚀 批次新增人員：準備視窗 (支援從 users 表調用)
 // ==========================================
 async function showBatchAddModal() {
     // 1. 直連獲取現有群組清單
-    const { data: personnel } = await _supabase.from('personnel_control').select('group_name').eq('is_active', true);
+    const { data: personnel } = await _supabase.from('personnel_control').select('name, group_name').eq('is_active', true);
     const groups = personnel ? [...new Set(personnel.map(p => p.group_name))].filter(Boolean) : [];
+    const activeNames = personnel ? personnel.map(p => p.name) : []; // 記下已經在任務中的人名
+
+    // 2. 獲取 users 表單的既有人員
+    const { data: usersData } = await _supabase.from('users').select('姓名, display_name');
     
-    // 建立彈窗 (HTML 架構保持不變)
+    // 過濾出尚未加入任務的 users (用 display_name 優先，沒有才用姓名)
+    let availableUsers = [];
+    if (usersData) {
+        availableUsers = usersData
+            .map(u => u.姓名 || u.display_name)
+            .filter(name => name && !activeNames.includes(name)); // 過濾掉已經在任務中的人
+        // 移除重複的名字
+        availableUsers = [...new Set(availableUsers)]; 
+    }
+
+    // 建立彈窗
+    const existingModal = document.getElementById('batch-add-modal');
+    if (existingModal) existingModal.remove();
+
     const modal = document.createElement('div');
     modal.className = 'modal';
-    modal.id = 'batch-add-modal'; // 👈 新增這行！給它一個專屬 ID
-    modal.className = 'modal';
+    modal.id = 'batch-add-modal';
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 95%; max-height: 90vh; margin: 2vh auto;">
             <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
             <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
                 <i class="fas fa-users-plus"></i> 批次新增人員
             </h3>
+            
             <div style="margin-bottom: 15px;">
                 <label style="display: block; margin-bottom: 5px; font-weight: bold;">選擇加入群組</label>
                 <select id="batch-group-select" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px;">
@@ -3556,8 +3573,23 @@ async function showBatchAddModal() {
                 </select>
                 <input type="text" id="batch-custom-group-input" placeholder="輸入新組別名稱" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; margin-top: 10px; display: none;">
             </div>
+
+            <!-- 🎯 新增：從既有使用者選擇 -->
+            <div style="margin-bottom: 15px; background: rgba(0, 243, 255, 0.05); padding: 15px; border-radius: 8px; border: 1px dashed var(--neon-cyan);">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold; color: var(--neon-cyan);">從系統既有人員選擇</label>
+                <div style="display: flex; gap: 10px;">
+                    <select id="batch-user-select" style="flex: 1; padding: 12px; border: 1px solid var(--neon-cyan); background: #000; color: var(--text-bright); border-radius: 8px; font-size: 15px;">
+                        <option value="">-- 請選擇人員 --</option>
+                        ${availableUsers.map(name => `<option value="${name}">${name}</option>`).join('')}
+                    </select>
+                    <button onclick="addSelectedUserToList()" style="padding: 12px 20px; background: rgba(0, 243, 255, 0.2); color: var(--neon-cyan); border: 1px solid var(--neon-cyan); border-radius: 8px; font-weight: bold; white-space: nowrap;">
+                        <i class="fas fa-user-check"></i> 加入選取
+                    </button>
+                </div>
+            </div>
+
             <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold;">輸入姓名</label>
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">或手動輸入姓名</label>
                 <div style="display: flex; gap: 10px;">
                     <input type="text" id="batch-name-input" placeholder="輸入人員姓名..." style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px;">
                     <button onclick="addPersonToList()" style="padding: 12px 20px; background: #4CAF50; color: white; border: none; border-radius: 8px; font-weight: bold; white-space: nowrap;">
@@ -3565,10 +3597,12 @@ async function showBatchAddModal() {
                     </button>
                 </div>
             </div>
+
             <div style="margin-bottom: 15px;">
                 <label style="display: block; margin-bottom: 5px; font-weight: bold;">待新增清單 (<span id="batch-count">0</span> 人)</label>
-                <div id="batch-person-list" style="max-height: 40vh; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 10px; background: #f9f9f9;"></div>
+                <div id="batch-person-list" style="max-height: 30vh; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 10px; background: #f9f9f9;"></div>
             </div>
+
             <button onclick="confirmBatchAdd()" style="width: 100%; padding: 15px; background: #2196F3; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold;">
                 <i class="fas fa-check"></i> 確認新增
             </button>
@@ -4485,18 +4519,16 @@ async function openEvacSystem() {
     const modal = document.getElementById('evac-modal');
     const cancelAlertBtn = document.getElementById('evac-cancel-alert-btn');
     
-    // 判斷是否已經有撤離任務正在進行 (只要有人的狀態不是 NONE 就算)
     const isEvacOngoing = currentData.employees.some(p => p.evac_status && p.evac_status !== 'NONE');
 
     if (userRole === '管理') {
         cancelAlertBtn.style.display = 'block';
         if (!isEvacOngoing) {
-            // 啟動前 Double Check
             const choice = confirm("⚠️ 目前無撤離警報。\n\n是否要 [發布緊急撤離]？\n(這會將任務面板上『所有人』標記為失聯！)");
             if (choice) {
                 await executeEvacAlert();
             } else {
-                return; // 選擇取消則不開啟視窗
+                return;
             }
         }
     } else {
@@ -4505,18 +4537,25 @@ async function openEvacSystem() {
         showNotification('🚨 撤離警報！請盡速點擊自己的名字回報安全！');
     }
 
-    // 顯示視窗並鎖定背景
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden';
     
-    // 立即渲染畫面
     renderEvacList();
 
-    // 🔥 啟動高頻強制同步 (只要進入此畫面，每 10 秒去抓最新狀態)
+    // 🔥 修正：10秒輪詢只針對撤離資料 (不干擾主畫面)
     if (evacInterval) clearInterval(evacInterval);
     evacInterval = setInterval(async () => {
-        await loadDataFromSupabase(); 
-        renderEvacList();
+        // 🎯 改為：單獨去 Supabase 拉取撤離狀態，然後更新 currentData，再只渲染撤離畫面
+        const { data } = await _supabase.from('personnel_control').select('id, evac_status').eq('is_active', true);
+        if (data) {
+            // 更新本地快取
+            data.forEach(remoteItem => {
+                const localItem = currentData.employees.find(p => p.id === remoteItem.id);
+                if (localItem) localItem.evac_status = remoteItem.evac_status;
+            });
+            // 只刷新彈窗畫面
+            renderEvacList();
+        }
     }, 10000);
 }
 
