@@ -135,7 +135,11 @@
         <div id="form-signup" class="hidden space-y-3">
             <div class="grid grid-cols-2 gap-2">
                 <input type="email" id="reg-email" placeholder="電子信箱" class="input-dark text-sm">
-                <input type="text" id="reg-name" placeholder="真實姓名" class="input-dark text-sm">
+                <input type="text" id="reg-name" placeholder="真實姓名 (如: 陳大明)" class="input-dark text-sm">
+            </div>
+            <!-- 增加這一行用來填寫綽號 -->
+            <div class="mb-2">
+                <input type="text" id="reg-display-name" placeholder="顯示名稱/綽號 (如: 山豬)" class="input-dark text-sm">
             </div>
             <div class="grid grid-cols-2 gap-2">
                 <input type="password" id="reg-password" placeholder="設定密碼" class="input-dark text-sm">
@@ -303,11 +307,20 @@
                 const { data: userName } = await _supabase.rpc('get_user_name_by_email', { p_email: email });
                 if (!userName) return alert("❌ 找不到此信箱！如果您是新進人員，請切換至註冊申請。");
 
-                const { error: authErr } = await _supabase.auth.signUp({ email, password: pw });
+                // 👉 修正 2：加入 data: authData
+                const { data: authData, error: authErr } = await _supabase.auth.signUp({ 
+                    email, 
+                    password: pw,
+                    options: {
+                        data: {
+                            display_name: userName 
+                        }
+                    }
+                });
                 if (authErr) throw authErr;
 
                 alert(`🎉 綁定成功！歡迎回來，${userName}！`);
-                processLoginSuccess(data.session.user);
+                processLoginSuccess(authData.user);
             } catch (err) {
                 alert("綁定失敗：" + err.message);
             } finally {
@@ -321,9 +334,11 @@
             const pw = document.getElementById('reg-password').value;
             const pwConfirm = document.getElementById('reg-confirm').value;
             const name = document.getElementById('reg-name').value.trim();
+            const displayName = document.getElementById('reg-display-name').value.trim(); // 👈 新增：抓取綽號
             let unit = document.getElementById('reg-unit').value;
             
-            if (unit === '其他' || unit === 'OTHER') unit = document.getElementById('reg-unit-other').value.trim();
+            // 檢查必填 (加上 displayName)
+            if (!email || !name || !displayName || !pw || !unit) return alert("請填寫必填欄位");
             const title = document.getElementById('reg-title').value.trim();
             const phone = document.getElementById('reg-phone').value.trim();
             const note = document.getElementById('reg-note').value.trim();
@@ -338,19 +353,35 @@
                 const { data: userName } = await _supabase.rpc('get_user_name_by_email', { p_email: email });
                 if (userName) return alert(`⚠️ 信箱已存在！請至「信箱綁定」設定密碼。`);
 
-                const { error: authErr } = await _supabase.auth.signUp({ email, password: pw });
+                // 👉 修正 1：加入 data: authData
+                const { data: authData, error: authErr } = await _supabase.auth.signUp({ 
+                    email, 
+                    password: pw,
+                    options: {
+                        data: {
+                            display_name: displayName
+                        }
+                    }
+                });
                 if (authErr) throw authErr;
 
                 const fakeUserId = "APP_" + Math.random().toString(36).substr(2, 9);
                 const { data: regRes, error: regErr } = await _supabase.rpc('handle_new_user_registration', {
-                    p_name: name, p_unit: unit, p_email: email, p_user_id: fakeUserId, p_phone: phone, p_title: title, p_note: note
+                    p_name: name,
+                    p_display_name: displayName,
+                    p_unit: unit, 
+                    p_email: email, 
+                    p_user_id: fakeUserId, 
+                    p_phone: phone, 
+                    p_title: title, 
+                    p_note: note
                 });
 
                 if (regErr) throw regErr;
                 if (!regRes.success) throw new Error(regRes.message);
 
                 alert("🎉 註冊成功！資料已提交。");
-                processLoginSuccess(data.session.user);
+                processLoginSuccess(authData.user);
             } catch (err) {
                 alert("錯誤：" + err.message);
             } finally {
@@ -369,6 +400,7 @@
             await loadDynamicUnits();
             const { data, error } = await _supabase.auth.getSession();
             if (data.session) {
+                // 👉 修正 3：改回 data.session.user
                 processLoginSuccess(data.session.user);
             } else {
                 document.getElementById('login-screen').classList.remove('hidden');
