@@ -275,21 +275,25 @@ function updateStats() {
         labels[0].textContent = '在隊';
         labels[1].textContent = '應勤';
     }
-    // 🚨 檢查是否有撤離任務正在進行 (控制全域閃爍)
+    // 🚨 檢查是否有撤離任務正在進行 (控制全域閃爍與主畫面紅光)
     if (currentView === 'personnel') {
-        // 只要面板上 (is_active=true) 有任何人的撤離狀態不是 'NONE'，就代表警報尚未被指揮官解除
         const isEvacOngoing = currentData.employees.some(p => p.evac_status && p.evac_status !== 'NONE');
         const evacIcon = document.getElementById('evac-alert-icon');
-        if (evacIcon) {
-            if (isEvacOngoing) {
+        
+        if (isEvacOngoing) {
+            if (evacIcon) {
                 evacIcon.style.animation = 'heartbeat 0.8s infinite';
                 evacIcon.style.color = 'var(--neon-red)';
                 evacIcon.style.textShadow = '0 0 10px var(--neon-red)';
-            } else {
+            }
+            document.body.classList.add('evac-active'); // 👈 觸發背景紅光擴散
+        } else {
+            if (evacIcon) {
                 evacIcon.style.animation = 'none';
                 evacIcon.style.color = 'var(--text-dim)';
                 evacIcon.style.textShadow = 'none';
             }
+            document.body.classList.remove('evac-active'); // 👈 解除背景紅光
         }
     }
 }
@@ -797,17 +801,28 @@ async function renderCards() {
         return;
     }
 
-    // 顯示資料統計
+    // 顯示資料統計與全體刷新按鈕
     const statsDiv = document.createElement('div');
     statsDiv.className = 'data-stats';
-    statsDiv.innerHTML = `<p>此任務共 ${data.length} 參與人員</p>`;
     statsDiv.style.cssText = `
         grid-column: 1 / -1;
-        background-color: #f0f0f0;
-        padding: 10px;
-        border-radius: 5px;
-        margin-bottom: 10px;
-        text-align: center;
+        background: rgba(0, 243, 255, 0.05);
+        border: 1px solid var(--neon-cyan);
+        box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.1);
+        padding: 12px 20px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    `;
+    statsDiv.innerHTML = `
+        <span style="color: var(--neon-cyan); font-weight: bold; text-shadow: 0 0 5px rgba(0, 243, 255, 0.5);">
+            <i class="fas fa-users"></i> 此任務共 ${data.length} 參與人員
+        </span>
+        <button onclick="refreshData()" style="padding: 6px 15px; background: rgba(0, 243, 255, 0.15); border: 1px solid var(--neon-cyan); color: var(--neon-cyan); border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.3s; text-shadow: 0 0 5px var(--neon-cyan);">
+            <i class="fas fa-sync-alt"></i> 刷新
+        </button>
     `;
     container.appendChild(statsDiv);
 
@@ -1466,7 +1481,7 @@ function enableAdminFeatures() {
         transition: opacity 0.3s ease;
     `;
 
-    // 工具列按鈕
+    // 工具列按鈕 (已移除手動刷新與自動開關，下放給全體)
     toolbarContent.innerHTML = `
         <button onclick="showMissionManagement()" style="padding: 8px 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; white-space: pre-line;">
             <i class="fas fa-users"></i> 管理任務人員
@@ -1476,12 +1491,6 @@ function enableAdminFeatures() {
         </button>
         <button onclick="showBatchAddModal()" style="padding: 8px 12px; background-color: #2196F3; color: white; border: none; border-radius: 4px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; white-space: pre-line;">
             <i class="fas fa-user-plus"></i> 批次新增人員
-        </button>
-        <button onclick="refreshData()" style="padding: 8px 12px; background-color: #9C27B0; color: white; border: none; border-radius: 4px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; white-space: pre-line;">
-            <i class="fas fa-sync"></i> 手動刷新
-        </button>
-        <button onclick="toggleAutoRefresh()" style="padding: 8px 12px; background-color: #FF9800; color: white; border: none; border-radius: 4px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; white-space: pre-line;">
-            <i class="fas fa-clock"></i> ${autoRefreshEnabled ? '停止自動' : '啟動自動'}
         </button>
     `;
 
@@ -4711,3 +4720,24 @@ async function toggleEvacStatus(id, currentEvacStatus) {
         renderEvacList();
     }
 }
+
+// ==========================================
+// 🚨 全域 5 秒撤離「奪命連環 Call」提醒輪詢
+// ==========================================
+setInterval(() => {
+    // 只有在人員畫面才檢查
+    if (currentView !== 'personnel') return;
+    
+    // 檢查全系統是否處於撤離狀態
+    const isEvacOngoing = currentData.employees.some(p => p.evac_status && p.evac_status !== 'NONE');
+    if (!isEvacOngoing) return;
+
+    // 確定當前使用者身分是否在任務中
+    if (!currentUser) return;
+    const myRecord = currentData.employees.find(p => p.name === currentUser.displayName || p.detail_name === currentUser.displayName);
+    
+    // 🎯 核心：如果你在任務中，而且狀態是 MISSING (尚未回報)，就彈射通知！
+    if (myRecord && myRecord.evac_status === 'MISSING') {
+        showNotification('🚨 撤離警報！請點擊上方【撤離回報】確認您的安全！');
+    }
+}, 5000);

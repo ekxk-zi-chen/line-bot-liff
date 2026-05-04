@@ -792,3 +792,22 @@ button[onclick="confirmBatchAdd()"]:hover {
     0% { background-position: 0 0; }
     100% { background-position: 28px 0; }
 }
+
+/* ==========================================
+   🚨 撤離警報：全域主畫面紅光擴散特效
+   ========================================== */
+body.evac-active {
+    animation: body-red-pulse 1.5s infinite alternate !important;
+}
+
+/* 擴散紅光與暗黑邊緣的交替閃爍 */
+@keyframes body-red-pulse {
+    0% { 
+        background-color: #03050a; 
+        box-shadow: inset 0 0 20px rgba(255, 0, 85, 0.1); 
+    }
+    100% { 
+        background-color: #1a0005; /* 背景稍微染紅 */
+        box-shadow: inset 0 0 150px rgba(255, 0, 85, 0.65); /* 螢幕四周強烈紅光向內擠壓 */
+    }
+}
