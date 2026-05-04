@@ -184,10 +184,28 @@
 
     <script>
         async function checkSession() {
+            // 1. 取得登入狀態[cite: 1, 4]
             const { data } = await _supabase.auth.getSession();
+            
             if (data.session) {
-                document.getElementById('user-info').innerText = `隊員：${data.session.user.email.split('@')[0]}`;
+                const user = data.session.user; // 取得使用者物件
+                userEmail = user.email;
+
+                // 2. 顯示綽號：優先找 metadata 裡的 display_name，沒有才抓信箱前綴
+                const nickName = user.user_metadata.display_name || userEmail.split('@')[0];
+                document.getElementById('user-info').innerText = `隊員：${nickName}`;
+
+                // 3. 🚨 向資料庫要真正的 userId (GAS 後端專用)
+                try {
+                    const { data: dbUserId } = await _supabase.rpc('get_user_id_by_email', { p_email: userEmail });
+                    // 如果抓得到就用資料庫的，抓不到就用 Auth 的 UUID[cite: 1]
+                    userId = dbUserId || user.id; 
+                } catch(e) {
+                    console.error("無法取得 UserId", e);
+                    userId = user.id; // 防呆機制
+                }
             } else {
+                // 4. 沒登入就踢回大廳，並記住原本想去的網址[cite: 4]
                 window.location.href = `../lobby.html?redirect=${encodeURIComponent(window.location.href)}`;
             }
         }
