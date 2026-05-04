@@ -10,7 +10,7 @@ let currentView = 'personnel';
 let selectedItem = null;
 let driveImages = { equipment: {}, personnel: {}, vehicles: {} };
 let badImageCache = {}; // 👈 🎯 新增：專門用來記憶「破圖/無圖」的黑名單變數
-let currentReasons = []; 
+let currentReasons = [];
 let syncStatus = { isOnline: true, isSyncing: false, lastSyncTime: null };
 let autoRefreshInterval = null;
 let autoRefreshEnabled = true;
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function () {
 async function initializeApp() {
     try {
         checkNetworkStatus();
-        
+
         // 1. 直連驗證：判斷身分與權限
         await verifyUserDirect();
 
@@ -47,7 +47,7 @@ async function initializeApp() {
         renderCards();
 
         if (userRole === '管理') enableAdminFeatures();
-        
+
         updateSyncStatus('connected', '資料載入完成');
         if (autoRefreshEnabled) startAutoRefresh(30000);
 
@@ -60,7 +60,7 @@ async function initializeApp() {
 // 🔥 核心重構：使用 Supabase 官方 Auth 取得身分，再反查 users 表
 async function verifyUserDirect() {
     const { data: authData, error: authErr } = await _supabase.auth.getSession();
-    
+
     // 沒 Session？踢回大廳，並帶上返回車票 (redirect)
     if (authErr || !authData.session) {
         console.warn("未登入，踢回大廳");
@@ -121,11 +121,11 @@ async function loadDataFromSupabase() {
                 status: item.status || 'BoO',
                 time_status: item.time_status || '',
                 time_history: item.time_history || '',
-                lastReason: item.reason || '', 
+                lastReason: item.reason || '',
                 evac_status: item.evac_status || 'NONE', // 🚨 絕對不能漏掉這行保險栓！
                 rawData: item
             }));
-        
+
         } else {
             const { data, error } = await _supabase
                 .from('equipment_control')
@@ -145,7 +145,7 @@ async function loadDataFromSupabase() {
                 status: item.status || '在隊',
                 time_status: item.time_status || '',
                 time_history: item.time_history || '',
-                lastReason: item.reason || '', 
+                lastReason: item.reason || '',
                 rawData: item
             }));
         }
@@ -190,7 +190,7 @@ function setupEventListeners() {
             if (event.target === modal) {
                 // 🚨 關鍵修復：這裡本來是 modal.style.display = 'none'
                 // 改成呼叫 closeModal，才能確實清除隱形的鍵盤監聽器！
-                closeModal(modal.id); 
+                closeModal(modal.id);
             }
         });
     });
@@ -280,23 +280,23 @@ function updateStats() {
     if (currentView === 'personnel') {
         const isEvacOngoing = currentData.employees.some(p => p.evac_status && p.evac_status !== 'NONE');
         const evacIcon = document.getElementById('evac-alert-icon');
-        
+
         if (isEvacOngoing) {
             if (evacIcon) {
                 evacIcon.style.animation = 'heartbeat 0.8s infinite';
                 evacIcon.style.color = 'var(--neon-red)';
                 evacIcon.style.textShadow = '0 0 10px var(--neon-red)';
             }
-            document.body.classList.add('evac-active'); 
+            document.body.classList.add('evac-active');
         } else {
             if (evacIcon) {
                 evacIcon.style.animation = 'none';
                 evacIcon.style.color = 'var(--text-dim)';
                 evacIcon.style.textShadow = 'none';
             }
-            document.body.classList.remove('evac-active'); 
+            document.body.classList.remove('evac-active');
         }
-        
+
         // 🎯 新增：更新右下角的個人撤離按鈕
         updateQuickEvacFAB();
     }
@@ -319,28 +319,37 @@ function renderGroupControls() {
         const groupDiv = document.createElement('div');
         groupDiv.className = 'group-control-item';
 
-        // 群組標題區
+        // 🎯 群組標題區 (終極合體版)
         const groupHeader = document.createElement('div');
         groupHeader.className = 'group-control-header';
+        groupHeader.style.cssText = "display: flex; align-items: center; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px dashed var(--border-dim);";
+
+        let adminBtns = '';
+        if (userRole === '管理') {
+            adminBtns = `
+                <div style="display: flex; gap: 8px; margin-left: auto; margin-right: 10px;">
+                    <button onclick="batchUpdateGroupStatus('${groupName}', '${currentView === 'personnel' ? 'BoO' : '在隊'}')" style="padding: 4px 8px; font-size: 11px; border-radius: 4px; background: rgba(0,255,102,0.1); color: var(--neon-green); border: 1px solid var(--neon-green); cursor: pointer; font-weight: bold; white-space: nowrap; box-shadow: 0 0 5px rgba(0,255,102,0.2);">
+                        全部${currentView === 'personnel' ? '歸隊' : '在隊'}
+                    </button>
+                    <button onclick="batchUpdateGroupStatus('${groupName}', '${currentView === 'personnel' ? '外出' : '應勤'}')" style="padding: 4px 8px; font-size: 11px; border-radius: 4px; background: rgba(255,0,85,0.1); color: var(--neon-red); border: 1px solid var(--neon-red); cursor: pointer; font-weight: bold; white-space: nowrap; box-shadow: 0 0 5px rgba(255,0,85,0.2);">
+                        全部${currentView === 'personnel' ? '外出' : '應勤'}
+                    </button>
+                </div>
+            `;
+        } else {
+            adminBtns = `<div style="margin-left: auto; margin-right: 10px; font-size: 11px; color: var(--text-dim);">僅管理操作</div>`;
+        }
+
         groupHeader.innerHTML = `
-            <h4>${groupName} (${groups[groupName].length}人)</h4>
-            <button class="expand-btn" onclick="toggleGroupMembers('${groupName}')">
+            <h4 style="margin: 0; border: none; padding: 0; display: flex; align-items: center; gap: 6px; color: var(--neon-cyan);">
+                ${groupName} 
+                <span style="font-size: 12px; color: var(--text-dim); font-weight: normal;">(${groups[groupName].length}人)</span>
+            </h4>
+            ${adminBtns}
+            <button class="expand-btn" onclick="toggleGroupMembers('${groupName}')" style="padding: 5px; color: var(--text-dim); background: none; border: none; cursor: pointer;">
                 <i class="fas fa-chevron-down"></i>
             </button>
         `;
-
-        // 🎯 群組按鈕區 (復原，只留下全部歸隊 / 全部外出)
-        const groupButtons = document.createElement('div');
-        groupButtons.className = 'group-buttons';
-
-        if (userRole === '管理') {
-            groupButtons.innerHTML = `
-                <button class="boo-btn" onclick="batchUpdateGroupStatus('${groupName}', '${currentView === 'personnel' ? 'BoO' : '在隊'}')">全部${currentView === 'personnel' ? '歸隊' : '在隊'}</button>
-                <button class="out-btn" onclick="batchUpdateGroupStatus('${groupName}', '${currentView === 'personnel' ? '外出' : '應勤'}')">全部${currentView === 'personnel' ? '外出' : '應勤'}</button>
-            `;
-        } else {
-            groupButtons.innerHTML = `<div class="group-status-info">群組操作僅限管理員使用</div>`;
-        }
 
         // 成員列表（預設隱藏）
         const membersList = document.createElement('div');
@@ -395,7 +404,7 @@ function renderGroupControls() {
         }
 
         groupDiv.appendChild(groupHeader);
-        groupDiv.appendChild(groupButtons);
+        // groupDiv.appendChild(groupButtons);
         groupDiv.appendChild(membersList);
         container.appendChild(groupDiv);
     });
@@ -409,10 +418,10 @@ function updateSelectedInGroup(groupName, newStatus) {
         showNotification('⚠️ 請先勾選要外出的單位');
         return;
     }
-    
+
     // 把選中的 ID 轉換成陣列
     const ids = Array.from(checkboxes).map(cb => parseInt(cb.dataset.id));
-    
+
     // 呼叫批次更新，並把選取的 IDs 當作秘密武器傳進去
     batchUpdateGroupStatus(groupName, newStatus, ids);
 }
@@ -495,7 +504,7 @@ async function batchUpdateGroupStatus(groupName, newStatus, specificIds = null) 
 async function performBatchGroupUpdateViaAPI(groupName, newStatus, reason, specificIds = null) {
     try {
         const data = currentView === 'personnel' ? currentData.employees : currentData.equipment;
-        
+
         // 篩出群組人員
         let groupItems = data.filter(item => {
             const groupKey = currentView === 'personnel' ? item.group : item.category;
@@ -572,7 +581,7 @@ function showGroupReasonModal(groupName, newStatus, specificIds = null) {
 
     document.body.appendChild(reasonModal);
     reasonModal.style.display = 'block';
-    
+
     // 綁定資料，讓 confirm 函數抓得到
     reasonModal.dataset.groupName = groupName;
     reasonModal.dataset.newStatus = newStatus;
@@ -974,15 +983,15 @@ function createCardSync(item) {
         if (fileName) {
             let cleanName = fileName.trim();
             if (!cleanName.includes('.')) cleanName = cleanName + '.jpg';
-            
+
             // 2. 🎯 致命一擊：把它寫入全域黑名單！下次再也不會為它浪費網路請求！
-            badImageCache[cleanName] = true; 
+            badImageCache[cleanName] = true;
             console.warn(`⛔ 圖片死結阻斷：[${cleanName}] 已加入黑名單，不再重複 Fetch。`);
         }
 
         // 3. 換上預設圖片，並拔除監聽器防止死循環
         this.src = getDefaultDrivePhoto();
-        this.onerror = null; 
+        this.onerror = null;
     };
 
     imgElement.onclick = function () {
@@ -1267,7 +1276,7 @@ async function performStatusUpdateDirect(id, newStatus, reason, skipReload = fal
     try {
         const table = currentView === 'personnel' ? 'personnel_control' : 'equipment_control';
         const currentTime = getCurrentTime();
-        
+
         const { data: currentItem, error: fetchErr } = await _supabase
             .from(table).select('time_history').eq('id', id).single();
         if (fetchErr) throw fetchErr;
@@ -1335,15 +1344,19 @@ function showReasonModal(itemId, newStatus) {
             <div class="modal-body">
                 <div class="reason-options" id="reason-options">
                     ${currentReasons.map(reason =>
-        `<div class="reason-option" onclick="handleReasonOptionClick(this, ${itemId}, '${newStatus}')">${reason}</div>`
-    ).join('')}
-                </div>
+                `<div class="reason-option" onclick="handleReasonOptionClick(this, ${itemId}, '${newStatus}')">${reason}</div>`
+                  ).join('')}
+                 </div>
                 <div class="custom-reason-input" id="custom-reason-input" style="display: none;">
                     <input type="text" placeholder="請輸入自訂原因..." maxlength="50">
                 </div>
-                <div class="reason-actions">
-                    <button onclick="handleConfirmReason(${itemId}, '${newStatus}')">確認</button>
-                    <button onclick="this.closest('.modal').remove()">取消</button>
+                <div class="reason-actions flex gap-3 w-full mt-4">
+                    <button onclick="this.closest('.modal').remove()" class="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 md:py-4 rounded-xl text-base md:text-lg font-bold tracking-widest shadow-lg active:scale-95 transition-all">
+                        取 消
+                    </button>
+                    <button onclick="handleConfirmReason(${itemId}, '${newStatus}')" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 md:py-4 rounded-xl text-base md:text-lg font-bold tracking-widest shadow-lg active:scale-95 transition-all">
+                        確 認
+                    </button>
                 </div>
             </div>
         </div>
@@ -2115,20 +2128,20 @@ function setupQuickControlSearch() {
     const searchInput = document.getElementById('search-input');
     if (!searchInput) return;
 
-    searchInput.oninput = null; 
+    searchInput.oninput = null;
 
     // 🚨 確保防卡死保護機制「永遠只綁定一次」！
     if (!isQuickSearchBound) {
         searchInput.addEventListener('compositionstart', () => { isComposingQuickSearch = true; });
-        searchInput.addEventListener('compositionend', () => { 
-            isComposingQuickSearch = false; 
+        searchInput.addEventListener('compositionend', () => {
+            isComposingQuickSearch = false;
             filterQuickControlList(searchInput.value.trim().toLowerCase());
         });
         isQuickSearchBound = true; // 標記已綁定，下次進來就不會再綁
     }
 
     searchInput.oninput = function () {
-        if (isComposingQuickSearch) return; 
+        if (isComposingQuickSearch) return;
 
         const searchTerm = this.value.trim().toLowerCase();
         clearTimeout(quickSearchDebounce);
@@ -2340,8 +2353,8 @@ function showBatchAllReasonModal(newStatus) {
             <div class="modal-body">
                 <div class="reason-options" id="batch-all-reason-options">
                     ${currentReasons.map(reason =>
-                        `<div class="reason-option" onclick="selectBatchAllReason(this, '${newStatus}')">${reason}</div>`
-                    ).join('')}
+        `<div class="reason-option" onclick="selectBatchAllReason(this, '${newStatus}')">${reason}</div>`
+    ).join('')}
                 </div>
                 <div class="custom-reason-input" id="batch-all-custom-reason-input" style="display: none;">
                     <input type="text" placeholder="請輸入自訂原因..." maxlength="50">
@@ -2416,7 +2429,7 @@ async function performBatchAllUpdate(newStatus, reason) {
     try {
         showNotification('🚀 正在處理全體批次更新...');
         const data = currentView === 'personnel' ? currentData.employees : currentData.equipment;
-        
+
         // 使用 Promise.all 同時發送請求，開啟 skipReload 靜音模式
         const promises = data.map(item => performStatusUpdateDirect(item.id, newStatus, reason, true));
         await Promise.all(promises);
@@ -3059,12 +3072,12 @@ function updateChangedCards() {
 
             // 群組改變，需重繪群組框
             if (oldGroup !== currentGroup) {
-                needsFullRender = true; 
-            } 
+                needsFullRender = true;
+            }
             // 🎯 核心：只有當「狀態」或「時間」變了，才單獨抽換這張卡！圖片不會再瘋狂重載！
             else if (oldStatus !== item.status || oldTime !== item.time_status) {
                 const newCard = createCardSync(item);
-                card.replaceWith(newCard); 
+                card.replaceWith(newCard);
             }
         } else {
             needsFullRender = true;
@@ -3136,11 +3149,11 @@ async function showMissionManagement() {
 
     const type = currentView; // 'personnel' 或 'equipment'
     const title = type === 'personnel' ? '管理任務人員' : '管理任務器材';
-    
+
     // 創建任務管理彈窗（完全重寫 HTML）
     const modalId = 'mission-management-modal';
     let modal = document.getElementById(modalId);
-    
+
     if (!modal) {
         modal = document.createElement('div');
         modal.id = modalId;
@@ -3218,19 +3231,19 @@ async function showMissionManagement() {
         `;
         document.body.appendChild(modal);
     }
-    
+
     // 顯示模態框
     modal.style.display = 'block';
-    
+
     // 載入資料
     await loadMissionManagementData(type);
-    
+
     // 設置搜尋功能
     setupEnhancedMissionSearch();
-    
+
     // 更新統計
     updateMissionStats();
-    
+
     // 手機優化：觸發重新佈局
     setTimeout(() => {
         window.dispatchEvent(new Event('resize'));
@@ -3248,16 +3261,16 @@ async function showEditPersonnelModal() {
         .eq('is_active', true)
         .order('group_name')
         .order('name');
-        
+
     if (error) return showNotification('❌ 讀取人員列表失敗');
-    
+
     // 2. 萃取出現有的所有群組
     const groups = [...new Set(personnel.map(p => p.group_name))].filter(Boolean);
-    
+
     // 建立彈窗 (HTML 架構保持不變)
     const existingModal = document.getElementById('edit-personnel-modal');
     if (existingModal) existingModal.remove();
-    
+
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.id = 'edit-personnel-modal';
@@ -3274,17 +3287,17 @@ async function showEditPersonnelModal() {
             <div id="edit-personnel-list" style="max-height: 60vh; overflow-y: auto;"></div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     modal.style.display = 'block';
-    
+
     renderEditPersonnelList(personnel, groups);
-    
-    document.getElementById('edit-search-input').oninput = function() {
+
+    document.getElementById('edit-search-input').oninput = function () {
         const searchTerm = this.value.toLowerCase();
         const items = document.querySelectorAll('.edit-person-item');
         const groupHeaders = document.querySelectorAll('.edit-group-header');
-        
+
         items.forEach(item => {
             const name = item.dataset.name.toLowerCase();
             const group = item.dataset.group.toLowerCase();
@@ -3296,7 +3309,7 @@ async function showEditPersonnelModal() {
                 item.style.display = 'none';
             }
         });
-        
+
         groupHeaders.forEach(header => {
             const groupContainer = header.nextElementSibling;
             const visibleItems = groupContainer.querySelectorAll('.edit-person-item[style*="display: flex"]');
@@ -3310,23 +3323,23 @@ async function showEditPersonnelModal() {
 
 // 渲染編輯人員列表
 function renderEditPersonnelList(personnel, groups) {
-  const listDiv = document.getElementById('edit-personnel-list');
-  listDiv.innerHTML = '';
-  
-  // 按群組分組
-  const groupedData = {};
-  personnel.forEach(p => {
-    const group = p.group_name || '未分組';
-    if (!groupedData[group]) groupedData[group] = [];
-    groupedData[group].push(p);
-  });
-  
-  // 渲染每個群組
-  Object.keys(groupedData).sort().forEach(groupName => {
-    // 群組標題
-    const groupHeader = document.createElement('div');
-    groupHeader.className = 'edit-group-header';
-    groupHeader.style.cssText = `
+    const listDiv = document.getElementById('edit-personnel-list');
+    listDiv.innerHTML = '';
+
+    // 按群組分組
+    const groupedData = {};
+    personnel.forEach(p => {
+        const group = p.group_name || '未分組';
+        if (!groupedData[group]) groupedData[group] = [];
+        groupedData[group].push(p);
+    });
+
+    // 渲染每個群組
+    Object.keys(groupedData).sort().forEach(groupName => {
+        // 群組標題
+        const groupHeader = document.createElement('div');
+        groupHeader.className = 'edit-group-header';
+        groupHeader.style.cssText = `
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -3337,29 +3350,29 @@ function renderEditPersonnelList(personnel, groups) {
       margin-bottom: 5px;
       border-radius: 8px;
     `;
-    
-    groupHeader.innerHTML = `
+
+        groupHeader.innerHTML = `
       <div style="display: flex; align-items: center; gap: 10px;">
         <i class="fas fa-chevron-down" style="transition: transform 0.3s;"></i>
         <strong>${groupName}</strong> (${groupedData[groupName].length})
       </div>
     `;
-    
-    // 群組內容
-    const groupContainer = document.createElement('div');
-    groupContainer.className = 'edit-group-container';
-    groupContainer.style.cssText = `
+
+        // 群組內容
+        const groupContainer = document.createElement('div');
+        groupContainer.className = 'edit-group-container';
+        groupContainer.style.cssText = `
       display: none;
       padding: 10px;
       margin-bottom: 15px;
     `;
-    
-    groupedData[groupName].forEach(p => {
-      const item = document.createElement('div');
-      item.className = 'edit-person-item';
-      item.dataset.name = p.name;
-      item.dataset.group = groupName;
-      item.style.cssText = `
+
+        groupedData[groupName].forEach(p => {
+            const item = document.createElement('div');
+            item.className = 'edit-person-item';
+            item.dataset.name = p.name;
+            item.dataset.group = groupName;
+            item.style.cssText = `
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -3369,8 +3382,8 @@ function renderEditPersonnelList(personnel, groups) {
         background: white;
         border-radius: 8px;
       `;
-      
-      item.innerHTML = `
+
+            item.innerHTML = `
         <div>
           <strong style="font-size: 15px;">${p.name}</strong>
           <div style="font-size: 12px; color: #666; margin-top: 3px;">${groupName}</div>
@@ -3384,45 +3397,45 @@ function renderEditPersonnelList(personnel, groups) {
           </button>
         </div>
       `;
-      
-      groupContainer.appendChild(item);
+
+            groupContainer.appendChild(item);
+        });
+
+        // 點擊群組標題展開/收合
+        groupHeader.addEventListener('click', function () {
+            const icon = this.querySelector('i');
+            if (groupContainer.style.display === 'none') {
+                groupContainer.style.display = 'block';
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                groupContainer.style.display = 'none';
+                icon.style.transform = 'rotate(-90deg)';
+            }
+        });
+
+        listDiv.appendChild(groupHeader);
+        listDiv.appendChild(groupContainer);
     });
-    
-    // 點擊群組標題展開/收合
-    groupHeader.addEventListener('click', function() {
-      const icon = this.querySelector('i');
-      if (groupContainer.style.display === 'none') {
-        groupContainer.style.display = 'block';
-        icon.style.transform = 'rotate(0deg)';
-      } else {
-        groupContainer.style.display = 'none';
-        icon.style.transform = 'rotate(-90deg)';
-      }
-    });
-    
-    listDiv.appendChild(groupHeader);
-    listDiv.appendChild(groupContainer);
-  });
 }
 
 // ==========================================
 // 🚀 編輯單一人員：生成編輯視窗 (Supabase 直連版)
 // ==========================================
 async function editSinglePersonnel(id, currentName, currentGroup) {
-  // 1. 直連抓取所有現有群組 (取代舊的 fetch API)
-  const { data: personnel } = await _supabase
-      .from('personnel_control')
-      .select('group_name')
-      .eq('is_active', true);
-      
-  const groups = personnel ? [...new Set(personnel.map(p => p.group_name))].filter(Boolean) : [];
-  
-  // 建立編輯彈窗
-  const editModal = document.createElement('div');
-  editModal.className = 'modal';
-  editModal.style.zIndex = '2001';
-  editModal.id = 'single-edit-modal'; // 👈 加上這行！給小視窗一個專屬 ID
-  editModal.innerHTML = `
+    // 1. 直連抓取所有現有群組 (取代舊的 fetch API)
+    const { data: personnel } = await _supabase
+        .from('personnel_control')
+        .select('group_name')
+        .eq('is_active', true);
+
+    const groups = personnel ? [...new Set(personnel.map(p => p.group_name))].filter(Boolean) : [];
+
+    // 建立編輯彈窗
+    const editModal = document.createElement('div');
+    editModal.className = 'modal';
+    editModal.style.zIndex = '2001';
+    editModal.id = 'single-edit-modal'; // 👈 加上這行！給小視窗一個專屬 ID
+    editModal.innerHTML = `
     <div class="modal-content" style="max-width: 400px;">
       <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
       <h3 style="margin-bottom: 20px;">
@@ -3453,20 +3466,20 @@ async function editSinglePersonnel(id, currentName, currentGroup) {
       </div>
     </div>
   `;
-  
-  document.body.appendChild(editModal);
-  editModal.style.display = 'block';
-  
-  // 選擇「新增自訂組別」時顯示輸入框
-  document.getElementById('edit-group-select').onchange = function() {
-    const customInput = document.getElementById('edit-custom-group-input');
-    if (this.value === '__custom__') {
-      customInput.style.display = 'block';
-      customInput.focus();
-    } else {
-      customInput.style.display = 'none';
-    }
-  };
+
+    document.body.appendChild(editModal);
+    editModal.style.display = 'block';
+
+    // 選擇「新增自訂組別」時顯示輸入框
+    document.getElementById('edit-group-select').onchange = function () {
+        const customInput = document.getElementById('edit-custom-group-input');
+        if (this.value === '__custom__') {
+            customInput.style.display = 'block';
+            customInput.focus();
+        } else {
+            customInput.style.display = 'none';
+        }
+    };
 }
 
 // 🚀 編輯人員：寫入資料庫
@@ -3474,24 +3487,24 @@ async function confirmEditPerson(id) {
     const newName = document.getElementById('edit-name-input').value.trim();
     let newGroup = document.getElementById('edit-group-select').value;
     if (newGroup === '__custom__') newGroup = document.getElementById('edit-custom-group-input').value.trim();
-    
+
     if (!newName || !newGroup) return showNotification('⚠️ 姓名與組別不可為空');
-    
+
     // 直連 Update
     const { error } = await _supabase
         .from('personnel_control')
         .update({ name: newName, group_name: newGroup })
         .eq('id', id);
-        
+
     if (error) {
         showNotification('❌ 更新失敗：' + error.message);
     } else {
         showNotification('✅ 更新成功');
-        
+
         // 🎯 拔掉舊的，換上這段：精準關閉小視窗！
         const smallModal = document.getElementById('single-edit-modal');
         if (smallModal) smallModal.remove();
-        
+
         await loadDataFromSupabase(); // 更新大畫面
         renderView();
         showEditPersonnelModal(); // 刷新編輯大列表
@@ -3501,13 +3514,13 @@ async function confirmEditPerson(id) {
 // 🚀 編輯人員：軟刪除 (隱藏)
 async function deleteSinglePersonnel(id, name) {
     if (!confirm(`確定要刪除 ${name} 嗎？\n(資料將會隱藏，不會完全從資料庫抹除)`)) return;
-    
+
     // 直連 Update 軟刪除標記 (is_active: false)
     const { error } = await _supabase
         .from('personnel_control')
         .update({ is_active: false })
         .eq('id', id);
-        
+
     if (error) {
         showNotification('❌ 刪除失敗：' + error.message);
     } else {
@@ -3529,7 +3542,7 @@ async function showBatchAddModal() {
 
     // 2. 獲取 users 表單的既有人員 (加上探測器)
     const { data: usersData, error: usersErr } = await _supabase.from('users').select('姓名, display_name');
-    
+
     // 🚨 聲納探測器：請按 F12 打開開發者工具的 Console (主控台) 看這裡印出什麼！
     if (usersErr) console.error("【敵襲警告】Supabase 拒絕存取：", usersErr);
 
@@ -3540,12 +3553,12 @@ async function showBatchAddModal() {
             .map(u => {
                 // 順便印出每筆資料，看是不是欄位名稱有落差
                 const extractedName = u.姓名 || u.display_name;
-                return extractedName ? extractedName.trim() : null; 
+                return extractedName ? extractedName.trim() : null;
             })
             .filter(name => name && !activeNames.includes(name)); // 過濾掉已經在任務中的人
-            
+
         // 移除重複的名字
-        availableUsers = [...new Set(availableUsers)]; 
+        availableUsers = [...new Set(availableUsers)];
     }
 
     // 建立彈窗
@@ -3605,13 +3618,13 @@ async function showBatchAddModal() {
             </button>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     modal.style.display = 'block';
-    
+
     window.batchPersonList = [];
-    
-    document.getElementById('batch-group-select').onchange = function() {
+
+    document.getElementById('batch-group-select').onchange = function () {
         const customInput = document.getElementById('batch-custom-group-input');
         if (this.value === '__custom__') {
             customInput.style.display = 'block';
@@ -3620,8 +3633,8 @@ async function showBatchAddModal() {
             customInput.style.display = 'none';
         }
     };
-    
-    document.getElementById('batch-name-input').onkeypress = function(e) {
+
+    document.getElementById('batch-name-input').onkeypress = function (e) {
         if (e.key === 'Enter') addPersonToList();
     };
 }
@@ -3632,7 +3645,7 @@ async function showBatchAddModal() {
 function addSelectedUserToList() {
     const select = document.getElementById('batch-user-select');
     const name = select.value;
-    
+
     if (!name) {
         showNotification('請選擇人員');
         return;
@@ -3640,7 +3653,7 @@ function addSelectedUserToList() {
 
     const groupSelect = document.getElementById('batch-group-select');
     const customGroupInput = document.getElementById('batch-custom-group-input');
-    
+
     let group = groupSelect.value;
     if (group === '__custom__') {
         group = customGroupInput.value.trim();
@@ -3663,55 +3676,55 @@ function addSelectedUserToList() {
 
     // 🎯 貼心設計：將選過的人從下拉選單中移除，避免重複選取
     select.options[select.selectedIndex].remove();
-    select.value = ""; 
+    select.value = "";
 }
 
 // 加入人員到清單
 function addPersonToList() {
-  const nameInput = document.getElementById('batch-name-input');
-  const groupSelect = document.getElementById('batch-group-select');
-  const customGroupInput = document.getElementById('batch-custom-group-input');
-  
-  const name = nameInput.value.trim();
-  if (!name) {
-    showNotification('請輸入姓名');
-    return;
-  }
-  
-  let group = groupSelect.value;
-  if (group === '__custom__') {
-    group = customGroupInput.value.trim();
-    if (!group) {
-      showNotification('請輸入組別名稱');
-      return;
+    const nameInput = document.getElementById('batch-name-input');
+    const groupSelect = document.getElementById('batch-group-select');
+    const customGroupInput = document.getElementById('batch-custom-group-input');
+
+    const name = nameInput.value.trim();
+    if (!name) {
+        showNotification('請輸入姓名');
+        return;
     }
-  }
-  
-  // 加入清單
-  window.batchPersonList.push({ name, group_name: group });
-  
-  // 更新顯示
-  renderBatchPersonList();
-  
-  // 清空輸入框
-  nameInput.value = '';
-  nameInput.focus();
+
+    let group = groupSelect.value;
+    if (group === '__custom__') {
+        group = customGroupInput.value.trim();
+        if (!group) {
+            showNotification('請輸入組別名稱');
+            return;
+        }
+    }
+
+    // 加入清單
+    window.batchPersonList.push({ name, group_name: group });
+
+    // 更新顯示
+    renderBatchPersonList();
+
+    // 清空輸入框
+    nameInput.value = '';
+    nameInput.focus();
 }
 
 // 渲染批次新增清單
 function renderBatchPersonList() {
-  const listDiv = document.getElementById('batch-person-list');
-  const countSpan = document.getElementById('batch-count');
-  
-  if (window.batchPersonList.length === 0) {
-    listDiv.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">尚未加入任何人員</div>';
-    countSpan.textContent = '0';
-    return;
-  }
-  
-  countSpan.textContent = window.batchPersonList.length;
-  
-  listDiv.innerHTML = window.batchPersonList.map((person, index) => `
+    const listDiv = document.getElementById('batch-person-list');
+    const countSpan = document.getElementById('batch-count');
+
+    if (window.batchPersonList.length === 0) {
+        listDiv.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">尚未加入任何人員</div>';
+        countSpan.textContent = '0';
+        return;
+    }
+
+    countSpan.textContent = window.batchPersonList.length;
+
+    listDiv.innerHTML = window.batchPersonList.map((person, index) => `
     <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px;">
       <div>
         <strong style="font-size: 15px;">${person.name}</strong>
@@ -3762,9 +3775,9 @@ function removePersonFromList(index) {
 // 🚀 批次新增人員：寫入資料庫
 async function confirmBatchAdd() {
     if (window.batchPersonList.length === 0) return showNotification('⚠️ 請先加入人員');
-    
+
     const currentTime = getCurrentTime();
-    
+
     // 組合要新增的陣列物件
     const insertPayload = window.batchPersonList.map(person => ({
         name: person.name,
@@ -3775,10 +3788,10 @@ async function confirmBatchAdd() {
         time_history: `BoO ${currentTime}`,
         is_active: true
     }));
-    
+
     // 直連 Supabase 的 Insert 大絕招
     const { error } = await _supabase.from('personnel_control').insert(insertPayload);
-    
+
     if (error) {
         showNotification(`❌ 新增失敗：${error.message}`);
     } else {
@@ -3795,12 +3808,12 @@ async function confirmBatchAdd() {
 function setupEnhancedMissionSearch() {
     const searchInput = document.getElementById('mission-search-all');
     if (!searchInput) return;
-    
-    searchInput.oninput = function() {
+
+    searchInput.oninput = function () {
         const searchTerm = this.value.trim().toLowerCase();
         const items = document.querySelectorAll('.mission-item');
         const groups = document.querySelectorAll('.mission-group');
-        
+
         if (!searchTerm) {
             // 沒有搜尋詞，顯示所有項目和群組
             items.forEach(item => item.style.display = 'flex');
@@ -3811,28 +3824,28 @@ function setupEnhancedMissionSearch() {
             });
             return;
         }
-        
+
         let foundAny = false;
-        
+
         // 先隱藏所有群組標題
         groups.forEach(group => {
             group.style.display = 'none';
         });
-        
+
         // 搜尋每個項目
         items.forEach(item => {
             const name = item.querySelector('.mission-item-name').textContent.toLowerCase();
             const group = item.querySelector('.mission-item-group').textContent.toLowerCase();
             const status = item.querySelector('.mission-item-status').textContent.toLowerCase();
-            
-            const matches = name.includes(searchTerm) || 
-                          group.includes(searchTerm) || 
-                          status.includes(searchTerm);
-            
+
+            const matches = name.includes(searchTerm) ||
+                group.includes(searchTerm) ||
+                status.includes(searchTerm);
+
             if (matches) {
                 item.style.display = 'flex';
                 foundAny = true;
-                
+
                 // 顯示所屬群組
                 const groupElement = item.closest('.mission-group');
                 if (groupElement) {
@@ -3842,7 +3855,7 @@ function setupEnhancedMissionSearch() {
                 item.style.display = 'none';
             }
         });
-        
+
         // 如果沒有找到任何項目，顯示提示
         const noResults = document.getElementById('mission-no-results');
         if (!foundAny) {
@@ -3878,9 +3891,9 @@ async function loadMissionManagementData(type) {
             .select('*')
             .order(type === 'personnel' ? 'group_name' : 'category', { ascending: true })
             .order('name', { ascending: true });
-        
+
         if (error) throw error;
-        
+
         // 2. 處理資料：以 is_active 判定是否在面板上 (任務中)
         const processedItems = allItems.map(item => {
             return {
@@ -3890,7 +3903,7 @@ async function loadMissionManagementData(type) {
                 status: item.status || (type === 'personnel' ? 'BoO' : '在隊')
             };
         });
-        
+
         // 3. 儲存資料
         window.missionData = {
             all: processedItems,
@@ -3898,10 +3911,10 @@ async function loadMissionManagementData(type) {
             type: type,
             currentTab: 'all'
         };
-        
+
         // 4. 渲染列表
         renderMissionGroups();
-        
+
     } catch (error) {
         console.error('載入任務管理資料失敗：', error);
         showNotification(`載入失敗：${error.message}`);
@@ -3911,11 +3924,11 @@ async function loadMissionManagementData(type) {
 function renderMissionGroups() {
     const { all, type, currentTab } = window.missionData || { all: [], type: 'personnel' };
     const container = document.getElementById('mission-items-container');
-    
+
     if (!container) return;
-    
+
     container.innerHTML = '';
-    
+
     // 過濾項目
     let filteredItems = all;
     if (currentTab === 'current') {
@@ -3923,7 +3936,7 @@ function renderMissionGroups() {
     } else if (currentTab === 'available') {
         filteredItems = all.filter(item => !item.inMission);
     }
-    
+
     // 按群組分組
     const groups = {};
     filteredItems.forEach(item => {
@@ -3932,7 +3945,7 @@ function renderMissionGroups() {
         }
         groups[item.group].push(item);
     });
-    
+
     // 渲染每個群組
     Object.keys(groups).sort().forEach(groupName => {
         const groupDiv = document.createElement('div');
@@ -3943,7 +3956,7 @@ function renderMissionGroups() {
             border-radius: 8px;
             overflow: hidden;
         `;
-        
+
         // 群組標題
         const groupHeader = document.createElement('div');
         groupHeader.className = 'mission-group-header';
@@ -3957,7 +3970,7 @@ function renderMissionGroups() {
             cursor: pointer;
             user-select: none;
         `;
-        
+
         groupHeader.innerHTML = `
             <div style="display: flex; align-items: center; gap: 10px;">
                 <!-- 🎯 箭頭預設轉向 -90度 -->
@@ -3974,7 +3987,7 @@ function renderMissionGroups() {
                 </button>
             </div>
         `;
-        
+
         // 群組內容
         const groupContent = document.createElement('div');
         groupContent.className = 'mission-group-content';
@@ -3983,14 +3996,14 @@ function renderMissionGroups() {
             padding: 10px;
             display: none; /* 🎯 預設隱藏 */
         `;
-        
+
         // 群組內項目 (此段邏輯保持不變)
         groups[groupName].forEach(item => {
             const displayName = type === 'personnel' ? item.name : (item.detail_name || item.name);
-            const statusText = type === 'personnel' ? 
-                (item.status === 'BoO' ? '基地' : '外出') : 
+            const statusText = type === 'personnel' ?
+                (item.status === 'BoO' ? '基地' : '外出') :
                 (item.status === '在隊' ? '在隊' : '應勤');
-            
+
             const itemDiv = document.createElement('div');
             itemDiv.className = 'mission-item';
             itemDiv.style.cssText = `
@@ -4003,7 +4016,7 @@ function renderMissionGroups() {
                 border: 1px solid #eee;
                 transition: all 0.2s;
             `;
-            
+
             itemDiv.innerHTML = `
                 <input type="checkbox" class="item-checkbox" data-id="${item.id}" data-group="${groupName}" style="margin-right: 10px; transform: scale(1.2);">
                 <div style="flex: 1; display: flex; justify-content: space-between; align-items: center;">
@@ -4023,7 +4036,7 @@ function renderMissionGroups() {
                     </div>
                 </div>
             `;
-            
+
             itemDiv.onmouseenter = () => {
                 itemDiv.style.backgroundColor = '#f5f5f5';
                 itemDiv.style.transform = 'translateX(3px)';
@@ -4032,15 +4045,15 @@ function renderMissionGroups() {
                 itemDiv.style.backgroundColor = 'white';
                 itemDiv.style.transform = 'translateX(0)';
             };
-            
+
             groupContent.appendChild(itemDiv);
         });
-        
+
         // 點擊事件 (此段邏輯保持不變，會自動與預設狀態銜接)
-        groupHeader.addEventListener('click', function() {
+        groupHeader.addEventListener('click', function () {
             const icon = this.querySelector('i');
             const content = document.getElementById(`group-content-${groupName.replace(/\s+/g, '-')}`);
-            
+
             if (content.style.display === 'none') {
                 content.style.display = 'block';
                 icon.style.transform = 'rotate(0deg)';
@@ -4051,12 +4064,12 @@ function renderMissionGroups() {
                 this.style.background = '#f0f0f0';
             }
         });
-        
+
         groupDiv.appendChild(groupHeader);
         groupDiv.appendChild(groupContent);
         container.appendChild(groupDiv);
     });
-    
+
     setupMissionEventListeners();
     updateMissionStats();
 }
@@ -4067,10 +4080,10 @@ function setupMissionEventListeners() {
     document.querySelectorAll('.item-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', updateMissionStats);
     });
-    
+
     // 群組勾選框事件
     document.querySelectorAll('.group-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
+        checkbox.addEventListener('change', function () {
             const groupName = this.dataset.group;
             const groupCheckboxes = document.querySelectorAll(`.item-checkbox[data-group="${groupName}"]`);
             groupCheckboxes.forEach(cb => {
@@ -4084,21 +4097,21 @@ function setupMissionEventListeners() {
 // 切換標籤頁
 function switchMissionTab(tab) {
     window.missionData.currentTab = tab;
-    
+
     // 更新標籤樣式
     document.querySelectorAll('.mission-tab').forEach(tabBtn => {
         tabBtn.style.borderBottom = '2px solid transparent';
         tabBtn.style.color = '#666';
         tabBtn.classList.remove('active');
     });
-    
+
     const activeTab = document.querySelector(`.mission-tab[onclick*="${tab}"]`);
     if (activeTab) {
         activeTab.style.borderBottom = '2px solid #4CAF50';
         activeTab.style.color = '#4CAF50';
         activeTab.classList.add('active');
     }
-    
+
     // 重新渲染
     renderMissionGroups();
 }
@@ -4158,15 +4171,15 @@ function collapseAllGroups() {
 // 渲染任務列表
 function renderMissionLists() {
     const { master, current, type } = window.missionData || { master: [], current: [], type: 'personnel' };
-    
+
     // 過濾：總資料庫中排除已經在當前任務中的項目
     const currentIds = new Set(current.map(item => item.id));
     const availableMaster = master.filter(item => !currentIds.has(item.id));
-    
+
     // 渲染總資料庫列表
     const masterContainer = document.getElementById('master-list-container');
     masterContainer.innerHTML = '';
-    
+
     if (availableMaster.length === 0) {
         masterContainer.innerHTML = `
             <div style="text-align: center; color: #666; padding: 20px;">
@@ -4186,10 +4199,10 @@ function renderMissionLists() {
                 border-radius: 4px;
                 border: 1px solid #eee;
             `;
-            
+
             const displayName = type === 'personnel' ? item.name : (item.detail_name || item.name);
             const groupName = type === 'personnel' ? (item.group_name || '未分組') : (item.category || '未分類');
-            
+
             itemDiv.innerHTML = `
                 <input type="checkbox" class="master-checkbox" data-id="${item.id}" style="margin-right: 10px;">
                 <div style="flex: 1;">
@@ -4197,15 +4210,15 @@ function renderMissionLists() {
                     <div style="font-size: 12px; color: #666;">${groupName}</div>
                 </div>
             `;
-            
+
             masterContainer.appendChild(itemDiv);
         });
     }
-    
+
     // 渲染當前任務列表
     const currentContainer = document.getElementById('current-list-container');
     currentContainer.innerHTML = '';
-    
+
     if (current.length === 0) {
         currentContainer.innerHTML = `
             <div style="text-align: center; color: #666; padding: 20px;">
@@ -4225,11 +4238,11 @@ function renderMissionLists() {
                 border-radius: 4px;
                 border: 1px solid #ddeeff;
             `;
-            
+
             const displayName = type === 'personnel' ? item.name : (item.detail_name || item.name);
             const groupName = type === 'personnel' ? (item.group_name || '未分組') : (item.category || '未分類');
             const status = item.status || (type === 'personnel' ? 'BoO' : '在隊');
-            
+
             itemDiv.innerHTML = `
                 <input type="checkbox" class="current-checkbox" data-id="${item.id}" style="margin-right: 10px;">
                 <div style="flex: 1;">
@@ -4237,11 +4250,11 @@ function renderMissionLists() {
                     <div style="font-size: 12px; color: #666;">${groupName} | 狀態: ${status}</div>
                 </div>
             `;
-            
+
             currentContainer.appendChild(itemDiv);
         });
     }
-    
+
     // 更新統計
     updateMissionStats();
 }
@@ -4250,10 +4263,10 @@ function renderMissionLists() {
 function setupMissionSearch() {
     const searchInput = document.getElementById('master-search');
     if (searchInput) {
-        searchInput.oninput = function() {
+        searchInput.oninput = function () {
             const searchTerm = this.value.toLowerCase();
             const items = document.querySelectorAll('.mission-master-item');
-            
+
             items.forEach(item => {
                 const text = item.textContent.toLowerCase();
                 if (text.includes(searchTerm)) {
@@ -4269,26 +4282,26 @@ function setupMissionSearch() {
 // 更新任務統計
 function updateMissionStats() {
     const { all } = window.missionData || { all: [] };
-    
+
     // 計算各種數量
     const totalItems = all.length;
     const currentItems = all.filter(item => item.inMission).length;
     const availableItems = totalItems - currentItems;
-    
+
     // 計算選取數量
     const selectedCheckboxes = document.querySelectorAll('.item-checkbox:checked');
     const selectedCount = selectedCheckboxes.length;
-    
+
     // 更新顯示
     document.getElementById('total-items-count').textContent = totalItems;
     document.getElementById('current-mission-count').textContent = currentItems;
     document.getElementById('available-count').textContent = availableItems;
     document.getElementById('total-selected-count').textContent = selectedCount;
-    
+
     // 計算選取項目的狀態
     let inMissionSelected = 0;
     let availableSelected = 0;
-    
+
     selectedCheckboxes.forEach(checkbox => {
         const itemId = parseInt(checkbox.dataset.id);
         const item = all.find(item => item.id === itemId);
@@ -4300,16 +4313,16 @@ function updateMissionStats() {
             }
         }
     });
-    
+
     // 更新按鈕狀態
     const addBtn = document.getElementById('add-to-mission-btn');
     const removeBtn = document.getElementById('remove-from-mission-btn');
-    
+
     if (addBtn) {
         addBtn.disabled = availableSelected === 0;
         addBtn.style.opacity = availableSelected === 0 ? '0.5' : '1';
     }
-    
+
     if (removeBtn) {
         removeBtn.disabled = inMissionSelected === 0;
         removeBtn.style.opacity = inMissionSelected === 0 ? '0.5' : '1';
@@ -4354,40 +4367,40 @@ function deselectAllCurrent() {
 async function addSelectedToMission() {
     const { type } = window.missionData || { type: 'personnel' };
     const checkboxes = document.querySelectorAll('.item-checkbox:checked');
-    
+
     // 篩選出目前「不在」任務中的項目 (is_active === false)
     const availableCheckboxes = Array.from(checkboxes).filter(cb => {
         const itemId = parseInt(cb.dataset.id);
         const item = window.missionData.all.find(i => i.id === itemId);
         return item && !item.inMission;
     });
-    
+
     if (availableCheckboxes.length === 0) {
         showNotification('請選擇未在任務中的項目');
         return;
     }
-    
+
     const ids = availableCheckboxes.map(cb => parseInt(cb.dataset.id));
     const table = type === 'personnel' ? 'personnel_control' : 'equipment_control';
-    
+
     try {
         showNotification('正在將項目加入面板...');
-        
+
         // 🚀 使用 Supabase 的 .in() 進行極速批次更新 (is_active: true)
         const { error } = await _supabase
             .from(table)
             .update({ is_active: true })
             .in('id', ids);
-            
+
         if (error) throw error;
-        
+
         showNotification(`✅ 已將 ${ids.length} 個項目顯示於面板`);
-        
+
         // 重新載入底層畫面與彈窗資料
-        await loadDataFromSupabase(); 
+        await loadDataFromSupabase();
         renderView();
         await loadMissionManagementData(type);
-        
+
     } catch (error) {
         console.error('加入任務失敗：', error);
         showNotification(`加入任務失敗：${error.message}`);
@@ -4400,40 +4413,40 @@ async function addSelectedToMission() {
 async function removeSelectedFromMission() {
     const { type } = window.missionData || { type: 'personnel' };
     const checkboxes = document.querySelectorAll('.item-checkbox:checked');
-    
+
     // 篩選出目前「正在」任務中的項目 (is_active === true)
     const currentCheckboxes = Array.from(checkboxes).filter(cb => {
         const itemId = parseInt(cb.dataset.id);
         const item = window.missionData.all.find(i => i.id === itemId);
         return item && item.inMission;
     });
-    
+
     if (currentCheckboxes.length === 0) {
         showNotification('請選擇已在任務中的項目');
         return;
     }
-    
+
     const ids = currentCheckboxes.map(cb => parseInt(cb.dataset.id));
     const table = type === 'personnel' ? 'personnel_control' : 'equipment_control';
-    
+
     try {
         showNotification('正在將項目移出面板...');
-        
+
         // 🚀 使用 Supabase 的 .in() 進行極速批次更新 (is_active: false)
         const { error } = await _supabase
             .from(table)
             .update({ is_active: false })
             .in('id', ids);
-            
+
         if (error) throw error;
-        
+
         showNotification(`✅ 已將 ${ids.length} 個項目從面板隱藏`);
-        
+
         // 重新載入底層畫面與彈窗資料
-        await loadDataFromSupabase(); 
+        await loadDataFromSupabase();
         renderView();
         await loadMissionManagementData(type);
-        
+
     } catch (error) {
         console.error('移除任務失敗：', error);
         showNotification(`移除任務失敗：${error.message}`);
@@ -4581,7 +4594,7 @@ async function openEvacSystem() {
     if (settingsFab) settingsFab.style.display = 'none';
     const modal = document.getElementById('evac-modal');
     const cancelAlertBtn = document.getElementById('evac-cancel-alert-btn');
-    
+
     const isEvacOngoing = currentData.employees.some(p => p.evac_status && p.evac_status !== 'NONE');
 
     if (userRole === '管理') {
@@ -4602,7 +4615,7 @@ async function openEvacSystem() {
 
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden';
-    
+
     renderEvacList();
 
     // 🔥 修正：10秒輪詢只針對撤離資料 (不干擾主畫面)
@@ -4618,7 +4631,7 @@ async function openEvacSystem() {
             });
             // 刷新彈窗畫面
             renderEvacList();
-            
+
             // 🎯 核心火力支援 3：讓背景輪詢也能連動刷新右下角按鈕與紅光
             updateQuickEvacFAB();
             updateStats();
@@ -4640,12 +4653,12 @@ async function cancelEvacAlert() {
                 // 🟢 連動關閉全域廣播
                 await _supabase.from('system_settings').update({ is_evac_active: false, updated_at: new Date().toISOString() }).eq('id', 1);
             }
-            
+
             showNotification('✅ 撤離警報已解除！');
-            
+
             // 關閉視窗 (我們已在裡面加上強制重繪邏輯)
             closeEvacWindow();
-            
+
         } catch (err) {
             showNotification('❌ 解除警報失敗：' + err.message);
         }
@@ -4657,11 +4670,11 @@ function closeEvacWindow() {
     const modal = document.getElementById('evac-modal');
     if (modal) modal.style.display = 'none';
     document.body.style.overflow = 'auto';
-    
+
     // 停止 10 秒輪詢
     if (evacInterval) {
         clearInterval(evacInterval);
-        evacInterval = null; 
+        evacInterval = null;
     }
     // 🎯 戰術歸建：關閉視窗後，恢復右上角的節能按鈕
     const settingsFab = document.getElementById('settings-fab');
@@ -4677,21 +4690,21 @@ async function executeEvacAlert() {
         if (activeIds.length === 0) return showNotification('⚠️ 目前沒有任何人員參與任務！');
 
         document.getElementById('evac-list-container').innerHTML = '<div style="text-align:center; padding:20px; color:var(--neon-cyan);">撤離協議啟動中...</div>';
-        
+
         // 瞬間修改本地記憶體
         currentData.employees.forEach(p => p.evac_status = 'MISSING');
-        
+
         // 批次寫入：所有人變成失聯
         const { error } = await _supabase.from('personnel_control').update({ evac_status: 'MISSING' }).in('id', activeIds);
         // 🚨 連動開啟全域廣播
         await _supabase.from('system_settings').update({ is_evac_active: true, updated_at: new Date().toISOString() }).eq('id', 1);
         if (error) throw error;
-        
+
         renderEvacList();
-        
+
         // 🎯 這裡也換成最強制的刷新指令
         switchView('personnel');
-        
+
         showNotification('🚨 撤離警報已發布！');
     } catch (err) {
         showNotification('❌ 發布失敗：' + err.message);
@@ -4701,14 +4714,14 @@ async function executeEvacAlert() {
 // 5. 渲染名單畫面 (徹底拔除對「外出」狀態的依賴)
 function renderEvacList() {
     const container = document.getElementById('evac-list-container');
-    
+
     // 🚨 只要在面板上的人 (currentData.employees)，不管是不是外出，全部列入撤離名單！
     const targetPeople = currentData.employees;
-    
+
     // 計算人數：只要不是 SAFE，就通通算作 MISSING (包含初始狀態)
     const safeCount = targetPeople.filter(p => p.evac_status === 'SAFE').length;
     const missingCount = targetPeople.length - safeCount;
-    
+
     document.getElementById('evac-safe-count').textContent = safeCount;
     document.getElementById('evac-missing-count').textContent = missingCount;
 
@@ -4733,17 +4746,17 @@ function renderEvacList() {
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 15px;">
         `;
-        
+
         groups[groupName].forEach(p => {
             const displayName = p.detail_name || p.name;
             const isSafe = (p.evac_status === 'SAFE');
             const statusClass = isSafe ? 'evac-safe' : 'evac-missing';
-            
+
             const isMe = currentUser ? (currentUser.displayName === p.name || currentUser.displayName === p.detail_name) : false;
             const canClick = (userRole === '管理' || isMe);
-            
-            const clickAction = canClick 
-                ? `toggleEvacStatus(${p.id}, '${p.evac_status}')` 
+
+            const clickAction = canClick
+                ? `toggleEvacStatus(${p.id}, '${p.evac_status}')`
                 : `showNotification('⚠️ 只能回報自己的安全狀態！')`;
             const pointerClass = canClick ? 'clickable' : 'locked';
 
@@ -4753,17 +4766,17 @@ function renderEvacList() {
                 </div>
             `;
         });
-        
+
         html += `</div></div>`;
     });
-    
+
     container.innerHTML = html;
 }
 
 // 6. 點擊切換狀態
 async function toggleEvacStatus(id, currentEvacStatus) {
     const newStatus = (currentEvacStatus === 'SAFE') ? 'MISSING' : 'SAFE';
-    
+
     // 瞬間改變 UI (針對清單裡的卡片)
     const card = document.querySelector(`.evac-card[data-id="${id}"]`);
     if (card) {
@@ -4779,10 +4792,10 @@ async function toggleEvacStatus(id, currentEvacStatus) {
 
     // 立即刷新清單畫面
     renderEvacList();
-    
+
     // 🎯 核心火力支援 1：立刻刷新右下角的 FAB 按鈕外觀！(原本漏了這行導致畫面卡死)
     updateQuickEvacFAB();
-    
+
     // 🎯 核心火力支援 2：立刻檢查全系統警報狀態，同步刷新主畫面紅光
     updateStats();
 
@@ -4804,7 +4817,7 @@ async function toggleEvacStatus(id, currentEvacStatus) {
 setInterval(() => {
     // 只有在人員畫面才檢查
     if (currentView !== 'personnel') return;
-    
+
     // 檢查全系統是否處於撤離狀態
     const isEvacOngoing = currentData.employees.some(p => p.evac_status && p.evac_status !== 'NONE');
     if (!isEvacOngoing) return;
@@ -4812,7 +4825,7 @@ setInterval(() => {
     // 確定當前使用者身分是否在任務中
     if (!currentUser) return;
     const myRecord = currentData.employees.find(p => p.name === currentUser.displayName || p.detail_name === currentUser.displayName);
-    
+
     // 🎯 核心：如果你在任務中，而且狀態是 MISSING (尚未回報)，就彈射通知！
     if (myRecord && myRecord.evac_status === 'MISSING') {
         showNotification('🚨 撤離警報！點右下方回報安全！');
@@ -4839,10 +4852,10 @@ function updateQuickEvacFAB() {
         fab.style.display = 'none';
         return;
     }
-    
+
     const myRecord = currentData.employees.find(p => p.name === currentUser.displayName || p.detail_name === currentUser.displayName);
     if (!myRecord) {
-        fab.style.display = 'none'; 
+        fab.style.display = 'none';
         return;
     }
 
@@ -4872,14 +4885,14 @@ async function quickToggleMyEvacStatus() {
 function toggleNeonEffects() {
     const isDisabled = document.body.classList.toggle('effects-disabled');
     document.documentElement.classList.toggle('effects-disabled');
-    
+
     const icon = document.querySelector('#settings-fab i');
     if (isDisabled) {
-        if(icon) icon.className = 'fas fa-leaf';
+        if (icon) icon.className = 'fas fa-leaf';
         showNotification('🟢 已開啟省電模式 (關閉背景特效)');
         localStorage.setItem('neonEffects', 'off'); // 記憶使用者設定
     } else {
-        if(icon) icon.className = 'fas fa-magic';
+        if (icon) icon.className = 'fas fa-magic';
         showNotification('✨ 已恢復炫炮特效');
         localStorage.setItem('neonEffects', 'on');
     }
@@ -4891,6 +4904,6 @@ document.addEventListener('DOMContentLoaded', function () {
         document.body.classList.add('effects-disabled');
         document.documentElement.classList.add('effects-disabled');
         const icon = document.querySelector('#settings-fab i');
-        if(icon) icon.className = 'fas fa-leaf';
+        if (icon) icon.className = 'fas fa-leaf';
     }
 });

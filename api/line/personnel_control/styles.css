@@ -349,9 +349,48 @@ input:focus, select:focus { outline: none; border-color: var(--neon-cyan) !impor
 .reason-option { background: transparent; border: 1px solid var(--border-dim); color: var(--text-dim); padding: 12px; border-radius: 6px; text-align: center; cursor: pointer; transition: 0.2s; font-family: sans-serif; }
 .reason-option:hover { border-color: var(--neon-cyan); color: var(--text-bright); box-shadow: 0 0 10px rgba(0,243,255,0.2); }
 .reason-option.selected { background: rgba(0,243,255,0.15); border-color: var(--neon-cyan); color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0,243,255,0.4); text-shadow: 0 0 5px var(--neon-cyan); font-weight: bold; }
-.reason-actions button:first-child { background: rgba(0,243,255,0.2); color: var(--neon-cyan); border: 1px solid var(--neon-cyan); }
-.reason-actions button:last-child { background: transparent; color: var(--text-dim); border: 1px solid var(--border-dim); }
+/* --- 重新定義原因彈窗的按鈕容器 --- */
+.reason-actions {
+    display: flex !important;
+    gap: 12px !important;
+    margin-top: 16px !important;
+}
 
+/* --- 第一顆按鈕：確認 (給它最強大的火力) --- */
+.reason-actions button:first-child { 
+    flex: 1 !important;
+    background: #2563eb !important; /* 紮實的藍色 */
+    color: white !important;
+    border: none !important;
+    padding: 14px 0 !important;   /* 💡 關鍵：上下撐開高度 */
+    border-radius: 12px !important; /* 💡 關鍵：大圓角 */
+    font-size: 16px !important;    /* 💡 關鍵：字體加大 */
+    font-weight: bold !important;
+    letter-spacing: 2px !important;
+    cursor: pointer !important;
+    transition: 0.2s !important;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3) !important;
+}
+
+/* --- 第二顆按鈕：取消 (低調但好按) --- */
+.reason-actions button:last-child { 
+    flex: 1 !important;
+    background: #4b5563 !important; /* 深灰色 */
+    color: white !important;
+    border: none !important;
+    padding: 14px 0 !important; 
+    border-radius: 12px !important;
+    font-size: 16px !important;
+    font-weight: bold !important;
+    letter-spacing: 2px !important;
+    cursor: pointer !important;
+    transition: 0.2s !important;
+}
+
+/* 加上點擊的回饋特效 */
+.reason-actions button:active {
+    transform: scale(0.95) !important;
+}
 /* 任務管理模態框 */
 .mission-group { background: transparent !important; border: 1px solid var(--border-dim) !important; border-radius: 6px !important; }
 .mission-group-header { background: rgba(0,243,255,0.05) !important; border-left: 3px solid var(--neon-cyan) !important; }
