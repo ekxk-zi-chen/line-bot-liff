@@ -32,7 +32,7 @@
         /* 任務看版展開特效 */
         .mission-detail { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
         .mission-detail.open { max-height: 800px; }
-        .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3;line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
     </style>
 </head>
 <body class="p-4 pb-20">
@@ -144,16 +144,23 @@
         // --- 登入驗證與入口 ---
         async function checkSession() {
             const { data } = await _supabase.auth.getSession();
+
             if (data.session) {
-                userEmail = data.session.user.email;
-                document.getElementById('user-info').innerText = `隊員：${userEmail.split('@')[0]}`;
-                
-                // 🚨 重要：向資料庫要真正的 userId，這才是 GAS 後端認得的 ID
+                const user = data.session.user;
+                userEmail = user.email;
+
+                // 2. 優先顯示「綽號」(Metadata)，如果沒有才顯示 Email 前綴 (防呆)
+                const nickName = user.user_metadata.display_name || userEmail.split('@')[0];
+                document.getElementById('user-info').innerText = `隊員：${nickName}`;
+
+                // 3. 取得 GAS 後端需要的 UserId (維持妳原本的 RPC 邏輯)
                 try {
                     const { data: dbUserId } = await _supabase.rpc('get_user_id_by_email', { p_email: userEmail });
-                    userId = dbUserId || data.session.user.id;
+                    // 如果 RPC 沒抓到，就用 Auth 的 UUID 頂替，避免程式崩潰
+                    userId = dbUserId || user.id;
                 } catch(e) {
                     console.error("無法取得 UserId", e);
+                    userId = user.id; 
                 }
 
                 // 啟動推播與預設畫面
