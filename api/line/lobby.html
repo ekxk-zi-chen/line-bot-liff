@@ -20,88 +20,104 @@
     <script src="mission_folder/supabase_config.js"></script>
 
     <style>
-        body { background-color: #1a1a1a; color: #e0e0e0; font-family: -apple-system, sans-serif; }
+        body { background-color: #1a1a1a; color: #e0e0e0; font-family: -apple-system, sans-serif; transition: background-color 0.5s ease; }
         .input-dark { width: 100%; background-color: #374151; color: white; padding: 10px 14px; border-radius: 12px; border: 1px solid #4b5563; outline: none; font-size: 14px; }
         .input-dark:focus { border-color: #f59e0b; background-color: #4b5563; }
+        
         /* 🎯 救援專區：警戒橘呼吸特效 */
         .rescue-glow {
-            background: rgba(251, 146, 60, 0.03); /* 輕微的底色，消除暗淡感 */
-            border: 1px solid rgba(249, 115, 22, 0.4); /* 初始邊框加亮 */
+            background: rgba(251, 146, 60, 0.03); 
+            border: 1px solid rgba(249, 115, 22, 0.4); 
             position: relative;
             overflow: hidden;
-            /* 核心：緩慢的呼吸律動，像引擎在待命 */
             animation: rescue-pulse 4s infinite ease-in-out;
         }
 
-        /* 呼吸脈衝特效：讓按鈕「活」過來 */
         @keyframes rescue-pulse {
-            0%, 100% { 
-                box-shadow: 0 0 10px rgba(249, 115, 22, 0.1);
-                border-color: rgba(249, 115, 22, 0.3);
-            }
-            50% { 
-                box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
-                border-color: rgba(249, 115, 22, 0.8); /* 呼吸時邊框變亮 */
-                background: rgba(251, 146, 60, 0.08);
-            }
+            0%, 100% { box-shadow: 0 0 10px rgba(249, 115, 22, 0.1); border-color: rgba(249, 115, 22, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.8); background: rgba(251, 146, 60, 0.08); }
         }
 
-        /* 背景流動感：消除靜態感 */
         .rescue-glow::before {
-            content: "";
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
+            content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
             background: radial-gradient(circle, rgba(249, 115, 22, 0.08) 0%, transparent 70%);
-            animation: rotate-scan 10s infinite linear;
-            z-index: -1;
+            animation: rotate-scan 10s infinite linear; z-index: -1;
         }
 
-        @keyframes rotate-scan {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
+        @keyframes rotate-scan { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* 點擊或懸停時的電力反應 */
-        .rescue-glow:active {
-            background: rgba(251, 146, 60, 0.2) !important;
-            border-color: #fb923c !important;
-            box-shadow: 0 0 30px rgba(249, 115, 22, 0.5) !important;
-        }
+        .rescue-glow:active { background: rgba(251, 146, 60, 0.2) !important; border-color: #fb923c !important; box-shadow: 0 0 30px rgba(249, 115, 22, 0.5) !important; }
 
         /* 👥 人員專區專用：指揮中心藍 */
         .personnel-glow{
-            position: relative; /* 👈 關鍵一：把光點鎖定在按鈕範圍內 */
-            overflow: hidden;   /* 👈 關鍵二：超出按鈕範圍的光暈直接裁切掉 */
+            position: relative; overflow: hidden;  
             background: linear-gradient(135deg, #2563eb, #0ea5e9);
-            box-shadow:
-                0 0 15px rgba(37,99,235,.6),
-                0 0 30px rgba(14,165,233,.5),
-                inset 0 0 20px rgba(255,255,255,.15);
+            box-shadow: 0 0 15px rgba(37,99,235,.6), 0 0 30px rgba(14,165,233,.5), inset 0 0 20px rgba(255,255,255,.15);
+            transition: all 0.5s ease;
         }
 
-        /* 藍色閃爍光點 */
         .personnel-glow::before{
-            content:"";
-            position:absolute;
-            inset:0;
-            border-radius:1rem;
+            content:""; position:absolute; inset:0; border-radius:1rem;
             background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.7), transparent 40%);
-            opacity:.35;
-            animation: bluePulse 2.5s infinite;
+            opacity:.35; animation: bluePulse 2.5s infinite;
         }
 
-        @keyframes bluePulse{
-            0%,100%{opacity:.25}
-            50%{opacity:.55}
+        @keyframes bluePulse{ 0%,100%{opacity:.25} 50%{opacity:.55} }
+
+        /* ==========================================
+           🚨 撤離警戒模式 (EVAC ACTIVE)
+           ========================================== */
+        
+        /* 整個大廳背景閃爍紅光 */
+        body.evac-mode {
+            animation: global-alert-bg 1.5s infinite alternate;
         }
+        
+        @keyframes global-alert-bg {
+            0% { background-color: #1a1a1a; }
+            100% { background-color: #2a0808; } /* 深紅色底 */
+        }
+
+        /* 大廳容器邊框閃爍 */
+        body.evac-mode #lobby-menu {
+            border-color: #ef4444 !important; /* tailwind red-500 */
+            box-shadow: 0 0 40px rgba(239, 68, 68, 0.4), inset 0 0 20px rgba(239, 68, 68, 0.1) !important;
+            animation: container-alert-pulse 1.5s infinite alternate;
+        }
+        
+        @keyframes container-alert-pulse {
+            0% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.2); }
+            100% { box-shadow: 0 0 50px rgba(239, 68, 68, 0.6), inset 0 0 30px rgba(239, 68, 68, 0.2); }
+        }
+
+        /* 🚨 核心：人員模組按鈕變成「瘋狂驚嘆號閃爍模式」 */
+        body.evac-mode .personnel-glow {
+            background: linear-gradient(135deg, #dc2626, #991b1b) !important; /* 血紅色 */
+            box-shadow: 0 0 20px rgba(220, 38, 38, 0.8), 0 0 40px rgba(220, 38, 38, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.3) !important;
+            animation: btn-danger-pulse 0.6s infinite alternate !important;
+        }
+
+        body.evac-mode .personnel-glow::before {
+            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.8), transparent 60%);
+            animation: redAlertPulse 0.6s infinite !important;
+        }
+
+        @keyframes btn-danger-pulse {
+            0% { transform: scale(1); border-color: #ef4444; }
+            100% { transform: scale(1.05); border-color: #f87171; }
+        }
+
+        @keyframes redAlertPulse{ 0%,100%{opacity:.4} 50%{opacity:.9} }
+
+        /* 動態替換圖示用的隱藏類別 */
+        .hidden-icon { display: none !important; }
+
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen px-4 py-10">
 
     <div id="login-screen" class="hidden w-full max-w-md bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700">
+        <!-- 登入區塊保持不變... -->
         <div class="text-center mb-6">
             <div class="text-4xl mb-2">🏛️</div>
             <h1 class="text-xl font-bold text-white tracking-wider">特搜戰情總部大廳</h1>
@@ -137,7 +153,6 @@
                 <input type="email" id="reg-email" placeholder="電子信箱" class="input-dark text-sm">
                 <input type="text" id="reg-name" placeholder="真實姓名 (如: 陳大明)" class="input-dark text-sm">
             </div>
-            <!-- 增加這一行用來填寫綽號 -->
             <div class="mb-2">
                 <input type="text" id="reg-display-name" placeholder="顯示名稱/綽號 (如: 山豬)" class="input-dark text-sm">
             </div>
@@ -156,9 +171,11 @@
         </div>
     </div>
 
-    <div id="lobby-menu" class="hidden w-full max-w-md bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700 text-center">
-        <h2 class="text-2xl font-bold text-white mb-2">特搜戰情大廳</h2>
-        <p class="text-gray-400 text-sm mb-6">歡迎登入，請選擇您要前往的系統</p>
+    <!-- 🚨 戰情大廳選單 -->
+    <div id="lobby-menu" class="hidden w-full max-w-md bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700 text-center transition-all duration-500">
+        <!-- 頂部標題動態變化 -->
+        <h2 id="lobby-title" class="text-2xl font-bold text-white mb-2 transition-colors duration-300">特搜戰情大廳</h2>
+        <p id="lobby-subtitle" class="text-gray-400 text-sm mb-6 transition-colors duration-300">歡迎登入，請選擇您要前往的系統</p>
         
         <div class="grid grid-cols-2 gap-4 mb-6">
             <button onclick="window.location.href='app_mission.html'" class="bg-gray-700 hover:bg-gray-600 border border-gray-600 p-6 rounded-xl flex flex-col items-center justify-center gap-3 transition-all active:scale-95 shadow-lg">
@@ -166,27 +183,27 @@
                 <span class="text-white font-bold">裝備管理</span>
             </button>
             
-            <!-- 🏗️ 救援專區卡片 (強化版：工程警戒橘) -->
             <button onclick="window.location.href='rescue/app_rescue.html'" 
                 class="glass-card rescue-glow p-6 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all active:scale-95 shadow-xl">
-                <!-- 🎯 加個閃爍光點特效 -->
                 <div class="relative">
                     <span class="text-4xl">🎯</span>
-                    <span class="text-white font-bold tracking-widest"></span>
                 </div>
                 <span class="text-white font-bold tracking-widest">救援專區</span>
             </button>
 
-            <!-- 人員專區 (改成藍色指揮風格) -->
+            <!-- 🚨 人員專區 (預設藍色，撤離時變紅色驚嘆號) -->
             <button onclick="window.location.href='personnel_control/app_personnel.html'"
+                id="personnel-btn"
                 class="glass-card personnel-glow p-6 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all active:scale-95 shadow-xl">
-
+                
                 <div class="relative">
-                    <span class="text-4xl drop-shadow-lg">👥</span>
-                    <span class="text-white font-bold tracking-widest"></span>
+                    <!-- 平常顯示群組圖標 -->
+                    <span id="icon-normal" class="text-4xl drop-shadow-lg transition-all duration-300">👥</span>
+                    <!-- 撤離時顯示驚嘆號 -->
+                    <span id="icon-alert" class="text-4xl drop-shadow-lg hidden-icon text-white" style="text-shadow: 0 0 20px #fff;">⚠️</span>
                 </div>
 
-                <span class="text-white font-bold tracking-widest">人員專區</span>
+                <span id="text-personnel" class="text-white font-bold tracking-widest transition-all duration-300">人員管制</span>
             </button>
 
             <button onclick="window.location.href='app_task.html'" class="bg-orange-900/40 hover:bg-orange-800/60 border border-orange-700 p-6 rounded-xl flex flex-col items-center justify-center gap-3 transition-all active:scale-95 shadow-lg">
@@ -209,8 +226,7 @@
     </div>
 
     <script>
-
-        // 頁籤切換邏輯
+        // 登入邏輯與其他函數保持不變...
         function switchAuthTab(type) {
             const tabs = ['login', 'bind', 'signup'];
             tabs.forEach(t => {
@@ -247,16 +263,8 @@
             }
         }
 
-        // ==========================================
-        // 🚀 核心：接駁車與認證邏輯
-        // ==========================================
-        
-        // 登入成功後的處理 (🚨 加上 user 參數)
         async function processLoginSuccess(user) {
-            // 1. 告訴全域變數你是誰，這樣 web_push.js 拿到 Token 才知道要存給哪個信箱
             window.userEmail = user.email;
-
-            // 2. 🚨 扣下扳機！主動呼叫推播權限詢問視窗！(就是少了這行)
             if (typeof requestWebPushPermission === 'function') {
                 await requestWebPushPermission();
             }
@@ -265,16 +273,16 @@
             const redirectUrl = urlParams.get('redirect');
 
             if (redirectUrl) {
-                // 🎫 有車票！立刻把人載過去
                 window.location.href = decodeURIComponent(redirectUrl);
             } else {
-                // 🏠 沒車票，顯示大廳選單
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('lobby-menu').classList.remove('hidden');
+                
+                // 登入成功後，立刻檢查一次全域廣播狀態
+                checkGlobalEvacStatus();
             }
         }
 
-        // 登入按鈕
         async function handleLogin() {
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
@@ -291,7 +299,6 @@
             processLoginSuccess(data.user);
         }
 
-        // 綁定按鈕
         async function handleBind() {
             const email = document.getElementById('bind-email').value.trim();
             const pw = document.getElementById('bind-password').value;
@@ -307,15 +314,10 @@
                 const { data: userName } = await _supabase.rpc('get_user_name_by_email', { p_email: email });
                 if (!userName) return alert("❌ 找不到此信箱！如果您是新進人員，請切換至註冊申請。");
 
-                // 👉 修正 2：加入 data: authData
                 const { data: authData, error: authErr } = await _supabase.auth.signUp({ 
                     email, 
                     password: pw,
-                    options: {
-                        data: {
-                            display_name: userName 
-                        }
-                    }
+                    options: { data: { display_name: userName } }
                 });
                 if (authErr) throw authErr;
 
@@ -328,23 +330,20 @@
             }
         }
 
-        // 註冊按鈕
         async function handleRealSignUp() {
             const email = document.getElementById('reg-email').value.trim();
             const pw = document.getElementById('reg-password').value;
             const pwConfirm = document.getElementById('reg-confirm').value;
             const name = document.getElementById('reg-name').value.trim();
-            const displayName = document.getElementById('reg-display-name').value.trim(); // 👈 新增：抓取綽號
+            const displayName = document.getElementById('reg-display-name').value.trim();
             let unit = document.getElementById('reg-unit').value;
             
-            // 檢查必填 (加上 displayName)
             if (!email || !name || !displayName || !pw || !unit) return alert("請填寫必填欄位");
             const title = document.getElementById('reg-title').value.trim();
             const phone = document.getElementById('reg-phone').value.trim();
             const note = document.getElementById('reg-note').value.trim();
             const btn = document.getElementById('signup-btn');
 
-            if (!email || !name || !pw || !unit) return alert("請填寫必填欄位");
             if (pw !== pwConfirm) return alert("兩次密碼輸入不一致");
             if (pw.length < 6) return alert("密碼至少 6 碼");
 
@@ -353,28 +352,18 @@
                 const { data: userName } = await _supabase.rpc('get_user_name_by_email', { p_email: email });
                 if (userName) return alert(`⚠️ 信箱已存在！請至「信箱綁定」設定密碼。`);
 
-                // 👉 修正 1：加入 data: authData
                 const { data: authData, error: authErr } = await _supabase.auth.signUp({ 
                     email, 
                     password: pw,
-                    options: {
-                        data: {
-                            display_name: displayName
-                        }
-                    }
+                    options: { data: { display_name: displayName } }
                 });
                 if (authErr) throw authErr;
 
                 const fakeUserId = "APP_" + Math.random().toString(36).substr(2, 9);
                 const { data: regRes, error: regErr } = await _supabase.rpc('handle_new_user_registration', {
-                    p_name: name,
-                    p_display_name: displayName,
-                    p_unit: unit, 
-                    p_email: email, 
-                    p_user_id: fakeUserId, 
-                    p_phone: phone, 
-                    p_title: title, 
-                    p_note: note
+                    p_name: name, p_display_name: displayName, p_unit: unit, 
+                    p_email: email, p_user_id: fakeUserId, p_phone: phone, 
+                    p_title: title, p_note: note
                 });
 
                 if (regErr) throw regErr;
@@ -389,18 +378,15 @@
             }
         }
 
-        // 登出邏輯
         async function handleLogout() {
             await _supabase.auth.signOut();
             window.location.reload();
         }
 
-        // 網頁載入時檢查狀態
         async function checkSessionOnLoad() {
             await loadDynamicUnits();
             const { data, error } = await _supabase.auth.getSession();
             if (data.session) {
-                // 👉 修正 3：改回 data.session.user
                 processLoginSuccess(data.session.user);
             } else {
                 document.getElementById('login-screen').classList.remove('hidden');
@@ -409,9 +395,123 @@
 
         window.addEventListener('load', checkSessionOnLoad);
 
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').then(() => console.log("大廳同步完畢"));
+        // ==========================================
+        // 🚨 大廳全域廣播雷達 (智慧校準版)
+        // ==========================================
+
+        let evacRadarInterval = null;
+
+        // 1. 雷達掃描函數
+        async function checkGlobalEvacStatus() {
+            try {
+                // 去資料庫看現在是不是撤離中
+                const { data, error } = await _supabase.from('system_settings').select('is_evac_active').eq('id', 1).single();
+                if (error) throw error;
+                
+                if (data) {
+                    console.log("📡 雷達回報狀態：", data.is_evac_active ? "🔴 警戒" : "🟢 正常");
+                    toggleLobbyEvacMode(data.is_evac_active);
+                }
+            } catch (e) {
+                console.error("📡 雷達掃描失敗：", e.message);
+            }
         }
+
+        // 2. 啟動雷達 (確保登入後才呼叫)
+        function startEvacRadar() {
+            if (!evacRadarInterval) {
+                console.log("📡 戰情雷達啟動中...");
+                checkGlobalEvacStatus(); // 立刻掃描一次
+                evacRadarInterval = setInterval(checkGlobalEvacStatus, 10000); // 之後每 10 秒一次
+            }
+        }
+
+        // 3. 停止雷達
+        function stopEvacRadar() {
+            if (evacRadarInterval) {
+                console.log("📡 戰情雷達關閉。");
+                clearInterval(evacRadarInterval);
+                evacRadarInterval = null;
+            }
+        }
+
+        // ==========================================
+        // 🚨 執行大廳變身特效 (動作執行官)
+        // ==========================================
+        function toggleLobbyEvacMode(isActive) {
+            const body = document.body;
+            const title = document.getElementById('lobby-title');
+            const subtitle = document.getElementById('lobby-subtitle');
+            
+            const iconNormal = document.getElementById('icon-normal');
+            const iconAlert = document.getElementById('icon-alert');
+            const textPersonnel = document.getElementById('text-personnel');
+            const personnelBtn = document.getElementById('personnel-btn');
+
+            if (isActive) {
+                // 🔴 進入：紅色警戒模式
+                body.classList.add('evac-mode');
+                if (title) {
+                    title.innerHTML = '⚠️ 緊急撤離啟動 ⚠️';
+                    title.style.color = '#ef4444'; // 紅色
+                }
+                if (subtitle) {
+                    subtitle.innerHTML = '請盡速進入人員管制系統回報平安！';
+                    subtitle.style.color = '#fca5a5'; 
+                }
+                
+                // 替換「人員管制」按鈕的圖標與文字
+                if (iconNormal) iconNormal.classList.add('hidden-icon');
+                if (iconAlert) iconAlert.classList.remove('hidden-icon');
+                if (textPersonnel) textPersonnel.innerHTML = '立即回報安全';
+                
+            } else {
+                // 🟢 恢復：平時狀態
+                body.classList.remove('evac-mode');
+                if (title) {
+                    title.innerHTML = '特搜戰情大廳';
+                    title.style.color = 'white';
+                }
+                if (subtitle) {
+                    subtitle.innerHTML = '歡迎登入，請選擇您要前往的系統';
+                    subtitle.style.color = '#9ca3af'; // 灰色
+                }
+                
+                // 恢復原本圖標與文字
+                if (iconAlert) iconAlert.classList.add('hidden-icon');
+                if (iconNormal) iconNormal.classList.remove('hidden-icon');
+                if (textPersonnel) textPersonnel.innerHTML = '人員管制';
+            }
+        }
+        // 4. 偵測分頁可見度 (切換分頁或關螢幕時停用)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) stopEvacRadar();
+            else if (window.isLoggedIn) startEvacRadar(); // 只有登入狀態下才重啟
+        });
+
+        // 🎯 修改原本的 processLoginSuccess，讓它在成功後才啟動雷達
+        async function processLoginSuccess(user) {
+            window.userEmail = user.email;
+            window.isLoggedIn = true; // 標記已登入
+
+            if (typeof requestWebPushPermission === 'function') {
+                await requestWebPushPermission();
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirectUrl = urlParams.get('redirect');
+
+            if (redirectUrl) {
+                window.location.href = decodeURIComponent(redirectUrl);
+            } else {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('lobby-menu').classList.remove('hidden');
+                
+                // 🚀 關鍵：在顯示大廳選單的同時，才啟動雷達！
+                startEvacRadar(); 
+            }
+        }
+
     </script>
 </body>
 </html>
