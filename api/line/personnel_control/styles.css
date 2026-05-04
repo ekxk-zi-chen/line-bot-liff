@@ -891,3 +891,64 @@ body.evac-active {
     70% { transform: scale(1.3) rotate(10deg); opacity: 1; text-shadow: 0 0 20px var(--neon-green); }
     100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
+
+/* ==========================================
+   🟢 省電模式 / 關閉炫炮特效
+   ========================================== */
+#settings-fab {
+    position: fixed;
+    top: 25px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid var(--neon-cyan);
+    color: var(--neon-cyan);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10001; /* 確保在最上層 */
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px rgba(0,243,255,0.2);
+}
+
+#settings-fab:hover {
+    background: var(--neon-cyan);
+    color: #000;
+    box-shadow: 0 0 20px var(--neon-cyan);
+}
+
+/* 🛑 斬斷所有高耗能動畫與光影 */
+body.effects-disabled::before,
+body.effects-disabled::after,
+html.effects-disabled::before,
+html.effects-disabled::after {
+    display: none !important;
+    animation: none !important;
+}
+
+body.effects-disabled {
+    background-image: none !important;
+    background-color: #0b0c10 !important; /* 變成純素色黑底 */
+}
+
+/* 關閉頂部心跳燈與各種耗能的發光效果 */
+body.effects-disabled .header::after {
+    animation: none !important;
+    opacity: 0.2 !important;
+    box-shadow: none !important;
+}
+
+body.effects-disabled .card:hover,
+body.effects-disabled .control-btn:hover,
+body.effects-disabled .view-btn.active {
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+body.effects-disabled .control-btn::before {
+    display: none !important;
+    animation: none !important;
+}

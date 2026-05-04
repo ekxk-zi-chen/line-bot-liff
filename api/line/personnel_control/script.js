@@ -9,6 +9,7 @@ let currentData = { employees: [], equipment: [] };
 let currentView = 'personnel';
 let selectedItem = null;
 let driveImages = { equipment: {}, personnel: {}, vehicles: {} };
+let badImageCache = {}; // 👈 🎯 新增：專門用來記憶「破圖/無圖」的黑名單變數
 let currentReasons = []; 
 let syncStatus = { isOnline: true, isSyncing: false, lastSyncTime: null };
 let autoRefreshInterval = null;
@@ -118,7 +119,7 @@ async function loadDataFromSupabase() {
                 group: item.group_name || '未分組',
                 photo: item.photo || 'default.jpg',
                 status: item.status || 'BoO',
-                time_status: item.time_status || getCurrentTime(),
+                time_status: item.time_status || '',
                 time_history: item.time_history || '',
                 lastReason: item.reason || '', 
                 evac_status: item.evac_status || 'NONE', // 🚨 絕對不能漏掉這行保險栓！
@@ -142,7 +143,7 @@ async function loadDataFromSupabase() {
                 category: item.category || '未分類',
                 photo: item.photo || 'default.jpg',
                 status: item.status || '在隊',
-                time_status: item.time_status || getCurrentTime(),
+                time_status: item.time_status || '',
                 time_history: item.time_history || '',
                 lastReason: item.reason || '', 
                 rawData: item
@@ -966,25 +967,22 @@ function createCardSync(item) {
     imgElement.dataset.filename = item.photo;
     imgElement.dataset.category = currentView === 'personnel' ? 'personnel' : 'equipment';
 
+    // 🚨 當圖片載入失敗時觸發
     imgElement.onerror = function () {
-        console.warn('圖片載入失敗:', displayName, '路徑:', this.src);
-        if (this.src.includes('drive.google.com')) {
-            const fileName = this.dataset.filename;
-            const category = this.dataset.category;
-            const localPath = getLocalPhotoPath(fileName, category);
-
-            console.log('嘗試本地圖片:', localPath);
-            this.src = localPath;
-
-            this.onerror = function () {
-                console.log('本地圖片也失敗，使用預設');
-                this.src = getDefaultPhotoPath();
-                this.onerror = null;
-            };
-        } else {
-            this.src = getDefaultPhotoPath();
-            this.onerror = null;
+        // 1. 抓出是哪張圖片壞了
+        const fileName = this.dataset.filename;
+        if (fileName) {
+            let cleanName = fileName.trim();
+            if (!cleanName.includes('.')) cleanName = cleanName + '.jpg';
+            
+            // 2. 🎯 致命一擊：把它寫入全域黑名單！下次再也不會為它浪費網路請求！
+            badImageCache[cleanName] = true; 
+            console.warn(`⛔ 圖片死結阻斷：[${cleanName}] 已加入黑名單，不再重複 Fetch。`);
         }
+
+        // 3. 換上預設圖片，並拔除監聽器防止死循環
+        this.src = getDefaultDrivePhoto();
+        this.onerror = null; 
     };
 
     imgElement.onclick = function () {
@@ -1183,51 +1181,30 @@ function initDriveImagesAsync() {
         }, index * 500); // 每個請求間隔 500ms
     });
 }
-// 取得圖片路徑
+// 取得圖片路徑 (加入黑名單防火牆)
 function getPhotoPath(photoName) {
-    // 如果照片名稱為空、無效或明顯是預設值
-    if (!photoName ||
-        photoName.trim() === '' ||
-        photoName === '無' ||
-        photoName === '無照片') {
-
-        // **這裡很重要：直接回傳 default.jpg 的 Drive 路徑**
+    if (!photoName || photoName.trim() === '' || photoName === '無' || photoName === '無照片') {
         return getDefaultDrivePhoto();
     }
 
-    // 清理檔案名稱
     let cleanName = photoName.trim();
+    if (!cleanName.includes('.')) cleanName = cleanName + '.jpg';
 
-    // 確保有副檔名
-    if (!cleanName.includes('.')) {
-        cleanName = cleanName + '.jpg';
+    // 🚨 核心防火牆：如果這張圖在黑名單裡，連查都不查，直接退回預設圖！
+    if (badImageCache[cleanName]) {
+        return getDefaultDrivePhoto();
     }
 
-    // 根據當前視圖決定分類
-    let category;
-    if (currentView === 'personnel') {
-        category = 'personnel';
-    } else {
-        category = 'equipment'; // 器材或車輛
-    }
+    let category = currentView === 'personnel' ? 'personnel' : 'equipment';
 
-    // **優先：Google Drive 網路圖片**
+    // 如果字典裡有這張圖，才給 Drive 網址
     if (driveImages[category] && driveImages[category][cleanName]) {
         const fileId = driveImages[category][cleanName];
         return `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
     }
 
-    // **如果找不到對應的圖片，檢查 default.jpg 是否在 Drive 中**
-    if (driveImages[category] && driveImages[category]['default.jpg']) {
-        const defaultFileId = driveImages[category]['default.jpg'];
-        console.log('使用 Drive 的 default.jpg');
-        return `https://drive.google.com/thumbnail?id=${defaultFileId}&sz=w400`;
-    }
-
-    // **最後：本地 default.jpg（降級方案）**
-    const folder = category === 'personnel' ? 'people' : 'equipment';
-    console.warn('找不到圖片，使用本地 default.jpg');
-    return `assets/${folder}/default.jpg`;
+    // 如果連 Drive 裡面都沒有，也使用預設圖
+    return getDefaultDrivePhoto();
 }
 
 // 取得 Drive 的 default.jpg
@@ -4684,7 +4661,7 @@ function closeEvacWindow() {
 
     // 🎯 核心修復：直接呼叫 switchView 模擬您「點擊人員/裝備標籤」的動作
     // 這會強制引擎重新判定狀態，100% 瞬間刷新紅光、按鈕與卡片！
-    switchView(currentView);
+    switchView('personnel');
 }
 
 // 4. 執行發布撤離 (將所有 is_active = true 的人設為 MISSING)
@@ -4705,7 +4682,7 @@ async function executeEvacAlert() {
         renderEvacList();
         
         // 🎯 這裡也換成最強制的刷新指令
-        switchView(currentView);
+        switchView('personnel');
         
         showNotification('🚨 撤離警報已發布！');
     } catch (err) {
@@ -4880,3 +4857,32 @@ async function quickToggleMyEvacStatus() {
     // 借用已經寫好的狀態切換邏輯 (自動包含樂觀更新、雲端寫入與錯誤還原)
     await toggleEvacStatus(myRecord.id, myRecord.evac_status);
 }
+
+// ==========================================
+// 🟢 效能與特效管理 (省電模式)
+// ==========================================
+function toggleNeonEffects() {
+    const isDisabled = document.body.classList.toggle('effects-disabled');
+    document.documentElement.classList.toggle('effects-disabled');
+    
+    const icon = document.querySelector('#settings-fab i');
+    if (isDisabled) {
+        if(icon) icon.className = 'fas fa-leaf';
+        showNotification('🟢 已開啟省電模式 (關閉背景特效)');
+        localStorage.setItem('neonEffects', 'off'); // 記憶使用者設定
+    } else {
+        if(icon) icon.className = 'fas fa-magic';
+        showNotification('✨ 已恢復炫炮特效');
+        localStorage.setItem('neonEffects', 'on');
+    }
+}
+
+// 系統初始化時，讀取使用者的省電設定
+document.addEventListener('DOMContentLoaded', function () {
+    if (localStorage.getItem('neonEffects') === 'off') {
+        document.body.classList.add('effects-disabled');
+        document.documentElement.classList.add('effects-disabled');
+        const icon = document.querySelector('#settings-fab i');
+        if(icon) icon.className = 'fas fa-leaf';
+    }
+});
