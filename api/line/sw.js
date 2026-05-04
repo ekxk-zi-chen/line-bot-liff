@@ -73,7 +73,7 @@ self.addEventListener('notificationclick', function(event) {
 // 2. PWA 離線快取設定 (戰備儲糧機制)
 // ==========================================
 // 🔥 升級重點 2：強制更新版本號！(v4 -> v5) 這樣手機才會重新下載新的快取
-const CACHE_NAME = 'sar-cache-v6'; 
+const CACHE_NAME = 'sar-cache-v7'; 
 
 const urlsToCache = [
     './lobby.html', // 🔥 升級重點 3：把大廳加入快取名單！
