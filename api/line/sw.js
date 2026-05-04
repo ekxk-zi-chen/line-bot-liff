@@ -36,7 +36,7 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener('notificationclick', function(event) {
     console.log('👆 使用者點擊了通知');
     event.notification.close(); 
-    
+     
     // 試著從 Firebase 的預設結構中抓取推播單號
     const firebaseData = event.notification.data?.FCM_MSG?.data || event.notification.data;
     const notifId = firebaseData?.notifId || '';
