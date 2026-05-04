@@ -99,8 +99,14 @@
         // 🔒 認證三連防呆
         async function checkSession() {
             const { data } = await _supabase.auth.getSession();
+            
             if (data.session) {
-                document.getElementById('user-info').innerText = `隊員：${data.session.user.email.split('@')[0]}`;
+                // 優先抓取 metadata 裡的 full_name 或 display_name
+                // 如果都沒填，才退而求其次使用 email 的前綴
+                const userMetadata = data.session.user.user_metadata;
+                const name = userMetadata.full_name || userMetadata.display_name || data.session.user.email.split('@')[0];
+                
+                document.getElementById('user-info').innerText = `隊員：${name}`;
             } else {
                 window.location.href = `../lobby.html?redirect=${encodeURIComponent(window.location.href)}`;
             }
