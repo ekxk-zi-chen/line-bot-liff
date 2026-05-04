@@ -286,15 +286,18 @@ function updateStats() {
                 evacIcon.style.color = 'var(--neon-red)';
                 evacIcon.style.textShadow = '0 0 10px var(--neon-red)';
             }
-            document.body.classList.add('evac-active'); // 👈 觸發背景紅光擴散
+            document.body.classList.add('evac-active'); 
         } else {
             if (evacIcon) {
                 evacIcon.style.animation = 'none';
                 evacIcon.style.color = 'var(--text-dim)';
                 evacIcon.style.textShadow = 'none';
             }
-            document.body.classList.remove('evac-active'); // 👈 解除背景紅光
+            document.body.classList.remove('evac-active'); 
         }
+        
+        // 🎯 新增：更新右下角的個人撤離按鈕
+        updateQuickEvacFAB();
     }
 }
 
@@ -3186,13 +3189,13 @@ async function showMissionManagement() {
                             <i class="fas fa-check-square"></i> 全選
                         </button>
                         <button onclick="deselectAllItems()" style="flex: 1; padding: 8px; background: #f0f0f0; border: none; border-radius: 4px; font-size: 14px;">
-                            <i class="far fa-square"></i> 取消全選
+                            <i class="far fa-square"></i> 取消
                         </button>
                         <button onclick="expandAllGroups()" style="flex: 1; padding: 8px; background: #2196F3; color: white; border: none; border-radius: 4px; font-size: 14px;">
-                            <i class="fas fa-expand"></i> 展開全部
+                            <i class="fas fa-expand"></i> 展開
                         </button>
                         <button onclick="collapseAllGroups()" style="flex: 1; padding: 8px; background: #FF9800; color: white; border: none; border-radius: 4px; font-size: 14px;">
-                            <i class="fas fa-compress"></i> 收合全部
+                            <i class="fas fa-compress"></i> 收合
                         </button>
                     </div>
                 </div>
@@ -3547,15 +3550,23 @@ async function showBatchAddModal() {
     const groups = personnel ? [...new Set(personnel.map(p => p.group_name))].filter(Boolean) : [];
     const activeNames = personnel ? personnel.map(p => p.name) : []; // 記下已經在任務中的人名
 
-    // 2. 獲取 users 表單的既有人員
-    const { data: usersData } = await _supabase.from('users').select('姓名, display_name');
+    // 2. 獲取 users 表單的既有人員 (加上探測器)
+    const { data: usersData, error: usersErr } = await _supabase.from('users').select('姓名, display_name');
     
-    // 過濾出尚未加入任務的 users (用 display_name 優先，沒有才用姓名)
+    // 🚨 聲納探測器：請按 F12 打開開發者工具的 Console (主控台) 看這裡印出什麼！
+    if (usersErr) console.error("【敵襲警告】Supabase 拒絕存取：", usersErr);
+
+    // 過濾出尚未加入任務的 users
     let availableUsers = [];
     if (usersData) {
         availableUsers = usersData
-            .map(u => u.姓名 || u.display_name)
+            .map(u => {
+                // 順便印出每筆資料，看是不是欄位名稱有落差
+                const extractedName = u.姓名 || u.display_name;
+                return extractedName ? extractedName.trim() : null; 
+            })
             .filter(name => name && !activeNames.includes(name)); // 過濾掉已經在任務中的人
+            
         // 移除重複的名字
         availableUsers = [...new Set(availableUsers)]; 
     }
@@ -3638,6 +3649,45 @@ async function showBatchAddModal() {
     };
 }
 
+// ==========================================
+// 🚨 補回遺失的函數：處理下拉選單加入清單
+// ==========================================
+function addSelectedUserToList() {
+    const select = document.getElementById('batch-user-select');
+    const name = select.value;
+    
+    if (!name) {
+        showNotification('請選擇人員');
+        return;
+    }
+
+    const groupSelect = document.getElementById('batch-group-select');
+    const customGroupInput = document.getElementById('batch-custom-group-input');
+    
+    let group = groupSelect.value;
+    if (group === '__custom__') {
+        group = customGroupInput.value.trim();
+        if (!group) {
+            showNotification('請輸入組別名稱');
+            return;
+        }
+    }
+
+    // 防呆：檢查是否已經在下方的待新增清單中
+    if (window.batchPersonList.some(p => p.name === name)) {
+        return showNotification('此人已在待新增清單中！');
+    }
+
+    // 加入清單
+    window.batchPersonList.push({ name, group_name: group });
+
+    // 更新畫面顯示
+    renderBatchPersonList();
+
+    // 🎯 貼心設計：將選過的人從下拉選單中移除，避免重複選取
+    select.options[select.selectedIndex].remove();
+    select.value = ""; 
+}
 
 // 加入人員到清單
 function addPersonToList() {
@@ -3699,10 +3749,37 @@ function renderBatchPersonList() {
   `).join('');
 }
 
-// 從清單移除人員
+// 從清單移除人員 (自動歸建版)
 function removePersonFromList(index) {
-  window.batchPersonList.splice(index, 1);
-  renderBatchPersonList();
+    // 1. 先記住要被移除的這位弟兄是誰
+    const removedPerson = window.batchPersonList[index];
+
+    // 2. 從待新增清單的陣列中移除他
+    window.batchPersonList.splice(index, 1);
+
+    // 3. 🎯 核心修復：把他安全送回下拉選單！
+    const select = document.getElementById('batch-user-select');
+    if (select) {
+        // 先檢查選單裡是不是已經有他了 (預防您剛剛是用「手動輸入」加他進來的)
+        let exists = false;
+        for (let i = 0; i < select.options.length; i++) {
+            if (select.options[i].value === removedPerson.name) {
+                exists = true;
+                break;
+            }
+        }
+
+        // 如果選單裡沒有他，就幫他做一個新的專屬座位放回去
+        if (!exists) {
+            const newOption = document.createElement('option');
+            newOption.value = removedPerson.name;
+            newOption.textContent = removedPerson.name;
+            select.appendChild(newOption);
+        }
+    }
+
+    // 4. 重新渲染下方的待新增畫面
+    renderBatchPersonList();
 }
 
 // 🚀 批次新增人員：寫入資料庫
@@ -3898,7 +3975,7 @@ function renderMissionGroups() {
             justify-content: space-between;
             align-items: center;
             padding: 12px 15px;
-            background: #e8f5e8;
+            background: #f0f0f0; /* 🎯 預設改為灰色 */
             border-left: 4px solid #4CAF50;
             cursor: pointer;
             user-select: none;
@@ -3906,7 +3983,8 @@ function renderMissionGroups() {
         
         groupHeader.innerHTML = `
             <div style="display: flex; align-items: center; gap: 10px;">
-                <i class="fas fa-chevron-down" style="transition: transform 0.3s; font-size: 12px;"></i>
+                <!-- 🎯 箭頭預設轉向 -90度 -->
+                <i class="fas fa-chevron-down" style="transition: transform 0.3s; font-size: 12px; transform: rotate(-90deg);"></i>
                 <div>
                     <div style="font-weight: bold; color: #333;">${groupName}</div>
                     <div style="font-size: 12px; color: #666;">${groups[groupName].length} 個項目</div>
@@ -3920,16 +3998,16 @@ function renderMissionGroups() {
             </div>
         `;
         
-        // 群組內容（初始展開）
+        // 群組內容
         const groupContent = document.createElement('div');
         groupContent.className = 'mission-group-content';
         groupContent.id = `group-content-${groupName.replace(/\s+/g, '-')}`;
         groupContent.style.cssText = `
             padding: 10px;
-            display: block;
+            display: none; /* 🎯 預設隱藏 */
         `;
         
-        // 群組內項目
+        // 群組內項目 (此段邏輯保持不變)
         groups[groupName].forEach(item => {
             const displayName = type === 'personnel' ? item.name : (item.detail_name || item.name);
             const statusText = type === 'personnel' ? 
@@ -3969,7 +4047,6 @@ function renderMissionGroups() {
                 </div>
             `;
             
-            // 懸停效果
             itemDiv.onmouseenter = () => {
                 itemDiv.style.backgroundColor = '#f5f5f5';
                 itemDiv.style.transform = 'translateX(3px)';
@@ -3982,7 +4059,7 @@ function renderMissionGroups() {
             groupContent.appendChild(itemDiv);
         });
         
-        // 點擊群組標題展開/收合
+        // 點擊事件 (此段邏輯保持不變，會自動與預設狀態銜接)
         groupHeader.addEventListener('click', function() {
             const icon = this.querySelector('i');
             const content = document.getElementById(`group-content-${groupName.replace(/\s+/g, '-')}`);
@@ -4003,10 +4080,7 @@ function renderMissionGroups() {
         container.appendChild(groupDiv);
     });
     
-    // 添加事件監聽器
     setupMissionEventListeners();
-    
-    // 更新統計
     updateMissionStats();
 }
 
@@ -4554,7 +4628,7 @@ async function openEvacSystem() {
     // 🔥 修正：10秒輪詢只針對撤離資料 (不干擾主畫面)
     if (evacInterval) clearInterval(evacInterval);
     evacInterval = setInterval(async () => {
-        // 🎯 改為：單獨去 Supabase 拉取撤離狀態，然後更新 currentData，再只渲染撤離畫面
+        // 只有在人員畫面且撤離系統開啟時才抓資料
         const { data } = await _supabase.from('personnel_control').select('id, evac_status').eq('is_active', true);
         if (data) {
             // 更新本地快取
@@ -4562,8 +4636,12 @@ async function openEvacSystem() {
                 const localItem = currentData.employees.find(p => p.id === remoteItem.id);
                 if (localItem) localItem.evac_status = remoteItem.evac_status;
             });
-            // 只刷新彈窗畫面
+            // 刷新彈窗畫面
             renderEvacList();
+            
+            // 🎯 核心火力支援 3：讓背景輪詢也能連動刷新右下角按鈕與紅光
+            updateQuickEvacFAB();
+            updateStats();
         }
     }, 10000);
 }
@@ -4583,11 +4661,9 @@ async function cancelEvacAlert() {
             
             showNotification('✅ 撤離警報已解除！');
             
-            // 關閉視窗與輪詢
+            // 關閉視窗 (我們已在裡面加上強制重繪邏輯)
             closeEvacWindow();
             
-            // 更新大畫面 (熄滅驚嘆號)
-            renderView(); 
         } catch (err) {
             showNotification('❌ 解除警報失敗：' + err.message);
         }
@@ -4596,7 +4672,8 @@ async function cancelEvacAlert() {
 
 // 3. 關閉視窗 (單純隱藏介面，警報繼續)
 function closeEvacWindow() {
-    document.getElementById('evac-modal').style.display = 'none';
+    const modal = document.getElementById('evac-modal');
+    if (modal) modal.style.display = 'none';
     document.body.style.overflow = 'auto';
     
     // 停止 10 秒輪詢
@@ -4604,6 +4681,10 @@ function closeEvacWindow() {
         clearInterval(evacInterval);
         evacInterval = null; 
     }
+
+    // 🎯 核心修復：直接呼叫 switchView 模擬您「點擊人員/裝備標籤」的動作
+    // 這會強制引擎重新判定狀態，100% 瞬間刷新紅光、按鈕與卡片！
+    switchView(currentView);
 }
 
 // 4. 執行發布撤離 (將所有 is_active = true 的人設為 MISSING)
@@ -4622,7 +4703,10 @@ async function executeEvacAlert() {
         if (error) throw error;
         
         renderEvacList();
-        renderView(); // 刷新主畫面讓驚嘆號亮起
+        
+        // 🎯 這裡也換成最強制的刷新指令
+        switchView(currentView);
+        
         showNotification('🚨 撤離警報已發布！');
     } catch (err) {
         showNotification('❌ 發布失敗：' + err.message);
@@ -4695,21 +4779,27 @@ function renderEvacList() {
 async function toggleEvacStatus(id, currentEvacStatus) {
     const newStatus = (currentEvacStatus === 'SAFE') ? 'MISSING' : 'SAFE';
     
-    // 瞬間改變 UI 
+    // 瞬間改變 UI (針對清單裡的卡片)
     const card = document.querySelector(`.evac-card[data-id="${id}"]`);
     if (card) {
         card.className = `evac-card ${newStatus === 'SAFE' ? 'evac-safe' : 'evac-missing'} clickable`;
         card.onclick = () => toggleEvacStatus(id, newStatus);
     }
 
-    // 瞬間修改本地記憶體，防止 10 秒輪詢時讀到舊資料
+    // 瞬間修改本地記憶體，防止輪詢時讀到舊資料
     const person = currentData.employees.find(p => p.id === id);
     if (person) {
         person.evac_status = newStatus;
     }
 
-    // 立即刷新統計數字
+    // 立即刷新清單畫面
     renderEvacList();
+    
+    // 🎯 核心火力支援 1：立刻刷新右下角的 FAB 按鈕外觀！(原本漏了這行導致畫面卡死)
+    updateQuickEvacFAB();
+    
+    // 🎯 核心火力支援 2：立刻檢查全系統警報狀態，同步刷新主畫面紅光
+    updateStats();
 
     try {
         const { error } = await _supabase.from('personnel_control').update({ evac_status: newStatus }).eq('id', id);
@@ -4718,6 +4808,8 @@ async function toggleEvacStatus(id, currentEvacStatus) {
         showNotification('更新失敗，請檢查網路連線！');
         await loadDataFromSupabase();
         renderEvacList();
+        updateQuickEvacFAB(); // 失敗時自動退回紅色驚嘆號
+        updateStats();
     }
 }
 
@@ -4738,6 +4830,53 @@ setInterval(() => {
     
     // 🎯 核心：如果你在任務中，而且狀態是 MISSING (尚未回報)，就彈射通知！
     if (myRecord && myRecord.evac_status === 'MISSING') {
-        showNotification('🚨 撤離警報！請點擊上方【撤離回報】確認您的安全！');
+        showNotification('🚨 撤離警報！點右下方回報安全！');
     }
 }, 5000);
+
+
+// ==========================================
+// 🚨 個人專屬一鍵撤離回報 (FAB 控制)
+// ==========================================
+
+// 1. 更新右下角按鈕狀態
+function updateQuickEvacFAB() {
+    const fab = document.getElementById('quick-evac-fab');
+    if (!fab) return;
+
+    if (currentView !== 'personnel') {
+        fab.style.display = 'none';
+        return;
+    }
+
+    const isEvacOngoing = currentData.employees.some(p => p.evac_status && p.evac_status !== 'NONE');
+    if (!isEvacOngoing || !currentUser) {
+        fab.style.display = 'none';
+        return;
+    }
+    
+    const myRecord = currentData.employees.find(p => p.name === currentUser.displayName || p.detail_name === currentUser.displayName);
+    if (!myRecord) {
+        fab.style.display = 'none'; 
+        return;
+    }
+
+    fab.style.display = 'flex';
+    if (myRecord.evac_status === 'SAFE') {
+        fab.className = 'safe';
+        fab.innerHTML = '<i class="fas fa-check"></i>'; // 🎯 乾淨的打勾
+    } else {
+        fab.className = 'missing';
+        fab.innerHTML = '<i class="fas fa-exclamation-triangle"></i>'; // 🚨 驚嘆號
+    }
+}
+
+// 2. 點擊右下角按鈕的觸發事件
+async function quickToggleMyEvacStatus() {
+    if (!currentUser) return;
+    const myRecord = currentData.employees.find(p => p.name === currentUser.displayName || p.detail_name === currentUser.displayName);
+    if (!myRecord) return;
+
+    // 借用已經寫好的狀態切換邏輯 (自動包含樂觀更新、雲端寫入與錯誤還原)
+    await toggleEvacStatus(myRecord.id, myRecord.evac_status);
+}

@@ -811,3 +811,83 @@ body.evac-active {
         box-shadow: inset 0 0 150px rgba(255, 0, 85, 0.65); /* 螢幕四周強烈紅光向內擠壓 */
     }
 }
+
+/* ==========================================
+   🚨 個人專屬一鍵撤離回報按鈕 (FAB)
+   ========================================== */
+#quick-evac-fab {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: none;
+    font-size: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10005; /* 絕對高於 9999 的撤離彈窗 */
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* 尚未回報：激烈紅光閃爍 */
+#quick-evac-fab.missing {
+    background: rgba(255, 0, 85, 0.2);
+    border: 2px solid var(--neon-red);
+    color: var(--neon-red);
+    box-shadow: 0 0 20px rgba(255, 0, 85, 0.5), inset 0 0 15px rgba(255, 0, 85, 0.3);
+    animation: fab-danger-pulse 0.8s infinite alternate;
+}
+
+/* 已回報安全：幽綠色穩定光芒 */
+#quick-evac-fab.safe {
+    background: rgba(0, 255, 102, 0.15);
+    border: 2px solid var(--neon-green);
+    color: var(--neon-green);
+    box-shadow: 0 0 20px rgba(0, 255, 102, 0.5), inset 0 0 15px rgba(0, 255, 102, 0.2);
+    animation: none;
+}
+
+#quick-evac-fab:active {
+    transform: scale(0.85); /* 點擊時的下壓機械感 */
+}
+
+@keyframes fab-danger-pulse {
+    0% { box-shadow: 0 0 15px rgba(255, 0, 85, 0.4), inset 0 0 10px rgba(255, 0, 85, 0.2); transform: scale(1); }
+    100% { box-shadow: 0 0 35px rgba(255, 0, 85, 0.8), inset 0 0 25px rgba(255, 0, 85, 0.6); transform: scale(1.05); }
+}
+
+/* ==========================================
+   🚨 FAB 按鈕圖示的物理彈跳反饋引擎
+   ========================================== */
+
+/* 讓按鈕內的圖示具備過場動畫能力 */
+#quick-evac-fab i {
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 點擊按壓的瞬間：圖示往內縮小，營造實體按鍵感 */
+#quick-evac-fab:active i {
+    transform: scale(0.5);
+    opacity: 0.5;
+}
+
+/* 狀態：已回報安全 (打勾彈射放大) */
+#quick-evac-fab.safe i {
+    font-size: 36px !important;
+    animation: icon-pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* 狀態：尚未回報 (驚嘆號微微震動) */
+#quick-evac-fab.missing i {
+    font-size: 30px !important;
+}
+
+/* 🎯 核心反饋動畫：圖示從無到有，爆發彈出 */
+@keyframes icon-pop-in {
+    0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+    70% { transform: scale(1.3) rotate(10deg); opacity: 1; text-shadow: 0 0 20px var(--neon-green); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
