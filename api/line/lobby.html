@@ -112,6 +112,23 @@
         /* 動態替換圖示用的隱藏類別 */
         .hidden-icon { display: none !important; }
 
+        /* ==========================================
+           🛡️ 系統權限管理面板專屬樣式
+           ========================================== */
+        .role-btn { 
+            padding: 6px 14px; font-size: 13px; border-radius: 6px; font-weight: bold; 
+            transition: all 0.2s; border: 1px solid transparent; cursor: pointer;
+        }
+        /* 一般用戶按鈕狀態 */
+        .role-btn.normal.active { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border-color: #3b82f6; }
+        .role-btn.normal.inactive { background: transparent; color: #4b5563; border-color: #374151; }
+        /* 管理員按鈕狀態 (帶紅色警戒光暈) */
+        .role-btn.admin.active { 
+            background: rgba(239, 68, 68, 0.2); color: #f87171; border-color: #ef4444; 
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); 
+        }
+        .role-btn.admin.inactive { background: transparent; color: #4b5563; border-color: #374151; }
+        .role-btn:hover:not(.active) { border-color: #9ca3af; color: #9ca3af; }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen px-4 py-10">
@@ -225,6 +242,39 @@
         <button onclick="handleLogout()" class="text-red-400 text-sm font-bold py-2 px-4 border border-red-900 rounded-lg hover:bg-red-900/50 transition-colors">登出系統</button>
     </div>
 
+    <!-- ⚙️ 只有管理員看得到的左上角設定按鈕 -->
+    <button id="admin-settings-btn" onclick="openAdminPanel()" class="hidden fixed top-4 left-4 bg-gray-800/80 hover:bg-gray-700 backdrop-blur text-gray-300 p-3 rounded-full shadow-lg border border-gray-600 transition-all z-[60]">
+        <span class="text-xl">⚙️</span>
+    </button>
+
+    <!-- 🛡️ 權限管理主面板 -->
+    <div id="admin-panel" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex flex-col items-center justify-center p-4">
+        <div class="bg-gray-800 w-full max-w-lg rounded-2xl shadow-2xl border border-gray-600 overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="p-5 border-b border-gray-700 flex justify-between items-center bg-gray-900">
+                <h3 class="text-xl font-bold text-white tracking-widest">⚙️ 系統權限總機</h3>
+                <button onclick="closeAdminPanel()" class="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+            </div>
+            <!-- 人員清單會灌入這裡 -->
+            <div class="p-4 overflow-y-auto flex-1 space-y-3" id="admin-user-list">
+                <p class="text-center text-gray-400">載入中...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔒 密碼驗證雷達彈窗 -->
+    <div id="password-modal" class="hidden fixed inset-0 bg-black/90 z-[80] flex items-center justify-center p-4">
+        <div class="bg-gray-800 w-full max-w-sm rounded-xl p-6 border border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.3)] text-center">
+            <div class="text-4xl mb-3">⚠️</div>
+            <h4 class="text-xl font-bold text-red-400 mb-2 tracking-widest">最高權限驗證</h4>
+            <p class="text-sm text-gray-300 mb-5" id="password-modal-desc">請輸入授權密碼以確認變更</p>
+            <input type="password" id="auth-secret-pw" class="input-dark text-center tracking-widest text-lg mb-6 py-3" placeholder="••••••••">
+            <div class="flex gap-3">
+                <button onclick="closePasswordModal()" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-bold">取消</button>
+                <button onclick="confirmRoleChange()" id="confirm-role-btn" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg shadow-lg active:scale-95 transition-all">確認執行</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // 登入邏輯與其他函數保持不變...
         function switchAuthTab(type) {
@@ -260,26 +310,6 @@
                 data.forEach(item => { html += `<option value="${item.unit_name}">${item.unit_name}</option>`; });
                 html += '<option value="OTHER">--- 其他 (手動輸入) ---</option>';
                 unitSelect.innerHTML = html;
-            }
-        }
-
-        async function processLoginSuccess(user) {
-            window.userEmail = user.email;
-            if (typeof requestWebPushPermission === 'function') {
-                await requestWebPushPermission();
-            }
-
-            const urlParams = new URLSearchParams(window.location.search);
-            const redirectUrl = urlParams.get('redirect');
-
-            if (redirectUrl) {
-                window.location.href = decodeURIComponent(redirectUrl);
-            } else {
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('lobby-menu').classList.remove('hidden');
-                
-                // 登入成功後，立刻檢查一次全域廣播狀態
-                checkGlobalEvacStatus();
             }
         }
 
@@ -489,10 +519,33 @@
             else if (window.isLoggedIn) startEvacRadar(); // 只有登入狀態下才重啟
         });
 
-        // 🎯 修改原本的 processLoginSuccess，讓它在成功後才啟動雷達
         async function processLoginSuccess(user) {
             window.userEmail = user.email;
-            window.isLoggedIn = true; // 標記已登入
+            window.isLoggedIn = true; 
+
+            // 🎯 嚴格鎖定與強制偵錯：
+            // ⚠️ 指揮官注意：請確認您 users 表單裡存信箱的欄位名稱！
+            // 如果不是 '電子信箱'，請把下面這行的 '電子信箱' 改成您資料庫實際的欄位名稱 (例如 'email')
+            const emailColumnName = '電子信箱'; 
+
+            const { data: userData, error: roleErr } = await _supabase
+                .from('users')
+                .select('管理員')
+                .eq(emailColumnName, user.email)
+                .single();
+            
+            // 🚨 如果發生錯誤，直接在控制台亮紅燈！
+            if (roleErr) {
+                console.error("🚨 權限檢查失敗！原因：", roleErr.message, roleErr.details);
+            } else {
+                console.log("🟢 成功抓到使用者資料，管理員狀態為：", userData?.管理員);
+                
+                // 嚴格判斷是否為「管理」
+                if (userData?.管理員 === '管理') {
+                    document.getElementById('admin-settings-btn').classList.remove('hidden');
+                    console.log("✅ 齒輪按鈕已解鎖！");
+                }
+            }
 
             if (typeof requestWebPushPermission === 'function') {
                 await requestWebPushPermission();
@@ -512,6 +565,97 @@
             }
         }
 
+        // ==========================================
+        // ⚙️ 最高權限管理面板系統
+        // ==========================================
+        let pendingRoleChange = null;
+
+        function openAdminPanel() {
+            document.getElementById('admin-panel').classList.remove('hidden');
+            loadAdminUserList();
+        }
+
+        function closeAdminPanel() { document.getElementById('admin-panel').classList.add('hidden'); }
+
+        async function loadAdminUserList() {
+            const listDiv = document.getElementById('admin-user-list');
+            listDiv.innerHTML = '<p class="text-center text-gray-400 mt-10 animate-pulse">📡 正在連接資料庫...</p>';
+            
+            const { data, error } = await _supabase.from('users').select('user_id, 姓名, display_name, 管理員').order('姓名');
+            if (error) { listDiv.innerHTML = `<p class="text-red-500 text-center">載入失敗: ${error.message}</p>`; return; }
+
+            listDiv.innerHTML = '';
+            data.forEach(u => {
+                const name = u.姓名 || u.display_name || '未知';
+                
+                // 🎯 嚴格鎖定：只認「管理」兩個字 👇
+                const isAdmin = u.管理員 === '管理'; 
+                
+                listDiv.innerHTML += `
+                    <div class="flex justify-between items-center p-3 bg-gray-800/60 rounded-xl border border-gray-700 hover:border-gray-500 transition-colors">
+                        <div class="text-white font-bold text-lg pl-2">${name}</div>
+                        <div class="flex gap-2">
+                            <button onclick="promptRoleChange('${u.user_id}', '${name}', false, ${isAdmin})" 
+                                class="role-btn normal ${!isAdmin ? 'active' : 'inactive'}">一般用戶</button>
+                            <button onclick="promptRoleChange('${u.user_id}', '${name}', true, ${isAdmin})" 
+                                class="role-btn admin ${isAdmin ? 'active' : 'inactive'}">管 理</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function promptRoleChange(userId, userName, targetIsAdmin, currentIsAdmin) {
+            if (targetIsAdmin === currentIsAdmin) return; // 如果點了已經亮著的按鈕，不理他
+            
+            pendingRoleChange = { userId, targetIsAdmin };
+            const desc = targetIsAdmin 
+                ? `準備將 [ ${userName} ] 提拔為 <span class="text-red-400 font-bold text-lg">系統管理員</span>` 
+                : `準備將 [ ${userName} ] 降級為 <span class="text-blue-400 font-bold text-lg">一般用戶</span>`;
+            
+            document.getElementById('password-modal-desc').innerHTML = desc;
+            document.getElementById('auth-secret-pw').value = '';
+            document.getElementById('password-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('auth-secret-pw').focus(), 100);
+        }
+
+        function closePasswordModal() {
+            document.getElementById('password-modal').classList.add('hidden');
+            pendingRoleChange = null;
+        }
+
+        async function confirmRoleChange() {
+            const pw = document.getElementById('auth-secret-pw').value;
+            if (!pw) return alert('⚠️ 密碼不可為空！');
+            
+            const btn = document.getElementById('confirm-role-btn');
+            btn.innerText = '📡 驗證中...'; btn.disabled = true;
+
+            try {
+                // 將 Boolean 轉回您資料庫儲存的字串格式
+                const newRoleStr = pendingRoleChange.targetIsAdmin ? '管理' : '一般用戶';
+                
+                // 🚀 發射至後端驗證！
+                const { data, error } = await _supabase.rpc('update_user_role_secure', {
+                    p_user_id: pendingRoleChange.userId,
+                    p_new_role: newRoleStr,
+                    p_secret: pw
+                });
+
+                if (error) throw error;
+                if (!data.success) throw new Error(data.message);
+
+                alert(data.message);
+                closePasswordModal();
+                loadAdminUserList(); // 重新整理清單
+            } catch (err) {
+                alert(err.message);
+                document.getElementById('auth-secret-pw').value = '';
+                document.getElementById('auth-secret-pw').focus();
+            } finally {
+                btn.innerText = '確認執行'; btn.disabled = false;
+            }
+        }
     </script>
 </body>
 </html>
