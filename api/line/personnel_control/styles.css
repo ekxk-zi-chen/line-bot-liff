@@ -1010,3 +1010,103 @@ body.effects-disabled .evac-missing {
     /* 3. 給它一個低調的單色邊框，維持辨識度即可 */
     border: 1px solid currentColor !important;
 }
+
+/* ==========================================
+   🚀 快速控制面板專屬 UI 美化 (防擠壓、科技風)
+   ========================================== */
+
+/* 1. 快速控制項目卡片本身 (確保搜尋時排版不會崩潰) */
+.quick-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.05); /* 微微的透明科技感 */
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    gap: 15px;
+}
+
+/* 滑鼠點擊或懸停的動態回饋 */
+.quick-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(2px);
+    border-color: rgba(0, 243, 255, 0.3); /* 邊框發出微弱青光 */
+}
+
+/* 2. 左側人員資訊區塊 (讓名字、組別、原因整齊排列) */
+.quick-item-info {
+    flex: 1; /* 自動填滿左側空間 */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* 確保所有文字靠左對齊 */
+    gap: 5px;
+    overflow: hidden; /* 防止超長文字把畫面撐爆 */
+}
+
+.quick-item-name {
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.quick-item-group {
+    font-size: 12px;
+    color: var(--text-dim, #aaaaaa);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+/* 3. 🎯 致命修正：超有質感的「原因」警告標籤 */
+.quick-item-reason {
+    font-size: 11px;
+    color: var(--neon-red, #ff0055); /* 科技紅字體 */
+    background: rgba(255, 0, 85, 0.1); /* 半透明紅底 */
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px dashed rgba(255, 0, 85, 0.4); /* 虛線警告框 */
+    margin-top: 2px;
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* 如果原因真的太長，會自動變成... */
+    max-width: 100%;
+}
+
+/* 4. 右側按鈕區 (確保搜尋結果中的按鈕絕對不會變形) */
+.quick-item-buttons {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0; /* 🛡️ 絕對防禦：不管左邊字多長，按鈕絕對不允許被擠壓變小！ */
+}
+
+/* 微調迷你按鈕的尺寸，讓它更精緻 */
+.quick-item-buttons .status-btn.mini {
+    padding: 8px 14px;
+    font-size: 13px;
+    border-radius: 6px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+/* 5. 🚨 外出/應勤狀態的卡片：淺紅色警戒邊框與微紅背景 */
+.quick-item.out {
+    border: 1px solid rgba(255, 0, 85, 0.5); /* 明顯的淺紅邊框 */
+    background: rgba(255, 0, 85, 0.03); /* 加上極淡的紅底色，讓整體視覺更突出 */
+    box-shadow: 0 0 8px rgba(255, 0, 85, 0.1); /* 微微的紅色發光感 */
+}
+
+/* 針對外出狀態卡片的滑鼠懸停強化 */
+.quick-item.out:hover {
+    border-color: rgba(255, 0, 85, 0.8);
+    background: rgba(255, 0, 85, 0.08);
+    box-shadow: 0 0 12px rgba(255, 0, 85, 0.2);
+}
+
+/* 🟢 基地/在隊 則可以維持原樣或淡淡的綠邊 */
+.quick-item.boo {
+    border: 1px solid rgba(0, 255, 102, 0.2);
+}

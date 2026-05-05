@@ -7,13 +7,27 @@
     <!-- 🚀 路徑修正：直接讀取同目錄下的 styles.css -->
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- 1. Supabase 官方套件 (如果您在 config 裡沒引入的話) -->
+    <!-- 1. Supabase 官方套件 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <!-- 2. 引入您寫好的全域設定檔 -->
+    <!-- 2. 全域設定與狀態 (大腦記憶區，必須先載入！) -->
     <script src="../mission_folder/supabase_config.js"></script>
+
+    <!-- 3. 大腦記憶區 (變數) -->
+    <script src="globals.js"></script>
     
-    <!-- 3. 本系統的主邏輯 -->
+    <!-- 4. 💽 資料庫通訊區 (我們剛剛建好的！) -->
+    <script src="api_supabase.js"></script>
+
+    <!-- 5. 🎨 UI 渲染區 (畫面生成引擎) -->
+    <script src="ui_render.js"></script>
+
+    <!-- 6. 本系統的主邏輯 (肌肉行動區) -->
+    <script src="modals.js"></script>
+
+    <script src="utils_system.js"></script>
+    
+    <!-- 6. 本系統的主邏輯 (肌肉行動區) -->
     <script src="script.js"></script>
 
     <!-- ========================================== -->
