@@ -149,6 +149,60 @@
             background: #4b5563;
             border-radius: 10px;
         }
+        /* 🎨 BOO 繪板 Beta 卡片 */
+        .boo-beta {
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(6px);
+        }
+
+        /* 柔光邊框 */
+        .boo-beta::before {
+            content: "";
+            position: absolute;
+            inset: -1px;
+            border-radius: 1rem;
+            background: linear-gradient(130deg,#a855f7,#6366f1,#22d3ee,#a855f7);
+            background-size: 300% 300%;
+            animation: booAura 7s ease infinite;
+            opacity: .35;
+            filter: blur(10px);
+        }
+
+        /* 漸層流動光 */
+        .boo-beta::after {
+            content:"";
+            position:absolute;
+            inset:0;
+            background: linear-gradient(
+                120deg,
+                transparent 20%,
+                rgba(255,255,255,.15) 45%,
+                transparent 70%
+            );
+            transform: translateX(-120%);
+            animation: booShine 4.5s infinite;
+        }
+
+        /* 呼吸光 */
+        @keyframes booAura {
+            0% { background-position: 0% 50%; opacity:.25 }
+            50% { background-position: 100% 50%; opacity:.45 }
+            100% { background-position: 0% 50%; opacity:.25 }
+        }
+
+        /* 滑動光掃過 */
+        @keyframes booShine {
+            0% { transform: translateX(-120%); }
+            60% { transform: translateX(120%); }
+            100% { transform: translateX(120%); }
+        }
+
+        /* Hover */
+        .boo-beta:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 15px 35px rgba(0,0,0,.35);
+        }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen px-4 py-10">
@@ -251,6 +305,12 @@
             <button onclick="window.location.href='official_section/app_docs.html'" class="bg-indigo-900/40 hover:bg-indigo-800/60 border border-indigo-700 p-6 rounded-xl flex flex-col items-center justify-center gap-3 transition-all active:scale-95 shadow-[0_0_15px_rgba(79,70,229,0.3)]">
                 <span class="text-4xl">📁</span>
                 <span class="text-white font-bold">公文專區</span>
+            </button>
+
+            <button onclick="window.location.href='boo/boo.html'" class="boo-beta bg-gradient-to-br from-purple-900/40 to-indigo-900/40 border border-purple-500/30 p-6 rounded-xl flex flex-col items-center justify-center gap-2 transition-all active:scale-95">
+                <span class="text-4xl opacity-80">🎨</span>
+                <span class="text-purple-200 font-bold tracking-wider">BOO 繪板</span>
+                <span class="text-xs text-purple-300/70">COMING SOON</span>
             </button>
 
             <button onclick="alert('建置中...')" class="bg-gray-700/50 border border-gray-600/50 p-6 rounded-xl flex flex-col items-center justify-center gap-3 transition-all cursor-not-allowed">
