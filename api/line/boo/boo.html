@@ -29,45 +29,29 @@
             -webkit-user-select: text;
             user-select: text;
         }
-        html,
-        body {
-            height: 100%;
-            width: 100%;
+        html, body {
+            height: 100dvh; /* 🌟 使用 dvh 動態適應手機網址列，保證底部按鈕絕對不被切掉 */
+            width: 100vw;
             margin: 0;
             padding: 0;
             font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
             background: #061018;
             color: var(--text);
             overflow: hidden;
-            position: fixed;
+            /* 🌟 刪除了 position: fixed，解決畫面位移跑掉的問題 */
         }
 
-        /* 1. 找到這段，把 height: 100vh 換成 100%，解決手機網址列擋住按鈕的問題 */
         .canvas-container {
-            position: fixed;
+            position: absolute; /* 🌟 fixed 改成 absolute 依附畫面，更穩定 */
             top: 0;
             left: 0;
             width: 100%;
-            height: 100%; /* 🌟 原本是 100vh，改成 100% */
+            height: 100%;
             background: linear-gradient(180deg, #081827, #04202a);
             z-index: 1;
         }
 
-        /* 2. 在 </style> 前，插入這段全新的手機優化與圖層修正碼 */
-        .canvas-fab-container, #bgZoomControls, .scale-indicator {
-            z-index: 900 !important; /* 🌟 降低層級，避免側邊抽屜打開時按鈕還浮在畫面上干擾 */
-        }
-
-        @media (max-width: 768px) {
-            .fab-main { width: 48px; height: 48px; font-size: 22px; }
-            .canvas-action-btn { width: 40px; height: 40px; font-size: 18px; }
-            .canvas-fab-container { bottom: 84px; right: 12px; gap: 8px; }
-            .fab-container { bottom: 16px; right: 12px; gap: 8px; }
-            #quickControls { gap: 8px !important; }
-            .fab-item { padding: 8px 12px; font-size: 13px; }
-            .fab-item-icon { width: 32px; height: 32px; font-size: 16px; }
-            .drawer { width: min(320px, 85vw); }
-        }
+        
         #svgmap {
             width: 100%;
             height: 100%;
@@ -538,6 +522,21 @@
             display: none;
             font-size: 14px;
         }
+        /* 2. 在 </style> 前，插入這段全新的手機優化與圖層修正碼 */
+        .canvas-fab-container, #bgZoomControls, .scale-indicator {
+            z-index: 900 !important; /* 🌟 降低層級，避免側邊抽屜打開時按鈕還浮在畫面上干擾 */
+        }
+
+        @media (max-width: 768px) {
+            .fab-main { width: 48px; height: 48px; font-size: 22px; }
+            .canvas-action-btn { width: 40px; height: 40px; font-size: 18px; }
+            .canvas-fab-container { bottom: 84px; right: 12px; gap: 8px; }
+            .fab-container { bottom: 16px; right: 12px; gap: 8px; }
+            #quickControls { gap: 8px !important; }
+            .fab-item { padding: 8px 12px; font-size: 13px; }
+            .fab-item-icon { width: 32px; height: 32px; font-size: 16px; }
+            .drawer { width: min(320px, 85vw); }
+        }
     </style>
 </head>
 
@@ -573,9 +572,6 @@
 
     <!-- 背景調整提示 -->
     <div class="bg-handle-hint" id="bgHandleHint">🖼️ 拖曳移動背景｜↕ 按鈕縮放</div>
-    <div class="canvas-fab-container">
-
-    </div>
     <!-- 🌟 新增：左側專屬的背景縮放按鈕組 (平常隱藏，調整背景時才顯示) -->
     <div id="bgZoomControls" style="display:none; position:fixed; left:16px; top:50%; transform:translateY(-50%); flex-direction:column; gap:16px; z-index:1000;">
         <button class="canvas-action-btn" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);" onclick="scaleBackground(1.1)" title="放大背景">➕</button>
@@ -733,7 +729,7 @@
 
         const state = {
             mode: 'polygon',
-            scale: 0.07, // 🌟 改成 0.15，讓 50x50m 剛好佔據手機螢幕大半部
+            scale: 0.15, // 🌟 改成 0.15，讓 50x50m 剛好佔據手機螢幕大半部
             polygon: [],
             polygonClosed: false,
             entrances: [],
