@@ -5,12 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport"
         content="width=device-width,initial-scale=1,maximum-scale=5,minimum-scale=1,user-scalable=yes" />
-    <title>BoO 現場佈局助手（完整功能版）</title>
+    <title>BoO 現場佈局助手</title>
     <style>
         :root {
             --bg: #0f1720;
             --panel: #0b1220;
-            --card: #0f1725;
             --accent: #10b981;
             --accent2: #3b82f6;
             --text: #e6eef2;
@@ -22,15 +21,14 @@
             -webkit-user-select: none;
             user-select: none;
             box-sizing: border-box;
+            touch-action: manipulation; /* 🌟 鎖死雙擊放大，但保留雙指縮放 */
         }
-
         input,
         textarea,
         select {
             -webkit-user-select: text;
             user-select: text;
         }
-
         html,
         body {
             height: 100%;
@@ -38,7 +36,7 @@
             margin: 0;
             padding: 0;
             font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
-            background: linear-gradient(180deg, #061018, #071425);
+            background: #061018;
             color: var(--text);
             overflow: hidden;
             position: fixed;
@@ -53,7 +51,6 @@
             background: linear-gradient(180deg, #081827, #04202a);
             z-index: 1;
         }
-
         #svgmap {
             width: 100%;
             height: 100%;
@@ -61,26 +58,35 @@
             touch-action: pan-x pan-y pinch-zoom;
         }
 
-        /* ── 比例尺指示器 ── */
+        /* 📏 比例尺指示器（可點擊按鈕） */
         .scale-indicator {
             position: fixed;
             left: 16px;
             bottom: 16px;
             z-index: 200;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
             color: #cfeee2;
-            padding: 8px 14px;
-            border-radius: 8px;
+            padding: 10px 16px;
+            border-radius: 10px;
             font-size: 13px;
             font-weight: 600;
-            border: 1px solid rgba(16, 185, 129, 0.4);
-            pointer-events: none;
-            letter-spacing: 0.3px;
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            cursor: pointer;
             display: flex;
             align-items: center;
             gap: 8px;
             white-space: nowrap;
+            transition: all 0.2s;
+            pointer-events: auto;
+        }
+        .scale-indicator:hover {
+            border-color: #f59e0b;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+        }
+        .scale-indicator:active {
+            transform: scale(0.95);
+            background: rgba(16, 185, 129, 0.2);
         }
         .scale-indicator .scale-bar {
             display: inline-block;
@@ -97,19 +103,23 @@
         .scale-indicator.warn .scale-bar {
             background: #f59e0b;
         }
+        .scale-indicator .calibrate-hint {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-left: 4px;
+        }
 
-        /* ── FAB ── */
+        /* 🌀 FAB */
         .fab-container {
             position: fixed;
             bottom: 20px;
             right: 20px;
             z-index: 1000;
             display: flex;
-            flex-direction: column-reverse;
-            align-items: flex-end;
+            flex-direction: row-reverse;
+            align-items: center;
             gap: 12px;
         }
-
         .fab-main {
             width: 64px;
             height: 64px;
@@ -125,28 +135,23 @@
             justify-content: center;
             transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
         }
-
         .fab-main:active {
             transform: scale(0.9);
         }
-
         .fab-main.active {
             background: linear-gradient(135deg, #ef4444, #dc2626);
             box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
         }
-
         .fab-menu {
             display: none;
             flex-direction: column-reverse;
             gap: 10px;
             margin-bottom: 8px;
         }
-
         .fab-menu.show {
             display: flex;
             animation: menuSlideIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
         }
-
         @keyframes menuSlideIn {
             from {
                 opacity: 0;
@@ -157,7 +162,19 @@
                 transform: translateY(0) scale(1);
             }
         }
-
+        /* 讓系統選單向左排，且加入從右向左滑出的動畫 */
+        #fabMenu {
+            flex-direction: row-reverse;
+            margin-bottom: 0;
+            margin-right: 8px;
+        }
+        #fabMenu.show {
+            animation: menuSlideInLeft 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        @keyframes menuSlideInLeft {
+            from { opacity: 0; transform: translateX(20px) scale(0.8); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
+        }
         .fab-item {
             display: flex;
             align-items: center;
@@ -172,12 +189,10 @@
             transition: all 0.2s;
             white-space: nowrap;
         }
-
         .fab-item:active {
             transform: scale(0.95);
             background: rgba(16, 185, 129, 0.2);
         }
-
         .fab-item-icon {
             width: 40px;
             height: 40px;
@@ -189,14 +204,13 @@
             font-size: 20px;
             flex-shrink: 0;
         }
-
         .fab-item-label {
             font-size: 14px;
             font-weight: 600;
             color: var(--text);
         }
 
-        /* ── 抽屜面板 ── */
+        /* 📱 抽屜 */
         .drawer {
             position: fixed;
             left: -100%;
@@ -211,27 +225,24 @@
             transition: left 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
             padding: 20px;
         }
-
         .drawer.show {
             left: 0;
         }
-
+        /* 在裡面加上一行 pointer-events: none;，變成這樣： */
         .drawer-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.3); /* 稍微調淡一點避免太暗 */
             z-index: 998;
             display: none;
-            backdrop-filter: blur(3px);
+            pointer-events: none; /* 讓點擊可以穿透黑幕操作畫布！ */
         }
-
         .drawer-overlay.show {
             display: block;
         }
-
         .drawer-header {
             display: flex;
             justify-content: space-between;
@@ -240,7 +251,6 @@
             padding-bottom: 12px;
             border-bottom: 2px solid rgba(16, 185, 129, 0.3);
         }
-
         .drawer-close {
             background: #ef4444;
             color: white;
@@ -255,87 +265,18 @@
             justify-content: center;
         }
 
-        /* ── 橫屏提示 ── */
-        .landscape-hint {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(16, 185, 129, 0.95);
-            color: white;
-            padding: 24px 32px;
-            border-radius: 16px;
-            font-size: 18px;
-            font-weight: bold;
-            text-align: center;
-            z-index: 10000;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-            display: none;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%,
-            100% {
-                transform: translate(-50%, -50%) scale(1);
-            }
-            50% {
-                transform: translate(-50%, -50%) scale(1.05);
-            }
-        }
-
-        .landscape-hint.show {
-            display: block;
-        }
-
-        .landscape-icon {
-            font-size: 48px;
-            margin-bottom: 12px;
-        }
-
-        /* ── 標籤頁 ── */
-        .tab-nav {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .tab-button {
-            padding: 10px 16px;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            color: var(--text-muted);
-            cursor: pointer;
-            white-space: nowrap;
-            font-size: 14px;
-            transition: all 0.2s;
-            flex-shrink: 0;
-        }
-
-        .tab-button.active {
-            background: var(--accent);
-            color: #042018;
-            font-weight: bold;
-            border-color: var(--accent);
-        }
-
+        /* 其他UI */
         .tab-content {
             display: none;
         }
-
         .tab-content.active {
             display: block;
         }
-
         h2 {
             margin: 0 0 12px 0;
             font-size: 20px;
             color: var(--accent);
         }
-
         h3 {
             margin: 16px 0 10px 0;
             font-size: 16px;
@@ -343,7 +284,6 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding-bottom: 6px;
         }
-
         label {
             display: block;
             margin-top: 14px;
@@ -351,7 +291,6 @@
             color: #bfeee0;
             font-size: 15px;
         }
-
         input[type="number"],
         select,
         input[type="text"] {
@@ -364,14 +303,12 @@
             color: var(--text);
             font-size: 16px;
         }
-
         input:focus,
         select:focus {
             outline: none;
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
         }
-
         button {
             background: var(--accent);
             color: #042018;
@@ -386,40 +323,33 @@
             width: 100%;
             margin-top: 12px;
         }
-
         button:active {
             transform: scale(0.97);
         }
-
         button.secondary {
             background: var(--accent2);
             color: white;
         }
-
         button.danger {
             background: #ef4444;
             color: white;
         }
-
         button.warning {
             background: #f59e0b;
             color: white;
         }
-
         .muted {
             color: #9fb6b0;
             font-size: 13px;
             line-height: 1.5;
             margin-top: 8px;
         }
-
         .items-list {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
             margin-top: 12px;
         }
-
         .item-btn {
             background: #062226;
             padding: 10px 14px;
@@ -432,12 +362,10 @@
             min-width: 80px;
             text-align: center;
         }
-
         .item-btn:active {
             background: rgba(16, 185, 129, 0.3);
             transform: scale(0.95);
         }
-
         .info {
             font-size: 14px;
             color: #cfeee2;
@@ -447,11 +375,10 @@
             border-radius: 8px;
             border: 1px solid rgba(16, 185, 129, 0.2);
         }
-
         .legend {
             position: fixed;
             right: 12px;
-            top: 12px;
+            top: 64px; /* 🌟 往下移，讓出右上角空間 */
             background: rgba(0, 0, 0, 0.8);
             padding: 12px;
             border-radius: 10px;
@@ -462,93 +389,6 @@
             border: 1px solid rgba(16, 185, 129, 0.3);
             max-width: 200px;
         }
-
-        .canvas-toolbar {
-            position: fixed;
-            top: 12px;
-            left: 12px;
-            z-index: 100;
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            max-width: calc(100vw - 240px);
-        }
-
-        .toolbar-btn {
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            color: var(--text);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            padding: 10px 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.2s;
-            touch-action: manipulation;
-        }
-
-        .toolbar-btn:active {
-            background: rgba(16, 185, 129, 0.3);
-            transform: scale(0.95);
-        }
-
-        .toolbar-btn.active {
-            background: var(--accent);
-            color: #042018;
-            font-weight: bold;
-            border-color: var(--accent);
-        }
-
-        @media (max-width: 900px) and (orientation: portrait) {
-            .landscape-hint.auto-show {
-                display: block;
-            }
-            .fab-container {
-                bottom: 16px;
-                right: 16px;
-            }
-            .fab-main {
-                width: 56px;
-                height: 56px;
-                font-size: 24px;
-            }
-            .scale-indicator {
-                left: 10px;
-                bottom: 10px;
-                font-size: 11px;
-                padding: 6px 10px;
-            }
-        }
-
-        @media (max-width: 900px) and (orientation: landscape) {
-            .canvas-toolbar {
-                top: 8px;
-                left: 8px;
-                gap: 6px;
-            }
-            .toolbar-btn {
-                padding: 8px 12px;
-                font-size: 12px;
-            }
-            .legend {
-                right: 8px;
-                top: 8px;
-                padding: 8px;
-                font-size: 11px;
-            }
-            .fab-container {
-                bottom: 12px;
-                right: 12px;
-            }
-            .scale-indicator {
-                left: 8px;
-                bottom: 8px;
-                font-size: 10px;
-                padding: 5px 8px;
-            }
-        }
-
         .controls-row {
             display: flex;
             gap: 8px;
@@ -559,7 +399,6 @@
             flex: 1;
             min-width: 120px;
         }
-
         .item-list-row {
             display: flex;
             gap: 8px;
@@ -579,23 +418,6 @@
             flex: 1;
             font-size: 13px;
         }
-
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(16, 185, 129, 0.5);
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(16, 185, 129, 0.7);
-        }
-
         .preset-categories {
             display: flex;
             gap: 8px;
@@ -612,11 +434,6 @@
             font-size: 13px;
             transition: all 0.2s;
         }
-        .category-btn:active {
-            background: rgba(59, 130, 246, 0.4);
-            transform: scale(0.95);
-        }
-
         .preset-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -632,10 +449,6 @@
             transition: all 0.2s;
             text-align: center;
         }
-        .preset-item:active {
-            background: rgba(16, 185, 129, 0.2);
-            transform: scale(0.95);
-        }
         .preset-icon {
             font-size: 32px;
             margin-bottom: 6px;
@@ -648,10 +461,9 @@
         .preset-size {
             font-size: 10px;
             color: var(--text-muted);
-            margin-top: 2px;
         }
 
-        /* ── 畫布FAB ── */
+        /* 畫布FAB */
         .canvas-fab-container {
             position: fixed;
             bottom: 100px;
@@ -667,8 +479,13 @@
                 bottom: 88px;
                 right: 16px;
             }
+            .scale-indicator {
+                left: 10px;
+                bottom: 10px;
+                font-size: 11px;
+                padding: 8px 12px;
+            }
         }
-
         .canvas-action-btn {
             width: 48px;
             height: 48px;
@@ -687,11 +504,29 @@
         .canvas-action-btn:active {
             transform: scale(0.9);
         }
+
+        /* 背景調整手柄提示 */
+        .bg-handle-hint {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(245, 158, 11, 0.9);
+            color: #000;
+            padding: 12px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            z-index: 300;
+            pointer-events: none;
+            display: none;
+            font-size: 14px;
+        }
     </style>
 </head>
 
 <body>
-    <!-- 🗺️ 全螢幕畫布 -->
+    <!-- 🌟 新增：右上角首頁返回按鈕 -->
+    <button onclick="window.location.href='../lobby.html'" title="返回上一頁" style="position: fixed; top: 12px; right: 12px; z-index: 1000; width: 40px; height: 40px; border-radius: 50%; background: rgba(15, 23, 37, 0.8); color: white; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(5px); box-shadow: 0 2px 10px rgba(0,0,0,0.5);">🏠</button>
     <div class="canvas-container">
         <svg id="svgmap" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -700,57 +535,68 @@
                 </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#grid)" />
-            <image id="bgImage" class="hidden" href="" x="0" y="0" width="100%" height="100%"
-                preserveAspectRatio="xMidYMid slice" style="opacity:0.3; pointer-events: none;" />
+            <image id="bgImage" href="" x="0" y="0" width="0" height="0"
+                style="opacity:0.35; pointer-events: none; display: none;" />
             <g id="polygonGroup"></g>
             <g id="entranceGroup"></g>
             <g id="placedGroup"></g>
             <g id="ghostGroup"></g>
+            <g id="calibrateGroup"></g>
         </svg>
 
-        <!-- 📏 比例尺指示器 -->
-        <div class="scale-indicator" id="scaleIndicator">
-            <span>⊞ 一格 =</span>
+        <!-- 📏 比例尺指示器（可點擊） -->
+        <div class="scale-indicator" id="scaleIndicator" onclick="startCalibrate()" title="點擊進行比例尺校準">
+            <span>⊞ 一格 ≈</span>
             <span id="scaleValue">50</span>
-            <span>cm</span>
+            <span>m</span>
             <span class="scale-bar" id="scaleBar" style="width:50px;"></span>
-        </div>
-
-        <!-- 🗺️ 圖例 -->
-        <div class="legend" id="legend">
-            <div style="font-weight:bold; margin-bottom:8px; color:#10b981;">📍 圖例</div>
-            <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
-                <div style="width:16px; height:16px; background:#10b981; border-radius:3px;"></div>
-                <span>場地範圍</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
-                <div style="width:16px; height:16px; background:#ef4444; border-radius:50%;"></div>
-                <span>出入口</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
-                <div style="width:16px; height:16px; background:#3b82f6; border-radius:3px;"></div>
-                <span>已放置物件</span>
-            </div>
+            <span class="calibrate-hint">📏校準</span>
         </div>
     </div>
 
-    <!-- 🎨 畫布FAB -->
+    <!-- 背景調整提示 -->
+    <div class="bg-handle-hint" id="bgHandleHint">🖼️ 拖曳移動背景｜↕ 按鈕縮放</div>
     <div class="canvas-fab-container">
-        <button id="canvasActionBtn" class="canvas-action-btn" style="display: none;" onclick="handleCanvasAction()"></button>
+
+    </div>
+    <!-- 🌟 新增：左側專屬的背景縮放按鈕組 (平常隱藏，調整背景時才顯示) -->
+    <div id="bgZoomControls" style="display:none; position:fixed; left:16px; top:50%; transform:translateY(-50%); flex-direction:column; gap:16px; z-index:1000;">
+        <button class="canvas-action-btn" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);" onclick="scaleBackground(1.1)" title="放大背景">➕</button>
+        <button class="canvas-action-btn" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);" onclick="scaleBackground(0.9)" title="縮小背景">➖</button>
+    </div>
+
+    <!-- 畫布FAB -->
+    <div class="canvas-fab-container">
+        <!-- 1. 最底層的 👆 主按鈕 (因為 column-reverse，排在第一個會在畫面最下方) -->
+        <button class="fab-main" id="canvasFabMain" onclick="toggleCanvasMenu()" style="background:linear-gradient(135deg,#10b981,#059669);">
+            <span id="canvasFabIcon">🖊️</span>
+        </button>
+
+        <!-- 2. 🆕 外框包覆，方便隱藏與顯示，視覺上排在👆的正上方 -->
+        <div id="quickControls" style="display:flex; flex-direction:column-reverse; gap:12px;">
+            <!-- 在最上面加入這行 (預設隱藏，有擺東西才會出現)： -->
+            <button id="btnToggleNames" class="canvas-action-btn" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed); display:none;" onclick="toggleNames()" title="顯示/隱藏名稱">🏷️</button>
+            <!-- 獨立平移按鈕 (放在最靠近👆的位置) -->
+            <button id="btnPan" class="canvas-action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);" onclick="togglePanSelect()" title="平移/選擇">✋</button>
+            <!-- 獨立縮小按鈕 -->
+            <button id="btnZoomOut" class="canvas-action-btn" style="background:linear-gradient(135deg,#3b82f6,#2563eb);" onclick="zoomCanvas(0.8)" title="縮小畫布">🔎</button>
+            <!-- 獨立放大按鈕 (放在最上方) -->
+            <button id="btnZoomIn" class="canvas-action-btn" style="background:linear-gradient(135deg,#3b82f6,#2563eb);" onclick="zoomCanvas(1.2)" title="放大畫布">🔍</button>
+        </div>
+
+        <!-- 3. 畫布彈出選單 (打開時會覆蓋在上方) -->
         <div class="fab-menu" id="canvasFabMenu">
-            <div class="fab-item" onclick="setMode('select')"><div class="fab-item-icon">👆</div><div class="fab-item-label">選擇/移動</div></div>
-            <div class="fab-item" onclick="setMode('pan')"><div class="fab-item-icon">✋</div><div class="fab-item-label">平移畫布</div></div>
             <div class="fab-item" onclick="setMode('polygon')"><div class="fab-item-icon">🖊️</div><div class="fab-item-label">繪製場地</div></div>
             <div class="fab-item" onclick="setMode('entrance')"><div class="fab-item-icon">🚪</div><div class="fab-item-label">新增出入口</div></div>
-            <div class="fab-item" onclick="zoomCanvas(1.2)"><div class="fab-item-icon">🔍</div><div class="fab-item-label">放大畫布</div></div>
-            <div class="fab-item" onclick="zoomCanvas(0.8)"><div class="fab-item-icon">🔎</div><div class="fab-item-label">縮小畫布</div></div>
+            <div class="fab-item" onclick="startCalibrate()"><div class="fab-item-icon">📏</div><div class="fab-item-label">比例校準</div></div>
+            <div class="fab-item" onclick="setMode('bgadjust')"><div class="fab-item-icon">🖼️</div><div class="fab-item-label">調整背景</div></div>
         </div>
-        <button class="fab-main" id="canvasFabMain" onclick="toggleCanvasMenu()" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
-            <span id="canvasFabIcon">👆</span>
-        </button>
+
+        <!-- 動態操作按鈕 (復原/刪除/取消) -->
+        <button id="canvasActionBtn" class="canvas-action-btn" style="display:none;" onclick="handleCanvasAction()"></button>
     </div>
 
-    <!-- 🌀 系統FAB -->
+    <!-- 系統FAB -->
     <div class="fab-container">
         <div class="fab-menu" id="fabMenu">
             <div class="fab-item" onclick="openDrawer('setup')"><div class="fab-item-icon">📐</div><div class="fab-item-label">場地設定</div></div>
@@ -758,29 +604,19 @@
             <div class="fab-item" onclick="openDrawer('arrange')"><div class="fab-item-icon">🎯</div><div class="fab-item-label">排列物件</div></div>
             <div class="fab-item" onclick="openDrawer('tools')"><div class="fab-item-icon">🛠️</div><div class="fab-item-label">工具箱</div></div>
         </div>
-        <button class="fab-main" id="fabMain" onclick="toggleFabMenu()">
-            <span id="fabIcon">☰</span>
-        </button>
+        <button class="fab-main" id="fabMain" onclick="toggleFabMenu()"><span id="fabIcon">☰</span></button>
     </div>
 
-    <!-- 🔄 橫屏提示 -->
-    <div class="landscape-hint" id="landscapeHint">
-        <div class="landscape-icon">📱→📲</div>
-        <div>建議將手機轉為橫向<br>以獲得最佳體驗</div>
-    </div>
-
-    <!-- 📱 側邊抽屜 -->
+    <div class="landscape-hint" id="landscapeHint"><div class="landscape-icon">📱→📲</div><div>建議將手機轉為橫向<br>以獲得最佳體驗</div></div>
     <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
     <div class="drawer" id="drawer">
-        <div class="drawer-header">
-            <h2 id="drawerTitle">選單</h2>
-            <button class="drawer-close" onclick="closeDrawer()">✕</button>
-        </div>
+        <div class="drawer-header"><h2 id="drawerTitle">選單</h2><button class="drawer-close" onclick="closeDrawer()">✕</button></div>
         <div class="tab-content" id="tab-setup">
             <h3>📐 比例尺設定</h3>
             <label>比例尺（公分/像素）</label>
-            <input type="number" id="scale" value="1" step="0.1" min="0.1">
-            <p class="muted">1像素 = <span id="scaleDisplay">1</span> 公分</p>
+            <input type="number" id="scale" value="1" step="0.1" min="0.01">
+            <p class="muted">1像素 = <span id="scaleDisplay">1</span> 公尺</p>
+            <p class="muted">💡 更快的方式：點擊左下角「📏校準」按鈕，在畫布上點兩個已知距離的點並輸入實際公分。</p>
             <h3>🗺️ 場地多邊形</h3>
             <button onclick="setMode('polygon')">🖊️ 開始繪製</button>
             <div class="controls-row">
@@ -788,49 +624,60 @@
                 <button onclick="clearPolygon()" class="danger">🗑️ 清除場地</button>
             </div>
             <div id="areaInfo" class="info" style="display:none;"></div>
-            <p class="muted" id="polygonHint" style="display:none;">點擊畫布新增點，至少需要3個點。拖曳現有點可微調位置。</p>
             <h3>🚪 出入口</h3>
             <button onclick="setMode('entrance')">➕ 新增出入口</button>
             <div id="entranceInfo" class="info"></div>
-            <p class="muted">點擊出入口可選取，拖曳可移動</p>
         </div>
         <div class="tab-content" id="tab-items">
-            <h3>🎨 快速新增預設物件</h3>
+            <h3>🎨 快速新增</h3>
             <div class="preset-categories">
-                <button class="category-btn" onclick="showPresetCategory('table')">桌子</button>
-                <button class="category-btn" onclick="showPresetCategory('chair')">椅子</button>
-                <button class="category-btn" onclick="showPresetCategory('booth')">攤位</button>
-                <button class="category-btn" onclick="showPresetCategory('stage')">舞台</button>
+                <button class="category-btn" onclick="showPresetCategory('tent')">⛺ 帳篷</button>
+                <button class="category-btn" onclick="showPresetCategory('box')">🧰 裝備箱</button>
+                <button class="category-btn" onclick="showPresetCategory('power')">⚡ 發電照明</button>
+                <button class="category-btn" onclick="showPresetCategory('facility')">🪑 設施</button>
+                <button class="category-btn" onclick="showPresetCategory('vehicle')">🚒 車輛</button>
             </div>
             <div id="presetGrid" class="preset-grid"></div>
-            <h3>➕ 自訂物件</h3>
-            <label>物件名稱</label><input type="text" id="itemName" placeholder="例如: 展示桌">
-            <label>圖案 (emoji)</label><input type="text" id="itemIcon" placeholder="📦" maxlength="2">
-            <label>寬度（公分）</label><input type="number" id="itemWidth" value="100" min="1">
-            <label>長度（公分）</label><input type="number" id="itemLength" value="60" min="1">
+            <h3>➕ 自訂</h3>
+            <label>名稱</label><input type="text" id="itemName" placeholder="展示桌">
+            <!-- 替換為這段： -->
+            <label>圖案</label>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <input type="text" id="itemIcon" placeholder="📦" maxlength="2" style="flex:1; margin-top:0;">
+                <select id="quickIcon" onchange="document.getElementById('itemIcon').value = this.value" style="flex:1; margin-top:0;">
+                    <option value="">快速挑選</option>
+                    <option value="🧰">🧰 裝備箱</option>
+                    <option value="💧">💧 水塔</option>
+                    <option value="🛏️">🛏️ 行軍床</option>
+                    <option value="🔥">🔥 取暖爐</option>
+                    <option value="🚁">🚁 直升機</option>
+                    <option value="🐶">🐶 搜救犬</option>
+                    <option value="🚧">🚧 拒馬</option>
+                    <option value="⚠️">⚠️ 警告標誌</option>
+                </select>
+            </div>
+            <!-- 改成預設 1.5 跟 0.6，並支援小數點： -->
+            <label>寬(m)</label><input type="number" id="itemWidth" value="1.5" min="0.1" step="0.1">
+            <label>長(m)</label><input type="number" id="itemLength" value="0.6" min="0.1" step="0.1">
             <label>數量</label><input type="number" id="itemCount" value="1" min="1">
             <button onclick="addCustomItem()">➕ 加入清單</button>
-            <h3>📋 物件清單</h3>
-            <div id="itemsUI"></div>
+            <h3>📋 清單</h3><div id="itemsUI"></div>
         </div>
         <div class="tab-content" id="tab-arrange">
-            <h3>🎯 待排列物件</h3>
-            <div id="itemsPool" class="items-list"></div>
-            <p class="muted">點擊物件後，在畫布上點擊放置位置</p>
-            <h3>📍 已放置物件</h3>
-            <div id="placedList"></div>
-            <button onclick="clearPlaced()" class="danger">🗑️ 清除所有已放置</button>
-            <p class="muted">拖曳物件可移動，長按可刪除</p>
+            <h3>🎯 待排列</h3><div id="itemsPool" class="items-list"></div>
+            <h3>📍 已放置</h3><div id="placedList"></div>
+            <button onclick="clearPlaced()" class="danger">🗑️ 清除已放置</button>
         </div>
         <div class="tab-content" id="tab-tools">
-            <h3>💾 儲存與載入</h3>
-            <button onclick="exportJSON()">📥 匯出 JSON</button>
-            <button onclick="importJSON()" class="secondary">📤 匯入 JSON</button>
-            <button onclick="exportSVG()" class="secondary">🖼️ 匯出 SVG</button>
-            <h3>🖼️ 背景圖片</h3>
+            <h3>💾 存檔</h3>
+            <button onclick="exportJSON()">📥 匯出JSON</button>
+            <button onclick="importJSON()" class="secondary">📤 匯入JSON</button>
+            <button onclick="exportSVG()" class="secondary">🖼️ 匯出SVG</button>
+            <h3>🖼️ 背景</h3>
             <button onclick="uploadBackgroundImage()">📁 上傳背景圖</button>
-            <button onclick="toggleBackground()" class="secondary">👁️ 切換背景顯示</button>
-            <h3>🎨 其他工具</h3>
+            <button onclick="toggleBackground()" class="secondary">👁️ 切換顯示</button>
+            <p class="muted">上傳後可用左下角📏校準比例尺，或使用畫布FAB「🖼️調整背景」移動/縮放。</p>
+            <h3>🎨 其他</h3>
             <button onclick="setMode('select')" class="secondary">👆 選擇模式</button>
             <button onclick="resetView()" class="secondary">🔄 重置視圖</button>
             <button onclick="toggleGrid()" class="secondary">⊞ 切換網格</button>
@@ -839,110 +686,133 @@
 
     <script>
         // ╔══════════════════════════════════════════╗
-        // ║  變數統一宣告區                          ║
+        // ║  變數統一宣告區                        ║
         // ╚══════════════════════════════════════════╝
-
-        // ── DOM 元素參照 ──
         const svg = document.getElementById('svgmap');
         const bgImage = document.getElementById('bgImage');
         const polygonGroup = document.getElementById('polygonGroup');
         const entranceGroup = document.getElementById('entranceGroup');
         const placedGroup = document.getElementById('placedGroup');
         const ghostGroup = document.getElementById('ghostGroup');
+        const calibrateGroup = document.getElementById('calibrateGroup');
         const scaleIndicator = document.getElementById('scaleIndicator');
         const scaleValueEl = document.getElementById('scaleValue');
         const scaleBarEl = document.getElementById('scaleBar');
+        const bgHandleHint = document.getElementById('bgHandleHint');
+        const bgZoomInBtn = document.getElementById('bgZoomInBtn');
+        const bgZoomOutBtn = document.getElementById('bgZoomOutBtn');
 
-        // ── 畫布視圖狀態 ──
         let viewBox = { x: 0, y: 0, w: 1200, h: 700 };
         let showGrid = true;
-        let customBackground = null;
         let showBackground = false;
+        let customBackgroundSrc = null;
 
-        // ── 平移狀態 ──
+        // 背景圖固定座標（SVG用戶座標）
+        let bgData = { x: 100, y: 80, w: 1000, h: 560, visible: false };
+
         let panning = false;
         let panStart = { x: 0, y: 0 };
         let panViewBoxStart = { x: 0, y: 0 };
 
-        // ── 應用核心狀態 ──
         const state = {
-            mode: 'select', // 'select' | 'polygon' | 'entrance' | 'placing' | 'pan'
-            scale: 1,
+            mode: 'polygon',
+            scale: 0.07, // 🌟 改成 0.15，讓 50x50m 剛好佔據手機螢幕大半部
             polygon: [],
             polygonClosed: false,
             entrances: [],
             itemsPool: [],
             placed: [],
             selectedItem: null,
-            selectedPlaced: null,
-            dragging: null,
-            offset: { x: 0, y: 0 }
         };
 
-        // ── 選取與UI狀態 ──
         let currentCanvasAction = null;
         let selectedObjectId = null;
-        let selectedObjectType = null; // 'entrance' | 'item'
+        let selectedObjectType = null;
         let currentDrawerTab = 'setup';
-        let polygonDragIndex = -1; // 正在拖曳的多邊形點索引 (-1表示無)
+        let showItemNames = true;
+        let isDrawerOpen = false;
+        let polygonDragIndex = -1;
 
-        // ── 預設物件模板 ──
+        // 比例尺校準狀態
+        let calibrateState = { active: false, step: 0, pt1: null, pt2: null };
+
         const presetItems = {
-            table: [
-                { name: '圓桌', icon: '⭕', width: 150, length: 150 },
-                { name: '方桌', icon: '⬜', width: 120, length: 120 },
-                { name: '長桌', icon: '▭', width: 180, length: 80 },
-                { name: '吧台桌', icon: '🍺', width: 200, length: 60 }
+            tent: [
+                { name: '指揮帳', icon: '⛺', width: 6.0, length: 3.0 },
+                { name: '休息帳', icon: '⛺', width: 3.0, length: 3.0 },
+                { name: '醫療帳', icon: '🏥', width: 4.0, length: 3.0 }
             ],
-            chair: [
-                { name: '椅子', icon: '💺', width: 45, length: 45 },
-                { name: '長椅', icon: '🛋️', width: 120, length: 50 },
-                { name: '沙發', icon: '🛋️', width: 180, length: 80 }
+            box: [
+                { name: '裝備箱', icon: '🧰', width: 0.8, length: 0.6 },
+                { name: '醫療箱', icon: '🚑', width: 0.6, length: 0.4 },
+                { name: '物資箱', icon: '📦', width: 0.5, length: 0.5 }
             ],
-            booth: [
-                { name: '小攤位', icon: '🏪', width: 200, length: 150 },
-                { name: '大攤位', icon: '🏬', width: 300, length: 200 },
-                { name: '餐車', icon: '🚚', width: 250, length: 150 }
+            power: [
+                { name: '小發電機', icon: '⚡', width: 0.8, length: 0.6 },
+                { name: '大發電機', icon: '🔋', width: 1.5, length: 1.0 },
+                { name: '環場照明', icon: '💡', width: 2.0, length: 1.5 }
             ],
-            stage: [
-                { name: '小舞台', icon: '🎭', width: 300, length: 200 },
-                { name: '大舞台', icon: '🎪', width: 500, length: 300 },
-                { name: '講台', icon: '🎤', width: 200, length: 100 }
+            facility: [
+                { name: '移動廁所', icon: '🚽', width: 1.2, length: 1.2 },
+                { name: '折疊桌', icon: '▭', width: 1.8, length: 0.6 },
+                { name: '折疊椅', icon: '💺', width: 0.5, length: 0.5 }
+            ],
+            vehicle: [
+                { name: '勤務車', icon: '🚙', width: 5.0, length: 2.0 },
+                { name: '器材車', icon: '🚒', width: 7.0, length: 2.5 },
+                { name: '救護車', icon: '🚑', width: 6.0, length: 2.2 }
             ]
         };
 
         // ╔══════════════════════════════════════════╗
-        // ║  初始化                                 ║
+        // ║  初始化                                ║
         // ╚══════════════════════════════════════════╝
         window.addEventListener('load', () => {
             viewBox.w = svg.clientWidth || 1200;
             viewBox.h = svg.clientHeight || 700;
             svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
-
+            // 👇 在這裡插入以下程式碼 👇
+            const cx = viewBox.w / 2;
+            const cy = viewBox.h / 2;
+            const halfSize = (50 / state.scale) / 2; // 50公尺換算成像素的一半
+            state.polygon = [
+                { x: cx - halfSize, y: cy - halfSize },
+                { x: cx + halfSize, y: cy - halfSize },
+                { x: cx + halfSize, y: cy + halfSize },
+                { x: cx - halfSize, y: cy + halfSize }
+            ];
+            state.polygonClosed = true;
+            renderPolygon(); // 👉 讓網頁一開就立刻畫出綠色線條！
+            showAreaInfo();
+            document.getElementById('scale').value = state.scale; // 👉 同步更新設定抽屜裡的數值
             checkOrientation();
+            const defaults = [
+                {cat: 'tent', idx: 1, count: 30}, {cat: 'tent', idx: 0, count: 2}, {cat: 'tent', idx: 2, count: 2},
+                {cat: 'box', idx: 0, count: 25}, {cat: 'box', idx: 1, count: 3}, {cat: 'box', idx: 2, count: 30},
+                {cat: 'power', idx: 1, count: 5}, {cat: 'power', idx: 0, count: 15}, {cat: 'power', idx: 2, count: 2},
+                {cat: 'facility', idx: 0, count: 2}, {cat: 'facility', idx: 1, count: 20}, {cat: 'facility', idx: 2, count: 30},
+                {cat: 'vehicle', idx: 0, count: 5}, {cat: 'vehicle', idx: 1, count: 3}, {cat: 'vehicle', idx: 2, count: 1}
+            ];
+            defaults.forEach(d => {
+                const tpl = presetItems[d.cat][d.idx];
+                for(let i=0; i<d.count; i++) state.itemsPool.push({ id: Date.now() + Math.random(), name: tpl.name, icon: tpl.icon, width: tpl.width, length: tpl.length });
+            });
+
             updateScaleDisplay();
             updateScaleIndicator();
             refreshItemsUI();
             updateEntranceInfo();
-            showPresetCategory('table');
-
+            showPresetCategory('tent');
             document.getElementById('scale').addEventListener('input', (e) => {
                 state.scale = parseFloat(e.target.value) || 1;
                 updateScaleDisplay();
                 updateScaleIndicator();
                 if (state.polygonClosed) showAreaInfo();
+                renderPolygon();
             });
-
-            window.addEventListener('orientationchange', () => {
-                setTimeout(checkOrientation, 300);
-            });
-
+            window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 300));
             document.addEventListener('gesturestart', (e) => e.preventDefault());
-            document.addEventListener('touchmove', (e) => {
-                if (e.touches.length > 1) e.preventDefault();
-            }, { passive: false });
-
-            // 全域滑鼠/觸控事件（處理平移與多邊形點拖曳）
+            document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
             svg.addEventListener('mousedown', onSVGMouseDown);
             svg.addEventListener('touchstart', onSVGTouchStart, { passive: false });
             window.addEventListener('mousemove', onSVGMouseMove);
@@ -951,89 +821,321 @@
             window.addEventListener('touchend', onSVGTouchEnd);
         });
 
-        // ╔══════════════════════════════════════════╗
-        // ║  方向檢查                               ║
-        // ╚══════════════════════════════════════════╝
         function checkOrientation() {
             const hint = document.getElementById('landscapeHint');
             if (window.innerWidth <= 900 && window.innerHeight > window.innerWidth) {
                 hint.classList.add('auto-show');
-                setTimeout(() => { hint.classList.remove('auto-show'); }, 4000);
+                setTimeout(() => hint.classList.remove('auto-show'), 4000);
             }
         }
 
         // ╔══════════════════════════════════════════╗
-        // ║  比例尺指示器                           ║
+        // ║  比例尺指示器                          ║
         // ╚══════════════════════════════════════════╝
         function updateScaleIndicator() {
-            const gridCm = 50 * state.scale; // 一格50單位 * 每單位公分
+            const gridCm = 50 * state.scale;
             scaleValueEl.textContent = Math.round(gridCm);
-            // 動態調整bar寬度(視覺參考)，以50px為基準
             const barWidth = Math.max(20, Math.min(120, gridCm));
             scaleBarEl.style.width = barWidth + 'px';
-            // 超出範圍提示
-            if (gridCm < 25 || gridCm > 500) {
-                scaleIndicator.classList.add('warn');
-            } else {
-                scaleIndicator.classList.remove('warn');
+            if (gridCm < 25 || gridCm > 500) scaleIndicator.classList.add('warn');
+            else scaleIndicator.classList.remove('warn');
+        }
+
+        function updateScaleDisplay() {
+            document.getElementById('scaleDisplay').textContent = state.scale.toFixed(2);
+        }
+
+        // ╔══════════════════════════════════════════╗
+        // ║  比例尺校準                            ║
+        // ╚══════════════════════════════════════════╝
+        function startCalibrate() {
+            if (calibrateState.active) {
+                cancelCalibrate();
+                return;
+            }
+            // 退出其他特殊模式
+            if (state.mode === 'placing' || state.mode === 'bgadjust') setMode('select');
+            calibrateState = { active: true, step: 0, pt1: null, pt2: null };
+            calibrateGroup.innerHTML = '';
+            document.getElementById('canvasFabMenu').classList.remove('show');
+            scaleIndicator.style.borderColor = '#f59e0b';
+            scaleIndicator.style.boxShadow = '0 0 16px rgba(245,158,11,0.6)';
+            svg.style.cursor = 'crosshair';
+            bgHandleHint.style.display = 'block';
+            bgHandleHint.textContent = '📏 點擊第一個參考點';
+            bgHandleHint.style.background = 'rgba(245,158,11,0.9)';
+            // 關閉系統FAB
+            document.getElementById('fabMenu').classList.remove('show');
+            document.getElementById('fabMain').classList.remove('active');
+            document.getElementById('fabIcon').textContent = '☰';
+        }
+
+        function cancelCalibrate() {
+            calibrateState = { active: false, step: 0, pt1: null, pt2: null };
+            calibrateGroup.innerHTML = '';
+            scaleIndicator.style.borderColor = 'rgba(16,185,129,0.5)';
+            scaleIndicator.style.boxShadow = 'none';
+            svg.style.cursor = 'default';
+            bgHandleHint.style.display = 'none';
+            updateScaleIndicator();
+        }
+
+        function handleCalibrateClick(svgX, svgY) {
+            if (!calibrateState.active) return;
+            if (calibrateState.step === 0) {
+                calibrateState.pt1 = { x: svgX, y: svgY };
+                calibrateState.step = 1;
+                bgHandleHint.textContent = '📏 點擊第二個參考點';
+                // 顯示第一個點
+                renderCalibratePoints();
+            } else if (calibrateState.step === 1) {
+                calibrateState.pt2 = { x: svgX, y: svgY };
+                calibrateState.step = 2;
+                renderCalibratePoints();
+                bgHandleHint.textContent = '📏 輸入兩點間的實際距離（公分）';
+                // 彈出輸入框
+                setTimeout(() => {
+                    const input = prompt('請輸入這兩個參考點之間的實際距離（公尺）：', '5');
+                    if (input !== null && !isNaN(parseFloat(input)) && parseFloat(input) > 0) {
+                        const realDistCm = parseFloat(input);
+                        const dx = calibrateState.pt2.x - calibrateState.pt1.x;
+                        const dy = calibrateState.pt2.y - calibrateState.pt1.y;
+                        const pixelDist = Math.sqrt(dx * dx + dy * dy);
+                        if (pixelDist < 1) {
+                            alert('兩個點太近了，請重新校準。');
+                            cancelCalibrate();
+                            return;
+                        }
+                        state.scale = realDistCm / pixelDist;
+                        document.getElementById('scale').value = state.scale.toFixed(3);
+                        updateScaleDisplay();
+                        updateScaleIndicator();
+                        renderPolygon();
+                        updatePlacedGraphics();
+                        if (state.polygonClosed) showAreaInfo();
+                        alert(`校準完成！\n兩點像素距離：${pixelDist.toFixed(1)} px\n實際距離：${realDistCm} m\n新的比例尺：1 px = ${state.scale.toFixed(3)} m`);
+                    }
+                    cancelCalibrate();
+                }, 200);
+            }
+        } //
+
+        function renderCalibratePoints() {
+            calibrateGroup.innerHTML = '';
+            if (calibrateState.pt1) {
+                const c1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                c1.setAttribute('cx', calibrateState.pt1.x);
+                c1.setAttribute('cy', calibrateState.pt1.y);
+                c1.setAttribute('r', 8);
+                c1.setAttribute('fill', '#f59e0b');
+                c1.setAttribute('stroke', '#fff');
+                c1.setAttribute('stroke-width', 3);
+                calibrateGroup.appendChild(c1);
+            }
+            if (calibrateState.pt2) {
+                const c2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                c2.setAttribute('cx', calibrateState.pt2.x);
+                c2.setAttribute('cy', calibrateState.pt2.y);
+                c2.setAttribute('r', 8);
+                c2.setAttribute('fill', '#f59e0b');
+                c2.setAttribute('stroke', '#fff');
+                c2.setAttribute('stroke-width', 3);
+                calibrateGroup.appendChild(c2);
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', calibrateState.pt1.x);
+                line.setAttribute('y1', calibrateState.pt1.y);
+                line.setAttribute('x2', calibrateState.pt2.x);
+                line.setAttribute('y2', calibrateState.pt2.y);
+                line.setAttribute('stroke', '#f59e0b');
+                line.setAttribute('stroke-width', 2);
+                line.setAttribute('stroke-dasharray', '6,3');
+                calibrateGroup.insertBefore(line, calibrateGroup.firstChild);
             }
         }
 
         // ╔══════════════════════════════════════════╗
-        // ║  FAB選單                                ║
+        // ║  背景圖片管理                          ║
+        // ╚══════════════════════════════════════════╝
+        function uploadBackgroundImage() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    customBackgroundSrc = ev.target.result;
+                    // 建立臨時圖片取得原始尺寸
+                    const img = new Image();
+                    img.onload = () => {
+                        const vw = viewBox.w;
+                        const vh = viewBox.h;
+                        const targetW = vw * 0.75;
+                        const ratio = img.naturalHeight / img.naturalWidth;
+                        const targetH = targetW * ratio;
+                        bgData = {
+                            x: (vw - targetW) / 2,
+                            y: (vh - targetH) / 2,
+                            w: targetW,
+                            h: targetH,
+                            visible: true
+                        };
+                        showBackground = true;
+                        applyBackgroundToSVG();
+                        alert('背景圖片已載入！\n建議使用左下角📏按鈕進行比例尺校準，以匹配實際距離。');
+                    };
+                    img.src = customBackgroundSrc;
+                };
+                reader.readAsDataURL(file);
+            };
+            input.click();
+        }
+
+        function applyBackgroundToSVG() {
+            bgImage.setAttribute('href', customBackgroundSrc || '');
+            bgImage.setAttribute('x', bgData.x);
+            bgImage.setAttribute('y', bgData.y);
+            bgImage.setAttribute('width', bgData.w);
+            bgImage.setAttribute('height', bgData.h);
+            bgImage.style.display = (showBackground && bgData.visible) ? 'block' : 'none';
+            bgImage.style.pointerEvents = state.mode === 'bgadjust' ? 'auto' : 'none';
+        }
+
+        function toggleBackground() {
+            showBackground = !showBackground;
+            bgData.visible = showBackground;
+            applyBackgroundToSVG();
+        }
+
+        function scaleBackground(factor) {
+            if (state.mode !== 'bgadjust') return;
+            const cx = bgData.x + bgData.w / 2;
+            const cy = bgData.y + bgData.h / 2;
+            const newW = bgData.w * factor;
+            const newH = bgData.h * factor;
+            if (newW < 50 || newH < 50 || newW > 8000 || newH > 8000) return;
+            bgData.w = newW;
+            bgData.h = newH;
+            bgData.x = cx - newW / 2;
+            bgData.y = cy - newH / 2;
+            applyBackgroundToSVG();
+        }
+
+        // 背景調整模式拖曳
+        let bgDragging = false;
+        let bgDragStart = { x: 0, y: 0 };
+        let bgOrigXY = { x: 0, y: 0 };
+
+        function startBgDrag(svgX, svgY) {
+            if (state.mode !== 'bgadjust') return;
+            bgDragging = true;
+            bgDragStart = { x: svgX, y: svgY };
+            bgOrigXY = { x: bgData.x, y: bgData.y };
+            svg.style.cursor = 'grabbing';
+        }
+
+        function doBgDrag(svgX, svgY) {
+            if (!bgDragging) return;
+            const dx = svgX - bgDragStart.x;
+            const dy = svgY - bgDragStart.y;
+            bgData.x = bgOrigXY.x + dx;
+            bgData.y = bgOrigXY.y + dy;
+            applyBackgroundToSVG();
+        }
+
+        function endBgDrag() {
+            bgDragging = false;
+            if (state.mode === 'bgadjust') svg.style.cursor = 'grab';
+        }
+
+        // ╔══════════════════════════════════════════╗
+        // ║  FAB選單                               ║
         // ╚══════════════════════════════════════════╝
         function toggleFabMenu() {
             const menu = document.getElementById('fabMenu');
             const main = document.getElementById('fabMain');
             const icon = document.getElementById('fabIcon');
+            const quickControls = document.getElementById('quickControls'); // 🆕 抓取獨立按鈕群
+
             if (menu.classList.contains('show')) {
                 menu.classList.remove('show');
                 main.classList.remove('active');
                 icon.textContent = '☰';
+                if (quickControls) quickControls.style.display = 'flex'; // 關閉選單時恢復顯示
+                closeDrawer(); // 👈 追加這行！這樣點X側邊欄也會跟著縮回去！
             } else {
                 menu.classList.add('show');
                 main.classList.add('active');
                 icon.textContent = '✕';
+                
+                // 確保另一個選單關閉
+                document.getElementById('canvasFabMenu').classList.remove('show');
+                if (quickControls) quickControls.style.display = 'none'; // 展開選單時暫時隱藏
             }
         }
 
         function toggleCanvasMenu() {
             const menu = document.getElementById('canvasFabMenu');
+            const quickControls = document.getElementById('quickControls'); // 🆕 抓取獨立按鈕群
+
             if (menu.classList.contains('show')) {
                 menu.classList.remove('show');
+                if (quickControls) quickControls.style.display = 'flex'; // 關閉選單時恢復顯示
             } else {
-                if (state.mode === 'polygon' || state.mode === 'entrance') {
-                    setMode('select');
-                }
+                if (calibrateState.active) cancelCalibrate();
+                if (['polygon', 'entrance', 'editPoly'].includes(state.mode)) setMode('select');
+                
+                // 確保系統選單關閉
                 document.getElementById('fabMenu').classList.remove('show');
                 document.getElementById('fabMain').classList.remove('active');
                 document.getElementById('fabIcon').textContent = '☰';
+                
                 menu.classList.add('show');
+                if (quickControls) quickControls.style.display = 'none'; // 展開選單時暫時隱藏
             }
         }
 
+        // 找到這整段函數並替換：
+        function updateBgAdjustUI() {
+            const isBgMode = state.mode === 'bgadjust';
+            
+            // 🌟 控制左側新按鈕組的顯示與隱藏
+            const bgZoomControls = document.getElementById('bgZoomControls');
+            if (bgZoomControls) {
+                bgZoomControls.style.display = isBgMode ? 'flex' : 'none';
+            }
+
+            bgHandleHint.style.display = isBgMode ? 'block' : 'none';
+            if (isBgMode) {
+                bgHandleHint.textContent = '🖼️ 拖曳移動背景｜➕➖ 縮放背景';
+                bgHandleHint.style.background = 'rgba(59,130,246,0.9)';
+            }
+            applyBackgroundToSVG();
+        }
+
         // ╔══════════════════════════════════════════╗
-        // ║  抽屜面板                               ║
+        // ║  抽屜                                  ║
         // ╚══════════════════════════════════════════╝
         function openDrawer(tabId) {
             const drawer = document.getElementById('drawer');
             const overlay = document.getElementById('drawerOverlay');
             const title = document.getElementById('drawerTitle');
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.getElementById(`tab-${tabId}`).classList.add('active');
-            const titles = {
-                'setup': '📐 場地設定',
-                'items': '📦 物件管理',
-                'arrange': '🎯 排列物件',
-                'tools': '🛠️ 工具箱'
-            };
+            const titles = { 'setup': '📐 場地設定', 'items': '📦 物件管理', 'arrange': '🎯 排列物件', 'tools': '🛠️ 工具箱' };
             title.textContent = titles[tabId] || '選單';
             drawer.classList.add('show');
-            overlay.classList.add('show');
+            // overlay.classList.add('show');
             currentDrawerTab = tabId;
-            document.getElementById('fabMenu').classList.remove('show');
-            document.getElementById('fabMain').classList.remove('active');
-            document.getElementById('fabIcon').textContent = '☰';
+            // document.getElementById('fabMenu').classList.remove('show');
+            // document.getElementById('fabMain').classList.remove('active');
+            // document.getElementById('fabIcon').textContent = '☰';
+            isDrawerOpen = true;
+            updatePlacedGraphics();
+            const quickControls = document.getElementById('quickControls');
+            if (quickControls) quickControls.style.display = 'flex'; // 點開側邊抽屜時確保按鈕出現
+
             if (tabId === 'setup' && state.polygonClosed) showAreaInfo();
             if (tabId === 'arrange') { refreshPoolUI();
                 refreshPlacedUI(); }
@@ -1042,15 +1144,20 @@
         function closeDrawer() {
             document.getElementById('drawer').classList.remove('show');
             document.getElementById('drawerOverlay').classList.remove('show');
+            isDrawerOpen = false;
+            updatePlacedGraphics();
+            // 🆕 關閉抽屜時確保按鈕恢復顯示
+            const quickControls = document.getElementById('quickControls');
+            if (quickControls) quickControls.style.display = 'flex';
         }
 
         // ╔══════════════════════════════════════════╗
-        // ║  縮放                                   ║
+        // ║  縮放與平移                            ║
         // ╚══════════════════════════════════════════╝
         function zoomCanvas(factor) {
             const cx = viewBox.x + viewBox.w / 2;
             const cy = viewBox.y + viewBox.h / 2;
-            if (viewBox.w / factor > 5000 || viewBox.w / factor < 200) return;
+            if (viewBox.w / factor > 5000 || viewBox.w / factor < 150) return;
             viewBox.w /= factor;
             viewBox.h /= factor;
             viewBox.x = cx - viewBox.w / 2;
@@ -1068,66 +1175,186 @@
             updateScaleIndicator();
         }
 
+        function getSVGPointFromClient(clientX, clientY) {
+            const CTM = svg.getScreenCTM();
+            if (!CTM) return { x: clientX, y: clientY };
+            return { x: (clientX - CTM.e) / CTM.a, y: (clientY - CTM.f) / CTM.d };
+        }
+
+        function onSVGMouseDown(e) {
+            if (calibrateState.active) return;
+            if (state.mode === 'pan') {
+                if (e.target.closest('.canvas-fab-container') || e.target.closest('.fab-container')) return;
+                panning = true;
+                panStart = { x: e.clientX, y: e.clientY };
+                panViewBoxStart = { x: viewBox.x, y: viewBox.y };
+                svg.style.cursor = 'grabbing';
+                e.preventDefault();
+                return;
+            }
+            if (state.mode === 'bgadjust') {
+                if (e.target.closest('.canvas-fab-container') || e.target.closest('.fab-container')) return;
+                const pt = getSVGPointFromClient(e.clientX, e.clientY);
+                startBgDrag(pt.x, pt.y);
+                e.preventDefault();
+                return;
+            }
+        }
+
+        function onSVGTouchStart(e) {
+            if (calibrateState.active) return;
+            if (state.mode === 'pan') {
+                if (e.target.closest('.canvas-fab-container') || e.target.closest('.fab-container')) return;
+                if (e.touches.length === 1) {
+                    panning = true;
+                    panStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                    panViewBoxStart = { x: viewBox.x, y: viewBox.y };
+                    svg.style.cursor = 'grabbing';
+                    e.preventDefault();
+                }
+                return;
+            }
+            if (state.mode === 'bgadjust') {
+                if (e.target.closest('.canvas-fab-container') || e.target.closest('.fab-container')) return;
+                if (e.touches.length === 1) {
+                    const pt = getSVGPointFromClient(e.touches[0].clientX, e.touches[0].clientY);
+                    startBgDrag(pt.x, pt.y);
+                    e.preventDefault();
+                }
+                return;
+            }
+        }
+
+        function onSVGMouseMove(e) {
+            if (bgDragging && state.mode === 'bgadjust') {
+                const pt = getSVGPointFromClient(e.clientX, e.clientY);
+                doBgDrag(pt.x, pt.y);
+                return;
+            }
+            if (panning && state.mode === 'pan') {
+                const dx = e.clientX - panStart.x;
+                const dy = e.clientY - panStart.y;
+                const scaleRatio = viewBox.w / svg.clientWidth;
+                viewBox.x = panViewBoxStart.x - dx * scaleRatio;
+                viewBox.y = panViewBoxStart.y - dy * scaleRatio;
+                svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
+                updateScaleIndicator();
+            }
+        }
+
+        function onSVGTouchMove(e) {
+            if (bgDragging && state.mode === 'bgadjust' && e.touches.length === 1) {
+                const pt = getSVGPointFromClient(e.touches[0].clientX, e.touches[0].clientY);
+                doBgDrag(pt.x, pt.y);
+                e.preventDefault();
+                return;
+            }
+            if (panning && state.mode === 'pan' && e.touches.length === 1) {
+                const dx = e.touches[0].clientX - panStart.x;
+                const dy = e.touches[0].clientY - panStart.y;
+                const scaleRatio = viewBox.w / svg.clientWidth;
+                viewBox.x = panViewBoxStart.x - dx * scaleRatio;
+                viewBox.y = panViewBoxStart.y - dy * scaleRatio;
+                svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
+                updateScaleIndicator();
+                e.preventDefault();
+            }
+        }
+
+        function onSVGMouseUp() {
+            if (bgDragging) endBgDrag();
+            if (panning) { panning = false;
+                svg.style.cursor = state.mode === 'pan' ? 'grab' : 'default'; }
+        }
+
+        function onSVGTouchEnd() {
+            if (bgDragging) endBgDrag();
+            if (panning) { panning = false;
+                svg.style.cursor = state.mode === 'pan' ? 'grab' : 'default'; }
+        }
+
         // ╔══════════════════════════════════════════╗
-        // ║  模式切換                               ║
+        // ║  模式切換                              ║
         // ╚══════════════════════════════════════════╝
         function setMode(mode) {
+            if (calibrateState.active && mode !== 'select') cancelCalibrate();
             state.mode = mode;
             state.selectedItem = null;
             ghostGroup.innerHTML = '';
             polygonDragIndex = -1;
             panning = false;
-
+            // 替換成這段 (讓它根據模式變更圖案跟顏色)：
+            const btnPan = document.getElementById('btnPan');
+            if (btnPan) {
+                if (mode === 'pan') {
+                    btnPan.style.background = 'linear-gradient(135deg,#f59e0b,#d97706)';
+                    btnPan.innerHTML = '✋';
+                } else if (mode === 'select') {
+                    btnPan.style.background = 'linear-gradient(135deg,#3b82f6,#2563eb)';
+                    btnPan.innerHTML = '👆';
+                } else {
+                    btnPan.style.background = 'linear-gradient(135deg,#f59e0b,#d97706)';
+                    btnPan.innerHTML = '✋';
+                }
+            }
+            bgDragging = false;
             document.getElementById('canvasFabMenu').classList.remove('show');
-            const iconMap = { 'select': '👆', 'pan': '✋', 'polygon': '🖊️', 'entrance': '🚪' };
-            document.getElementById('canvasFabIcon').textContent = iconMap[mode] || '👆';
+            
+            // 🆕 選擇了任何模式（選單收起）後，確保三個按鈕恢復顯示
+            const quickControls = document.getElementById('quickControls');
+            if (quickControls) quickControls.style.display = 'flex';
 
-            // 畫布FAB主按鈕顏色
+            const iconMap = { 'select': '👆', 'pan': '✋', 'polygon': '🖊️', 'editPoly': '📍', 'entrance': '🚪', 'bgadjust': '🖼️' };
+            document.getElementById('canvasFabIcon').textContent = iconMap[mode] || '👆';
             const fabMain = document.getElementById('canvasFabMain');
             const colorMap = {
-                'select': 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                'pan': 'linear-gradient(135deg, #f59e0b, #d97706)',
-                'polygon': 'linear-gradient(135deg, #10b981, #059669)',
-                'entrance': 'linear-gradient(135deg, #ef4444, #dc2626)'
+                'select': 'linear-gradient(135deg,#3b82f6,#2563eb)',
+                'pan': 'linear-gradient(135deg,#f59e0b,#d97706)',
+                'polygon': 'linear-gradient(135deg,#10b981,#059669)',
+                'editPoly': 'linear-gradient(135deg,#f59e0b,#d97706)',
+                'entrance': 'linear-gradient(135deg,#ef4444,#dc2626)',
+                'bgadjust': 'linear-gradient(135deg,#8b5cf6,#7c3aed)'
             };
             fabMain.style.background = colorMap[mode] || colorMap['select'];
-
             clearSelectionGraphics();
-
-            const cursorMap = {
-                'select': 'default',
-                'pan': 'grab',
-                'polygon': 'crosshair',
-                'entrance': 'crosshair',
-                'placing': 'crosshair'
-            };
+            const cursorMap = { 'select': 'default', 'pan': 'grab', 'polygon': 'crosshair', 'editPoly': 'crosshair', 'entrance': 'crosshair', 'placing': 'crosshair', 'bgadjust': 'grab' };
             svg.style.cursor = cursorMap[mode] || 'default';
-
             const polygonHint = document.getElementById('polygonHint');
             if (polygonHint) polygonHint.style.display = mode === 'polygon' ? 'block' : 'none';
-
             updateCanvasActionButton();
+            updateBgAdjustUI();
+
+            if (mode === 'editPoly' || mode === 'polygon') renderPolygon();
+        }
+
+        // 新增這個函數：點擊✋按鈕時，在「平移」跟「選擇」之間切換
+        function togglePanSelect() {
+            if (state.mode === 'select') {
+                setMode('pan');
+            } else {
+                setMode('select');
+            }
         }
 
         function updateCanvasActionButton() {
-            const actionBtn = document.getElementById('canvasActionBtn');
+            const btn = document.getElementById('canvasActionBtn');
             if (state.mode === 'polygon') {
-                actionBtn.style.display = 'flex';
-                actionBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
-                actionBtn.innerHTML = '↶';
+                btn.style.display = 'flex';
+                btn.style.background = 'linear-gradient(135deg,#f59e0b,#d97706)';
+                btn.innerHTML = '↶';
                 currentCanvasAction = 'undo';
-            } else if (state.mode === 'entrance') {
-                actionBtn.style.display = 'flex';
-                actionBtn.style.background = 'linear-gradient(135deg, #6b7280, #4b5563)';
-                actionBtn.innerHTML = '✕';
+            } else if (state.mode === 'entrance' || state.mode === 'bgadjust') {
+                btn.style.display = 'flex';
+                btn.style.background = 'linear-gradient(135deg,#6b7280,#4b5563)';
+                btn.innerHTML = '✕';
                 currentCanvasAction = 'cancel';
             } else if (state.mode === 'select' && selectedObjectId) {
-                actionBtn.style.display = 'flex';
-                actionBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-                actionBtn.innerHTML = '🗑️';
+                btn.style.display = 'flex';
+                btn.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
+                btn.innerHTML = '🗑️';
                 currentCanvasAction = 'delete';
             } else {
-                actionBtn.style.display = 'none';
+                btn.style.display = 'none';
                 currentCanvasAction = null;
             }
         }
@@ -1141,175 +1368,63 @@
         function clearSelectionGraphics() {
             selectedObjectId = null;
             selectedObjectType = null;
-            document.querySelectorAll('.placed-item rect').forEach(r => {
-                r.setAttribute('stroke', '#3b82f6');
-                r.setAttribute('stroke-width', 2);
-            });
-            document.querySelectorAll('.entrance-group circle').forEach(c => {
-                c.setAttribute('stroke', 'white');
-                c.setAttribute('stroke-width', 3);
+            document.querySelectorAll('.placed-item rect').forEach(r => { r.setAttribute('stroke', '#3b82f6');
+                r.setAttribute('stroke-width', 2); });
+            document.querySelectorAll('.entrance-group circle').forEach(c => { 
+                c.setAttribute('stroke', 'none');
+                c.setAttribute('stroke-width', 0); 
             });
             updateCanvasActionButton();
         }
 
         // ╔══════════════════════════════════════════╗
-        // ║  平移模式處理（全域事件）               ║
-        // ╚══════════════════════════════════════════╝
-        function getSVGPointFromClient(clientX, clientY) {
-            const CTM = svg.getScreenCTM();
-            if (!CTM) return { x: clientX, y: clientY };
-            return {
-                x: (clientX - CTM.e) / CTM.a,
-                y: (clientY - CTM.f) / CTM.d
-            };
-        }
-
-        function onSVGMouseDown(e) {
-            if (state.mode === 'pan') {
-                // 檢查是否點在FAB上
-                if (e.target.closest('.canvas-fab-container') || e.target.closest('.fab-container')) return;
-                panning = true;
-                panStart = { x: e.clientX, y: e.clientY };
-                panViewBoxStart = { x: viewBox.x, y: viewBox.y };
-                svg.style.cursor = 'grabbing';
-                e.preventDefault();
-                return;
-            }
-            // polygon模式：檢查是否點在多邊形點上（由circle自行處理）
-            if (state.mode === 'polygon') {
-                const circle = e.target.closest('.polygon-point');
-                if (circle) {
-                    // 由circle的事件處理，這裡不做任何事
-                    return;
-                }
-            }
-        }
-
-        function onSVGTouchStart(e) {
-            if (state.mode === 'pan') {
-                if (e.target.closest('.canvas-fab-container') || e.target.closest('.fab-container')) return;
-                if (e.touches.length === 1) {
-                    panning = true;
-                    panStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-                    panViewBoxStart = { x: viewBox.x, y: viewBox.y };
-                    svg.style.cursor = 'grabbing';
-                    e.preventDefault();
-                }
-                return;
-            }
-            if (state.mode === 'polygon') {
-                const circle = e.target.closest('.polygon-point');
-                if (circle) {
-                    return; // 由circle的事件處理
-                }
-            }
-        }
-
-        function onSVGMouseMove(e) {
-            if (panning && state.mode === 'pan') {
-                const dx = e.clientX - panStart.x;
-                const dy = e.clientY - panStart.y;
-                const scaleRatio = viewBox.w / svg.clientWidth;
-                viewBox.x = panViewBoxStart.x - dx * scaleRatio;
-                viewBox.y = panViewBoxStart.y - dy * scaleRatio;
-                svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
-                updateScaleIndicator();
-            }
-        }
-
-        function onSVGTouchMove(e) {
-            if (panning && state.mode === 'pan' && e.touches.length === 1) {
-                const dx = e.touches[0].clientX - panStart.x;
-                const dy = e.touches[0].clientY - panStart.y;
-                const scaleRatio = viewBox.w / svg.clientWidth;
-                viewBox.x = panViewBoxStart.x - dx * scaleRatio;
-                viewBox.y = panViewBoxStart.y - dy * scaleRatio;
-                svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
-                updateScaleIndicator();
-                e.preventDefault();
-            }
-        }
-
-        function onSVGMouseUp(e) {
-            if (panning) {
-                panning = false;
-                svg.style.cursor = state.mode === 'pan' ? 'grab' : 'default';
-            }
-        }
-
-        function onSVGTouchEnd(e) {
-            if (panning) {
-                panning = false;
-                svg.style.cursor = state.mode === 'pan' ? 'grab' : 'default';
-            }
-        }
-
-        // ╔══════════════════════════════════════════╗
-        // ║  SVG點擊事件（新增點/入口/放置物件）    ║
+        // ║  SVG點擊（含校準）                     ║
         // ╚══════════════════════════════════════════╝
         svg.addEventListener('click', (e) => {
-            // 排除已放置物件、出入口、多邊形點、FAB按鈕
-            if (e.target.closest('.placed-item') ||
-                e.target.closest('.entrance-group') ||
-                e.target.closest('.polygon-point') ||
-                e.target.closest('.canvas-fab-container') ||
-                e.target.closest('.fab-container')) return;
-
+            if (e.target.closest('.canvas-fab-container') || e.target.closest('.fab-container')) return;
             const pt = getSVGPointFromClient(e.clientX, e.clientY);
 
-            if (state.mode === 'polygon') {
-                addPolygonPoint(pt.x, pt.y);
-            } else if (state.mode === 'entrance') {
-                addEntrance(pt.x, pt.y);
-            } else if (state.mode === 'placing' && state.selectedItem) {
-                placeItem(pt.x, pt.y);
-            } else if (state.mode === 'select') {
-                // 點空白處取消選取
-                clearSelectionGraphics();
+            // 校準模式優先
+            if (calibrateState.active) {
+                handleCalibrateClick(pt.x, pt.y);
+                return;
             }
+
+            if (e.target.closest('.placed-item') || e.target.closest('.entrance-group') || e.target.closest('.polygon-point')) return;
+
+            if (state.mode === 'polygon') addPolygonPoint(pt.x, pt.y);
+            else if (state.mode === 'entrance') addEntrance(pt.x, pt.y);
+            else if (state.mode === 'placing' && state.selectedItem) placeItem(pt.x, pt.y);
+            else if (state.mode === 'select') clearSelectionGraphics();
         });
 
-        // Ghost更新（placing模式）
-        svg.addEventListener('mousemove', (e) => {
-            if (state.mode === 'placing' && state.selectedItem) updateGhost(e);
-        });
-        svg.addEventListener('touchmove', (e) => {
-            if (state.mode === 'placing' && state.selectedItem) {
-                e.preventDefault();
-                updateGhost(e.touches[0]);
-            }
-        }, { passive: false });
+        svg.addEventListener('mousemove', (e) => { if (state.mode === 'placing' && state.selectedItem && !calibrateState.active) updateGhost(e); });
+        svg.addEventListener('touchmove', (e) => { if (state.mode === 'placing' && state.selectedItem && !calibrateState.active) { e.preventDefault();
+                updateGhost(e.touches[0]); } }, { passive: false });
 
         function getSVGPoint(event) {
             const CTM = svg.getScreenCTM();
-            const clientX = event.clientX || (event.touches && event.touches[0].clientX);
-            const clientY = event.clientY || (event.touches && event.touches[0].clientY);
-            if (!CTM) return { x: clientX, y: clientY };
-            return {
-                x: (clientX - CTM.e) / CTM.a,
-                y: (clientY - CTM.f) / CTM.d
-            };
+            const cx = event.clientX || (event.touches && event.touches[0].clientX);
+            const cy = event.clientY || (event.touches && event.touches[0].clientY);
+            if (!CTM) return { x: cx, y: cy };
+            return { x: (cx - CTM.e) / CTM.a, y: (cy - CTM.f) / CTM.d };
         }
 
         // ╔══════════════════════════════════════════╗
-        // ║  場地多邊形                             ║
+        // ║  場地多邊形（距離全用公分）            ║
         // ╚══════════════════════════════════════════╝
         function addPolygonPoint(x, y) {
             state.polygon.push({ x, y });
             renderPolygon();
-            if (state.polygon.length >= 3) {
-                state.polygonClosed = true;
-                showAreaInfo();
-            }
+            if (state.polygon.length >= 3) { state.polygonClosed = true;
+                showAreaInfo(); }
         }
 
         function undoPolygonPoint() {
             if (state.polygon.length === 0) { alert('沒有可以復原的點'); return; }
             state.polygon.pop();
-            if (state.polygon.length < 3) {
-                state.polygonClosed = false;
-                document.getElementById('areaInfo').style.display = 'none';
-            }
+            if (state.polygon.length < 3) { state.polygonClosed = false;
+                document.getElementById('areaInfo').style.display = 'none'; }
             renderPolygon();
             if (state.polygonClosed) showAreaInfo();
         }
@@ -1317,52 +1432,38 @@
         function renderPolygon() {
             polygonGroup.innerHTML = '';
             if (state.polygon.length === 0) return;
-
-            // 繪製邊與距離標籤
             const pts = state.polygon;
             const n = pts.length;
             const edgeCount = state.polygonClosed ? n : n - 1;
-
             for (let i = 0; i < edgeCount; i++) {
                 const j = (i + 1) % n;
-                const p1 = pts[i];
-                const p2 = pts[j];
-                const midX = (p1.x + p2.x) / 2;
-                const midY = (p1.y + p2.y) / 2;
-                const dx = p2.x - p1.x;
-                const dy = p2.y - p1.y;
+                const p1 = pts[i],
+                    p2 = pts[j];
+                const midX = (p1.x + p2.x) / 2,
+                    midY = (p1.y + p2.y) / 2;
+                const dx = p2.x - p1.x,
+                    dy = p2.y - p1.y;
                 const pixelDist = Math.sqrt(dx * dx + dy * dy);
-                const cmDist = pixelDist * state.scale;
-
-                // 距離文字
-                let distText;
-                if (cmDist >= 100) {
-                    distText = (cmDist / 100).toFixed(2) + ' m';
-                } else {
-                    distText = Math.round(cmDist) + ' cm';
-                }
-
+                const mDist = pixelDist * state.scale;
+                const distText = mDist.toFixed(1) + ' m';
                 const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 textEl.setAttribute('x', midX);
                 textEl.setAttribute('y', midY);
                 textEl.setAttribute('text-anchor', 'middle');
                 textEl.setAttribute('dominant-baseline', 'middle');
                 textEl.setAttribute('fill', '#fcd34d');
-                textEl.setAttribute('font-size', 13);
+                textEl.setAttribute('font-size', 12);
                 textEl.setAttribute('font-weight', 'bold');
-                textEl.setAttribute('stroke', 'rgba(0,0,0,0.7)');
+                textEl.setAttribute('stroke', 'rgba(0,0,0,0.8)');
                 textEl.setAttribute('stroke-width', 3);
                 textEl.setAttribute('paint-order', 'stroke');
                 textEl.textContent = distText;
                 textEl.style.pointerEvents = 'none';
                 polygonGroup.appendChild(textEl);
             }
-
-            // 繪製多邊形填充
             if (state.polygon.length >= 2) {
                 const pointsStr = pts.map(p => `${p.x},${p.y}`).join(' ');
-                const shape = document.createElementNS('http://www.w3.org/2000/svg',
-                    state.polygonClosed ? 'polygon' : 'polyline');
+                const shape = document.createElementNS('http://www.w3.org/2000/svg', state.polygonClosed ? 'polygon' : 'polyline');
                 shape.setAttribute('points', pointsStr);
                 shape.setAttribute('fill', state.polygonClosed ? 'rgba(16,185,129,0.15)' : 'none');
                 shape.setAttribute('stroke', '#10b981');
@@ -1370,8 +1471,6 @@
                 shape.style.pointerEvents = 'none';
                 polygonGroup.appendChild(shape);
             }
-
-            // 繪製頂點（可拖曳）
             pts.forEach((pt, i) => {
                 const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 circle.classList.add('polygon-point');
@@ -1383,11 +1482,8 @@
                 circle.setAttribute('stroke-width', 2);
                 circle.style.cursor = 'move';
                 circle.setAttribute('data-index', i);
-
-                // 拖曳邏輯
-                let dragging = false;
-                let dragStartX, dragStartY;
-                let origX, origY;
+                let dragging = false,
+                    dragStartX, dragStartY, origX, origY;
 
                 function startDrag(e) {
                     if (state.mode !== 'polygon') return;
@@ -1395,9 +1491,9 @@
                     polygonDragIndex = i;
                     e.stopPropagation();
                     e.preventDefault();
-                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                    const svgPt = getSVGPointFromClient(clientX, clientY);
+                    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+                    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+                    const svgPt = getSVGPointFromClient(cx, cy);
                     dragStartX = svgPt.x;
                     dragStartY = svgPt.y;
                     origX = pt.x;
@@ -1409,44 +1505,36 @@
                 function doDrag(e) {
                     if (!dragging || polygonDragIndex !== i) return;
                     e.preventDefault();
-                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                    const svgPt = getSVGPointFromClient(clientX, clientY);
-                    const newX = origX + (svgPt.x - dragStartX);
-                    const newY = origY + (svgPt.y - dragStartY);
-                    pt.x = newX;
-                    pt.y = newY;
-                    circle.setAttribute('cx', newX);
-                    circle.setAttribute('cy', newY);
+                    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+                    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+                    const svgPt = getSVGPointFromClient(cx, cy);
+                    pt.x = origX + (svgPt.x - dragStartX);
+                    pt.y = origY + (svgPt.y - dragStartY);
+                    circle.setAttribute('cx', pt.x);
+                    circle.setAttribute('cy', pt.y);
                 }
 
-                function endDrag(e) {
+                function endDrag() {
                     if (!dragging) return;
                     dragging = false;
                     polygonDragIndex = -1;
                     circle.setAttribute('fill', '#10b981');
                     circle.setAttribute('r', 8);
-                    // 重建以更新距離標籤
                     renderPolygon();
                     if (state.polygonClosed) showAreaInfo();
                 }
 
-                // 點擊刪除（無拖曳時）
                 function onClickCircle(e) {
                     if (dragging) return;
-                    // 如果有明顯拖曳則不觸發
                     e.stopPropagation();
                     if (state.mode === 'polygon' && confirm('刪除此點？')) {
                         state.polygon.splice(i, 1);
-                        if (state.polygon.length < 3) {
-                            state.polygonClosed = false;
-                            document.getElementById('areaInfo').style.display = 'none';
-                        }
+                        if (state.polygon.length < 3) { state.polygonClosed = false;
+                            document.getElementById('areaInfo').style.display = 'none'; }
                         renderPolygon();
                         if (state.polygonClosed) showAreaInfo();
                     }
                 }
-
                 circle.addEventListener('mousedown', startDrag);
                 circle.addEventListener('touchstart', startDrag, { passive: false });
                 window.addEventListener('mousemove', doDrag);
@@ -1454,13 +1542,12 @@
                 window.addEventListener('mouseup', endDrag);
                 window.addEventListener('touchend', endDrag);
                 circle.addEventListener('click', onClickCircle);
-
                 polygonGroup.appendChild(circle);
             });
         }
 
         function clearPolygon() {
-            if (!confirm('確定要清除場地多邊形嗎？')) return;
+            if (!confirm('確定清除場地多邊形？')) return;
             state.polygon = [];
             state.polygonClosed = false;
             polygonGroup.innerHTML = '';
@@ -1470,47 +1557,37 @@
         function showAreaInfo() {
             if (!state.polygonClosed || state.polygon.length < 3) return;
             const area = calculatePolygonArea(state.polygon);
-            const realArea = area * state.scale * state.scale / 10000;
+            const realArea = area * state.scale * state.scale;
             const perimeter = calculatePerimeter(state.polygon);
-            const realPerimeter = perimeter * state.scale / 100;
+            const realPerimeterM = perimeter * state.scale;
             const info = document.getElementById('areaInfo');
             info.style.display = 'block';
-            info.innerHTML = `
-                <div><strong>📏 面積:</strong> ${realArea.toFixed(2)} m²</div>
-                <div><strong>📐 周長:</strong> ${realPerimeter.toFixed(2)} m</div>
-            `;
+            info.innerHTML = `<div><strong>📏 面積:</strong> ${realArea.toFixed(2)} m²</div><div><strong>📐 周長:</strong> ${realPerimeterM.toFixed(1)} m</div>`;
         }
 
         function calculatePolygonArea(polygon) {
             let area = 0;
-            for (let i = 0; i < polygon.length; i++) {
-                const j = (i + 1) % polygon.length;
+            for (let i = 0; i < polygon.length; i++) { const j = (i + 1) % polygon.length;
                 area += polygon[i].x * polygon[j].y;
-                area -= polygon[j].x * polygon[i].y;
-            }
+                area -= polygon[j].x * polygon[i].y; }
             return Math.abs(area / 2);
         }
 
         function calculatePerimeter(polygon) {
-            let perimeter = 0;
-            for (let i = 0; i < polygon.length; i++) {
-                const j = (i + 1) % polygon.length;
-                const dx = polygon[j].x - polygon[i].x;
-                const dy = polygon[j].y - polygon[i].y;
-                perimeter += Math.sqrt(dx * dx + dy * dy);
-            }
-            return perimeter;
+            let p = 0;
+            for (let i = 0; i < polygon.length; i++) { const j = (i + 1) % polygon.length;
+                const dx = polygon[j].x - polygon[i].x,
+                    dy = polygon[j].y - polygon[i].y;
+                p += Math.sqrt(dx * dx + dy * dy); }
+            return p;
         }
 
         // ╔══════════════════════════════════════════╗
-        // ║  出入口                                 ║
+        // ║  出入口                                ║
         // ╚══════════════════════════════════════════╝
-        function addEntrance(x, y) {
-            const id = Date.now();
-            state.entrances.push({ id, x, y });
+        function addEntrance(x, y) { state.entrances.push({ id: Date.now(), x, y });
             updateEntranceGraphics();
-            updateEntranceInfo();
-        }
+            updateEntranceInfo(); }
 
         function updateEntranceGraphics() {
             entranceGroup.innerHTML = '';
@@ -1519,81 +1596,65 @@
                 g.classList.add('entrance-group');
                 g.setAttribute('data-id', ent.id);
                 g.style.cursor = 'move';
-
                 const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 circle.setAttribute('cx', ent.x);
                 circle.setAttribute('cy', ent.y);
-                circle.setAttribute('r', 12);
-                circle.setAttribute('fill', '#ef4444');
-                circle.setAttribute('stroke', 'white');
-                circle.setAttribute('stroke-width', 3);
+                circle.setAttribute('r', 16); // 稍微放大一點點當作隱形點擊區
+                circle.setAttribute('fill', 'transparent'); // 透明背景
+                circle.setAttribute('stroke', 'none');      // 移除框線
+                circle.setAttribute('stroke-width', 0);
+                circle.style.pointerEvents = 'all';         // 確保透明也能點擊拖曳
 
                 const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 text.setAttribute('x', ent.x);
-                text.setAttribute('y', ent.y - 20);
+                text.setAttribute('y', ent.y); // 直接對齊中心
                 text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('dominant-baseline', 'middle'); // 垂直置中
                 text.setAttribute('fill', 'white');
-                text.setAttribute('font-size', 16);
+                text.setAttribute('font-size', 24); // 圈圈沒了，門稍微放大一點比較清楚
                 text.textContent = '🚪';
-
+                text.style.pointerEvents = 'none'; // 讓點擊可以穿透到下方的透明圈圈
                 g.appendChild(circle);
                 g.appendChild(text);
                 entranceGroup.appendChild(g);
-
                 g.addEventListener('click', (e) => handleObjectClick(e, ent.id, 'entrance'));
+                if (selectedObjectType === 'entrance' && selectedObjectId === ent.id) { circle.setAttribute('stroke', '#ffd700');
+                    circle.setAttribute('stroke-width', 4); }
+                let isDragging = false,
+                    startX, startY;
 
-                if (selectedObjectType === 'entrance' && selectedObjectId === ent.id) {
-                    circle.setAttribute('stroke', '#ffd700');
-                    circle.setAttribute('stroke-width', 4);
-                }
-
-                let isDragging = false;
-                let startX, startY;
-
-                function startDrag(e) {
-                    if (state.mode !== 'select') return;
+                function startDrag(e) { if (state.mode !== 'select') return;
                     isDragging = true;
-                    e.stopPropagation();
-                    const pt = getSVGPoint(e.touches ? e.touches[0] : e);
+                    e.stopPropagation(); const pt = getSVGPoint(e.touches ? e.touches[0] : e);
                     startX = pt.x - ent.x;
-                    startY = pt.y - ent.y;
-                }
+                    startY = pt.y - ent.y; }
 
-                function doDrag(e) {
-                    if (!isDragging) return;
-                    e.preventDefault();
-                    const pt = getSVGPoint(e.touches ? e.touches[0] : e);
+                function doDrag(e) { if (!isDragging) return;
+                    e.preventDefault(); const pt = getSVGPoint(e.touches ? e.touches[0] : e);
                     ent.x = pt.x - startX;
                     ent.y = pt.y - startY;
                     circle.setAttribute('cx', ent.x);
                     circle.setAttribute('cy', ent.y);
                     text.setAttribute('x', ent.x);
-                    text.setAttribute('y', ent.y - 20);
+                    text.setAttribute('y', ent.y); 
                 }
 
                 function endDrag() { isDragging = false; }
-
                 g.addEventListener('mousedown', startDrag);
                 g.addEventListener('touchstart', startDrag);
                 svg.addEventListener('mousemove', doDrag);
                 svg.addEventListener('touchmove', doDrag);
                 svg.addEventListener('mouseup', endDrag);
                 svg.addEventListener('touchend', endDrag);
-
                 let pressTimer;
-                function startPress() {
-                    pressTimer = setTimeout(() => {
-                        if (confirm('刪除此出入口？')) {
-                            state.entrances = state.entrances.filter(e => e.id !== ent.id);
-                            updateEntranceGraphics();
-                            updateEntranceInfo();
-                            clearSelectionGraphics();
-                        }
-                    }, 800);
-                }
+
+                function startPress() { pressTimer = setTimeout(() => { if (confirm('刪除此出入口？')) { state.entrances = state.entrances.filter(
+                            e => e.id !== ent.id);
+                        updateEntranceGraphics();
+                        updateEntranceInfo();
+                        clearSelectionGraphics(); } }, 800); }
 
                 function cancelPress() { clearTimeout(pressTimer); }
-
                 g.addEventListener('mousedown', startPress);
                 g.addEventListener('touchstart', startPress);
                 g.addEventListener('mouseup', cancelPress);
@@ -1605,117 +1666,94 @@
 
         function updateEntranceInfo() {
             const info = document.getElementById('entranceInfo');
-            if (state.entrances.length === 0) {
-                info.innerHTML = '<div class="muted">尚未設定出入口</div>';
-            } else {
-                info.innerHTML = `<div>已設定 <strong>${state.entrances.length}</strong> 個出入口</div>`;
-            }
+            info.innerHTML = state.entrances.length === 0 ? '<div class="muted">尚未設定出入口</div>' :
+                `<div>已設定 <strong>${state.entrances.length}</strong> 個出入口</div>`;
         }
 
         // ╔══════════════════════════════════════════╗
-        // ║  預設物件                               ║
+        // ║  預設物件 / 自訂 / 放置（保持原邏輯）  ║
         // ╚══════════════════════════════════════════╝
-        function showPresetCategory(category) {
+        function showPresetCategory(cat) {
             const grid = document.getElementById('presetGrid');
-            const items = presetItems[category] || [];
-            if (items.length === 0) {
-                grid.innerHTML = '<div class="muted">此類別沒有預設物件</div>';
-                return;
-            }
-            grid.innerHTML = items.map(item => `
-                <div class="preset-item" onclick='addPresetItem(${JSON.stringify(item)})'>
-                    <div class="preset-icon">${item.icon}</div>
-                    <div class="preset-name">${item.name}</div>
-                    <div class="preset-size">${item.width}×${item.length}cm</div>
-                </div>
-            `).join('');
+            const items = presetItems[cat] || [];
+            grid.innerHTML = items.length === 0 ? '<div class="muted">無預設</div>' : items.map(item => `
+                <div class="preset-item" onclick='addPresetItem(${JSON.stringify(item)})'><div class="preset-icon">${item.icon}</div><div class="preset-name">${item.name}</div><div class="preset-size">${item.width}×${item.length}cm</div></div>`).join('');
         }
 
         function addPresetItem(item) {
-            state.itemsPool.push({
-                id: Date.now(),
-                name: item.name,
-                icon: item.icon,
-                width: item.width,
-                length: item.length
-            });
+            state.itemsPool.push({ id: Date.now(), ...item });
             refreshItemsUI();
             refreshPoolUI();
-            alert(`已新增「${item.name}」`);
         }
 
-        // ╔══════════════════════════════════════════╗
-        // ║  自訂物件管理                           ║
-        // ╚══════════════════════════════════════════╝
         function addCustomItem() {
             const name = document.getElementById('itemName').value.trim();
             const icon = document.getElementById('itemIcon').value.trim() || '📦';
-            const width = parseFloat(document.getElementById('itemWidth').value);
-            const length = parseFloat(document.getElementById('itemLength').value);
-            const count = parseInt(document.getElementById('itemCount').value) || 1;
-            if (!name || !width || !length) { alert('請填寫完整資料'); return; }
-            for (let i = 0; i < count; i++) {
-                state.itemsPool.push({ id: Date.now() + i, name, icon, width, length });
-            }
+            const w = parseFloat(document.getElementById('itemWidth').value);
+            const l = parseFloat(document.getElementById('itemLength').value);
+            const c = parseInt(document.getElementById('itemCount').value) || 1;
+            if (!name || !w || !l) { alert('請填寫完整'); return; }
+            for (let i = 0; i < c; i++) state.itemsPool.push({ id: Date.now() + i, name, icon, width: w, length: l });
             refreshItemsUI();
             refreshPoolUI();
-            document.getElementById('itemName').value = '';
-            document.getElementById('itemIcon').value = '';
+            ['itemName', 'itemIcon'].forEach(id => document.getElementById(id).value = '');
             document.getElementById('itemWidth').value = '100';
             document.getElementById('itemLength').value = '60';
             document.getElementById('itemCount').value = '1';
-            alert(`已新增 ${count} 個「${name}」`);
+            alert(`已新增 ${c} 個「${name}」`);
         }
 
         function refreshItemsUI() {
             const ui = document.getElementById('itemsUI');
-            if (state.itemsPool.length === 0) {
-                ui.innerHTML = '<div class="muted">尚未新增物件</div>';
-                return;
-            }
-            ui.innerHTML = state.itemsPool.map(item => `
-                <div class="item-list-row">
-                    <div class="item-desc">
-                        <span style="font-size:20px;">${item.icon || '📦'}</span>
-                        <strong>${item.name}</strong><br>
-                        <span class="muted">${item.width}×${item.length} cm</span>
-                    </div>
-                    <button onclick="removeItemFromPool(${item.id})" class="danger" style="width:auto; margin:0;">刪除</button>
-                </div>
-            `).join('');
+            if (state.itemsPool.length === 0) { ui.innerHTML = '<div class="muted">無物件</div>'; return; }
+            
+            // 合併同款物件
+            const groups = {};
+            state.itemsPool.forEach(item => {
+                const key = `${item.name}_${item.icon}_${item.width}_${item.length}`;
+                if (!groups[key]) groups[key] = { ...item, count: 0, ids: [] };
+                groups[key].count++;
+                groups[key].ids.push(item.id);
+            });
+
+            ui.innerHTML = Object.values(groups).map(g => `
+                <div class="item-list-row"><div class="item-desc"><span style="font-size:20px;">${g.icon||'📦'}</span><strong>${g.name}</strong> <span style="color:#fcd34d; font-weight:bold;">*${g.count}</span><br><span class="muted">${g.width}×${g.length}m</span></div><button onclick="removeItemFromPool(${g.ids[0]})" class="danger" style="width:auto;margin:0;">刪除1個</button></div>`).join('');
         }
 
         function removeItemFromPool(id) {
-            if (!confirm('確定刪除此物件？')) return;
-            state.itemsPool = state.itemsPool.filter(item => item.id !== id);
+            if (!confirm('確定刪除？')) return;
+            state.itemsPool = state.itemsPool.filter(i => i.id !== id);
             refreshItemsUI();
             refreshPoolUI();
         }
 
         function refreshPoolUI() {
             const pool = document.getElementById('itemsPool');
-            if (state.itemsPool.length === 0) {
-                pool.innerHTML = '<div class="muted">沒有待排列物件</div>';
-                return;
-            }
-            pool.innerHTML = state.itemsPool.map(item => `
-                <div class="item-btn" onclick="startPlacing(${item.id})">
-                    <div style="font-size:24px;">${item.icon || '📦'}</div>
-                    <div>${item.name}</div>
-                    <div style="font-size:11px;">${item.width}×${item.length}</div>
-                </div>
-            `).join('');
+            if (state.itemsPool.length === 0) { pool.innerHTML = '<div class="muted">無待排列物件</div>'; return; }
+            
+            // 合併同款物件
+            const groups = {};
+            state.itemsPool.forEach(item => {
+                const key = `${item.name}_${item.icon}_${item.width}_${item.length}`;
+                if (!groups[key]) groups[key] = { ...item, count: 0, ids: [] };
+                groups[key].count++;
+                groups[key].ids.push(item.id);
+            });
+
+            pool.innerHTML = Object.values(groups).map(g => `
+                <div class="item-btn" onclick="startPlacing(${g.ids[0]})"><div style="font-size:24px;">${g.icon||'📦'}</div><div>${g.name} <span style="color:#fcd34d; font-weight:bold;">*${g.count}</span></div><div style="font-size:11px;">${g.width}×${g.length}m</div></div>`).join('');
         }
 
-        // ╔══════════════════════════════════════════╗
-        // ║  放置物件                               ║
-        // ╚══════════════════════════════════════════╝
-        function startPlacing(itemId) {
-            const item = state.itemsPool.find(i => i.id === itemId);
+        function toggleNames() {
+            showItemNames = !showItemNames;
+            updatePlacedGraphics();
+        }
+        
+        function startPlacing(id) {
+            const item = state.itemsPool.find(i => i.id === id);
             if (!item) return;
             state.selectedItem = item;
             state.mode = 'placing';
-            closeDrawer();
             ghostGroup.innerHTML = '';
             svg.style.cursor = 'crosshair';
         }
@@ -1752,12 +1790,8 @@
             if (!state.selectedItem) return;
             const item = { ...state.selectedItem };
             state.itemsPool = state.itemsPool.filter(i => i.id !== item.id);
-            state.placed.push({
-                ...item,
-                x: x - (item.width / state.scale) / 2,
-                y: y - (item.length / state.scale) / 2,
-                rotation: 0
-            });
+            state.placed.push({ ...item, x: x - (item.width / state.scale) / 2, y: y - (item.length / state.scale) / 2,
+                rotation: 0 });
             updatePlacedGraphics();
             refreshItemsUI();
             refreshPoolUI();
@@ -1774,91 +1808,103 @@
                 g.classList.add('placed-item');
                 g.setAttribute('data-id', item.id);
                 g.style.cursor = 'move';
-                const w = item.width / state.scale;
-                const h = item.length / state.scale;
+                const w = item.width / state.scale,
+                    h = item.length / state.scale;
                 const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                 rect.setAttribute('x', item.x);
                 rect.setAttribute('y', item.y);
                 rect.setAttribute('width', w);
                 rect.setAttribute('height', h);
-                rect.setAttribute('fill', 'rgba(59,130,246,0.6)');
-                rect.setAttribute('stroke', '#3b82f6');
-                rect.setAttribute('stroke-width', 2);
                 rect.setAttribute('rx', 4);
+                rect.style.pointerEvents = 'all'; // 確保透明時也能點擊拖曳
+                
+                // 👉 側邊欄關閉時，藍色背景變透明！打開時才顯示
+                if (isDrawerOpen) {
+                    rect.setAttribute('fill', 'rgba(59,130,246,0.6)');
+                    rect.setAttribute('stroke', '#3b82f6');
+                    rect.setAttribute('stroke-width', 2);
+                } else {
+                    rect.setAttribute('fill', 'transparent');
+                    rect.setAttribute('stroke', 'none'); // 🌟 完全不留任何框線！
+                    rect.setAttribute('stroke-width', 0);
+                }
+
+                // 🌟 核心修復：統一設定偏移量，確保畫出來跟拖曳時完全一致！
+                const iconFontSize = Math.min(w, h) * 0.4;
+                const iconOffsetY = -h * 0.15; // 圖示往上移一點
+                const textOffsetY = h * 0.3;   // 名稱往下移一點，絕對不擋住圖示
+
                 const icon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 icon.setAttribute('x', item.x + w / 2);
-                icon.setAttribute('y', item.y + h / 2 - 10);
+                icon.setAttribute('y', item.y + h / 2 + iconOffsetY); 
                 icon.setAttribute('text-anchor', 'middle');
                 icon.setAttribute('dominant-baseline', 'middle');
                 icon.setAttribute('fill', 'white');
-                icon.setAttribute('font-size', Math.min(w, h) * 0.35);
+                icon.setAttribute('font-size', iconFontSize);
                 icon.textContent = item.icon || '📦';
+
                 const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 text.setAttribute('x', item.x + w / 2);
-                text.setAttribute('y', item.y + h / 2 + 15);
+                text.setAttribute('y', item.y + h / 2 + textOffsetY); 
                 text.setAttribute('text-anchor', 'middle');
                 text.setAttribute('dominant-baseline', 'middle');
-                text.setAttribute('fill', 'white');
-                text.setAttribute('font-size', Math.min(w, h) * 0.15);
+                text.setAttribute('fill', '#fcd34d'); 
+                text.setAttribute('font-size', Math.max(12, Math.min(w, h) * 0.18)); 
                 text.setAttribute('font-weight', 'bold');
                 text.textContent = item.name;
+                text.style.display = showItemNames ? 'block' : 'none'; 
+
                 g.appendChild(rect);
                 g.appendChild(icon);
                 g.appendChild(text);
                 placedGroup.appendChild(g);
-
+                
                 g.addEventListener('click', (e) => handleObjectClick(e, item.id, 'item'));
-
-                if (selectedObjectType === 'item' && selectedObjectId === item.id) {
+                if (selectedObjectType === 'item' && selectedObjectId === item.id) { 
                     rect.setAttribute('stroke', '#ffd700');
-                    rect.setAttribute('stroke-width', 4);
+                    rect.setAttribute('stroke-width', 4); 
                 }
+                
+                let isDragging = false, startX, startY;
 
-                let isDragging = false;
-                let startX, startY;
-
-                function startDrag(e) {
+                function startDrag(e) { 
                     if (state.mode !== 'select') return;
-                    isDragging = true;
+                    isDragging = true; 
                     const pt = getSVGPoint(e.touches ? e.touches[0] : e);
                     startX = pt.x - item.x;
                     startY = pt.y - item.y;
-                    e.stopPropagation();
+                    e.stopPropagation(); 
                 }
 
-                function doDrag(e) {
+                function doDrag(e) { 
                     if (!isDragging) return;
-                    e.preventDefault();
+                    e.preventDefault(); 
                     const pt = getSVGPoint(e.touches ? e.touches[0] : e);
                     item.x = pt.x - startX;
                     item.y = pt.y - startY;
                     rect.setAttribute('x', item.x);
                     rect.setAttribute('y', item.y);
+                    
+                    // 🌟 這裡套用上面設定好的統一偏移量，解決位移亂跳的問題！
                     icon.setAttribute('x', item.x + w / 2);
-                    icon.setAttribute('y', item.y + h / 2 - 10);
+                    icon.setAttribute('y', item.y + h / 2 + iconOffsetY);
                     text.setAttribute('x', item.x + w / 2);
-                    text.setAttribute('y', item.y + h / 2 + 15);
+                    text.setAttribute('y', item.y + h / 2 + textOffsetY); 
                 }
 
                 function endDrag() { isDragging = false; }
-
                 g.addEventListener('mousedown', startDrag);
                 g.addEventListener('touchstart', startDrag);
                 svg.addEventListener('mousemove', doDrag);
                 svg.addEventListener('touchmove', doDrag);
                 svg.addEventListener('mouseup', endDrag);
                 svg.addEventListener('touchend', endDrag);
-
                 let pressTimer;
 
-                function startPress() {
-                    pressTimer = setTimeout(() => {
-                        if (confirm(`刪除「${item.name}」？`)) removePlacedItem(item.id);
-                    }, 800);
-                }
+                function startPress() { pressTimer = setTimeout(() => { if (confirm(`刪除「${item.name}」？`)) removePlacedItem(
+                            item.id); }, 800); }
 
                 function cancelPress() { clearTimeout(pressTimer); }
-
                 g.addEventListener('mousedown', startPress);
                 g.addEventListener('touchstart', startPress);
                 g.addEventListener('mouseup', cancelPress);
@@ -1866,18 +1912,17 @@
                 g.addEventListener('mousemove', cancelPress);
                 g.addEventListener('touchmove', cancelPress);
             });
+            const btnToggle = document.getElementById('btnToggleNames');
+            if (btnToggle) {
+                btnToggle.style.display = state.placed.length > 0 ? 'flex' : 'none';
+            }
         }
 
         function removePlacedItem(id) {
             const item = state.placed.find(i => i.id === id);
             if (item) {
-                state.itemsPool.push({
-                    id: item.id,
-                    name: item.name,
-                    icon: item.icon,
-                    width: item.width,
-                    length: item.length
-                });
+                state.itemsPool.push({ id: item.id, name: item.name, icon: item.icon, width: item.width, length: item
+                        .length });
                 state.placed = state.placed.filter(i => i.id !== id);
                 updatePlacedGraphics();
                 refreshItemsUI();
@@ -1889,31 +1934,14 @@
 
         function refreshPlacedUI() {
             const list = document.getElementById('placedList');
-            if (state.placed.length === 0) {
-                list.innerHTML = '<div class="muted">尚未放置任何物件</div>';
-                return;
-            }
-            list.innerHTML = state.placed.map(item => `
-                <div class="item-list-row">
-                    <div class="item-desc">
-                        <span style="font-size:20px;">${item.icon || '📦'}</span>
-                        <strong>${item.name}</strong><br>
-                        <span class="muted">${item.width}×${item.length} cm</span>
-                    </div>
-                    <button onclick="removePlacedItem(${item.id})" class="danger" style="width:auto; margin:0;">移除</button>
-                </div>
-            `).join('');
+            list.innerHTML = state.placed.length === 0 ? '<div class="muted">無</div>' : state.placed.map(item => `
+                <div class="item-list-row"><div class="item-desc"><span style="font-size:20px;">${item.icon||'📦'}</span><strong>${item.name}</strong><br><span class="muted">${item.width}×${item.length}cm</span></div><button onclick="removePlacedItem(${item.id})" class="danger" style="width:auto;margin:0;">移除</button></div>`).join('');
         }
 
         function clearPlaced() {
-            if (!confirm('確定清除所有已放置物件？')) return;
-            state.itemsPool.push(...state.placed.map(item => ({
-                id: item.id,
-                name: item.name,
-                icon: item.icon,
-                width: item.width,
-                length: item.length
-            })));
+            if (!confirm('清除所有已放置？')) return;
+            state.itemsPool.push(...state.placed.map(i => ({ id: i.id, name: i.name, icon: i.icon, width: i.width,
+                length: i.length })));
             state.placed = [];
             updatePlacedGraphics();
             refreshItemsUI();
@@ -1926,20 +1954,12 @@
         // ║  匯出/匯入                              ║
         // ╚══════════════════════════════════════════╝
         function exportJSON() {
-            const data = {
-                scale: state.scale,
-                polygon: state.polygon,
-                entrances: state.entrances,
-                placed: state.placed,
-                itemsPool: state.itemsPool
-            };
+            const data = { scale: state.scale, polygon: state.polygon, entrances: state.entrances, placed: state.placed, itemsPool: state.itemsPool, bgData: bgData, showBackground: showBackground, customBackgroundSrc: customBackgroundSrc };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `佈局_${new Date().toISOString().slice(0, 10)}.json`;
+            a.href = URL.createObjectURL(blob);
+            a.download = `佈局_${new Date().toISOString().slice(0,10)}.json`;
             a.click();
-            URL.revokeObjectURL(url);
         }
 
         function importJSON() {
@@ -1950,15 +1970,9 @@
                 const file = e.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const data = JSON.parse(e.target.result);
+                reader.onload = (ev) => { try { const data = JSON.parse(ev.target.result);
                         loadJSONData(data);
-                        alert('JSON 資料載入成功！');
-                    } catch (err) {
-                        alert('檔案格式錯誤');
-                    }
-                };
+                        alert('載入成功！'); } catch (err) { alert('格式錯誤'); } };
                 reader.readAsText(file);
             };
             input.click();
@@ -1971,9 +1985,14 @@
             state.placed = data.placed || [];
             state.itemsPool = data.itemsPool || [];
             state.polygonClosed = state.polygon.length >= 3;
+            if (data.bgData) bgData = data.bgData;
+            showBackground = data.showBackground || false;
+            bgData.visible = showBackground;
+            customBackgroundSrc = data.customBackgroundSrc || null;
             document.getElementById('scale').value = state.scale;
             updateScaleDisplay();
             updateScaleIndicator();
+            applyBackgroundToSVG();
             renderPolygon();
             updateEntranceGraphics();
             updateEntranceInfo();
@@ -1987,81 +2006,38 @@
         function exportSVG() {
             const svgData = new XMLSerializer().serializeToString(svg);
             const blob = new Blob([svgData], { type: 'image/svg+xml' });
-            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `佈局_${new Date().toISOString().slice(0, 10)}.svg`;
+            a.href = URL.createObjectURL(blob);
+            a.download = `佈局_${new Date().toISOString().slice(0,10)}.svg`;
             a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        // ╔══════════════════════════════════════════╗
-        // ║  背景圖片                               ║
-        // ╚══════════════════════════════════════════╝
-        function uploadBackgroundImage() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    customBackground = e.target.result;
-                    bgImage.setAttribute('href', customBackground);
-                    showBackground = true;
-                    bgImage.classList.remove('hidden');
-                    alert('背景圖片已載入！');
-                };
-                reader.readAsDataURL(file);
-            };
-            input.click();
-        }
-
-        function toggleBackground() {
-            showBackground = !showBackground;
-            if (showBackground) bgImage.classList.remove('hidden');
-            else bgImage.classList.add('hidden');
         }
 
         function toggleGrid() {
             showGrid = !showGrid;
-            const gridRect = svg.querySelector('rect[fill="url(#grid)"]');
-            if (gridRect) gridRect.style.display = showGrid ? 'block' : 'none';
+            const r = svg.querySelector('rect[fill="url(#grid)"]');
+            if (r) r.style.display = showGrid ? 'block' : 'none';
         }
 
-        function updateScaleDisplay() {
-            document.getElementById('scaleDisplay').textContent = state.scale.toFixed(1);
-        }
-
-        // ╔══════════════════════════════════════════╗
-        // ║  選取與刪除                             ║
-        // ╚══════════════════════════════════════════╝
         function handleObjectClick(e, id, type) {
             if (state.mode !== 'select') return;
             e.stopPropagation();
             clearSelectionGraphics();
             selectedObjectId = id;
             selectedObjectType = type;
-            if (type === 'item') {
-                const rect = document.querySelector(`.placed-item[data-id="${id}"] rect`);
-                if (rect) { rect.setAttribute('stroke', '#ffd700');
-                    rect.setAttribute('stroke-width', 4); }
-            } else if (type === 'entrance') {
-                const circle = document.querySelector(`.entrance-group[data-id="${id}"] circle`);
-                if (circle) { circle.setAttribute('stroke', '#ffd700');
-                    circle.setAttribute('stroke-width', 4); }
-            }
+            if (type === 'item') { const r = document.querySelector(`.placed-item[data-id="${id}"] rect`); if (r) { r
+                        .setAttribute('stroke', '#ffd700');
+                    r.setAttribute('stroke-width', 4); } } else if (type === 'entrance') { const c = document.querySelector(
+                    `.entrance-group[data-id="${id}"] circle`); if (c) { c.setAttribute('stroke', '#ffd700');
+                    c.setAttribute('stroke-width', 4); } }
             updateCanvasActionButton();
         }
 
         function deleteSelected() {
             if (selectedObjectType === 'item') removePlacedItem(selectedObjectId);
-            else if (selectedObjectType === 'entrance') {
-                state.entrances = state.entrances.filter(e => e.id !== selectedObjectId);
+            else if (selectedObjectType === 'entrance') { state.entrances = state.entrances.filter(e => e.id !==
+                    selectedObjectId);
                 updateEntranceGraphics();
-                updateEntranceInfo();
-            }
+                updateEntranceInfo(); }
             clearSelectionGraphics();
         }
     </script>
