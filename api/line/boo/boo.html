@@ -42,14 +42,31 @@
             position: fixed;
         }
 
+        /* 1. 找到這段，把 height: 100vh 換成 100%，解決手機網址列擋住按鈕的問題 */
         .canvas-container {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%; /* 🌟 原本是 100vh，改成 100% */
             background: linear-gradient(180deg, #081827, #04202a);
             z-index: 1;
+        }
+
+        /* 2. 在 </style> 前，插入這段全新的手機優化與圖層修正碼 */
+        .canvas-fab-container, #bgZoomControls, .scale-indicator {
+            z-index: 900 !important; /* 🌟 降低層級，避免側邊抽屜打開時按鈕還浮在畫面上干擾 */
+        }
+
+        @media (max-width: 768px) {
+            .fab-main { width: 48px; height: 48px; font-size: 22px; }
+            .canvas-action-btn { width: 40px; height: 40px; font-size: 18px; }
+            .canvas-fab-container { bottom: 84px; right: 12px; gap: 8px; }
+            .fab-container { bottom: 16px; right: 12px; gap: 8px; }
+            #quickControls { gap: 8px !important; }
+            .fab-item { padding: 8px 12px; font-size: 13px; }
+            .fab-item-icon { width: 32px; height: 32px; font-size: 16px; }
+            .drawer { width: min(320px, 85vw); }
         }
         #svgmap {
             width: 100%;
@@ -526,7 +543,7 @@
 
 <body>
     <!-- 🌟 新增：右上角首頁返回按鈕 -->
-    <button onclick="window.location.href='../lobby.html'" title="返回上一頁" style="position: fixed; top: 12px; right: 12px; z-index: 1000; width: 40px; height: 40px; border-radius: 50%; background: rgba(15, 23, 37, 0.8); color: white; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(5px); box-shadow: 0 2px 10px rgba(0,0,0,0.5);">🏠</button>
+    <button onclick="window.location.href='../lobby.html'" title="返回上一頁" style="position: fixed; top: 12px; right: 12px; z-index: 900; width: 40px; height: 40px; border-radius: 50%; background: rgba(15, 23, 37, 0.8); color: white; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(5px); box-shadow: 0 2px 10px rgba(0,0,0,0.5);">🏠</button>
     <div class="canvas-container">
         <svg id="svgmap" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -574,14 +591,14 @@
 
         <!-- 2. 🆕 外框包覆，方便隱藏與顯示，視覺上排在👆的正上方 -->
         <div id="quickControls" style="display:flex; flex-direction:column-reverse; gap:12px;">
-            <!-- 在最上面加入這行 (預設隱藏，有擺東西才會出現)： -->
             <button id="btnToggleNames" class="canvas-action-btn" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed); display:none;" onclick="toggleNames()" title="顯示/隱藏名稱">🏷️</button>
-            <!-- 獨立平移按鈕 (放在最靠近👆的位置) -->
             <button id="btnPan" class="canvas-action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);" onclick="togglePanSelect()" title="平移/選擇">✋</button>
-            <!-- 獨立縮小按鈕 -->
-            <button id="btnZoomOut" class="canvas-action-btn" style="background:linear-gradient(135deg,#3b82f6,#2563eb);" onclick="zoomCanvas(0.8)" title="縮小畫布">🔎</button>
-            <!-- 獨立放大按鈕 (放在最上方) -->
-            <button id="btnZoomIn" class="canvas-action-btn" style="background:linear-gradient(135deg,#3b82f6,#2563eb);" onclick="zoomCanvas(1.2)" title="放大畫布">🔍</button>
+            
+            <!-- 將兩個放大鏡包起來水平並排，大大節省高度！ -->
+            <div style="display:flex; gap:12px; justify-content:center;">
+                <button id="btnZoomOut" class="canvas-action-btn" style="background:linear-gradient(135deg,#3b82f6,#2563eb);" onclick="zoomCanvas(0.8)" title="縮小畫布">🔎</button>
+                <button id="btnZoomIn" class="canvas-action-btn" style="background:linear-gradient(135deg,#3b82f6,#2563eb);" onclick="zoomCanvas(1.2)" title="放大畫布">🔍</button>
+            </div>
         </div>
 
         <!-- 3. 畫布彈出選單 (打開時會覆蓋在上方) -->
@@ -1056,43 +1073,44 @@
             const menu = document.getElementById('fabMenu');
             const main = document.getElementById('fabMain');
             const icon = document.getElementById('fabIcon');
-            const quickControls = document.getElementById('quickControls'); // 🆕 抓取獨立按鈕群
 
             if (menu.classList.contains('show')) {
                 menu.classList.remove('show');
                 main.classList.remove('active');
                 icon.textContent = '☰';
-                if (quickControls) quickControls.style.display = 'flex'; // 關閉選單時恢復顯示
-                closeDrawer(); // 👈 追加這行！這樣點X側邊欄也會跟著縮回去！
+                closeDrawer(); 
             } else {
                 menu.classList.add('show');
                 main.classList.add('active');
                 icon.textContent = '✕';
                 
-                // 確保另一個選單關閉
+                // 關閉畫布工具單
                 document.getElementById('canvasFabMenu').classList.remove('show');
-                if (quickControls) quickControls.style.display = 'none'; // 展開選單時暫時隱藏
+                // 🌟 確保這時候工具按鈕不會消失！
+                const quickControls = document.getElementById('quickControls');
+                if (quickControls) quickControls.style.display = 'flex'; 
             }
         }
 
         function toggleCanvasMenu() {
             const menu = document.getElementById('canvasFabMenu');
-            const quickControls = document.getElementById('quickControls'); // 🆕 抓取獨立按鈕群
+            const quickControls = document.getElementById('quickControls');
 
             if (menu.classList.contains('show')) {
                 menu.classList.remove('show');
-                if (quickControls) quickControls.style.display = 'flex'; // 關閉選單時恢復顯示
+                if (quickControls) quickControls.style.display = 'flex'; 
             } else {
                 if (calibrateState.active) cancelCalibrate();
                 if (['polygon', 'entrance', 'editPoly'].includes(state.mode)) setMode('select');
                 
-                // 確保系統選單關閉
-                document.getElementById('fabMenu').classList.remove('show');
-                document.getElementById('fabMain').classList.remove('active');
-                document.getElementById('fabIcon').textContent = '☰';
+                // 🌟 確保系統選單關閉時，連動關閉側邊欄
+                const fabMenu = document.getElementById('fabMenu');
+                if (fabMenu.classList.contains('show')) {
+                    toggleFabMenu(); 
+                }
                 
                 menu.classList.add('show');
-                if (quickControls) quickControls.style.display = 'none'; // 展開選單時暫時隱藏
+                if (quickControls) quickControls.style.display = 'none'; 
             }
         }
 
