@@ -109,7 +109,42 @@
             opacity: 0.7;
             margin-left: 4px;
         }
-
+        /* 🌟 新增：左上角面積與周長浮動顯示框 */
+        .area-info-floating {
+            position: fixed;
+            top: 80px; /* 🌟 往下推，讓出左上角空間給垃圾桶 */
+            left: 16px;
+            z-index: 200;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            color: #cfeee2;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 15px;
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            pointer-events: none; /* 讓點擊穿透，完全不阻礙你在這塊區域畫圖 */
+            line-height: 1.6;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        /* 🌟 強制將動態操作按鈕 (垃圾桶/復原/取消) 釘在左上角 */
+        #canvasActionBtn {
+            position: fixed !important;
+            top: 16px !important;
+            left: 16px !important;
+            z-index: 1000 !important;
+        }
+        @media (max-width: 768px) {
+            .area-info-floating {
+                top: 64px; /* 手機版往下避開垃圾桶 */
+                left: 12px;
+                font-size: 13px;
+                padding: 10px 12px;
+            }
+            #canvasActionBtn {
+                top: 12px !important;
+                left: 12px !important;
+            }
+        }
         /* 🌀 FAB */
         .fab-container {
             position: fixed;
@@ -175,6 +210,31 @@
         @keyframes menuSlideInLeft {
             from { opacity: 0; transform: translateX(20px) scale(0.8); }
             to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        #canvasFabMenu {
+            position: absolute;
+            right: 76px; /* 閃開右側主按鈕 (寬64 + 間距12) */
+            bottom: 12px; /* 稍微往上推，與主按鈕垂直置中 */
+            flex-direction: row-reverse; /* 橫向排列，由右往左長出來 */
+            margin-bottom: 0;
+            gap: 8px;
+        }
+        #canvasFabMenu.show {
+            animation: menuSlideInLeft 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        /* 針對畫布選單內的按鈕，強制覆蓋為「縮小版」 */
+        #canvasFabMenu .fab-item {
+            padding: 6px 10px;
+            gap: 6px;
+            border-radius: 20px;
+        }
+        #canvasFabMenu .fab-item-icon {
+            width: 28px;
+            height: 28px;
+            font-size: 14px;
+        }
+        #canvasFabMenu .fab-item-label {
+            font-size: 12px;
         }
         .fab-item {
             display: flex;
@@ -523,8 +583,9 @@
             font-size: 14px;
         }
         /* 2. 在 </style> 前，插入這段全新的手機優化與圖層修正碼 */
-        .canvas-fab-container, #bgZoomControls, .scale-indicator {
-            z-index: 900 !important; /* 🌟 降低層級，避免側邊抽屜打開時按鈕還浮在畫面上干擾 */
+        /* 🌟 替換為這行（加入 #nameZoomControls）： */
+        .canvas-fab-container, #bgZoomControls, #nameZoomControls, .scale-indicator {
+            z-index: 900 !important; 
         }
 
         @media (max-width: 768px) {
@@ -536,6 +597,7 @@
             .fab-item { padding: 8px 12px; font-size: 13px; }
             .fab-item-icon { width: 32px; height: 32px; font-size: 16px; }
             .drawer { width: min(320px, 85vw); }
+            #canvasFabMenu { right: 56px; bottom: 4px; }
         }
     </style>
 </head>
@@ -567,11 +629,18 @@
             <span>m</span>
             <span class="scale-bar" id="scaleBar" style="width:50px;"></span>
             <span class="calibrate-hint">📏校準</span>
+            <!-- 🌟 新增：搬移出來的浮動資訊框 -->
+            <div id="areaInfo" class="area-info-floating" style="display:none;"></div>
         </div>
     </div>
 
     <!-- 背景調整提示 -->
     <div class="bg-handle-hint" id="bgHandleHint">🖼️ 拖曳移動背景｜↕ 按鈕縮放</div>
+    <!-- 🌟 新增：專屬的名稱縮放按鈕組 (平常隱藏，顯示名稱時才出現) -->
+    <div id="nameZoomControls" style="display:none; position:fixed; left:16px; top:30%; transform:translateY(-50%); flex-direction:column; gap:16px; z-index:1000;">
+        <button class="canvas-action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);" onclick="scaleItemNames(1.1)" title="放大名稱文字">🅰️+</button>
+        <button class="canvas-action-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);" onclick="scaleItemNames(0.9)" title="縮小名稱文字">🅰️-</button>
+    </div>
     <!-- 🌟 新增：左側專屬的背景縮放按鈕組 (平常隱藏，調整背景時才顯示) -->
     <div id="bgZoomControls" style="display:none; position:fixed; left:16px; top:50%; transform:translateY(-50%); flex-direction:column; gap:16px; z-index:1000;">
         <button class="canvas-action-btn" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);" onclick="scaleBackground(1.1)" title="放大背景">➕</button>
@@ -601,7 +670,6 @@
         <div class="fab-menu" id="canvasFabMenu">
             <div class="fab-item" onclick="setMode('polygon')"><div class="fab-item-icon">🖊️</div><div class="fab-item-label">繪製場地</div></div>
             <div class="fab-item" onclick="setMode('entrance')"><div class="fab-item-icon">🚪</div><div class="fab-item-label">新增出入口</div></div>
-            <div class="fab-item" onclick="startCalibrate()"><div class="fab-item-icon">📏</div><div class="fab-item-label">比例校準</div></div>
             <div class="fab-item" onclick="setMode('bgadjust')"><div class="fab-item-icon">🖼️</div><div class="fab-item-label">調整背景</div></div>
         </div>
 
@@ -612,10 +680,9 @@
     <!-- 系統FAB -->
     <div class="fab-container">
         <div class="fab-menu" id="fabMenu">
-            <div class="fab-item" onclick="openDrawer('setup')"><div class="fab-item-icon">📐</div><div class="fab-item-label">場地設定</div></div>
-            <div class="fab-item" onclick="openDrawer('items')"><div class="fab-item-icon">📦</div><div class="fab-item-label">物件管理</div></div>
-            <div class="fab-item" onclick="openDrawer('arrange')"><div class="fab-item-icon">🎯</div><div class="fab-item-label">排列物件</div></div>
-            <div class="fab-item" onclick="openDrawer('tools')"><div class="fab-item-icon">🛠️</div><div class="fab-item-label">工具箱</div></div>
+            <div class="fab-item" onclick="openDrawer('items')"><div class="fab-item-icon">📦</div><div class="fab-item-label"></div></div>
+            <div class="fab-item" onclick="openDrawer('arrange')"><div class="fab-item-icon">🎯</div><div class="fab-item-label"></div></div>
+            <div class="fab-item" onclick="openDrawer('tools')"><div class="fab-item-icon">🛠️</div><div class="fab-item-label"></div></div>
         </div>
         <button class="fab-main" id="fabMain" onclick="toggleFabMenu()"><span id="fabIcon">☰</span></button>
     </div>
@@ -624,23 +691,6 @@
     <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
     <div class="drawer" id="drawer">
         <div class="drawer-header"><h2 id="drawerTitle">選單</h2><button class="drawer-close" onclick="closeDrawer()">✕</button></div>
-        <div class="tab-content" id="tab-setup">
-            <h3>📐 比例尺設定</h3>
-            <label>比例尺（公分/像素）</label>
-            <input type="number" id="scale" value="1" step="0.1" min="0.01">
-            <p class="muted">1像素 = <span id="scaleDisplay">1</span> 公尺</p>
-            <p class="muted">💡 更快的方式：點擊左下角「📏校準」按鈕，在畫布上點兩個已知距離的點並輸入實際公分。</p>
-            <h3>🗺️ 場地多邊形</h3>
-            <button onclick="setMode('polygon')">🖊️ 開始繪製</button>
-            <div class="controls-row">
-                <button onclick="undoPolygonPoint()" class="warning">↶ 上一步</button>
-                <button onclick="clearPolygon()" class="danger">🗑️ 清除場地</button>
-            </div>
-            <div id="areaInfo" class="info" style="display:none;"></div>
-            <h3>🚪 出入口</h3>
-            <button onclick="setMode('entrance')">➕ 新增出入口</button>
-            <div id="entranceInfo" class="info"></div>
-        </div>
         <div class="tab-content" id="tab-items">
             <h3>🎨 快速新增</h3>
             <div class="preset-categories">
@@ -688,7 +738,6 @@
             <button onclick="exportSVG()" class="secondary">🖼️ 匯出SVG</button>
             <h3>🖼️ 背景</h3>
             <button onclick="uploadBackgroundImage()">📁 上傳背景圖</button>
-            <button onclick="toggleBackground()" class="secondary">👁️ 切換顯示</button>
             <p class="muted">上傳後可用左下角📏校準比例尺，或使用畫布FAB「🖼️調整背景」移動/縮放。</p>
             <h3>🎨 其他</h3>
             <button onclick="setMode('select')" class="secondary">👆 選擇模式</button>
@@ -717,7 +766,6 @@
 
         let viewBox = { x: 0, y: 0, w: 1200, h: 700 };
         let showGrid = true;
-        let showBackground = false;
         let customBackgroundSrc = null;
 
         // 背景圖固定座標（SVG用戶座標）
@@ -730,6 +778,7 @@
         const state = {
             mode: 'polygon',
             scale: 0.15, // 🌟 改成 0.15，讓 50x50m 剛好佔據手機螢幕大半部
+            nameScaleMultiplier: 1, // 🌟 新增：文字放大縮小的倍率
             polygon: [],
             polygonClosed: false,
             entrances: [],
@@ -797,7 +846,6 @@
             state.polygonClosed = true;
             renderPolygon(); // 👉 讓網頁一開就立刻畫出綠色線條！
             showAreaInfo();
-            document.getElementById('scale').value = state.scale; // 👉 同步更新設定抽屜裡的數值
             checkOrientation();
             const defaults = [
                 {cat: 'tent', idx: 1, count: 30}, {cat: 'tent', idx: 0, count: 2}, {cat: 'tent', idx: 2, count: 2},
@@ -816,13 +864,6 @@
             refreshItemsUI();
             updateEntranceInfo();
             showPresetCategory('tent');
-            document.getElementById('scale').addEventListener('input', (e) => {
-                state.scale = parseFloat(e.target.value) || 1;
-                updateScaleDisplay();
-                updateScaleIndicator();
-                if (state.polygonClosed) showAreaInfo();
-                renderPolygon();
-            });
             window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 300));
             document.addEventListener('gesturestart', (e) => e.preventDefault());
             document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
@@ -855,7 +896,7 @@
         }
 
         function updateScaleDisplay() {
-            document.getElementById('scaleDisplay').textContent = state.scale.toFixed(2);
+            // 介面已移除，不需更新
         }
 
         // ╔══════════════════════════════════════════╗
@@ -920,7 +961,6 @@
                             return;
                         }
                         state.scale = realDistCm / pixelDist;
-                        document.getElementById('scale').value = state.scale.toFixed(3);
                         updateScaleDisplay();
                         updateScaleIndicator();
                         renderPolygon();
@@ -994,7 +1034,6 @@
                             h: targetH,
                             visible: true
                         };
-                        showBackground = true;
                         applyBackgroundToSVG();
                         alert('背景圖片已載入！\n建議使用左下角📏按鈕進行比例尺校準，以匹配實際距離。');
                     };
@@ -1011,14 +1050,8 @@
             bgImage.setAttribute('y', bgData.y);
             bgImage.setAttribute('width', bgData.w);
             bgImage.setAttribute('height', bgData.h);
-            bgImage.style.display = (showBackground && bgData.visible) ? 'block' : 'none';
+            bgImage.style.display = (customBackgroundSrc && bgData.visible) ? 'block' : 'none';
             bgImage.style.pointerEvents = state.mode === 'bgadjust' ? 'auto' : 'none';
-        }
-
-        function toggleBackground() {
-            showBackground = !showBackground;
-            bgData.visible = showBackground;
-            applyBackgroundToSVG();
         }
 
         function scaleBackground(factor) {
@@ -1137,7 +1170,7 @@
             const title = document.getElementById('drawerTitle');
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.getElementById(`tab-${tabId}`).classList.add('active');
-            const titles = { 'setup': '📐 場地設定', 'items': '📦 物件管理', 'arrange': '🎯 排列物件', 'tools': '🛠️ 工具箱' };
+            const titles = { 'setup': '📐', 'items': '📦', 'arrange': '🎯', 'tools': '🛠️' };
             title.textContent = titles[tabId] || '選單';
             drawer.classList.add('show');
             // overlay.classList.add('show');
@@ -1339,6 +1372,7 @@
             updateBgAdjustUI();
 
             if (mode === 'editPoly' || mode === 'polygon') renderPolygon();
+            showAreaInfo();
         }
 
         // 新增這個函數：點擊✋按鈕時，在「平移」跟「選擇」之間切換
@@ -1569,12 +1603,20 @@
         }
 
         function showAreaInfo() {
-            if (!state.polygonClosed || state.polygon.length < 3) return;
+            const info = document.getElementById('areaInfo');
+            if (!info) return;
+
+            // 🌟 核心修改：如果不是繪製模式，或是場地還沒圍起來，就立刻隱藏！
+            if (state.mode !== 'polygon' || !state.polygonClosed || state.polygon.length < 3) {
+                info.style.display = 'none';
+                return;
+            }
+            
             const area = calculatePolygonArea(state.polygon);
             const realArea = area * state.scale * state.scale;
             const perimeter = calculatePerimeter(state.polygon);
             const realPerimeterM = perimeter * state.scale;
-            const info = document.getElementById('areaInfo');
+            
             info.style.display = 'block';
             info.innerHTML = `<div><strong>📏 面積:</strong> ${realArea.toFixed(2)} m²</div><div><strong>📐 周長:</strong> ${realPerimeterM.toFixed(1)} m</div>`;
         }
@@ -1680,6 +1722,7 @@
 
         function updateEntranceInfo() {
             const info = document.getElementById('entranceInfo');
+            if (!info) return; // 🌟 新增這行：如果找不到標籤就直接退出，不報錯！
             info.innerHTML = state.entrances.length === 0 ? '<div class="muted">尚未設定出入口</div>' :
                 `<div>已設定 <strong>${state.entrances.length}</strong> 個出入口</div>`;
         }
@@ -1735,7 +1778,6 @@
         }
 
         function removeItemFromPool(id) {
-            if (!confirm('確定刪除？')) return;
             state.itemsPool = state.itemsPool.filter(i => i.id !== id);
             refreshItemsUI();
             refreshPoolUI();
@@ -1760,6 +1802,14 @@
 
         function toggleNames() {
             showItemNames = !showItemNames;
+            updatePlacedGraphics();
+        }
+        
+        // 🌟 新增：控制文字大小倍率的函數
+        function scaleItemNames(factor) {
+            state.nameScaleMultiplier = (state.nameScaleMultiplier || 1) * factor;
+            if (state.nameScaleMultiplier < 0.3) state.nameScaleMultiplier = 0.3; // 限制縮小下限
+            if (state.nameScaleMultiplier > 5.0) state.nameScaleMultiplier = 5.0; // 限制放大上限
             updatePlacedGraphics();
         }
         
@@ -1863,7 +1913,9 @@
                 text.setAttribute('text-anchor', 'middle');
                 text.setAttribute('dominant-baseline', 'middle');
                 text.setAttribute('fill', '#fcd34d'); 
-                text.setAttribute('font-size', Math.max(12, Math.min(w, h) * 0.18)); 
+                // 🌟 替換為這兩行（乘上我們的變數）：
+                const baseFontSize = Math.max(12, Math.min(w, h) * 0.18);
+                text.setAttribute('font-size', baseFontSize * (state.nameScaleMultiplier || 1));
                 text.setAttribute('font-weight', 'bold');
                 text.textContent = item.name;
                 text.style.display = showItemNames ? 'block' : 'none'; 
@@ -1926,9 +1978,15 @@
                 g.addEventListener('mousemove', cancelPress);
                 g.addEventListener('touchmove', cancelPress);
             });
+            // 🌟 替換為這段（把 nameZoomControls 的顯示判斷加進去）：
             const btnToggle = document.getElementById('btnToggleNames');
             if (btnToggle) {
                 btnToggle.style.display = state.placed.length > 0 ? 'flex' : 'none';
+            }
+            // 🌟 新增：控制左側名稱縮放按鈕的顯示/隱藏
+            const nameZoomControls = document.getElementById('nameZoomControls');
+            if (nameZoomControls) {
+                nameZoomControls.style.display = (showItemNames && state.placed.length > 0) ? 'flex' : 'none';
             }
         }
 
@@ -1968,7 +2026,7 @@
         // ║  匯出/匯入                              ║
         // ╚══════════════════════════════════════════╝
         function exportJSON() {
-            const data = { scale: state.scale, polygon: state.polygon, entrances: state.entrances, placed: state.placed, itemsPool: state.itemsPool, bgData: bgData, showBackground: showBackground, customBackgroundSrc: customBackgroundSrc };
+            const data = { scale: state.scale, polygon: state.polygon, entrances: state.entrances, placed: state.placed, itemsPool: state.itemsPool, bgData: bgData, showBackground: showBackground, customBackgroundSrc: customBackgroundSrc, nameScaleMultiplier: state.nameScaleMultiplier };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -2000,10 +2058,9 @@
             state.itemsPool = data.itemsPool || [];
             state.polygonClosed = state.polygon.length >= 3;
             if (data.bgData) bgData = data.bgData;
-            showBackground = data.showBackground || false;
-            bgData.visible = showBackground;
+            bgData.visible = !!data.customBackgroundSrc;
             customBackgroundSrc = data.customBackgroundSrc || null;
-            document.getElementById('scale').value = state.scale;
+            state.nameScaleMultiplier = data.nameScaleMultiplier || 1; // 讀取文字倍率
             updateScaleDisplay();
             updateScaleIndicator();
             applyBackgroundToSVG();
