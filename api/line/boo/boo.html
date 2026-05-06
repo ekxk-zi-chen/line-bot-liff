@@ -22,6 +22,7 @@
             user-select: none;
             box-sizing: border-box;
             touch-action: manipulation; /* 🌟 鎖死雙擊放大，但保留雙指縮放 */
+            -webkit-tap-highlight-color: transparent;
         }
         input,
         textarea,
@@ -133,6 +134,15 @@
             left: 16px !important;
             z-index: 1000 !important;
         }
+        /* 🌟 👇 在這裡插入這段：定位按鈕的專屬樣式 👇 🌟 */
+        #btnGeo {
+            position: fixed !important;
+            top: 16px !important;
+            left: 76px !important; /* 放在垃圾桶旁邊 */
+            z-index: 1000 !important;
+            background: rgba(15, 23, 37, 0.8);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+        }
         @media (max-width: 768px) {
             .area-info-floating {
                 top: 64px; /* 手機版往下避開垃圾桶 */
@@ -143,6 +153,11 @@
             #canvasActionBtn {
                 top: 12px !important;
                 left: 12px !important;
+            }
+            /* 🌟 👇 補上手機版的定位按鈕位置 👇 🌟 */
+            #btnGeo {
+                top: 12px !important;
+                left: 60px !important;
             }
         }
         /* 🌀 FAB */
@@ -618,6 +633,9 @@
             <g id="polygonGroup"></g>
             <g id="entranceGroup"></g>
             <g id="placedGroup"></g>
+            <!-- 🌟 加入這行：定位點專屬圖層 -->
+            <g id="geoGroup"></g>
+
             <g id="ghostGroup"></g>
             <g id="calibrateGroup"></g>
         </svg>
@@ -646,6 +664,9 @@
         <button class="canvas-action-btn" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);" onclick="scaleBackground(1.1)" title="放大背景">➕</button>
         <button class="canvas-action-btn" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);" onclick="scaleBackground(0.9)" title="縮小背景">➖</button>
     </div>
+
+    <!-- 🌟 新增：左上角的精準定位按鈕 -->
+    <button id="btnGeo" class="canvas-action-btn" onclick="toggleGeolocation()" title="開啟高精度定位">📍</button>
 
     <!-- 畫布FAB -->
     <div class="canvas-fab-container">
@@ -794,6 +815,26 @@
         let showItemNames = true;
         let isDrawerOpen = false;
         let polygonDragIndex = -1;
+
+        // 🌟 👇 插入這段：定位系統專用的變數與換算公式 👇 🌟
+        let geoWatchId = null;
+        let myLocation = { lat: null, lon: null, acc: null };
+        let geoSync = { canvasX: 0, canvasY: 0, lat: null, lon: null };
+        let mapHeading = 0; // 預設畫布的正上方(0度)是地球的正北
+
+        // 半正矢公式 (Haversine formula)：計算兩點經緯度的距離(公尺)與方位角
+        function getDistanceAndBearing(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // 地球半徑(公尺)
+            const f1 = lat1 * Math.PI/180, f2 = lat2 * Math.PI/180;
+            const df = (lat2-lat1) * Math.PI/180, dl = (lon2-lon1) * Math.PI/180;
+            const a = Math.sin(df/2)*Math.sin(df/2) + Math.cos(f1)*Math.cos(f2)*Math.sin(dl/2)*Math.sin(dl/2);
+            const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); // 距離(公尺)
+            const y = Math.sin(dl) * Math.cos(f2);
+            const x = Math.cos(f1)*Math.sin(f2) - Math.sin(f1)*Math.cos(f2)*Math.cos(dl);
+            const brng = ((Math.atan2(y, x) * 180/Math.PI) + 360) % 360; // 方位角(度)
+            return { distance: d, bearing: brng };
+        }
+        // 👆 插入結束 👆
 
         // 比例尺校準狀態
         let calibrateState = { active: false, step: 0, pt1: null, pt2: null };
@@ -1198,6 +1239,16 @@
             if (quickControls) quickControls.style.display = 'flex';
         }
 
+        // 🌟 新增：讓定位藍點在螢幕上永遠保持「視覺大小固定」的函數
+        function updateGeoDotSize() {
+            const dot = document.getElementById('geoDot');
+            if (!dot) return;
+            // 算出目前 SVG 的內部座標系與實際螢幕像素的比例
+            const zoomRatio = viewBox.w / (svg.clientWidth || window.innerWidth);
+            dot.setAttribute('r', 8 * zoomRatio); // 讓藍點在螢幕上看起來永遠是 8px
+            dot.setAttribute('stroke-width', 3 * zoomRatio); // 白框也照比例縮放
+        }
+
         // ╔══════════════════════════════════════════╗
         // ║  縮放與平移                            ║
         // ╚══════════════════════════════════════════╝
@@ -1211,6 +1262,7 @@
             viewBox.y = cy - viewBox.h / 2;
             svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
             updateScaleIndicator();
+            updateGeoDotSize(); // 🌟 新增這行：縮放畫布時同步更新藍點大小
         }
 
         function resetView() {
@@ -1220,6 +1272,7 @@
             viewBox.h = svg.clientHeight || 700;
             svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
             updateScaleIndicator();
+            updateGeoDotSize(); // 🌟 新增這行：重置畫布時同步更新藍點大小
         }
 
         function getSVGPointFromClient(clientX, clientY) {
@@ -2110,6 +2163,152 @@
                 updateEntranceGraphics();
                 updateEntranceInfo(); }
             clearSelectionGraphics();
+        }
+
+        // 🌟 1. 定位開關與 GPS 訊號接收器
+        function toggleGeolocation() {
+            if (geoWatchId) {
+                // 關閉定位
+                navigator.geolocation.clearWatch(geoWatchId);
+                geoWatchId = null;
+                document.getElementById('btnGeo').style.background = 'rgba(15, 23, 37, 0.8)';
+                document.getElementById('geoGroup').innerHTML = '';
+                return;
+            }
+            if (!navigator.geolocation) { alert('您的瀏覽器不支援定位'); return; }
+
+            // 開啟定位
+            document.getElementById('btnGeo').style.background = 'linear-gradient(135deg,#3b82f6,#2563eb)';
+            
+            // enableHighAccuracy: true 強制啟動手機 GPS 晶片，而非僅依賴基地台
+            geoWatchId = navigator.geolocation.watchPosition((pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                const acc = pos.coords.accuracy; // 誤差範圍(公尺)
+                myLocation = { lat, lon, acc };
+
+                if (!geoSync.lat) { 
+                    // 第一次定位：需要使用者手動拖曳藍點對齊畫布
+                    geoSync.lat = lat;
+                    geoSync.lon = lon;
+                    geoSync.canvasX = viewBox.x + viewBox.w / 2;
+                    geoSync.canvasY = viewBox.y + viewBox.h / 2;
+                    alert('📍 高精度定位已啟動！\n\n因為系統不知道這張畫布在現實世界的哪裡，\n請將畫面上的「藍色大點」拖曳到您【現在真實站立的位置】來完成同步！\n\n(注意：預設畫布的正上方為真實世界的正北向)');
+                }
+                updateGeoGraphics();
+            }, (err) => {
+                alert('定位失敗！請確保手機已開啟 GPS，並允許瀏覽器存取位置權限。');
+                toggleGeolocation();
+            }, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
+        }
+
+        // 🌟 新增這個變數，確保拖曳狀態不被打斷
+        let isGeoDragging = false; 
+
+        // 🌟 2. 畫出藍點並計算你在畫布上的即時座標 (修復滑順拖曳版)
+        function updateGeoGraphics() {
+            const group = document.getElementById('geoGroup');
+            if (!geoWatchId || !myLocation.lat) {
+                group.innerHTML = '';
+                return;
+            }
+
+            // 計算當前真實位置，相對於第一次同步點的位移
+            const db = getDistanceAndBearing(geoSync.lat, geoSync.lon, myLocation.lat, myLocation.lon);
+            const distPx = db.distance / state.scale;
+            const rad = (db.bearing - mapHeading) * Math.PI / 180;
+            const dx = distPx * Math.sin(rad);
+            const dy = -distPx * Math.cos(rad);
+
+            const currentCanvasX = geoSync.canvasX + dx;
+            const currentCanvasY = geoSync.canvasY + dy;
+            const accPx = Math.min((myLocation.acc / state.scale), 3000);
+
+            // 🌟 核心修正：尋找現有藍點，如果不存才建立 (避免刪除重建導致拖曳中斷)
+            let accCircle = document.getElementById('geoAccCircle');
+            let dot = document.getElementById('geoDot');
+
+            if (!dot) {
+                // 如果是第一次畫，才生出新的 SVG 元素
+                accCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                accCircle.id = 'geoAccCircle';
+                // 🌟 把它替換成這四行（全透明背景 + 藍色虛線外框）：
+                accCircle.setAttribute('fill', 'transparent'); // 🌟 背景改為全透明，螢幕不會再反藍！
+                accCircle.setAttribute('stroke', 'rgba(59,130,246,0.6)'); // 🌟 加上淡藍色外框
+                accCircle.setAttribute('stroke-width', 2);
+                accCircle.setAttribute('stroke-dasharray', '8,4'); // 🌟 變成科技感虛線雷達
+
+                accCircle.style.pointerEvents = 'none';
+                group.appendChild(accCircle);
+
+                dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                dot.id = 'geoDot';
+                // dot.setAttribute('r', 10);
+                dot.setAttribute('fill', '#3b82f6');
+                dot.setAttribute('stroke', 'white');
+                // dot.setAttribute('stroke-width', 3);
+                dot.style.cursor = 'move';
+                dot.style.pointerEvents = 'all';
+                group.appendChild(dot);
+
+                // 實作藍點「拖曳同步」功能 (綁定在不會被刪除的 dot 上)
+                let startX, startY;
+                
+                function startDrag(e) {
+                    if (state.mode !== 'select') return;
+                    isGeoDragging = true; 
+                    e.stopPropagation(); e.preventDefault();
+                    const pt = getSVGPointFromClient(e.touches?e.touches[0].clientX:e.clientX, e.touches?e.touches[0].clientY:e.clientY);
+                    
+                    // 重新精算當下座標，防止拖曳瞬間小跳躍
+                    const currentDb = getDistanceAndBearing(geoSync.lat, geoSync.lon, myLocation.lat, myLocation.lon);
+                    const currentDistPx = currentDb.distance / state.scale;
+                    const currentRad = (currentDb.bearing - mapHeading) * Math.PI / 180;
+                    const curX = geoSync.canvasX + currentDistPx * Math.sin(currentRad);
+                    const curY = geoSync.canvasY - currentDistPx * Math.cos(currentRad);
+
+                    startX = pt.x - curX; 
+                    startY = pt.y - curY;
+                }
+                
+                function doDrag(e) {
+                    if (!isGeoDragging) return; 
+                    e.preventDefault();
+                    const pt = getSVGPointFromClient(e.touches?e.touches[0].clientX:e.clientX, e.touches?e.touches[0].clientY:e.clientY);
+                    const targetX = pt.x - startX; 
+                    const targetY = pt.y - startY;
+
+                    const currentDb = getDistanceAndBearing(geoSync.lat, geoSync.lon, myLocation.lat, myLocation.lon);
+                    const currentDistPx = currentDb.distance / state.scale;
+                    const currentRad = (currentDb.bearing - mapHeading) * Math.PI / 180;
+                    const curDx = currentDistPx * Math.sin(currentRad);
+                    const curDy = -currentDistPx * Math.cos(currentRad);
+
+                    geoSync.canvasX = targetX - curDx;
+                    geoSync.canvasY = targetY - curDy;
+                    
+                    updateGeoGraphics(); // 安全呼叫：因為現在只會更新屬性，不會刪除元素
+                }
+                
+                function endDrag() { isGeoDragging = false; }
+
+                dot.addEventListener('mousedown', startDrag);
+                dot.addEventListener('touchstart', startDrag, {passive: false});
+                window.addEventListener('mousemove', doDrag);
+                window.addEventListener('touchmove', doDrag, {passive: false});
+                window.addEventListener('mouseup', endDrag);
+                window.addEventListener('touchend', endDrag);
+            }
+
+            // 🌟 將更新行為獨立出來：只要元素還在，就只單純改變 x/y 半徑屬性！
+            accCircle.setAttribute('cx', currentCanvasX);
+            accCircle.setAttribute('cy', currentCanvasY);
+            accCircle.setAttribute('r', accPx);
+
+            dot.setAttribute('cx', currentCanvasX);
+            dot.setAttribute('cy', currentCanvasY);
+
+            updateGeoDotSize(); // 🌟 新增這行：GPS 每次刷新或拖曳時，確保大小正確
         }
     </script>
 </body>
