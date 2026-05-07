@@ -439,7 +439,7 @@
     function loadConfig() { 
       document.getElementById('tempMin').value = localStorage.getItem('s_sar_tempMin') || '36.0';
       document.getElementById('tempMax').value = localStorage.getItem('s_sar_tempMax') || '37.2';
-      document.getElementById('sysMin').value = localStorage.getItem('s_sar_sysMin') || '65';
+      document.getElementById('sysMin').value = localStorage.getItem('s_sar_sysMin') || '110';
       document.getElementById('sysMax').value = localStorage.getItem('s_sar_sysMax') || '132';
     }
     function getConfig() { return { tempMin: parseFloat(document.getElementById('tempMin').value), tempMax: parseFloat(document.getElementById('tempMax').value), sysMin: parseInt(document.getElementById('sysMin').value), sysMax: parseInt(document.getElementById('sysMax').value), discomfort: document.getElementById('discomfort').value, sleep: document.getElementById('sleep').value }; }
