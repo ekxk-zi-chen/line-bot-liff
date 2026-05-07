@@ -73,8 +73,8 @@ function startPersonnelTutorial() {
             {
                 element: 'button[onclick="manageReasons()"]', // 指向原因管理按鈕
                 popover: {
-                    title: '📝 原因管理',
-                    description: '出勤理由不夠用？在這裡可以<span class="text-highlight-red">自訂您的常用外出原因</span>，方便未來快速點選。',
+                    title: '📝 個性化設定',
+                    description: '出勤理由不夠用？在這裡可以<span class="text-highlight-red">自訂您的常用外出原因</span>，方便未來快速點選。<br>調整各群組自己喜歡的群組排序',
                     side: "bottom", align: 'end' 
                 }
             },
