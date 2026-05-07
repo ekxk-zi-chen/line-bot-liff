@@ -3,7 +3,6 @@
 // ==========================================
 // 1. 開啟撤離系統
 async function openEvacSystem() {
-    // 🎯 戰術隱身：開啟撤離視窗時，隱藏右上角的節能按鈕
     const settingsFab = document.getElementById('settings-fab');
     if (settingsFab) settingsFab.style.display = 'none';
     const modal = document.getElementById('evac-modal');
@@ -14,43 +13,22 @@ async function openEvacSystem() {
     if (userRole === '管理') {
         cancelAlertBtn.style.display = 'block';
         if (!isEvacOngoing) {
-            const choice = confirm("⚠️ 目前無撤離警報。\n\n是否要 [發布緊急撤離]？\n(這會將任務面板上『所有人』標記為失聯！)");
-            if (choice) {
-                await executeEvacAlert();
-            } else {
-                return;
-            }
+            const choice = confirm("⚠️ 目前無撤離警報。\n是否要 [發布緊急撤離]？");
+            if (choice) await executeEvacAlert();
+            else return;
         }
     } else {
         cancelAlertBtn.style.display = 'none';
         if (!isEvacOngoing) return showNotification('目前平安，無撤離警報。');
-        showNotification('🚨 撤離警報！請盡速點擊自己的名字回報安全！');
     }
 
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden';
-
     renderEvacList();
 
-    // 🔥 修正：10秒輪詢只針對撤離資料 (不干擾主畫面)
-    if (evacInterval) clearInterval(evacInterval);
-    evacInterval = setInterval(async () => {
-        // 只有在人員畫面且撤離系統開啟時才抓資料
-        const { data } = await _supabase.from('personnel_control').select('id, evac_status').eq('is_active', true);
-        if (data) {
-            // 更新本地快取
-            data.forEach(remoteItem => {
-                const localItem = currentData.employees.find(p => p.id === remoteItem.id);
-                if (localItem) localItem.evac_status = remoteItem.evac_status;
-            });
-            // 刷新彈窗畫面
-            renderEvacList();
-
-            // 🎯 核心火力支援 3：讓背景輪詢也能連動刷新右下角按鈕與紅光
-            updateQuickEvacFAB();
-            updateStats();
-        }
-    }, 10000);
+    // 🚀 核心優化：停止原本的 30 秒輪詢，改啟動 10 秒全域加速輪詢
+    console.log("🚨 進入撤離模式：全域輪詢加速至 10 秒");
+    startAutoRefresh(10000); 
 }
 
 // 2. 🚨 取消警報 -> 徹底結束撤離狀態
@@ -79,21 +57,21 @@ async function cancelEvacAlert() {
     }
 }
 
-// 3. 關閉視窗 (單純隱藏介面，警報繼續)
+// 3. 關閉視窗
 function closeEvacWindow() {
     const modal = document.getElementById('evac-modal');
     if (modal) modal.style.display = 'none';
     document.body.style.overflow = 'auto';
 
-    // 停止 10 秒輪詢
-    if (evacInterval) {
-        clearInterval(evacInterval);
-        evacInterval = null;
-    }
-    // 🎯 戰術歸建：關閉視窗後，恢復右上角的節能按鈕
     const settingsFab = document.getElementById('settings-fab');
     if (settingsFab) settingsFab.style.display = 'flex';
-    // 之前改好的強制跳回人員面板指令
+
+    // 🚀 核心優化：恢復原本的 30 秒輪詢
+    console.log("✅ 退出撤離模式：全域輪詢恢復至 30 秒");
+    startAutoRefresh(30000);
+
+    // 🎯 強制立刻同步一次雲端，確保「解除狀態」立刻反映在所有卡片上
+    refreshData(); 
     switchView('personnel');
 }
 
@@ -157,7 +135,14 @@ function renderEvacList() {
         const safeB = groups[b].filter(p => p.evac_status === 'SAFE').length;
         const isCompleteA = safeA === groups[a].length ? 1 : 0; // 1代表全安全
         const isCompleteB = safeB === groups[b].length ? 1 : 0;
-        return isCompleteA - isCompleteB || a.localeCompare(b); // 未完成(0)排前面
+        
+        // 1. 第一層篩選：優先判斷是否「全組安全」(0 留在上面，1 沉到最底下)
+        if (isCompleteA !== isCompleteB) {
+            return isCompleteA - isCompleteB;
+        }
+        
+        // 2. 第二層篩選：當大家狀態一樣(都未完成，或都已完成)時，套用你的「個性化排序」
+        return customGroupSort(a, b);
     });
 
     let html = '';

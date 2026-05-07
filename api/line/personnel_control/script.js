@@ -182,7 +182,7 @@ async function performBatchGroupUpdateViaAPI(groupName, newStatus, reason, speci
         });
 
         if (specificIds) {
-            groupItems = groupItems.filter(item => specificIds.includes(item.id));
+            groupItems = groupItems.filter(item => specificIds.includes(String(item.id)));
         }
 
         showNotification(`🚀 正在更新 ${groupItems.length} 筆資料...`);
@@ -421,8 +421,8 @@ function enableAdminFeatures() {
         <button onclick="showMissionManagement()" style="padding: 8px 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; white-space: pre-line;">
             <i class="fas fa-users"></i> 編輯參與任務
         </button>
-        <button onclick="showEditPersonnelModal()" style="padding: 8px 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; white-space: pre-line;">
-            <i class="fas fa-user-edit"></i> 編輯人員資料
+        <button onclick="showEditDataModal()" style="padding: 8px 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; white-space: pre-line;">
+            <i class="fas fa-edit"></i> 編輯${currentView === 'personnel' ? '人員' : currentView === 'equipment' ? '器材' : '車輛'}資料
         </button>
         <button onclick="showBatchAddModal()" style="padding: 8px 12px; background-color: #2196F3; color: white; border: none; border-radius: 4px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; white-space: pre-line;">
             <i class="fas fa-user-plus"></i> 批次新增人員
@@ -1687,54 +1687,74 @@ async function showMissionManagement() {
 }
 
 // ==========================================
-// 🚀 編輯人員：載入列表 (直連版)
+// 🚀 編輯資料：載入列表 (三向通用直連版)
 // ==========================================
-async function showEditPersonnelModal() {
-    // 1. 直連抓取所有人員
-    const { data: personnel, error } = await _supabase
-        .from('personnel_control')
+async function showEditDataModal() {
+    // 🎯 1. 三向判斷：決定資料表、排序欄位、標題文字
+    let table = 'personnel_control';
+    let sortColumn = 'group_name';
+    let titleText = '編輯人員資料';
+    let searchPlaceholder = '搜尋人員姓名或群組...';
+
+    if (currentView === 'equipment') {
+        table = 'equipment_control';
+        sortColumn = 'category'; // 裝備是用 category 排序
+        titleText = '編輯器材資料';
+        searchPlaceholder = '搜尋器材名稱或類別...';
+    } else if (currentView === 'vehicle') {
+        table = 'vehicle_control';
+        sortColumn = 'group_name'; // 車輛也是用 group_name
+        titleText = '編輯車輛資料';
+        searchPlaceholder = '搜尋車輛名稱或群組...';
+    }
+
+    // 🎯 2. 完美保留你的雙重排序，但把欄位變成動態變數
+    const { data: items, error } = await _supabase
+        .from(table)
         .select('*')
         .eq('is_active', true)
-        .order('group_name')
+        .order(sortColumn) // 動態排序群組/類別
         .order('name');
 
-    if (error) return showNotification('❌ 讀取人員列表失敗');
+    if (error) return showNotification('❌ 讀取列表失敗');
 
-    // 2. 萃取出現有的所有群組
-    const groups = [...new Set(personnel.map(p => p.group_name))].filter(Boolean);
+    // 🎯 3. 萃取群組時，判斷要抓 group_name 還是 category
+    const groups = [...new Set(items.map(p => currentView === 'equipment' ? p.category : p.group_name))].filter(Boolean);
 
-    // 建立彈窗 (HTML 架構保持不變)
-    const existingModal = document.getElementById('edit-personnel-modal');
+    const existingModal = document.getElementById('edit-data-modal');
     if (existingModal) existingModal.remove();
 
     const modal = document.createElement('div');
     modal.className = 'modal';
-    modal.id = 'edit-personnel-modal';
+    modal.id = 'edit-data-modal';
+    
+    // 👇 HTML 完全保留你的設計，只替換文字變數
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 95%; max-height: 90vh; margin: 2vh auto;">
             <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
             <h3 style="display: flex; align-items: center; gap: 10px;">
-                <i class="fas fa-user-edit"></i> 編輯人員資料
+                <i class="fas fa-edit"></i> ${titleText}
             </h3>
             <div class="search-box" style="margin: 15px 0;">
-                <input type="text" id="edit-search-input" placeholder="搜尋人員姓名或群組..." style="width: 100%; padding: 10px;">
+                <input type="text" id="edit-search-input" placeholder="${searchPlaceholder}" style="width: 100%; padding: 10px;">
                 <i class="fas fa-search"></i>
             </div>
-            <div id="edit-personnel-list" style="max-height: 60vh; overflow-y: auto;"></div>
+            <div id="edit-data-list" style="max-height: 60vh; overflow-y: auto;"></div>
         </div>
     `;
 
     document.body.appendChild(modal);
     modal.style.display = 'block';
 
-    renderEditPersonnelList(personnel, groups);
+    // 呼叫下一個渲染函數
+    renderEditDataList(items, groups);
 
     document.getElementById('edit-search-input').oninput = function () {
         const searchTerm = this.value.toLowerCase();
-        const items = document.querySelectorAll('.edit-person-item');
+        const rows = document.querySelectorAll('.edit-person-item');
         const groupHeaders = document.querySelectorAll('.edit-group-header');
 
-        items.forEach(item => {
+        rows.forEach(item => {
             const name = item.dataset.name.toLowerCase();
             const group = item.dataset.group.toLowerCase();
             if (name.includes(searchTerm) || group.includes(searchTerm)) {
@@ -1757,87 +1777,74 @@ async function showEditPersonnelModal() {
     };
 }
 
-// 渲染編輯人員列表
-function renderEditPersonnelList(personnel, groups) {
-    const listDiv = document.getElementById('edit-personnel-list');
+// 渲染編輯資料列表
+function renderEditDataList(items, groups) {
+    const listDiv = document.getElementById('edit-data-list');
     listDiv.innerHTML = '';
 
-    // 按群組分組
     const groupedData = {};
-    personnel.forEach(p => {
-        const group = p.group_name || '未分組';
+    items.forEach(p => {
+        // 🎯 1. 抓取正確的分組欄位
+        const group = (currentView === 'equipment' ? p.category : p.group_name) || '未分組';
         if (!groupedData[group]) groupedData[group] = [];
         groupedData[group].push(p);
     });
 
-    // 渲染每個群組
-    Object.keys(groupedData).sort().forEach(groupName => {
-        // 群組標題
+    Object.keys(groupedData).sort(customGroupSort).forEach(groupName => {
+        // 👇 群組標題 HTML (完全保留你的樣式)
         const groupHeader = document.createElement('div');
         groupHeader.className = 'edit-group-header';
         groupHeader.style.cssText = `
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 15px;
-      background: #e8f5e8;
-      border-left: 4px solid #4CAF50;
-      cursor: pointer;
-      margin-bottom: 5px;
-      border-radius: 8px;
-    `;
-
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 15px; background: #e8f5e8; border-left: 4px solid #4CAF50;
+            cursor: pointer; margin-bottom: 5px; border-radius: 8px;
+        `;
         groupHeader.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <i class="fas fa-chevron-down" style="transition: transform 0.3s;"></i>
-        <strong>${groupName}</strong> (${groupedData[groupName].length})
-      </div>
-    `;
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-chevron-down" style="transition: transform 0.3s;"></i>
+                <strong>${groupName}</strong> (${groupedData[groupName].length})
+            </div>
+        `;
 
-        // 群組內容
         const groupContainer = document.createElement('div');
         groupContainer.className = 'edit-group-container';
-        groupContainer.style.cssText = `
-      display: none;
-      padding: 10px;
-      margin-bottom: 15px;
-    `;
+        groupContainer.style.cssText = `display: none; padding: 10px; margin-bottom: 15px;`;
 
         groupedData[groupName].forEach(p => {
+            // 🎯 2. 顯示名稱處理 (支援裝備的 detail_name)
+            const displayName = p.detail_name || p.name;
+            const detailParam = p.detail_name || '';
+
             const item = document.createElement('div');
             item.className = 'edit-person-item';
-            item.dataset.name = p.name;
+            item.dataset.name = displayName; // 搜尋時可以用全名
             item.dataset.group = groupName;
+            
+            // 👇 項目 HTML (完全保留你的樣式)
             item.style.cssText = `
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px;
-        border: 1px solid #eee;
-        margin-bottom: 5px;
-        background: white;
-        border-radius: 8px;
-      `;
+                display: flex; justify-content: space-between; align-items: center;
+                padding: 12px; border: 1px solid #eee; margin-bottom: 5px;
+                background: white; border-radius: 8px;
+            `;
 
             item.innerHTML = `
-        <div>
-          <strong style="font-size: 15px;">${p.name}</strong>
-          <div style="font-size: 12px; color: #666; margin-top: 3px;">${groupName}</div>
-        </div>
-        <div style="display: flex; gap: 8px;">
-          <button onclick="editSinglePersonnel(${p.id}, '${p.name}', '${groupName}')" style="padding: 8px 12px; background: #2196F3; color: white; border: none; border-radius: 5px; font-size: 13px;">
-            <i class="fas fa-edit"></i> 編輯
-          </button>
-          <button onclick="deleteSinglePersonnel(${p.id}, '${p.name}')" style="padding: 8px 12px; background: #F44336; color: white; border: none; border-radius: 5px; font-size: 13px;">
-            <i class="fas fa-trash"></i> 刪除
-          </button>
-        </div>
-      `;
-
+                <div>
+                    <strong style="font-size: 15px;">${displayName}</strong>
+                    ${p.detail_name && p.detail_name !== p.name ? `<div style="font-size: 11px; color: #999;">${p.name}</div>` : ''}
+                    <div style="font-size: 12px; color: #666; margin-top: 3px;">${groupName}</div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="editSingleItem('${p.id}', '${p.name}', '${groupName}', '${detailParam}')" style="padding: 8px 12px; background: #2196F3; color: white; border: none; border-radius: 5px; font-size: 13px;">
+                        <i class="fas fa-edit"></i> 編輯
+                    </button>
+                    <button onclick="deleteSingleItem('${p.id}', '${p.name}')" style="padding: 8px 12px; background: #F44336; color: white; border: none; border-radius: 5px; font-size: 13px;">
+                        <i class="fas fa-trash"></i> 刪除
+                    </button>
+                </div>
+            `;
             groupContainer.appendChild(item);
         });
 
-        // 點擊群組標題展開/收合
         groupHeader.addEventListener('click', function () {
             const icon = this.querySelector('i');
             if (groupContainer.style.display === 'none') {
@@ -1855,66 +1862,62 @@ function renderEditPersonnelList(personnel, groups) {
 }
 
 // ==========================================
-// 🚀 編輯單一人員：生成編輯視窗 (Supabase 直連版)
+// 🚀 編輯單一項目：生成編輯窗 (精準對應版)
 // ==========================================
-async function editSinglePersonnel(id, currentName, currentGroup) {
-    // 1. 直連抓取所有現有群組 (取代舊的 fetch API)
-    const { data: personnel } = await _supabase
-        .from('personnel_control')
-        .select('group_name')
-        .eq('is_active', true);
+async function editSingleItem(id, currentName, currentGroup, currentDetail) {
+    let table = currentView === 'equipment' ? 'equipment_control' : currentView === 'vehicle' ? 'vehicle_control' : 'personnel_control';
+    let groupLabel = currentView === 'equipment' ? '器材類別' : '所屬組別';
+    
+    // 找出這筆資料的原始內容 (為了車牌)
+    let rawItem = null;
+    if (currentView === 'vehicle') rawItem = currentData.vehicles.find(v => String(v.id) === String(id));
 
-    const groups = personnel ? [...new Set(personnel.map(p => p.group_name))].filter(Boolean) : [];
+    const { data } = await _supabase.from(table).select('*').eq('is_active', true);
+    const groups = [...new Set(data.map(i => currentView === 'equipment' ? i.category : i.group_name))].filter(Boolean);
 
-    // 建立編輯彈窗
     const editModal = document.createElement('div');
     editModal.className = 'modal';
-    editModal.style.zIndex = '2001';
-    editModal.id = 'single-edit-modal'; // 👈 加上這行！給小視窗一個專屬 ID
+    editModal.id = 'single-edit-modal';
+    editModal.style.zIndex = '3000';
+    
     editModal.innerHTML = `
     <div class="modal-content" style="max-width: 400px;">
       <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
-      <h3 style="margin-bottom: 20px;">
-        <i class="fas fa-user-edit"></i> 編輯人員
-      </h3>
+      <h3>編輯詳細資料</h3>
       
-      <div style="margin-bottom: 20px;">
-        <label style="display: block; margin-bottom: 5px; font-weight: bold;">姓名</label>
-        <input type="text" id="edit-name-input" value="${currentName}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+      <div style="margin-bottom: 15px;">
+        <label>名稱 / 姓名</label>
+        <input type="text" id="edit-name-input" value="${currentName}" style="width: 100%;">
       </div>
-      
-      <div style="margin-bottom: 20px;">
-        <label style="display: block; margin-bottom: 5px; font-weight: bold;">組別</label>
-        <select id="edit-group-select" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+
+      <div style="margin-bottom: 15px; display: ${currentView === 'vehicle' ? 'block' : 'none'};">
+        <label>車牌號碼</label>
+        <input type="text" id="edit-license-input" value="${rawItem?.license_plate || ''}" placeholder="例：ABC-1234" style="width: 100%; border: 1px solid var(--neon-orange);">
+      </div>
+
+      <div style="margin-bottom: 15px; display: ${currentView === 'equipment' ? 'block' : 'none'};">
+        <label>完整名稱 (詳細)</label>
+        <input type="text" id="edit-detail-name-input" value="${currentDetail}" style="width: 100%;">
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <label>${groupLabel}</label>
+        <select id="edit-group-select" style="width: 100%;">
           ${groups.map(g => `<option value="${g}" ${g === currentGroup ? 'selected' : ''}>${g}</option>`).join('')}
-          <option value="__custom__">📝 新增自訂組別...</option>
+          <option value="__custom__">📝 新增自訂...</option>
         </select>
-        <input type="text" id="edit-custom-group-input" placeholder="輸入新組別名稱" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; margin-top: 10px; display: none;">
+        <input type="text" id="edit-custom-group-input" placeholder="新名稱" style="width: 100%; margin-top: 10px; display: none;">
       </div>
-      
-      <div style="display: flex; gap: 10px;">
-        <button onclick="confirmEditPerson(${id})" style="flex: 1; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 8px; font-weight: bold;">
-          <i class="fas fa-check"></i> 確定
-        </button>
-        <button onclick="this.closest('.modal').remove()" style="flex: 1; padding: 12px; background: #f0f0f0; border: none; border-radius: 8px; font-weight: bold;">
-          <i class="fas fa-times"></i> 取消
-        </button>
-      </div>
+
+      <button onclick="confirmEditItem('${id}')" style="width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 8px;">儲存變更</button>
     </div>
-  `;
+    `;
 
     document.body.appendChild(editModal);
     editModal.style.display = 'block';
 
-    // 選擇「新增自訂組別」時顯示輸入框
-    document.getElementById('edit-group-select').onchange = function () {
-        const customInput = document.getElementById('edit-custom-group-input');
-        if (this.value === '__custom__') {
-            customInput.style.display = 'block';
-            customInput.focus();
-        } else {
-            customInput.style.display = 'none';
-        }
+    document.getElementById('edit-group-select').onchange = function() {
+        document.getElementById('edit-custom-group-input').style.display = this.value === '__custom__' ? 'block' : 'none';
     };
 }
 

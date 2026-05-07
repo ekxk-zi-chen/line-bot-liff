@@ -100,7 +100,7 @@ function renderGroupControls() {
 
             memberItem.innerHTML = `
                 <label style="display: flex; align-items: center; width: 100%; gap: 15px; cursor: pointer; margin: 0; padding: 5px;">
-                    ${userRole === '管理' ? `<input type="checkbox" class="group-member-checkbox" data-group="${groupName}" data-id="${member.id}" style="transform: scale(1.4); margin-left: 5px; accent-color: var(--neon-orange);">` : ''}
+                    ${userRole === '管理' ? `<input type="checkbox" class="group-member-checkbox" data-group="${groupName}" data-id="${member.id}" onchange="updateGroupSelectedCount('${groupName}')" style="transform: scale(1.4); margin-left: 5px; accent-color: var(--neon-orange);">` : ''}
                     <div class="member-info" style="flex: 1; display: flex; justify-content: space-between; align-items: center;">
                         <span class="member-name" style="font-size: 16px;">${displayName}</span>
                         <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
@@ -118,7 +118,7 @@ function renderGroupControls() {
             actionFooter.style.cssText = "display: flex; justify-content: flex-end; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-dim);";
             actionFooter.innerHTML = `
                 <button onclick="updateSelectedInGroup('${groupName}', '${currentView === 'personnel' ? '外出' : '應勤'}')" style="padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; background: rgba(255, 170, 0, 0.15); border: 1px solid var(--neon-orange); color: var(--neon-orange); text-align: center; box-shadow: 0 0 10px rgba(255, 170, 0, 0.2);">
-                    <i class="fas fa-check-square"></i> 外出選取${label}(${groups[groupName].length}${unit})
+                    <i class="fas fa-check-square"></i> 選取${label} (<span data-group-count="${groupName}">0</span> / ${groups[groupName].length}${unit})外出
                 </button>
             `;
             membersList.appendChild(actionFooter); 
@@ -129,3 +129,17 @@ function renderGroupControls() {
         container.appendChild(groupDiv);
     });
 }
+
+// 🎯 動態更新：計算群組內被勾選的數量
+window.updateGroupSelectedCount = function(groupName) {
+    // 找出該群組底下「已經被打勾」的 checkbox
+    const checkboxes = document.querySelectorAll(`.group-member-checkbox[data-group="${groupName}"]:checked`);
+    
+    // 找出對應群組的計數器 Span
+    const countSpan = document.querySelector(`span[data-group-count="${groupName}"]`);
+    
+    // 把打勾的數量寫進去
+    if (countSpan) {
+        countSpan.textContent = checkboxes.length;
+    }
+};

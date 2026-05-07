@@ -85,6 +85,7 @@ async function loadDataFromSupabase() {
         currentData.vehicles = (resV.data || []).map(item => ({
             id: item.id,
             name: item.name,
+            license_plate: item.license_plate || '', // 🎯 補上車牌欄位
             group: item.group_name || '未分組', // 🎯 這裡改為 group_name
             photo: item.photo || 'default.jpg',
             status: item.status || '在隊',
@@ -112,17 +113,17 @@ async function loadDataFromSupabase() {
     }
 }
 
-// 🕵️‍♂️ 輕量化檢查：只抓 ID 與 狀態時間 (time_status)，把封包壓到極致！
+// 🕵️‍♂️ 輕量化檢查：抓取 ID、time_status (人員專屬額外抓 evac_status)
 async function checkUpdatesFromSupabase() {
     // 如果正在進行完整同步，就先不打擾
     if (syncStatus.isSyncing) return;
 
     try {
-        // 🚀 核心：改抓 time_status！因為你的程式碼每次更新都會確實寫入這個欄位
+        // 🚀 核心修正：車輛拔除 evac_status，只留給人員！
         const [resP, resE, resV] = await Promise.all([
-            _supabase.from('personnel_control').select('id, time_status').eq('is_active', true),
+            _supabase.from('personnel_control').select('id, time_status, evac_status').eq('is_active', true),
             _supabase.from('equipment_control').select('id, time_status').eq('is_active', true),
-            _supabase.from('vehicle_control').select('id, time_status').eq('is_active', true)
+            _supabase.from('vehicle_control').select('id, time_status').eq('is_active', true) // 🎯 車輛恢復純淨版
         ]);
 
         if (resP.error) throw resP.error;
@@ -131,35 +132,50 @@ async function checkUpdatesFromSupabase() {
 
         let hasChanges = false;
 
-        // 🧠 建立比對邏輯
-        const detectChanges = (localData, remoteData) => {
+        // 🧠 升級比對邏輯：同時比對時間與撤離燈號
+        const detectChanges = (localData, remoteData, checkEvac = false) => {
             if (!remoteData) return false;
-            // 1. 數量不一樣（有人加入或移出面板），直接判定有變動
             if (localData.length !== remoteData.length) return true; 
 
-            // 2. 建立遠端資料的字典 (Map)
+            // 建立遠端字典
             const remoteMap = {};
-            remoteData.forEach(item => remoteMap[item.id] = item.time_status);
+            remoteData.forEach(item => {
+                remoteMap[item.id] = { 
+                    time: item.time_status, 
+                    evac: item.evac_status 
+                };
+            });
 
-            // 3. 檢查本地端的每一筆資料
+            // 檢查本地每一筆資料
             return localData.some(localItem => {
-                // 如果本地的時間，跟遠端對不上，代表有人改過狀態了！
-                return remoteMap[localItem.id] !== localItem.time_status;
+                const remote = remoteMap[localItem.id];
+                if (!remote) return true; // 遠端找不到這筆（被刪了）
+                if (remote.time !== localItem.time_status) return true; // 狀態/時間有變
+                
+                // 🚨 致命修復：檢查撤離狀態 (只有傳入 true 的才會檢查)
+                if (checkEvac && remote.evac !== localItem.evac_status) return true;
+                
+                return false;
             });
         };
 
         // 依序檢查三個兵種
-        hasChanges = hasChanges || detectChanges(currentData.employees, resP.data);
-        hasChanges = hasChanges || detectChanges(currentData.equipment, resE.data);
-        hasChanges = hasChanges || detectChanges(currentData.vehicles, resV.data || []);
+        hasChanges = hasChanges || detectChanges(currentData.employees, resP.data, true);  // 🎯 人員：檢查撤離
+        hasChanges = hasChanges || detectChanges(currentData.equipment, resE.data, false); // 🎯 器材：不檢查
+        hasChanges = hasChanges || detectChanges(currentData.vehicles, resV.data || [], false); // 🎯 車輛：不檢查撤離！
 
         if (hasChanges) {
-            console.log("🔄 發現雲端狀態有變動，啟動完整更新！");
-            // 只要有一筆不同，就呼叫原本的重型函數去抓完整資料並重繪畫面
+            console.log("🔄 發現變動，啟動完整更新！");
             await loadDataFromSupabase();
             renderView();
-        } else {
-            // console.log("✅ 輕量檢查完畢：無人變動，成功省下一次完整傳輸");
+            
+            // 🎯 確保撤離視窗開啟時，且重繪函數存在時才執行
+            const evacModal = document.getElementById('evac-modal');
+            if (evacModal && evacModal.style.display === 'block') {
+                if (typeof renderEvacList === 'function') {
+                    renderEvacList();
+                }
+            }
         }
     } catch (error) {
         console.error("輕量檢查失敗:", error);
@@ -204,38 +220,61 @@ async function performStatusUpdateDirect(id, newStatus, reason, skipReload = fal
     }
 }
 
-// ✏️ 4. 編輯人員寫入
-async function confirmEditPerson(id) {
+// ✏️ 4. 編輯資料寫入 (精準欄位版)
+async function confirmEditItem(id) {
+    let table = 'personnel_control';
+    if (currentView === 'equipment') table = 'equipment_control';
+    if (currentView === 'vehicle') table = 'vehicle_control';
+
     const newName = document.getElementById('edit-name-input').value.trim();
+    const newDetailName = document.getElementById('edit-detail-name-input')?.value.trim();
+    const newLicense = document.getElementById('edit-license-input')?.value.trim(); // 🎯 車牌
+    
     let newGroup = document.getElementById('edit-group-select').value;
     if (newGroup === '__custom__') newGroup = document.getElementById('edit-custom-group-input').value.trim();
 
-    if (!newName || !newGroup) return showNotification('⚠️ 姓名與組別不可為空');
+    if (!newName || !newGroup) return showNotification('⚠️ 名稱與組別不可為空');
 
-    const { error } = await _supabase
-        .from('personnel_control')
-        .update({ name: newName, group_name: newGroup })
-        .eq('id', id);
+    // 🎯 核心修正：根據不同視圖建立「乾淨」的更新物件
+    let updateData = { name: newName };
+
+    if (currentView === 'personnel') {
+        updateData.group_name = newGroup;
+        // ❌ 不加入 detail_name，避免 400 錯誤
+    } 
+    else if (currentView === 'equipment') {
+        updateData.category = newGroup;
+        updateData.detail_name = newDetailName;
+    } 
+    else if (currentView === 'vehicle') {
+        updateData.group_name = newGroup;
+        updateData.license_plate = newLicense; // 🎯 寫入車牌
+        // 車輛暫時不顯示 detail_name，但如果你資料表有，可以留著
+        if (newDetailName !== undefined) updateData.detail_name = newDetailName;
+    }
+
+    const { error } = await _supabase.from(table).update(updateData).eq('id', id);
 
     if (error) {
         showNotification('❌ 更新失敗：' + error.message);
     } else {
         showNotification('✅ 更新成功');
-        const smallModal = document.getElementById('single-edit-modal');
-        if (smallModal) smallModal.remove();
+        document.getElementById('single-edit-modal')?.remove();
         await loadDataFromSupabase();
         renderView();
-        showEditPersonnelModal();
+        showEditDataModal(); 
     }
 }
 
-// 🗑️ 5. 軟刪除人員
-async function deleteSinglePersonnel(id, name) {
-    if (!confirm(`確定要刪除 ${name} 嗎？\n(資料將會隱藏，不會完全從資料庫抹除)`)) return;
-    const { error } = await _supabase
-        .from('personnel_control')
-        .update({ is_active: false })
-        .eq('id', id);
+// 🗑️ 5. 軟刪除資料 (升級通用版)
+async function deleteSingleItem(id, name) {
+    if (!confirm(`確定要將「${name}」從任務中移除嗎？\n(資料將會隱藏，不會完全從資料庫抹除)`)) return;
+    
+    let table = 'personnel_control';
+    if (currentView === 'equipment') table = 'equipment_control';
+    if (currentView === 'vehicle') table = 'vehicle_control';
+
+    const { error } = await _supabase.from(table).update({ is_active: false }).eq('id', id);
 
     if (error) {
         showNotification('❌ 刪除失敗：' + error.message);
@@ -243,7 +282,7 @@ async function deleteSinglePersonnel(id, name) {
         showNotification('✅ 刪除成功');
         await loadDataFromSupabase();
         renderView();
-        showEditPersonnelModal();
+        showEditDataModal(); // 刷新編輯列表
     }
 }
 

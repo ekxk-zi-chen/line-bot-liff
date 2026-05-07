@@ -130,7 +130,8 @@ function showGroupReasonModal(groupName, newStatus, specificIds = null) {
         return groupKey === groupName;
     });
 
-    if (specificIds) groupItems = groupItems.filter(item => specificIds.includes(item.id));
+    // 🎯 加上 String() 強制轉型，數字與字串就能完美比對了！
+    if (specificIds) groupItems = groupItems.filter(item => specificIds.includes(String(item.id)));
     if (groupItems.length === 0) return;
 
     const existingModal = document.getElementById('group-reason-modal');
@@ -311,7 +312,7 @@ function showImageModal(name, status, time) {
 
     document.getElementById('image-info').innerHTML = `
         <h3>${displayName}</h3>
-        ${item.detail_name && item.detail_name !== item.name ? `<p class="short-name">簡稱：${item.name}</p>` : ''}
+        ${item.detail_name && item.detail_name !== item.name ? `<p class="short-name">${item.name}</p>` : ''}
         <p><strong>${groupLabel}：</strong>${groupInfo}</p>
         <p><strong>狀態：</strong><span class="status-badge ${getStatusClass(item.status)}">${status}</span></p>
         <p><strong>最後更新：</strong>${time}</p>

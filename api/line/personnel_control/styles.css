@@ -811,7 +811,7 @@ button[onclick="confirmBatchAdd()"]:hover {
     height: 30px;
     border-radius: 50%;
     cursor: pointer;
-    z-index: 10001; /* 確保在最上層 */
+    z-index: 100; /* 確保在最上層 */
     transition: 0.3s;
     display: flex;
     align-items: center;

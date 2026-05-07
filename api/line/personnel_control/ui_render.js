@@ -230,14 +230,37 @@ function createCardSync(item) {
         `;
     }
 
+    let cardBodyHTML = '';
+
+    if (currentView === 'equipment') {
+        // 🎯 器材：極簡化，只顯示簡稱 (item.name)
+        cardBodyHTML = `
+            <div class="card-name shortname" data-name="${item.name}">${item.name}</div>
+            <div class="card-status">${item.time_status} ${statusText}</div>
+        `;
+    } else if (currentView === 'vehicle') {
+        // 🎯 車輛：顯示名字 + 下方顯示車牌號碼 (license_plate)
+        cardBodyHTML = `
+            <div class="card-name" data-name="${item.name}">${item.name}</div>
+            <div class="card-category" style="color: var(--neon-orange); font-size: 13px; margin-bottom: 5px; font-weight: bold; text-align: center;">
+                <i class="fas fa-id-card"></i> ${item.license_plate || '無車牌'}
+            </div>
+            <div class="card-status">${item.time_status} ${statusText}</div>
+        `;
+    } else {
+        // 人員：維持你原本的排版
+        const displayName = item.detail_name || item.name;
+        cardBodyHTML = `
+            <div class="card-name" data-name="${item.name}">${displayName}</div>
+            ${item.detail_name && item.detail_name !== item.name ? `<div class="card-shortname">${item.name}</div>` : ''}
+            <div class="card-status">${item.time_status} ${statusText}</div>
+        `;
+    }
+
+    // 組合最終內容
     cardContent.innerHTML = `
-        ${currentView === 'equipment' && item.category ? `<div class="card-category">${item.category}</div>` : ''}
-        <div class="card-name ${item.detail_name ? 'fullname' : 'shortname'}" data-name="${item.name}" title="${item.detail_name ? item.name : ''}">
-            ${displayName}
-        </div>
-        ${item.detail_name && item.detail_name !== item.name ? `<div class="card-shortname">簡稱：${item.name}</div>` : ''}
-        <div class="card-status">${item.time_status} ${statusText}</div>
-        ${currentReason && (item.status === '外出' || item.status === '應勤') ? `<div class="card-reason" title="原因：${currentReason}">${currentReason}</div>` : ''}
+        ${cardBodyHTML}
+        ${currentReason && (item.status === '外出' || item.status === '應勤') ? `<div class="card-reason">${currentReason}</div>` : ''}
         ${buttonsHTML}
     `;
 
