@@ -897,7 +897,11 @@ async function batchAll(action) {
         return;
     }
 
-    const data = currentView === 'personnel' ? currentData.employees : currentData.equipment;
+    // 🎯 修正：補上完美的「三向判斷」資料源
+    let data = currentData.employees;
+    if (currentView === 'equipment') data = currentData.equipment;
+    if (currentView === 'vehicle') data = currentData.vehicles;
+
     const newStatus = action === 'BoO' ?
         (currentView === 'personnel' ? 'BoO' : '在隊') :
         (currentView === 'personnel' ? '外出' : '應勤');
@@ -918,7 +922,11 @@ async function batchAll(action) {
 async function performBatchAllUpdate(newStatus, reason) {
     try {
         showNotification('🚀 正在處理全體批次更新...');
-        const data = currentView === 'personnel' ? currentData.employees : currentData.equipment;
+        
+        // 🎯 修正：補上完美的「三向判斷」資料源
+        let data = currentData.employees;
+        if (currentView === 'equipment') data = currentData.equipment;
+        if (currentView === 'vehicle') data = currentData.vehicles;
 
         // 使用 Promise.all 同時發送請求，開啟 skipReload 靜音模式
         const promises = data.map(item => performStatusUpdateDirect(item.id, newStatus, reason, true));
