@@ -122,16 +122,25 @@ function updateStats() {
     }
 }
 
-// 🕒 4. 自動刷新控制
+// 🕒 4. 自動刷新控制 (升級為輕量化輪詢版)
 function startAutoRefresh(interval = 30000) {
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+    
     autoRefreshInterval = setInterval(async () => {
         if (!syncStatus.isOnline || syncStatus.isSyncing) return;
         try {
-            await loadDataFromSupabase();
-            updateStats();
-            updateChangedCards(); 
-        } catch (error) { console.log('自動刷新失敗:', error); }
+            // 🚀 改為呼叫輕量檢查函數！
+            if (typeof checkUpdatesFromSupabase === 'function') {
+                await checkUpdatesFromSupabase();
+            } else {
+                // 如果找不到探子函數 (防呆機制)，才退回原本的無腦全抓
+                await loadDataFromSupabase();
+                updateStats();
+                updateChangedCards(); 
+            }
+        } catch (error) { 
+            console.log('自動刷新失敗:', error); 
+        }
     }, interval);
 }
 

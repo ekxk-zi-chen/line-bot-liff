@@ -112,6 +112,60 @@ async function loadDataFromSupabase() {
     }
 }
 
+// 🕵️‍♂️ 輕量化檢查：只抓 ID 與 狀態時間 (time_status)，把封包壓到極致！
+async function checkUpdatesFromSupabase() {
+    // 如果正在進行完整同步，就先不打擾
+    if (syncStatus.isSyncing) return;
+
+    try {
+        // 🚀 核心：改抓 time_status！因為你的程式碼每次更新都會確實寫入這個欄位
+        const [resP, resE, resV] = await Promise.all([
+            _supabase.from('personnel_control').select('id, time_status').eq('is_active', true),
+            _supabase.from('equipment_control').select('id, time_status').eq('is_active', true),
+            _supabase.from('vehicle_control').select('id, time_status').eq('is_active', true)
+        ]);
+
+        if (resP.error) throw resP.error;
+        if (resE.error) throw resE.error;
+        if (resV.error && resV.error.code !== '42P01') console.warn(resV.error);
+
+        let hasChanges = false;
+
+        // 🧠 建立比對邏輯
+        const detectChanges = (localData, remoteData) => {
+            if (!remoteData) return false;
+            // 1. 數量不一樣（有人加入或移出面板），直接判定有變動
+            if (localData.length !== remoteData.length) return true; 
+
+            // 2. 建立遠端資料的字典 (Map)
+            const remoteMap = {};
+            remoteData.forEach(item => remoteMap[item.id] = item.time_status);
+
+            // 3. 檢查本地端的每一筆資料
+            return localData.some(localItem => {
+                // 如果本地的時間，跟遠端對不上，代表有人改過狀態了！
+                return remoteMap[localItem.id] !== localItem.time_status;
+            });
+        };
+
+        // 依序檢查三個兵種
+        hasChanges = hasChanges || detectChanges(currentData.employees, resP.data);
+        hasChanges = hasChanges || detectChanges(currentData.equipment, resE.data);
+        hasChanges = hasChanges || detectChanges(currentData.vehicles, resV.data || []);
+
+        if (hasChanges) {
+            console.log("🔄 發現雲端狀態有變動，啟動完整更新！");
+            // 只要有一筆不同，就呼叫原本的重型函數去抓完整資料並重繪畫面
+            await loadDataFromSupabase();
+            renderView();
+        } else {
+            // console.log("✅ 輕量檢查完畢：無人變動，成功省下一次完整傳輸");
+        }
+    } catch (error) {
+        console.error("輕量檢查失敗:", error);
+    }
+}
+
 // ⚡ 3. 狀態更新底層 (單一與批次共用)
 async function performStatusUpdateDirect(id, newStatus, reason, skipReload = false) {
     try {
