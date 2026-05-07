@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <title>特搜大隊 - 戰術健康監控系統</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --neon-blue: #00f2ff;
+      --neon-red: #ff0055;
+      --bg-dark: #060b13;
+      --panel-bg: rgba(10, 15, 28, 0.95);
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: #e2e8f0;
+      overflow-x: hidden;
+      font-family: 'Monaco', 'Consolas', '微軟正黑體', monospace;
+      touch-action: manipulation;
+    }
+
+    /* 掃描線效果 */
+    body::before {
+      content: " ";
+      display: block;
+      position: fixed;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+      z-index: 9999;
+      background-size: 100% 4px, 3px 100%;
+      pointer-events: none;
+    }
+
+    .fui-panel {
+      background: var(--panel-bg);
+      border: 1px solid rgba(0, 242, 255, 0.3);
+      position: relative;
+      clip-path: polygon(0 10px, 10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+    }
+
+    .fui-panel::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      border-left: 4px solid var(--neon-blue);
+      clip-path: polygon(0 0, 0 20px, 0 0, 20px 0);
+      pointer-events: none;
+    }
+
+    .fui-input {
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(0, 242, 255, 0.4);
+      color: var(--neon-blue);
+      padding: 12px;
+      transition: all 0.3s;
+    }
+    .fui-input:focus { border-color: var(--neon-blue); box-shadow: 0 0 12px rgba(0, 242, 255, 0.6); outline: none; }
+
+    .day-btn {
+      transition: all 0.15s;
+      border: 1px solid rgba(0, 242, 255, 0.2);
+      background: rgba(0, 0, 0, 0.5);
+      aspect-ratio: 1;
+      min-height: 48px;
+      font-size: 1.15rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .is-active {
+      background: rgba(0, 242, 255, 0.25);
+      border-color: var(--neon-blue);
+      color: var(--neon-blue);
+      box-shadow: inset 0 0 15px rgba(0, 242, 255, 0.4), 0 0 8px rgba(0, 242, 255, 0.3);
+    }
+
+    .btn-neon-blue {
+      background: rgba(0, 242, 255, 0.15);
+      border: 1px solid var(--neon-blue);
+      color: var(--neon-blue);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      transition: all 0.2s;
+    }
+    .btn-neon-blue:active { background: var(--neon-blue); color: #000; box-shadow: 0 0 20px var(--neon-blue); transform: scale(0.98); }
+
+    /* ★ 爆炸動畫相關 CSS ★ */
+    #loading { transition: opacity 0.5s; }
+    .loading-core {
+      width: 60px;
+      height: 60px;
+      border: 2px solid var(--neon-blue);
+      position: relative;
+      animation: rotateCore 2s linear infinite;
+    }
+    .loading-core::before {
+      content: '';
+      position: absolute;
+      inset: 5px;
+      border: 1px solid var(--neon-red);
+      animation: pulseCore 1s ease-in-out infinite alternate;
+    }
+    @keyframes rotateCore { 0% { transform: rotate(0deg); box-shadow: 0 0 5px var(--neon-blue); } 100% { transform: rotate(360deg); box-shadow: 0 0 20px var(--neon-blue); } }
+    @keyframes pulseCore { 0% { transform: scale(0.8); opacity: 0.5; } 100% { transform: scale(1.2); opacity: 1; } }
+
+    /* 爆炸效果衝擊波 */
+    .explosion-ring {
+      position: absolute;
+      border: 2px solid var(--neon-blue);
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .animate-explode {
+      animation: explodeCircle 0.6s ease-out forwards;
+    }
+    @keyframes explodeCircle {
+      0% { width: 0; height: 0; opacity: 1; border-width: 10px; }
+      100% { width: 500px; height: 500px; opacity: 0; border-width: 1px; }
+    }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body class="p-4">
+
+  <div id="login-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black">
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-black text-white tracking-widest" style="text-shadow: 0 0 20px var(--neon-blue);">系統登入</h1>
+      <p class="text-xs text-blue-400 mt-2 tracking-[0.2em]">SAR TACTICAL TERMINAL V2.0</p>
+    </div>
+    <div class="fui-panel p-8 w-80">
+      <input type="password" id="pwdInput" class="fui-input w-full text-center text-xl mb-6" placeholder="輸入授權碼">
+      <button onclick="checkLogin()" class="btn-neon-blue w-full py-4 font-bold tracking-widest text-lg">進入系統</button>
+      <p class="text-[10px] text-gray-600 mt-4 text-center">成功登入後將於本機授權免重複輸入</p>
+    </div>
+  </div>
+
+  <div id="app-content" class="hidden max-w-md mx-auto h-screen flex flex-col">
+    <div class="flex items-center gap-2 mb-4">
+      <button onclick="window.location.href='app_docs.html'" class="fui-panel p-4 border-gray-500 text-gray-400 hover:text-white transition active:bg-gray-800">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      </button>
+      <div class="flex-1 flex fui-panel overflow-hidden">
+        <button id="tab-form" onclick="switchView('form')" class="flex-1 py-4 text-base font-bold bg-blue-900/50 text-blue-300 tracking-wider">控制面板</button>
+        <button id="tab-data" onclick="switchView('data')" class="flex-1 py-4 text-base font-bold text-gray-500 tracking-wider">已填紀錄</button>
+      </div>
+    </div>
+
+    <div class="flex-1 overflow-y-auto no-scrollbar space-y-4 pb-10">
+      <div id="view-form" class="space-y-4">
+        <div class="fui-panel p-5 space-y-5">
+          <div>
+            <label class="text-[11px] text-blue-400 font-bold block mb-2 tracking-wider">資料庫選擇 DATABASE</label>
+            <select id="fileId" class="fui-input w-full text-base font-bold" onchange="changeFile()">
+              <option value="">連線中...</option>
+            </select>
+          </div>
+          <div class="border-t border-blue-900/50 pt-4">
+            <label class="text-[11px] text-blue-400 font-bold block mb-2 tracking-wider">人員選擇 PERSONNEL</label>
+            <select id="sheetName" class="fui-input w-full text-xl font-bold" onchange="changePerson()">
+              <option value="">-- 請先選擇資料庫 --</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="fui-panel p-5 grid grid-cols-2 gap-4">
+          <div class="col-span-2 text-[11px] text-blue-400 font-bold border-b border-blue-900/50 pb-1 mb-1 tracking-wider">生理數值範圍 BIOMETRIC RANGE</div>
+          <div><label class="text-[11px] text-gray-400 block mb-1">最低體溫</label><input type="number" step="0.1" id="tempMin" class="fui-input w-full rounded-sm text-lg"></div>
+          <div><label class="text-[11px] text-gray-400 block mb-1">最高體溫</label><input type="number" step="0.1" id="tempMax" class="fui-input w-full rounded-sm text-lg"></div>
+          <div><label class="text-[11px] text-gray-400 block mb-1">收縮壓下限</label><input type="number" id="sysMin" class="fui-input w-full rounded-sm text-lg"></div>
+          <div><label class="text-[11px] text-gray-400 block mb-1">收縮壓上限</label><input type="number" id="sysMax" class="fui-input w-full rounded-sm text-lg"></div>
+        </div>
+
+        <div class="fui-panel p-5 space-y-4">
+          <div class="text-[11px] text-blue-400 font-bold border-b border-blue-900/50 pb-1 mb-1 tracking-wider">健康狀態 STATUS</div>
+          <select id="discomfort" class="fui-input w-full text-base">
+            <option value="無明顯不適">狀態: 無明顯不適</option>
+            <option value="咳嗽">狀態: 咳嗽</option>
+            <option value="喉嚨痛">狀態: 喉嚨痛</option>
+            <option value="頭暈/疲勞感">狀態: 頭暈/疲勞感</option>
+            <option value="腹瀉/噁心">狀態: 腹瀉/噁心</option>
+            <option value="呼吸困難/胸悶">狀態: 呼吸困難/胸悶</option>
+            <option value="皮膚紅疹/割傷">狀態: 皮膚紅疹/割傷</option>
+          </select>
+          <select id="sleep" class="fui-input w-full text-base"><option value="良好(>6H)">睡眠: 良好(>6H)</option><option value="一般(4~6H)">睡眠: 一般(4~6H)</option><option value="欠佳(<4H)">睡眠: 欠佳(<4H)</option></select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mt-4">
+          <button onclick="submitToday()" class="btn-neon-blue py-5 text-lg font-bold rounded-sm tracking-widest shadow-lg">填寫今日</button>
+          <button onclick="openCalendar()" class="btn-neon-blue py-5 text-lg font-bold rounded-sm tracking-widest shadow-lg" style="border-color: #a855f7; color: #a855f7;">填寫整個月份</button>
+        </div>
+      </div>
+
+      <div id="view-data" class="hidden">
+        <div class="fui-panel p-0 overflow-hidden">
+          <table class="w-full text-sm text-left">
+            <thead class="bg-blue-900/40 text-blue-300">
+              <tr><th class="p-4">日期</th><th class="p-4">體溫</th><th class="p-4">血壓</th></tr>
+            </thead>
+            <tbody id="data-tbody" class="divide-y divide-blue-900/40"></tbody>
+          </table>
+          <div id="no-data-msg" class="p-10 text-center text-gray-500 tracking-widest text-lg">查無資料</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="calendarModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/95 backdrop-blur-xl">
+    <div class="fui-panel w-full max-w-sm bg-[#060b13] p-5 shadow-[0_0_40px_rgba(0,242,255,0.15)]">
+      <div class="flex justify-between items-center mb-5 border-b border-blue-900/60 pb-3">
+        <h3 class="text-blue-400 font-bold tracking-widest text-lg">任務日期選擇</h3>
+        <button onclick="closeCalendar()" class="text-white text-3xl hover:text-red-500 transition px-2">&times;</button>
+      </div>
+      <div id="calendarGrid" class="grid grid-cols-7 gap-2.5 mb-6"></div>
+      <div class="flex gap-3">
+        <button onclick="selectAll()" class="fui-panel px-5 py-3 text-sm text-gray-300 hover:text-white transition">全選</button>
+        <button onclick="submitBatch()" class="btn-neon-blue flex-1 py-4 text-lg font-bold tracking-widest shadow-lg">確認執行</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading" class="hidden fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md">
+    <div class="loading-core mb-8"></div>
+    <div id="status-text" class="text-sm text-blue-400 font-mono tracking-[0.25em] animate-pulse">數據注入中...</div>
+    <div id="explosion-container" class="absolute inset-0 flex items-center justify-center pointer-events-none"></div>
+  </div>
+
+  <script>
+    const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzp0PBTNz8z5Ek3GZhFFHqtC9vvTJZHZEWtmPfFTOWolkPsiKnUC442lSIPqEfRyS7_/exec"; // 務必填入你的 GAS 網址
+    
+    let currentPwd = "";
+    let personDataCache = {};
+    let initialSelectedDays = new Set(); 
+
+    // 初始化：檢查本地是否有儲存密碼
+    document.addEventListener("DOMContentLoaded", () => {
+      const savedPwd = localStorage.getItem('squad_auth_pwd');
+      if (savedPwd === '9119') {
+        currentPwd = '9119';
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app-content').classList.remove('hidden');
+        initApp();
+      }
+    });
+
+    function checkLogin() {
+      const val = document.getElementById('pwdInput').value;
+      if (val === '9119') {
+        currentPwd = '9119';
+        localStorage.setItem('squad_auth_pwd', '9119'); // 存入本地
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app-content').classList.remove('hidden');
+        initApp();
+      } else { alert('授權碼錯誤！'); }
+    }
+
+    // 爆炸動畫函式
+    function triggerExplosion() {
+      const container = document.getElementById('explosion-container');
+      const ring = document.createElement('div');
+      ring.className = 'explosion-ring animate-explode';
+      container.appendChild(ring);
+      
+      // 隨機噴散粒子
+      for (let i = 0; i < 20; i++) {
+        const dot = document.createElement('div');
+        dot.style.position = 'absolute';
+        dot.style.width = '4px';
+        dot.style.height = '4px';
+        dot.style.background = Math.random() > 0.5 ? 'var(--neon-blue)' : 'var(--neon-red)';
+        dot.style.boxShadow = `0 0 10px ${dot.style.background}`;
+        
+        const angle = Math.random() * Math.PI * 2;
+        const velocity = 5 + Math.random() * 15;
+        const vx = Math.cos(angle) * velocity;
+        const vy = Math.sin(angle) * velocity;
+        
+        container.appendChild(dot);
+        
+        let posX = 0;
+        let posY = 0;
+        let opacity = 1;
+        
+        const move = () => {
+          posX += vx;
+          posY += vy;
+          opacity -= 0.02;
+          dot.style.transform = `translate(${posX}px, ${posY}px)`;
+          dot.style.opacity = opacity;
+          if (opacity > 0) requestAnimationFrame(move);
+          else dot.remove();
+        };
+        requestAnimationFrame(move);
+      }
+      
+      setTimeout(() => { ring.remove(); }, 600);
+    }
+
+    async function initApp() {
+      loadConfig();
+      showLoading();
+      try {
+        const res = await fetch(`${GAS_WEBAPP_URL}?pwd=${currentPwd}&action=getFiles`);
+        const json = await res.json();
+        const fileSelect = document.getElementById('fileId');
+        fileSelect.innerHTML = '<option value="">-- 請選擇資料庫 --</option>' + json.files.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+        const savedFile = localStorage.getItem('squad_health_fileId');
+        if (savedFile && json.files.find(f => f.id === savedFile)) {
+          fileSelect.value = savedFile;
+          await loadPersonsForFile(savedFile, true);
+        }
+      } catch (e) {}
+      hideLoading();
+    }
+
+    async function changeFile() {
+      const fileId = document.getElementById('fileId').value;
+      localStorage.setItem('squad_health_fileId', fileId);
+      if (!fileId) return;
+      showLoading();
+      try { await loadPersonsForFile(fileId, false); } catch(e) {}
+      hideLoading();
+    }
+
+    async function loadPersonsForFile(fileId, isInit) {
+      const savedName = localStorage.getItem('squad_health_name') || "";
+      const personSelect = document.getElementById('sheetName');
+      personSelect.innerHTML = '<option value="">讀取人員中...</option>';
+      const fetchNameUrl = isInit && savedName ? encodeURIComponent(savedName) : '';
+      const res = await fetch(`${GAS_WEBAPP_URL}?pwd=${currentPwd}&action=init&fileId=${fileId}&sheetName=${fetchNameUrl}`);
+      const json = await res.json();
+      if (json.status === 'success') {
+        personSelect.innerHTML = '<option value="">-- 請選擇人員 --</option>' + json.names.map(n => `<option value="${n}">${n}</option>`).join('');
+        if (isInit && savedName && json.names.includes(savedName)) {
+          personSelect.value = savedName;
+          personDataCache = json.personData || {};
+          renderDataView();
+        }
+      }
+    }
+
+    async function changePerson() {
+      const name = document.getElementById('sheetName').value;
+      localStorage.setItem('squad_health_name', name);
+      const fileId = document.getElementById('fileId').value;
+      if (!fileId || !name) return;
+      showLoading();
+      try {
+        const res = await fetch(`${GAS_WEBAPP_URL}?pwd=${currentPwd}&action=init&fileId=${fileId}&sheetName=${encodeURIComponent(name)}`);
+        const json = await res.json();
+        personDataCache = json.personData || {};
+        renderDataView();
+      } catch(e) {}
+      hideLoading();
+    }
+
+    async function submitBatch() {
+      const btns = document.querySelectorAll('.day-btn');
+      const currentSelected = new Set();
+      btns.forEach(btn => { if(btn.classList.contains('is-active')) currentSelected.add(parseInt(btn.innerText)); });
+      const toFill = [...currentSelected].filter(d => !initialSelectedDays.has(d));
+      const toClear = [...initialSelectedDays].filter(d => !currentSelected.has(d));
+      if (toFill.length === 0 && toClear.length === 0) return alert('未偵測到變更。');
+      closeCalendar();
+      showLoading();
+      try {
+        const res = await fetch(GAS_WEBAPP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ pwd: currentPwd, fileId: document.getElementById('fileId').value, sheetName: document.getElementById('sheetName').value, toFill, toClear, config: getConfig() })
+        });
+        const json = await res.json();
+        if (json.status === 'success') {
+          triggerExplosion(); // 成功時觸發爆炸
+          document.getElementById('status-text').innerText = "注入成功！";
+          setTimeout(() => { changePerson(); hideLoading(); }, 800);
+        }
+      } catch (e) { alert('同步失敗'); hideLoading(); }
+    }
+
+    function submitToday() {
+      const today = new Date().getDate();
+      processDirectSubmit([today], []);
+    }
+
+    async function processDirectSubmit(toFill, toClear) {
+      showLoading();
+      try {
+        await fetch(GAS_WEBAPP_URL, { 
+          method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ pwd: currentPwd, fileId: document.getElementById('fileId').value, sheetName: document.getElementById('sheetName').value, toFill, toClear, config: getConfig() }) 
+        });
+        triggerExplosion(); // 成功時觸發爆炸
+        document.getElementById('status-text').innerText = "注入成功！";
+        setTimeout(() => { changePerson(); hideLoading(); }, 800);
+      } catch(e) { alert('失敗'); hideLoading(); }
+    }
+
+    function openCalendar() {
+      if(!document.getElementById('fileId').value || !document.getElementById('sheetName').value) return alert('未選人員');
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+      initialSelectedDays.clear();
+      const totalDays = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+      for (let i = 1; i <= totalDays; i++) {
+        const btn = document.createElement('button');
+        const hasData = !!personDataCache[i];
+        btn.className = `day-btn rounded-md font-bold shadow-sm ${hasData ? 'is-active' : ''}`;
+        btn.innerText = i;
+        if(hasData) initialSelectedDays.add(i); 
+        btn.onclick = () => btn.classList.toggle('is-active');
+        grid.appendChild(btn);
+      }
+      document.getElementById('calendarModal').classList.remove('hidden');
+    }
+
+    function closeCalendar() { document.getElementById('calendarModal').classList.add('hidden'); }
+    function selectAll() { document.querySelectorAll('.day-btn').forEach(b => b.classList.add('is-active')); }
+    function switchView(v) {
+      document.getElementById('view-form').classList.toggle('hidden', v !== 'form');
+      document.getElementById('view-data').classList.toggle('hidden', v !== 'data');
+    }
+    function renderDataView() {
+      const tbody = document.getElementById('data-tbody');
+      tbody.innerHTML = '';
+      const days = Object.keys(personDataCache).sort((a,b)=>a-b);
+      document.getElementById('no-data-msg').classList.toggle('hidden', days.length > 0);
+      days.forEach(d => {
+        const r = personDataCache[d];
+        tbody.innerHTML += `<tr class="border-b border-blue-900/30"><td class="p-4 text-blue-400 font-bold text-lg">${d} 日</td><td class="p-4 text-base">${r.temp} ℃</td><td class="p-4 font-mono text-base">${r.bp}</td></tr>`;
+      });
+    }
+    function saveConfig() { ['tempMin','tempMax','sysMin','sysMax'].forEach(id=>localStorage.setItem('s_sar_'+id, document.getElementById(id).value)); }
+    function loadConfig() { 
+      document.getElementById('tempMin').value = localStorage.getItem('s_sar_tempMin') || '36.0';
+      document.getElementById('tempMax').value = localStorage.getItem('s_sar_tempMax') || '37.2';
+      document.getElementById('sysMin').value = localStorage.getItem('s_sar_sysMin') || '65';
+      document.getElementById('sysMax').value = localStorage.getItem('s_sar_sysMax') || '132';
+    }
+    function getConfig() { return { tempMin: parseFloat(document.getElementById('tempMin').value), tempMax: parseFloat(document.getElementById('tempMax').value), sysMin: parseInt(document.getElementById('sysMin').value), sysMax: parseInt(document.getElementById('sysMax').value), discomfort: document.getElementById('discomfort').value, sleep: document.getElementById('sleep').value }; }
+    function showLoading() { document.getElementById('loading').classList.remove('hidden'); document.getElementById('status-text').innerText = "數據注入中..."; }
+    function hideLoading() { document.getElementById('loading').classList.add('hidden'); }
+  </script>
+</body>
+</html>
