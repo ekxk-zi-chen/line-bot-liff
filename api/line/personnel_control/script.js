@@ -89,33 +89,43 @@ function setupEventListeners() {
     });
 }
 
-// 切換視圖
+// ==========================================
+// 🚀 完美融合版：切換檢視模式 (人員 / 器材 / 車輛)
+// ==========================================
 function switchView(view) {
     currentView = view;
 
-    // 更新選單狀態
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.classList.toggle('active', item.dataset.view === view);
+    // 1. 更新頂部按鈕發光狀態 (使用正確的 .view-btn)
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === view);
     });
 
-    // 顯示對應的卡片區域
-    document.getElementById('personnel-cards').classList.toggle('hidden', view !== 'personnel');
-    document.getElementById('equipment-cards').classList.toggle('hidden', view !== 'equipment');
+    // 2. 動態顯示對應的卡片區域 (支援無限擴充，不再寫死！)
+    document.querySelectorAll('.cards-container').forEach(container => {
+        container.classList.toggle('active', container.id === `${view}-cards`);
+    });
 
-    // 更新標題
+    // 3. 更新標題文字
     updateViewTitle();
 
-    // 更新畫面
+    // 4. 重繪底下所有卡片與群組
     renderView();
 }
 
-// 更新視圖標題
+// 更新視圖標題 (支援車輛模式，並修復吃掉返回按鈕的 Bug)
 function updateViewTitle() {
     const titleElement = document.querySelector('.logo');
     if (titleElement) {
-        titleElement.textContent = currentView === 'personnel'
-            ? '人員與器材管制系統 - 人員模式'
-            : '人員與器材管制系統 - 器材模式';
+        // 判斷當前模式的文字
+        let modeText = '人員管制';
+        if (currentView === 'equipment') modeText = '器材管制';
+        if (currentView === 'vehicle') modeText = '車輛管制';
+
+        // 🚨 注意：不能用 textContent，否則會把裡面的 🏠 返回按鈕吃掉！
+        titleElement.innerHTML = `
+            <button class="back-btn" onclick="window.location.href='../lobby.html'">🏠</button>
+            ${modeText}
+        `;
     }
 }
 
@@ -157,35 +167,36 @@ async function batchUpdateGroupStatus(groupName, newStatus, specificIds = null) 
 }
 
 
-// 實際執行 Supabase 更新 (支援局部更新)
+// 實際執行 Supabase 更新 (支援車輛版)
 async function performBatchGroupUpdateViaAPI(groupName, newStatus, reason, specificIds = null) {
     try {
-        const data = currentView === 'personnel' ? currentData.employees : currentData.equipment;
+        // 🎯 升級 1：選取正確資料源
+        let data = currentData.employees;
+        if (currentView === 'equipment') data = currentData.equipment;
+        if (currentView === 'vehicle') data = currentData.vehicles;
 
-        // 篩出群組人員
+        // 🎯 升級 2：選取正確群組欄位 (人員/車輛用 group，器材用 category)
         let groupItems = data.filter(item => {
-            const groupKey = currentView === 'personnel' ? item.group : item.category;
+            const groupKey = currentView === 'equipment' ? item.category : item.group;
             return groupKey === groupName;
         });
 
-        // 🚨 如果有 IDs，就只針對勾選的人進行更新
         if (specificIds) {
             groupItems = groupItems.filter(item => specificIds.includes(item.id));
         }
 
         showNotification(`🚀 正在更新 ${groupItems.length} 筆資料...`);
 
-        // 啟動靜音模式 (skipReload = true) 寫入資料庫
+        // 啟動靜音模式寫入資料庫
         const promises = groupItems.map(item => performStatusUpdateDirect(item.id, newStatus, reason, true));
         await Promise.all(promises);
 
-        // 全部寫完後，一次性重整大畫面
         await loadDataFromSupabase();
         renderView();
-        showNotification(`✅ 群組更新完成，共 ${groupItems.length} 筆資料`);
+        showNotification(`✅ 更新完成`);
     } catch (error) {
         console.error('群組更新失敗：', error);
-        showNotification(`❌ 群組更新失敗：${error.message}`);
+        showNotification(`❌ 更新失敗：${error.message}`);
     }
 }
 
@@ -408,7 +419,7 @@ function enableAdminFeatures() {
     // 工具列按鈕 (已移除手動刷新與自動開關，下放給全體)
     toolbarContent.innerHTML = `
         <button onclick="showMissionManagement()" style="padding: 8px 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; white-space: pre-line;">
-            <i class="fas fa-users"></i> 管理任務人員
+            <i class="fas fa-users"></i> 編輯參與任務
         </button>
         <button onclick="showEditPersonnelModal()" style="padding: 8px 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; white-space: pre-line;">
             <i class="fas fa-user-edit"></i> 編輯人員資料
@@ -685,24 +696,6 @@ function createTestData() {
 }
 
 
-// 切換檢視模式
-function switchView(view) {
-    currentView = view;
-
-    // 更新檢視按鈕
-    document.querySelectorAll('.view-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.view === view);
-    });
-
-    // 顯示對應的卡片區域
-    document.querySelectorAll('.cards-container').forEach(container => {
-        container.classList.toggle('active', container.id === `${view}-cards`);
-    });
-
-    // 更新畫面
-    renderView();
-}
-
 // 顯示快速控制彈窗
 function showQuickControl() {
     console.log('打開快速控制，當前視圖:', currentView);
@@ -710,16 +703,21 @@ function showQuickControl() {
     // 更新標題
     const modalTitle = document.querySelector('#quick-modal h3');
     if (modalTitle) {
-        const viewText = currentView === 'personnel' ? '人員模式' : '器材模式';
+        // 🎯 升級：增加車輛模式標題
+        let viewText = '人員模式';
+        if (currentView === 'equipment') viewText = '器材模式';
+        if (currentView === 'vehicle') viewText = '車輛模式';
         modalTitle.innerHTML = `<i class="fas fa-bolt"></i> 快速控制 <span style="font-size: 14px; color: #666; margin-left: 10px;">${viewText}</span>`;
     }
 
     // 更新搜尋框 placeholder
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
-        searchInput.placeholder = currentView === 'personnel' ?
-            '搜尋人員姓名或群組...' :
-            '搜尋器材名稱或類別...';
+        // 🎯 升級：增加車輛搜尋提示
+        let placeholderText = '搜尋人員姓名或群組...';
+        if (currentView === 'equipment') placeholderText = '搜尋器材名稱或類別...';
+        if (currentView === 'vehicle') placeholderText = '搜尋車牌、車名或分隊...';
+        searchInput.placeholder = placeholderText;
     }
 
     renderQuickControlList();
@@ -944,37 +942,29 @@ function renderQuickControlList() {
         console.error('找不到 quick-control-list 容器');
         return;
     }
-
     container.innerHTML = '';
 
-    const data = currentView === 'personnel' ? currentData.employees : currentData.equipment;
+    // 🎯 升級：選取正確資料源
+    let data = currentData.employees;
+    if (currentView === 'equipment') data = currentData.equipment;
+    if (currentView === 'vehicle') data = currentData.vehicles;
 
     if (data.length === 0) {
         container.innerHTML = '<div class="empty-message" style="text-align: center; padding: 40px; color: #666;">暫無資料</div>';
         return;
     }
 
-    // 按群組/類別分組
     const groups = {};
     data.forEach(item => {
-        const groupKey = currentView === 'personnel' ? item.group : item.category;
-        if (!groupKey) {
-            // 如果沒有分組，放在「未分組」
-            const ungroupedKey = '未分組';
-            if (!groups[ungroupedKey]) {
-                groups[ungroupedKey] = [];
-            }
-            groups[ungroupedKey].push(item);
-        } else {
-            if (!groups[groupKey]) {
-                groups[groupKey] = [];
-            }
-            groups[groupKey].push(item);
-        }
+        // 🎯 升級：選取正確群組欄位
+        const groupKey = currentView === 'equipment' ? item.category : item.group;
+        const finalKey = groupKey || '未分組';
+        if (!groups[finalKey]) groups[finalKey] = [];
+        groups[finalKey].push(item);
     });
-
+    
     // 渲染每個群組（預設收合）
-    Object.keys(groups).sort().forEach((groupName, groupIndex) => {
+    Object.keys(groups).sort(customGroupSort).forEach((groupName, groupIndex) => {
         // 群組標題（可點擊展開）
         const groupHeader = document.createElement('div');
         groupHeader.className = 'quick-group-header';
@@ -1094,11 +1084,11 @@ function createQuickItem(item, groupName) {
         buttonsHTML = `
             <div class="quick-item-buttons">
                 <button class="status-btn mini boo ${item.status === 'BoO' || item.status === '在隊' ? 'active' : ''}"
-                        onclick="event.stopPropagation(); quickUpdateStatus(${item.id}, '${currentView === 'personnel' ? 'BoO' : '在隊'}')">
+                        onclick="event.stopPropagation(); quickUpdateStatus('${item.id}', '${currentView === 'personnel' ? 'BoO' : '在隊'}')">
                     ${currentView === 'personnel' ? '歸隊' : '在隊'}
                 </button>
                 <button class="status-btn mini out ${item.status === '外出' || item.status === '應勤' ? 'active' : ''}"
-                        onclick="event.stopPropagation(); quickUpdateStatus(${item.id}, '${currentView === 'personnel' ? '外出' : '應勤'}')">
+                        onclick="event.stopPropagation(); quickUpdateStatus('${item.id}', '${currentView === 'personnel' ? '外出' : '應勤'}')">
                     ${currentView === 'personnel' ? '外出' : '應勤'}
                 </button>
             </div>
@@ -1228,6 +1218,133 @@ function setupReasonEventListeners() {
 function manageReasons() {
     renderReasonManagementList();
     document.getElementById('reason-management-modal').style.display = 'block';
+}
+
+// ==========================================
+// ⚙️ 個性設定 (頁籤切換與群組排序)
+// ==========================================
+
+// 🎯 新增：記錄彈窗內當前正在排序的模式 (獨立於主畫面的 currentView)
+window.currentSortView = 'personnel';
+
+// 1. 主頁籤切換 (原因 vs 排序)
+function switchSettingTab(tab) {
+    document.getElementById('tab-btn-reasons').classList.toggle('active', tab === 'reasons');
+    document.getElementById('tab-btn-sort').classList.toggle('active', tab === 'sort');
+
+    document.getElementById('setting-reasons-section').style.display = tab === 'reasons' ? 'block' : 'none';
+    document.getElementById('setting-sort-section').style.display = tab === 'sort' ? 'block' : 'none';
+
+    if (tab === 'sort') {
+        // 每次點開排序頁籤，預設切換到與主畫面相同的模式，但之後可以在彈窗內自由切換
+        switchSortView(currentView === 'equipment' ? 'equipment' : 'personnel');
+    }
+}
+
+// 2. 🎯 新增：彈窗內的人員/器材切換邏輯
+function switchSortView(type) {
+    window.currentSortView = type;
+    
+    // 更新按鈕 UI 顏色
+    const btnP = document.getElementById('sort-tab-personnel');
+    const btnE = document.getElementById('sort-tab-equipment');
+    
+    if (type === 'personnel') {
+        btnP.style.background = 'rgba(0, 243, 255, 0.2)'; btnP.style.color = 'var(--neon-cyan)'; btnP.style.borderColor = 'var(--neon-cyan)';
+        btnE.style.background = 'transparent'; btnE.style.color = 'var(--text-dim)'; btnE.style.borderColor = 'var(--text-dim)';
+    } else {
+        btnE.style.background = 'rgba(0, 243, 255, 0.2)'; btnE.style.color = 'var(--neon-cyan)'; btnE.style.borderColor = 'var(--neon-cyan)';
+        btnP.style.background = 'transparent'; btnP.style.color = 'var(--text-dim)'; btnP.style.borderColor = 'var(--text-dim)';
+    }
+    
+    // 重新畫出清單
+    renderGroupSortManagement();
+}
+
+// 3. 渲染群組排序管理介面
+function renderGroupSortManagement() {
+    const container = document.getElementById('group-sort-list');
+    
+    // 🎯 這裡改用 window.currentSortView (彈窗自己的狀態)，不再吃背景的 currentView
+    const targetView = window.currentSortView || 'personnel';
+    const data = targetView === 'personnel' ? currentData.employees : currentData.equipment;
+    
+    let currentGroups = [...new Set(data.map(item => targetView === 'personnel' ? item.group : item.category))].filter(Boolean);
+
+    // 🎯 專屬排序過濾 (針對目標模式獨立運算)
+    currentGroups.sort((a, b) => {
+        const weights = targetView === 'personnel' ? groupSortWeights.personnel : groupSortWeights.equipment;
+        const weightA = weights[a] !== undefined ? weights[a] : 999;
+        const weightB = weights[b] !== undefined ? weights[b] : 999;
+        if (weightA !== weightB) return weightA - weightB;
+        return a.localeCompare(b, 'zh-TW', { numeric: true });
+    });
+
+    container.innerHTML = '';
+
+    if (currentGroups.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color: var(--text-dim); padding: 20px;">目前無群組資料</div>';
+        return;
+    }
+
+    currentGroups.forEach((group, index) => {
+        const isFirst = index === 0;
+        const isLast = index === currentGroups.length - 1;
+
+        const itemDiv = document.createElement('div');
+        itemDiv.style.cssText = `
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 15px; background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-dim); border-radius: 6px;
+        `;
+
+        itemDiv.innerHTML = `
+            <div style="font-weight: bold; color: var(--text-bright); font-size: 16px;">
+                <span style="display:inline-block; width: 25px; color: var(--neon-cyan); opacity: 0.7;">${index + 1}.</span> 
+                ${group}
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button onclick="moveGroupSort('${group}', -1)" ${isFirst ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} class="action-btn" style="padding: 8px 12px; background: rgba(255,255,255,0.1); border: none; border-radius: 4px; color: #fff;">
+                    <i class="fas fa-arrow-up"></i>
+                </button>
+                <button onclick="moveGroupSort('${group}', 1)" ${isLast ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} class="action-btn" style="padding: 8px 12px; background: rgba(255,255,255,0.1); border: none; border-radius: 4px; color: #fff;">
+                    <i class="fas fa-arrow-down"></i>
+                </button>
+            </div>
+        `;
+        container.appendChild(itemDiv);
+    });
+
+    window.tempSortOrder = currentGroups;
+}
+
+// 4. 處理上移/下移
+function moveGroupSort(groupName, direction) {
+    const index = window.tempSortOrder.indexOf(groupName);
+    if (index < 0) return;
+
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= window.tempSortOrder.length) return;
+
+    // 交換位置
+    const temp = window.tempSortOrder[index];
+    window.tempSortOrder[index] = window.tempSortOrder[newIndex];
+    window.tempSortOrder[newIndex] = temp;
+
+    // 重新賦予權重 (寫入對應的分類)
+    const type = window.currentSortView || 'personnel';
+    window.tempSortOrder.forEach((g, i) => {
+        groupSortWeights[type][g] = i + 1;
+    });
+
+    renderGroupSortManagement();
+}
+
+// 5. 儲存排序設定
+function saveGroupSortOrder() {
+    saveGroupSortWeights(); // 寫入 localStorage
+    showNotification('✅ 群組順序已儲存！');
+    renderView(); // 刷新背景畫面
 }
 
 // 渲染原因管理列表
@@ -1456,8 +1573,10 @@ async function showMissionManagement() {
         return;
     }
 
-    const type = currentView; // 'personnel' 或 'equipment'
-    const title = type === 'personnel' ? '管理任務人員' : '管理任務器材';
+    const type = currentView; 
+    let title = '管理任務人員';
+    if (type === 'equipment') title = '管理任務器材';
+    if (type === 'vehicle') title = '管理任務車輛'; // 🎯 補上車輛標題
 
     // 創建任務管理彈窗（完全重寫 HTML）
     const modalId = 'mission-management-modal';
@@ -1505,10 +1624,10 @@ async function showMissionManagement() {
                         所有項目
                     </button>
                     <button class="mission-tab" onclick="switchMissionTab('current')" style="padding: 10px 15px; border: none; background: none; font-weight: bold; color: #666;">
-                        僅任務中
+                        已在任務中
                     </button>
                     <button class="mission-tab" onclick="switchMissionTab('available')" style="padding: 10px 15px; border: none; background: none; font-weight: bold; color: #666;">
-                        僅可加入
+                        尚未加入任務
                     </button>
                 </div>
                 
@@ -2132,7 +2251,7 @@ function renderMissionGroups() {
     });
 
     // 渲染每個群組
-    Object.keys(groups).sort().forEach(groupName => {
+    Object.keys(groups).sort(customGroupSort).forEach(groupName => {
         const groupDiv = document.createElement('div');
         groupDiv.className = 'mission-group';
         groupDiv.style.cssText = `
@@ -2488,8 +2607,12 @@ function updateMissionStats() {
     let availableSelected = 0;
 
     selectedCheckboxes.forEach(checkbox => {
-        const itemId = parseInt(checkbox.dataset.id);
-        const item = all.find(item => item.id === itemId);
+        // 🎯 核心修正：不要使用 parseInt，直接拿字串 ID
+        const itemId = checkbox.dataset.id; 
+        
+        // 使用 String() 強制轉字串比對，確保人員(BigInt)與車輛(UUID)都能找到
+        const item = all.find(item => String(item.id) === String(itemId));
+        
         if (item) {
             if (item.inMission) {
                 inMissionSelected++;

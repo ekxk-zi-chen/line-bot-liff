@@ -38,8 +38,14 @@ function switchTab(tabName) {
 
 // --- 單一操作原因 ---
 function showReasonModal(itemId, newStatus) {
-    const data = currentView === 'personnel' ? currentData.employees : currentData.equipment;
-    const item = data.find(item => item.id === itemId);
+    // 🎯 1. 升級三向判斷：確保人員、器材、車輛都能正確抓到自己的陣列
+    let data = currentData.employees;
+    if (currentView === 'equipment') data = currentData.equipment;
+    if (currentView === 'vehicle') data = currentData.vehicles;
+
+    // 🎯 2. 解除型態封印：用 String() 強制把雙方都變成字串再比對，數字 12 就能等於字串 '12'！
+    const item = data.find(item => String(item.id) === String(itemId));
+    
     if (!item) return console.error(`找不到項目 ID: ${itemId}`);
 
     const existingModal = document.getElementById('reason-modal');
@@ -60,14 +66,14 @@ function showReasonModal(itemId, newStatus) {
             <h3>${title}</h3>
             <div class="modal-body">
                 <div class="reason-options" id="reason-options">
-                    ${currentReasons.map(reason => `<div class="reason-option" onclick="handleReasonOptionClick(this, ${itemId}, '${newStatus}')">${reason}</div>`).join('')}
+                    ${currentReasons.map(reason => `<div class="reason-option" onclick="handleReasonOptionClick(this, '${itemId}', '${newStatus}')">${reason}</div>`).join('')}
                  </div>
                 <div class="custom-reason-input" id="custom-reason-input" style="display: none;">
                     <input type="text" placeholder="請輸入自訂原因..." maxlength="50">
                 </div>
                 <div class="reason-actions flex gap-3 w-full mt-4">
                     <button onclick="this.closest('.modal').remove()" class="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 md:py-4 rounded-xl text-base md:text-lg font-bold tracking-widest shadow-lg active:scale-95 transition-all">取 消</button>
-                    <button onclick="handleConfirmReason(${itemId}, '${newStatus}')" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 md:py-4 rounded-xl text-base md:text-lg font-bold tracking-widest shadow-lg active:scale-95 transition-all">確 認</button>
+                    <button onclick="handleConfirmReason('${itemId}', '${newStatus}')" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 md:py-4 rounded-xl text-base md:text-lg font-bold tracking-widest shadow-lg active:scale-95 transition-all">確 認</button>
                 </div>
             </div>
         </div>
@@ -113,9 +119,14 @@ window.handleConfirmReason = async function (itemId, newStatus) {
 
 // --- 群組操作原因 ---
 function showGroupReasonModal(groupName, newStatus, specificIds = null) {
-    const data = currentView === 'personnel' ? currentData.employees : currentData.equipment;
+    // 🎯 升級三向資料源
+    let data = currentData.employees;
+    if (currentView === 'equipment') data = currentData.equipment;
+    if (currentView === 'vehicle') data = currentData.vehicles;
+
     let groupItems = data.filter(item => {
-        const groupKey = currentView === 'personnel' ? item.group : item.category;
+        // 🎯 升級群組欄位判斷 (車輛與人員用 group，器材用 category)
+        const groupKey = currentView === 'equipment' ? item.category : item.group;
         return groupKey === groupName;
     });
 
@@ -265,9 +276,11 @@ async function confirmBatchAllReason(newStatus) {
 // ==========================================
 
 function showImageModal(name, status, time) {
-    let item = currentView === 'personnel' 
-        ? currentData.employees.find(emp => emp.detail_name === name || emp.name === name)
-        : currentData.equipment.find(eq => eq.detail_name === name || eq.name === name);
+    // 🎯 升級三向資料查找
+    let item = null;
+    if (currentView === 'personnel') item = currentData.employees.find(emp => emp.detail_name === name || emp.name === name);
+    if (currentView === 'equipment') item = currentData.equipment.find(eq => eq.detail_name === name || eq.name === name);
+    if (currentView === 'vehicle') item = currentData.vehicles.find(v => v.detail_name === name || v.name === name);
 
     if (!item) return console.error('找不到項目:', name);
 
@@ -283,18 +296,23 @@ function showImageModal(name, status, time) {
     modalImg.src = imgPath;
     modalImg.alt = name;
     modalImg.onerror = function () {
-        const folder = currentView === 'personnel' ? 'people' : 'equipment';
+        // 🎯 升級三向預設圖片路徑
+        let folder = 'people';
+        if (currentView === 'equipment') folder = 'equipment';
+        if (currentView === 'vehicle') folder = 'vehicles';
         this.src = `assets/${folder}/default.jpg`;
         this.onerror = null;
     };
 
     const displayName = item.detail_name || item.name;
-    const groupInfo = currentView === 'personnel' ? item.group : item.category;
+    // 🎯 升級群組名稱判斷
+    const groupInfo = currentView === 'equipment' ? item.category : item.group;
+    const groupLabel = currentView === 'equipment' ? '類別' : '組別';
 
     document.getElementById('image-info').innerHTML = `
         <h3>${displayName}</h3>
         ${item.detail_name && item.detail_name !== item.name ? `<p class="short-name">簡稱：${item.name}</p>` : ''}
-        <p><strong>${currentView === 'personnel' ? '組別' : '類別'}：</strong>${groupInfo}</p>
+        <p><strong>${groupLabel}：</strong>${groupInfo}</p>
         <p><strong>狀態：</strong><span class="status-badge ${getStatusClass(item.status)}">${status}</span></p>
         <p><strong>最後更新：</strong>${time}</p>
         ${lastReason && (item.status === '外出' || item.status === '應勤') ? `<div class="image-reason"><strong>${currentView === 'personnel' ? '外出' : '應勤'}原因：</strong><span>${lastReason}</span></div>` : ''}
@@ -316,9 +334,12 @@ function showImageModal(name, status, time) {
 
 function showHistory(name) {
     selectedItem = name;
-    let item = currentView === 'personnel' 
-        ? currentData.employees.find(emp => emp.name === name)
-        : currentData.equipment.find(eq => eq.name === name || eq.detail_name === name);
+    
+    // 🎯 升級三向資料查找
+    let item = null;
+    if (currentView === 'personnel') item = currentData.employees.find(emp => emp.name === name || emp.detail_name === name);
+    if (currentView === 'equipment') item = currentData.equipment.find(eq => eq.name === name || eq.detail_name === name);
+    if (currentView === 'vehicle') item = currentData.vehicles.find(v => v.name === name || v.detail_name === name);
 
     const historyContainer = document.getElementById('history-content');
     historyContainer.innerHTML = '';
@@ -364,9 +385,12 @@ function showHistory(name) {
 }
 
 function showHistoryDetail(name) {
-    let item = currentView === 'personnel' 
-        ? currentData.employees.find(emp => emp.name === name)
-        : currentData.equipment.find(eq => eq.name === name);
+    // 🎯 升級三向資料查找
+    let item = null;
+    if (currentView === 'personnel') item = currentData.employees.find(emp => emp.name === name || emp.detail_name === name);
+    if (currentView === 'equipment') item = currentData.equipment.find(eq => eq.name === name || eq.detail_name === name);
+    if (currentView === 'vehicle') item = currentData.vehicles.find(v => v.name === name || v.detail_name === name);
+    
     if (!item) return;
 
     document.getElementById('history-title').textContent = `${name}的詳細時序`;
@@ -385,31 +409,47 @@ function updateDetailInfo(item) {
     const container = document.getElementById('detail-content');
     if (!item) return container.innerHTML = '<p>請選擇項目查看詳細資訊</p>';
 
+    // 🎯 升級群組名稱判斷
+    const groupLabel = currentView === 'equipment' ? '類別' : '分組';
+    const groupValue = currentView === 'equipment' ? item.category : item.group;
+
     container.innerHTML = `
         <h4>${item.name}</h4>
         <p><strong>狀態：</strong> <span class="${getStatusClass(item.status)}">${getStatusDisplayText(item.status)}</span></p>
         <p><strong>最後更新：</strong> ${item.time_status}</p>
-        <p><strong>${currentView === 'personnel' ? '分組' : '類別'}：</strong> ${currentView === 'personnel' ? item.group : item.category}</p>
+        <p><strong>${groupLabel}：</strong> ${groupValue}</p>
         <p><strong>歷史紀錄筆數：</strong> ${(item.time_history || '').split('\n').filter(line => line.trim()).length}</p>
         <button class="detail-btn" onclick="showHistoryDetail('${item.name}')">查看詳細時序</button>
     `;
 }
 
 function showStatusDetail(type) {
-    const data = currentView === 'personnel' ? currentData.employees : currentData.equipment;
+    // 🎯 升級三向資料源
+    let data = currentData.employees;
+    if (currentView === 'equipment') data = currentData.equipment;
+    if (currentView === 'vehicle') data = currentData.vehicles;
+
     let filteredData, title;
+    
+    let booText = currentView === 'personnel' ? 'BoO' : '在隊';
+    let outText = currentView === 'personnel' ? '外出' : '應勤';
 
     if (type === 'boo') {
-        filteredData = data.filter(item => item.status === (currentView === 'personnel' ? 'BoO' : '在隊'));
-        title = currentView === 'personnel' ? `基地人員 (${filteredData.length}人)` : `在隊裝備 (${filteredData.length}項)`;
+        filteredData = data.filter(item => item.status === booText);
+        if (currentView === 'personnel') title = `基地人員 (${filteredData.length}人)`;
+        if (currentView === 'equipment') title = `在隊裝備 (${filteredData.length}項)`;
+        if (currentView === 'vehicle') title = `在隊車輛 (${filteredData.length}輛)`; // 支援車輛
     } else {
-        filteredData = data.filter(item => item.status === (currentView === 'personnel' ? '外出' : '應勤'));
-        title = currentView === 'personnel' ? `外出人員 (${filteredData.length}人)` : `應勤裝備 (${filteredData.length}項)`;
+        filteredData = data.filter(item => item.status === outText);
+        if (currentView === 'personnel') title = `外出人員 (${filteredData.length}人)`;
+        if (currentView === 'equipment') title = `應勤裝備 (${filteredData.length}項)`;
+        if (currentView === 'vehicle') title = `應勤車輛 (${filteredData.length}輛)`; // 支援車輛
     }
 
     const groups = {};
     filteredData.forEach(item => {
-        const groupKey = currentView === 'personnel' ? item.group : item.category;
+        // 🎯 升級群組欄位判斷
+        const groupKey = currentView === 'equipment' ? item.category : item.group;
         if (!groups[groupKey]) groups[groupKey] = [];
         groups[groupKey].push(item);
     });
@@ -418,9 +458,9 @@ function showStatusDetail(type) {
     container.innerHTML = '';
 
     if (filteredData.length === 0) {
-        container.innerHTML = '<p class="empty-message">目前無人員</p>';
+        container.innerHTML = '<p class="empty-message">目前無資料</p>';
     } else {
-        Object.keys(groups).sort().forEach(groupName => {
+        Object.keys(groups).sort(customGroupSort).forEach(groupName => {
             const groupDiv = document.createElement('div');
             groupDiv.className = 'status-group';
             groupDiv.innerHTML = `<div class="status-group-title">${groupName} (${groups[groupName].length})</div>`;

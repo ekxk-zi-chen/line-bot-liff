@@ -57,7 +57,7 @@
     <header class="header" style="position: relative;"> <!-- 確保有 relative 定位 -->
         <div class="logo">
             <button class="back-btn" onclick="window.location.href='../lobby.html'">🏠</button>
-            管制系統
+            人員管制
         </div>
         
         <!-- 💡 導覽呼叫按鈕 (放在右上角) -->
@@ -272,23 +272,42 @@
 
     <!-- 原因管理彈窗 -->
     <div class="modal" id="reason-management-modal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 500px;">
             <span class="close" onclick="closeModal('reason-management-modal')">&times;</span>
-            <h3><i class="fas fa-edit"></i> 個性設定</h3>
+            <h3 style="margin-bottom: 15px;"><i class="fas fa-edit"></i> 個性設定</h3>
+            
+            <div class="tabs" style="margin-bottom: 15px; display: flex; gap: 10px; border-bottom: 1px solid var(--border-dim); padding-bottom: 5px;">
+                <button class="tab-btn active" id="tab-btn-reasons" onclick="switchSettingTab('reasons')" style="flex: 1; padding: 10px;">📝 原因管理</button>
+                <button class="tab-btn" id="tab-btn-sort" onclick="switchSettingTab('sort')" style="flex: 1; padding: 10px;">↕️ 群組順序</button>
+            </div>
+
             <div class="modal-body">
-                <p>管理常用外出/應勤原因：</p>
-                <div id="current-reasons-list" style="margin: 15px 0; max-height: 300px; overflow-y: auto;">
-                    <!-- 動態生成原因列表 -->
+                <div id="setting-reasons-section">
+                    <p style="color: var(--text-dim); margin-bottom: 10px;">管理常用外出/應勤原因：</p>
+                    <div id="current-reasons-list" style="margin: 15px 0; max-height: 300px; overflow-y: auto;">
+                        </div>
+                    <div class="add-reason-form" style="margin-top: 20px; display: flex; gap: 10px;">
+                        <input type="text" id="new-reason-input" placeholder="新增原因..." style="flex: 1;">
+                        <button onclick="addCustomReason()" class="action-btn" style="background: rgba(0,255,102,0.1); color: var(--neon-green); border-color: var(--neon-green);">新增</button>
+                    </div>
                 </div>
-                <div class="add-reason-form" style="margin-top: 20px;">
-                    <input type="text" id="new-reason-input" placeholder="新增原因..." style="width: 70%; padding: 8px;">
-                    <button onclick="addCustomReason()"
-                        style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; margin-left: 10px;">新增</button>
+
+                <div id="setting-sort-section" style="display: none;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button id="sort-tab-personnel" onclick="switchSortView('personnel')" class="action-btn" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--neon-cyan); background: rgba(0, 243, 255, 0.2); color: var(--neon-cyan); font-weight: bold;">人員群組</button>
+                        <button id="sort-tab-equipment" onclick="switchSortView('equipment')" class="action-btn" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--text-dim); background: transparent; color: var(--text-dim); font-weight: bold;">器材分類</button>
+                    </div>
+                    
+                    <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 10px;">💡 新增或未設定的群組會自動排在最下方。</p>
+                    
+                    <div id="group-sort-list" style="margin: 15px 0; max-height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 5px;">
+                        </div>
+                    
+                    <button onclick="saveGroupSortOrder()" style="width: 100%; padding: 12px; background: rgba(0, 243, 255, 0.1); border: 1px solid var(--neon-cyan); color: var(--neon-cyan); border-radius: 6px; font-weight: bold; margin-top: 10px; transition: 0.3s; text-shadow: 0 0 5px var(--neon-cyan);">
+                        <i class="fas fa-save"></i> 儲存排序設定
+                    </button>
                 </div>
-                <div class="reason-actions" style="margin-top: 20px;">
-                    <button onclick="closeModal('reason-management-modal')"
-                        style="padding: 10px 20px; background-color: #f0f0f0; border: none; border-radius: 5px;">關閉</button>
-                </div>
+
             </div>
         </div>
     </div>

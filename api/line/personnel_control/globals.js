@@ -8,7 +8,7 @@ let currentUser = null;
 let userRole = '一般用戶';
 
 // 📦 系統資料狀態
-let currentData = { employees: [], equipment: [] };
+let currentData = { employees: [], equipment: [], vehicles: [] }; // 🎯 補上 vehicles
 let currentView = 'personnel';
 let selectedItem = null;
 
@@ -29,3 +29,10 @@ let isQuickSearchBound = false;
 
 // 🚨 撤離系統輪詢狀態
 let evacInterval = null;
+
+// 🔄 群組排序權重狀態 (本地個人化設定)
+let groupSortWeights = {
+    personnel: {}, 
+    equipment: {},  
+    vehicle: {}    // 🎯 補上車輛的排序記憶空間
+};

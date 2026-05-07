@@ -5,20 +5,18 @@
 
 // 🏷️ 1. 取得狀態對應的 CSS class
 function getStatusClass(status) {
-    if (currentView === 'personnel') {
-        return status === 'BoO' ? 'boo' : 'out';
-    } else {
-        return status === '在隊' ? 'boo' : 'out';
-    }
+    if (currentView === 'personnel') return status === 'BoO' ? 'boo' : 'out';
+    if (currentView === 'equipment') return status === '在隊' ? 'boo' : 'out';
+    if (currentView === 'vehicle') return status === '在隊' ? 'boo' : 'out'; // 車輛邏輯與器材相同
+    return 'out';
 }
 
 // 🏷️ 2. 取得狀態顯示文字
 function getStatusDisplayText(status) {
-    if (currentView === 'personnel') {
-        return status === 'BoO' ? '基地' : '外出';
-    } else {
-        return status === '在隊' ? '在隊' : '應勤';
-    }
+    if (currentView === 'personnel') return status === 'BoO' ? '基地' : '外出';
+    if (currentView === 'equipment') return status === '在隊' ? '在隊' : '應勤';
+    if (currentView === 'vehicle') return status === '在隊' ? '在隊' : '應勤';
+    return status;
 }
 
 // 🗂️ 3. 渲染主畫面群組控制與清單
@@ -28,7 +26,7 @@ function getStatusDisplayText(status) {
 function updateSelectedInGroup(groupName, newStatus) {
     const checkboxes = document.querySelectorAll(`.group-member-checkbox[data-group="${groupName}"]:checked`);
     if (checkboxes.length === 0) return showNotification('⚠️ 請先勾選要外出的單位');
-    const ids = Array.from(checkboxes).map(cb => parseInt(cb.dataset.id));
+    const ids = Array.from(checkboxes).map(cb => cb.dataset.id);
     batchUpdateGroupStatus(groupName, newStatus, ids);
 }
 
@@ -76,12 +74,21 @@ function toggleGroupMembers(groupName) {
 
 // 🗂️ 6. 渲染所有卡片容器
 async function renderCards() {
-    const containerId = currentView === 'personnel' ? 'personnel-cards' : 'equipment-cards';
+    // 🎯 A. 根據當前視圖，精準選擇對應的 HTML 容器
+    let containerId = 'personnel-cards';
+    if (currentView === 'equipment') containerId = 'equipment-cards';
+    if (currentView === 'vehicle') containerId = 'vehicle-cards'; // 補上車輛容器
+
     const container = document.getElementById(containerId);
     if (!container) return;
 
     container.innerHTML = '';
-    const data = currentView === 'personnel' ? currentData.employees : currentData.equipment;
+    
+    // 🎯 B. 根據當前視圖，選取正確的資料來源
+    let data = [];
+    if (currentView === 'personnel') data = currentData.employees;
+    else if (currentView === 'equipment') data = currentData.equipment;
+    else if (currentView === 'vehicle') data = currentData.vehicles; // 補上車輛資料
 
     if (data.length === 0) {
         const emptyMessage = document.createElement('div');
@@ -106,7 +113,7 @@ async function renderCards() {
     `;
     statsDiv.innerHTML = `
         <span style="color: var(--neon-cyan); font-weight: bold; text-shadow: 0 0 5px rgba(0, 243, 255, 0.5);">
-            <i class="fas fa-users"></i> 此任務共 ${data.length} 參與人員
+            <i class="fas fa-users"></i> 此任務共 ${data.length} 個單位
         </span>
         <button onclick="refreshData()" style="padding: 6px 15px; background: rgba(0, 243, 255, 0.15); border: 1px solid var(--neon-cyan); color: var(--neon-cyan); border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.3s; text-shadow: 0 0 5px var(--neon-cyan);">
             <i class="fas fa-sync-alt"></i> 刷新
@@ -116,12 +123,15 @@ async function renderCards() {
 
     const groupedData = {};
     data.forEach(item => {
-        const groupKey = currentView === 'personnel' ? item.group : item.category;
-        if (!groupedData[groupKey]) groupedData[groupKey] = [];
-        groupedData[groupKey].push(item);
+        // 🎯 升級三向判斷：人員和車輛都是用 item.group，只有器材是用 item.category
+        let groupKey = item.group;
+        if (currentView === 'equipment') groupKey = item.category;
+        
+        if (groupKey && !groupedData[groupKey]) groupedData[groupKey] = [];
+        if (groupKey) groupedData[groupKey].push(item);
     });
 
-    Object.keys(groupedData).sort().forEach(groupName => {
+    Object.keys(groupedData).sort(customGroupSort).forEach(groupName => {
         const groupHeader = document.createElement('div');
         groupHeader.className = 'group-header';
         groupHeader.innerHTML = `<h3>${groupName} (${groupedData[groupName].length}人)</h3>`;
@@ -142,7 +152,9 @@ function createCardSync(item) {
     card.dataset.id = item.id;
     card.dataset.status = item.status;
     card.dataset.time = item.time_status;
-    card.dataset.group = currentView === 'personnel' ? item.group : item.category;
+    
+    // 🎯 升級三向判斷
+    card.dataset.group = currentView === 'equipment' ? item.category : item.group;
 
     const statusText = getStatusDisplayText(item.status);
     const displayName = item.detail_name || item.name;
@@ -163,7 +175,12 @@ function createCardSync(item) {
     imgElement.alt = displayName;
     imgElement.className = 'card-image';
     imgElement.dataset.filename = item.photo;
-    imgElement.dataset.category = currentView === 'personnel' ? 'personnel' : 'equipment';
+    
+    // 🎯 升級三向判斷相簿路徑
+    let imgCat = 'personnel';
+    if (currentView === 'equipment') imgCat = 'equipment';
+    if (currentView === 'vehicle') imgCat = 'vehicles';
+    imgElement.dataset.category = imgCat;
 
     imgElement.onerror = function () {
         const fileName = this.dataset.filename;
@@ -184,19 +201,24 @@ function createCardSync(item) {
     let buttonsHTML = '';
 
     if (userRole === '管理') {
+        // 🎯 動態判斷狀態字眼 (車輛與器材共用「在隊/應勤」的邏輯)
+        const btnBooText = currentView === 'personnel' ? 'BoO' : '在隊';
+        const btnOutText = currentView === 'personnel' ? '外出' : '應勤';
+
         buttonsHTML = `
             <div class="card-buttons">
-                <button class="status-btn boo ${item.status === 'BoO' || item.status === '在隊' ? 'active' : ''}"
-                        onclick="updateStatus(${item.id}, '${currentView === 'personnel' ? 'BoO' : '在隊'}')">
-                    ${currentView === 'personnel' ? 'BoO' : '在隊'}
+                <button class="status-btn boo ${item.status === btnBooText ? 'active' : ''}"
+                        onclick="updateStatus('${item.id}', '${btnBooText}')">
+                    ${btnBooText}
                 </button>
-                <button class="status-btn out ${item.status === '外出' || item.status === '應勤' ? 'active' : ''}"
-                        onclick="updateStatus(${item.id}, '${currentView === 'personnel' ? '外出' : '應勤'}')">
-                    ${currentView === 'personnel' ? '外出' : '應勤'}
+                <button class="status-btn out ${item.status === btnOutText ? 'active' : ''}"
+                        onclick="updateStatus('${item.id}', '${btnOutText}')">
+                    ${btnOutText}
                 </button>
             </div>
         `;
     } else {
+        // 一般用戶看到的唯讀狀態 (這裡的函數已經支援車輛了，直接沿用！)
         const statusClass = getStatusClass(item.status);
         const displayStatus = getStatusDisplayText(item.status);
         buttonsHTML = `
@@ -239,7 +261,11 @@ function createCardSync(item) {
 
 // 🗂️ 8. 更新單一卡片 (智慧比對用)
 function updateSingleCard(updatedItem) {
-    const containerId = currentView === 'personnel' ? 'personnel-cards' : 'equipment-cards';
+    // 🎯 升級三向判斷
+    let containerId = 'personnel-cards';
+    if (currentView === 'equipment') containerId = 'equipment-cards';
+    if (currentView === 'vehicle') containerId = 'vehicle-cards';
+    
     const container = document.getElementById(containerId);
     if (!container) return;
 

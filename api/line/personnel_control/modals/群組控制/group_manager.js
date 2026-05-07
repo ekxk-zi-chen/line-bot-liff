@@ -14,7 +14,11 @@ function showGroupControl() {
 function renderGroupControls() {
     const container = document.getElementById('group-controls');
     container.innerHTML = '';
-    const data = currentView === 'personnel' ? currentData.employees : currentData.equipment;
+    
+    // 🎯 升級三向判斷：如果是在車輛畫面打開群組，就抓車輛資料
+    let data = currentData.employees;
+    if (currentView === 'equipment') data = currentData.equipment;
+    if (currentView === 'vehicle') data = currentData.vehicles;
 
     const groups = {};
 
@@ -23,12 +27,18 @@ function renderGroupControls() {
     const label = currentView === 'personnel' ? '成員' : '項目';
 
     data.forEach(item => {
-        const groupKey = currentView === 'personnel' ? item.group : item.category;
+        // 🎯 修正後的「三向判斷」：
+        // 人員(personnel)和車輛(vehicle)都抓 item.group，只有器材(equipment)抓 item.category
+        let groupKey = item.group;
+        if (currentView === 'equipment') {
+            groupKey = item.category;
+        }
+
         if (groupKey && !groups[groupKey]) groups[groupKey] = [];
         if (groupKey) groups[groupKey].push(item);
     });
 
-    Object.keys(groups).forEach(groupName => {
+    Object.keys(groups).sort(customGroupSort).forEach(groupName => {
         const groupDiv = document.createElement('div');
         groupDiv.className = 'group-control-item';
 
