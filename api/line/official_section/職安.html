@@ -9,6 +9,7 @@
     :root {
       --neon-blue: #00f2ff;
       --neon-red: #ff0055;
+      --neon-yellow: #ffb700;
       --bg-dark: #060b13;
       --panel-bg: rgba(10, 15, 28, 0.95);
     }
@@ -49,6 +50,22 @@
       pointer-events: none;
     }
 
+    /* 黃色風格 panel (給手動填寫框用) */
+    .fui-panel-yellow {
+      background: var(--panel-bg);
+      border: 1px solid rgba(255, 183, 0, 0.3);
+      position: relative;
+      clip-path: polygon(0 10px, 10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+    }
+    .fui-panel-yellow::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      border-left: 4px solid var(--neon-yellow);
+      clip-path: polygon(0 0, 0 20px, 0 0, 20px 0);
+      pointer-events: none;
+    }
+
     .fui-input {
       background: rgba(0, 0, 0, 0.6);
       border: 1px solid rgba(0, 242, 255, 0.4);
@@ -57,6 +74,16 @@
       transition: all 0.3s;
     }
     .fui-input:focus { border-color: var(--neon-blue); box-shadow: 0 0 12px rgba(0, 242, 255, 0.6); outline: none; }
+
+    /* 黃色風格 input */
+    .fui-input-yellow {
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 183, 0, 0.4);
+      color: var(--neon-yellow);
+      padding: 12px;
+      transition: all 0.3s;
+    }
+    .fui-input-yellow:focus { border-color: var(--neon-yellow); box-shadow: 0 0 12px rgba(255, 183, 0, 0.6); outline: none; }
 
     .day-btn {
       transition: all 0.15s;
@@ -86,6 +113,16 @@
     }
     .btn-neon-blue:active { background: var(--neon-blue); color: #000; box-shadow: 0 0 20px var(--neon-blue); transform: scale(0.98); }
 
+    .btn-neon-yellow {
+      background: rgba(255, 183, 0, 0.15);
+      border: 1px solid var(--neon-yellow);
+      color: var(--neon-yellow);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      transition: all 0.2s;
+    }
+    .btn-neon-yellow:active { background: var(--neon-yellow); color: #000; box-shadow: 0 0 20px var(--neon-yellow); transform: scale(0.98); }
+
     /* ★ 爆炸動畫相關 CSS ★ */
     #loading { transition: opacity 0.5s; }
     .loading-core {
@@ -105,7 +142,6 @@
     @keyframes rotateCore { 0% { transform: rotate(0deg); box-shadow: 0 0 5px var(--neon-blue); } 100% { transform: rotate(360deg); box-shadow: 0 0 20px var(--neon-blue); } }
     @keyframes pulseCore { 0% { transform: scale(0.8); opacity: 0.5; } 100% { transform: scale(1.2); opacity: 1; } }
 
-    /* 爆炸效果衝擊波 */
     .explosion-ring {
       position: absolute;
       border: 2px solid var(--neon-blue);
@@ -113,13 +149,8 @@
       opacity: 0;
       pointer-events: none;
     }
-    .animate-explode {
-      animation: explodeCircle 0.6s ease-out forwards;
-    }
-    @keyframes explodeCircle {
-      0% { width: 0; height: 0; opacity: 1; border-width: 10px; }
-      100% { width: 500px; height: 500px; opacity: 0; border-width: 1px; }
-    }
+    .animate-explode { animation: explodeCircle 0.6s ease-out forwards; }
+    @keyframes explodeCircle { 0% { width: 0; height: 0; opacity: 1; border-width: 10px; } 100% { width: 500px; height: 500px; opacity: 0; border-width: 1px; } }
 
     .no-scrollbar::-webkit-scrollbar { display: none; }
   </style>
@@ -153,6 +184,7 @@
 
     <div class="flex-1 overflow-y-auto no-scrollbar space-y-4 pb-10">
       <div id="view-form" class="space-y-4">
+        
         <div class="fui-panel p-5 space-y-5">
           <div>
             <label class="text-[11px] text-blue-400 font-bold block mb-2 tracking-wider">資料庫選擇 DATABASE</label>
@@ -162,10 +194,20 @@
           </div>
           <div class="border-t border-blue-900/50 pt-4">
             <label class="text-[11px] text-blue-400 font-bold block mb-2 tracking-wider">人員選擇 PERSONNEL</label>
-            <select id="sheetName" class="fui-input w-full text-xl font-bold" onchange="changePerson()">
+            <select id="sheetName" class="fui-input w-full text-xl font-bold mb-4" onchange="changePerson()">
               <option value="">-- 請先選擇資料庫 --</option>
             </select>
+            <button onclick="openManualModal()" class="btn-neon-yellow w-full py-3 text-sm font-bold rounded-sm tracking-widest shadow-lg flex justify-center items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
+              進入自己填寫 (手動模式)
+            </button>
           </div>
+        </div>
+
+        <div class="flex items-center gap-2 px-2">
+          <div class="h-px bg-blue-900/50 flex-1"></div>
+          <span class="text-xs text-blue-500 font-bold tracking-widest">系統自動填寫區域 (AUTO-FILL)</span>
+          <div class="h-px bg-blue-900/50 flex-1"></div>
         </div>
 
         <div class="fui-panel p-5 grid grid-cols-2 gap-4">
@@ -191,8 +233,8 @@
         </div>
 
         <div class="grid grid-cols-2 gap-3 mt-4">
-          <button onclick="submitToday()" class="btn-neon-blue py-5 text-lg font-bold rounded-sm tracking-widest shadow-lg">填寫今日</button>
-          <button onclick="openCalendar()" class="btn-neon-blue py-5 text-lg font-bold rounded-sm tracking-widest shadow-lg" style="border-color: #a855f7; color: #a855f7;">填寫整個月份</button>
+          <button onclick="submitToday()" class="btn-neon-blue py-5 text-lg font-bold rounded-sm tracking-widest shadow-lg">自動填寫今日</button>
+          <button onclick="openCalendar()" class="btn-neon-blue py-5 text-lg font-bold rounded-sm tracking-widest shadow-lg" style="border-color: #a855f7; color: #a855f7;">自動填寫月份</button>
         </div>
       </div>
 
@@ -200,7 +242,11 @@
         <div class="fui-panel p-0 overflow-hidden">
           <table class="w-full text-sm text-left">
             <thead class="bg-blue-900/40 text-blue-300">
-              <tr><th class="p-4">日期</th><th class="p-4">體溫</th><th class="p-4">血壓</th></tr>
+              <tr>
+                <th class="p-4 w-1/4">日期</th>
+                <th class="p-4 w-2/4">數值</th>
+                <th class="p-4 w-1/4 text-center">操作</th>
+              </tr>
             </thead>
             <tbody id="data-tbody" class="divide-y divide-blue-900/40"></tbody>
           </table>
@@ -210,10 +256,10 @@
     </div>
   </div>
 
-  <div id="calendarModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/95 backdrop-blur-xl">
+  <div id="calendarModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-3 bg-black/95 backdrop-blur-xl">
     <div class="fui-panel w-full max-w-sm bg-[#060b13] p-5 shadow-[0_0_40px_rgba(0,242,255,0.15)]">
       <div class="flex justify-between items-center mb-5 border-b border-blue-900/60 pb-3">
-        <h3 class="text-blue-400 font-bold tracking-widest text-lg">任務日期選擇</h3>
+        <h3 class="text-blue-400 font-bold tracking-widest text-lg">任務日期選擇 (自動)</h3>
         <button onclick="closeCalendar()" class="text-white text-3xl hover:text-red-500 transition px-2">&times;</button>
       </div>
       <div id="calendarGrid" class="grid grid-cols-7 gap-2.5 mb-6"></div>
@@ -224,20 +270,86 @@
     </div>
   </div>
 
+  <div id="manualModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-3 bg-black/95 backdrop-blur-xl">
+    <div class="fui-panel-yellow w-full max-w-sm bg-[#060b13] p-5 shadow-[0_0_40px_rgba(255,183,0,0.15)] max-h-[90vh] overflow-y-auto no-scrollbar">
+      <div class="flex justify-between items-center mb-4 border-b border-yellow-600/60 pb-2">
+        <h3 id="manualModalTitle" class="text-yellow-500 font-bold tracking-widest text-lg">人員健康手動建檔</h3>
+        <button onclick="closeManualModal()" class="text-gray-400 text-3xl hover:text-red-500 transition px-2">&times;</button>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="text-[11px] text-yellow-600 font-bold block mb-1">任務日期 DATE</label>
+          <select id="m-day" class="fui-input-yellow w-full text-base font-bold"></select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="col-span-2">
+            <label class="text-[11px] text-yellow-600 font-bold block mb-1">體溫 (℃)</label>
+            <input type="number" step="0.1" id="m-temp" class="fui-input-yellow w-full rounded-sm text-lg text-center" placeholder="ex. 36.5">
+          </div>
+          <div>
+            <label class="text-[11px] text-yellow-600 font-bold block mb-1">收縮壓 (高)</label>
+            <input type="number" id="m-sys" class="fui-input-yellow w-full rounded-sm text-lg text-center" placeholder="120">
+          </div>
+          <div>
+            <label class="text-[11px] text-yellow-600 font-bold block mb-1">舒張壓 (低)</label>
+            <input type="number" id="m-dia" class="fui-input-yellow w-full rounded-sm text-lg text-center" placeholder="80">
+          </div>
+        </div>
+        
+        <div>
+          <label class="text-[11px] text-yellow-600 font-bold block mb-1">身體狀況狀態 STATUS</label>
+          <select id="m-discomfort" class="fui-input-yellow w-full text-base">
+            <option value="無明顯不適">無明顯不適</option>
+            <option value="咳嗽">咳嗽</option>
+            <option value="喉嚨痛">喉嚨痛</option>
+            <option value="頭暈/疲勞感">頭暈/疲勞感</option>
+            <option value="腹瀉/噁心">腹瀉/噁心</option>
+            <option value="呼吸困難/胸悶">呼吸困難/胸悶</option>
+            <option value="皮膚紅疹/割傷">皮膚紅疹/割傷</option>
+          </select>
+        </div>
+        
+        <div>
+          <label class="text-[11px] text-yellow-600 font-bold block mb-1">昨夜睡眠品質 SLEEP</label>
+          <select id="m-sleep" class="fui-input-yellow w-full text-base">
+            <option value="良好(>6H)">良好(>6H)</option>
+            <option value="一般(4~6H)">一般(4~6H)</option>
+            <option value="欠佳(<4H)">欠佳(<4H)</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[11px] text-yellow-600 font-bold block mb-1">是否執行勤務</label>
+            <select id="m-duty" class="fui-input-yellow w-full text-base"><option value="是">是</option><option value="否">否</option></select>
+          </div>
+          <div>
+            <label class="text-[11px] text-yellow-600 font-bold block mb-1">建議後續追蹤</label>
+            <select id="m-followup" class="fui-input-yellow w-full text-base"><option value="否">否</option><option value="是">是</option></select>
+          </div>
+        </div>
+        
+        <div class="pt-2">
+          <button onclick="submitManual()" class="btn-neon-yellow w-full py-4 text-lg font-bold tracking-widest shadow-lg">寫入資料庫</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="loading" class="hidden fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md">
     <div class="loading-core mb-8"></div>
-    <div id="status-text" class="text-sm text-blue-400 font-mono tracking-[0.25em] animate-pulse">數據注入中...</div>
+    <div id="status-text" class="text-sm text-blue-400 font-mono tracking-[0.25em] animate-pulse">連線傳輸中...</div>
     <div id="explosion-container" class="absolute inset-0 flex items-center justify-center pointer-events-none"></div>
   </div>
 
   <script>
-    const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzp0PBTNz8z5Ek3GZhFFHqtC9vvTJZHZEWtmPfFTOWolkPsiKnUC442lSIPqEfRyS7_/exec"; // 務必填入你的 GAS 網址
+    const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzp0PBTNz8z5Ek3GZhFFHqtC9vvTJZHZEWtmPfFTOWolkPsiKnUC442lSIPqEfRyS7_/exec"; // 你的 GAS 網址
     
     let currentPwd = "";
     let personDataCache = {};
     let initialSelectedDays = new Set(); 
 
-    // 初始化：檢查本地是否有儲存密碼
     document.addEventListener("DOMContentLoaded", () => {
       const savedPwd = localStorage.getItem('squad_auth_pwd');
       if (savedPwd === '9119') {
@@ -252,27 +364,26 @@
       const val = document.getElementById('pwdInput').value;
       if (val === '9119') {
         currentPwd = '9119';
-        localStorage.setItem('squad_auth_pwd', '9119'); // 存入本地
+        localStorage.setItem('squad_auth_pwd', '9119');
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('app-content').classList.remove('hidden');
         initApp();
       } else { alert('授權碼錯誤！'); }
     }
 
-    // 爆炸動畫函式
-    function triggerExplosion() {
+    function triggerExplosion(color = 'var(--neon-blue)') {
       const container = document.getElementById('explosion-container');
       const ring = document.createElement('div');
       ring.className = 'explosion-ring animate-explode';
+      ring.style.borderColor = color;
       container.appendChild(ring);
       
-      // 隨機噴散粒子
       for (let i = 0; i < 20; i++) {
         const dot = document.createElement('div');
         dot.style.position = 'absolute';
         dot.style.width = '4px';
         dot.style.height = '4px';
-        dot.style.background = Math.random() > 0.5 ? 'var(--neon-blue)' : 'var(--neon-red)';
+        dot.style.background = Math.random() > 0.5 ? color : 'var(--neon-red)';
         dot.style.boxShadow = `0 0 10px ${dot.style.background}`;
         
         const angle = Math.random() * Math.PI * 2;
@@ -282,22 +393,15 @@
         
         container.appendChild(dot);
         
-        let posX = 0;
-        let posY = 0;
-        let opacity = 1;
-        
+        let posX = 0, posY = 0, opacity = 1;
         const move = () => {
-          posX += vx;
-          posY += vy;
-          opacity -= 0.02;
+          posX += vx; posY += vy; opacity -= 0.02;
           dot.style.transform = `translate(${posX}px, ${posY}px)`;
           dot.style.opacity = opacity;
-          if (opacity > 0) requestAnimationFrame(move);
-          else dot.remove();
+          if (opacity > 0) requestAnimationFrame(move); else dot.remove();
         };
         requestAnimationFrame(move);
       }
-      
       setTimeout(() => { ring.remove(); }, 600);
     }
 
@@ -359,6 +463,7 @@
       hideLoading();
     }
 
+    /* 自動填寫區域功能 */
     async function submitBatch() {
       const btns = document.querySelectorAll('.day-btn');
       const currentSelected = new Set();
@@ -376,7 +481,7 @@
         });
         const json = await res.json();
         if (json.status === 'success') {
-          triggerExplosion(); // 成功時觸發爆炸
+          triggerExplosion();
           document.getElementById('status-text').innerText = "注入成功！";
           setTimeout(() => { changePerson(); hideLoading(); }, 800);
         }
@@ -389,18 +494,125 @@
     }
 
     async function processDirectSubmit(toFill, toClear) {
+      if(!document.getElementById('fileId').value || !document.getElementById('sheetName').value) return alert('未選人員');
       showLoading();
       try {
         await fetch(GAS_WEBAPP_URL, { 
           method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ pwd: currentPwd, fileId: document.getElementById('fileId').value, sheetName: document.getElementById('sheetName').value, toFill, toClear, config: getConfig() }) 
         });
-        triggerExplosion(); // 成功時觸發爆炸
+        triggerExplosion();
         document.getElementById('status-text').innerText = "注入成功！";
         setTimeout(() => { changePerson(); hideLoading(); }, 800);
       } catch(e) { alert('失敗'); hideLoading(); }
     }
 
+    /* 手動/編輯填寫區域功能 */
+    function populateManualDays() {
+      const select = document.getElementById('m-day');
+      select.innerHTML = '';
+      const totalDays = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+      for (let i = 1; i <= totalDays; i++) {
+        select.innerHTML += `<option value="${i}">${i} 日</option>`;
+      }
+    }
+
+    function openManualModal(editDay = null) {
+      if(!document.getElementById('fileId').value || !document.getElementById('sheetName').value) return alert('請先選擇資料庫與人員！');
+      
+      populateManualDays();
+      const modal = document.getElementById('manualModal');
+      const title = document.getElementById('manualModalTitle');
+      const daySelect = document.getElementById('m-day');
+
+      if (editDay) {
+        title.innerText = "資料編輯覆寫";
+        daySelect.value = editDay;
+        const data = personDataCache[editDay] || {};
+        document.getElementById('m-temp').value = data.temp || "";
+        
+        let sys = "", dia = "";
+        if (data.bp) {
+          const parts = String(data.bp).split('/');
+          if (parts.length === 2) { sys = parts[0]; dia = parts[1]; }
+        }
+        document.getElementById('m-sys').value = sys;
+        document.getElementById('m-dia').value = dia;
+        document.getElementById('m-discomfort').value = data.discomfort || "無明顯不適";
+        document.getElementById('m-sleep').value = data.sleep || "良好(>6H)";
+        document.getElementById('m-duty').value = data.duty || "是";
+        document.getElementById('m-followup').value = data.followup || "否";
+      } else {
+        title.innerText = "人員健康手動建檔";
+        daySelect.value = new Date().getDate(); // 預設今天
+        document.getElementById('m-temp').value = "";
+        document.getElementById('m-sys').value = "";
+        document.getElementById('m-dia').value = "";
+        document.getElementById('m-discomfort').value = "無明顯不適";
+        document.getElementById('m-sleep').value = "良好(>6H)";
+        document.getElementById('m-duty').value = "是"; // 預設是
+        document.getElementById('m-followup').value = "否"; // 預設否
+      }
+      
+      modal.classList.remove('hidden');
+    }
+
+    function closeManualModal() { document.getElementById('manualModal').classList.add('hidden'); }
+
+    async function submitManual() {
+      const day = document.getElementById('m-day').value;
+      const temp = document.getElementById('m-temp').value;
+      const sys = document.getElementById('m-sys').value;
+      const dia = document.getElementById('m-dia').value;
+
+      if (!temp || !sys || !dia) return alert("請填寫完整的體溫與血壓數值！");
+
+      const payload = {
+        pwd: currentPwd,
+        fileId: document.getElementById('fileId').value,
+        sheetName: document.getElementById('sheetName').value,
+        manualUpdate: {
+          day: parseInt(day),
+          temp: parseFloat(temp).toFixed(1),
+          sys: parseInt(sys),
+          dia: parseInt(dia),
+          discomfort: document.getElementById('m-discomfort').value,
+          sleep: document.getElementById('m-sleep').value,
+          duty: document.getElementById('m-duty').value,
+          followup: document.getElementById('m-followup').value
+        }
+      };
+
+      closeManualModal();
+      showLoading();
+      document.getElementById('status-text').innerText = "手動覆寫中...";
+      try {
+        await fetch(GAS_WEBAPP_URL, { 
+          method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload) 
+        });
+        triggerExplosion('var(--neon-yellow)');
+        document.getElementById('status-text').innerText = "覆寫成功！";
+        setTimeout(() => { changePerson(); hideLoading(); }, 800);
+      } catch(e) { alert('失敗'); hideLoading(); }
+    }
+
+    async function deleteRecord(day) {
+      if(!confirm(`確定要刪除 ${day} 日的紀錄嗎？`)) return;
+      showLoading();
+      document.getElementById('status-text').innerText = "資料抹除中...";
+      try {
+        await fetch(GAS_WEBAPP_URL, { 
+          method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ pwd: currentPwd, fileId: document.getElementById('fileId').value, sheetName: document.getElementById('sheetName').value, deleteDay: day }) 
+        });
+        triggerExplosion('var(--neon-red)');
+        document.getElementById('status-text').innerText = "抹除成功！";
+        setTimeout(() => { changePerson(); hideLoading(); }, 800);
+      } catch(e) { alert('失敗'); hideLoading(); }
+    }
+
+    /* 日曆與畫面切換功能 */
     function openCalendar() {
       if(!document.getElementById('fileId').value || !document.getElementById('sheetName').value) return alert('未選人員');
       const grid = document.getElementById('calendarGrid');
@@ -425,6 +637,7 @@
       document.getElementById('view-form').classList.toggle('hidden', v !== 'form');
       document.getElementById('view-data').classList.toggle('hidden', v !== 'data');
     }
+    
     function renderDataView() {
       const tbody = document.getElementById('data-tbody');
       tbody.innerHTML = '';
@@ -432,9 +645,21 @@
       document.getElementById('no-data-msg').classList.toggle('hidden', days.length > 0);
       days.forEach(d => {
         const r = personDataCache[d];
-        tbody.innerHTML += `<tr class="border-b border-blue-900/30"><td class="p-4 text-blue-400 font-bold text-lg">${d} 日</td><td class="p-4 text-base">${r.temp} ℃</td><td class="p-4 font-mono text-base">${r.bp}</td></tr>`;
+        tbody.innerHTML += `
+          <tr class="border-b border-blue-900/30">
+            <td class="p-4 text-blue-400 font-bold text-lg whitespace-nowrap">${d} 日</td>
+            <td class="p-4">
+              <div class="text-base text-gray-200">${r.temp} ℃</div>
+              <div class="font-mono text-xs text-gray-400 tracking-wider">BP: ${r.bp}</div>
+            </td>
+            <td class="p-4 text-center whitespace-nowrap space-y-2">
+              <button onclick="openManualModal(${d})" class="bg-yellow-600/20 text-yellow-500 border border-yellow-600/50 px-3 py-1 rounded-sm text-xs hover:bg-yellow-500 hover:text-black transition block w-full">編輯</button>
+              <button onclick="deleteRecord(${d})" class="bg-red-600/20 text-red-500 border border-red-600/50 px-3 py-1 rounded-sm text-xs hover:bg-red-500 hover:text-black transition block w-full">刪除</button>
+            </td>
+          </tr>`;
       });
     }
+
     function saveConfig() { ['tempMin','tempMax','sysMin','sysMax'].forEach(id=>localStorage.setItem('s_sar_'+id, document.getElementById(id).value)); }
     function loadConfig() { 
       document.getElementById('tempMin').value = localStorage.getItem('s_sar_tempMin') || '36.0';
@@ -443,7 +668,7 @@
       document.getElementById('sysMax').value = localStorage.getItem('s_sar_sysMax') || '132';
     }
     function getConfig() { return { tempMin: parseFloat(document.getElementById('tempMin').value), tempMax: parseFloat(document.getElementById('tempMax').value), sysMin: parseInt(document.getElementById('sysMin').value), sysMax: parseInt(document.getElementById('sysMax').value), discomfort: document.getElementById('discomfort').value, sleep: document.getElementById('sleep').value }; }
-    function showLoading() { document.getElementById('loading').classList.remove('hidden'); document.getElementById('status-text').innerText = "數據注入中..."; }
+    function showLoading() { document.getElementById('loading').classList.remove('hidden'); document.getElementById('status-text').innerText = "數據連線中..."; }
     function hideLoading() { document.getElementById('loading').classList.add('hidden'); }
   </script>
 </body>
