@@ -153,6 +153,31 @@
     @keyframes explodeCircle { 0% { width: 0; height: 0; opacity: 1; border-width: 10px; } 100% { width: 500px; height: 500px; opacity: 0; border-width: 1px; } }
 
     .no-scrollbar::-webkit-scrollbar { display: none; }
+        /* 優化手動模組的自適應縮放 */
+    .modal-content-wrapper {
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 40px); /* 確保不超出螢幕高度 */
+    }
+
+    /* 在大螢幕下增加輸入框橫向寬度 */
+    @media (min-width: 768px) {
+      .fui-panel-yellow {
+        padding: 2rem !important;
+      }
+      .grid-cols-custom {
+        grid-template-columns: repeat(3, 1fr); /* 電腦版血壓改為橫向三欄 */
+      }
+    }
+
+    /* 讓捲軸美化一點（以防萬一內容還是太多） */
+    .no-scrollbar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .no-scrollbar::-webkit-scrollbar-thumb {
+      background: var(--neon-yellow);
+      border-radius: 10px;
+    }
   </style>
 </head>
 <body class="p-4">
@@ -270,68 +295,78 @@
     </div>
   </div>
 
-  <div id="manualModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-3 bg-black/95 backdrop-blur-xl">
-    <div class="fui-panel-yellow w-full max-w-sm bg-[#060b13] p-5 shadow-[0_0_40px_rgba(255,183,0,0.15)] max-h-[90vh] overflow-y-auto no-scrollbar">
-      <div class="flex justify-between items-center mb-4 border-b border-yellow-600/60 pb-2">
-        <h3 id="manualModalTitle" class="text-yellow-500 font-bold tracking-widest text-lg">人員健康手動建檔</h3>
-        <button onclick="closeManualModal()" class="text-gray-400 text-3xl hover:text-red-500 transition px-2">&times;</button>
+  <div id="manualModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-2 md:p-4 bg-black/90 backdrop-blur-md">
+    <div class="fui-panel-yellow w-[95%] md:max-w-2xl bg-[#060b13] p-4 md:p-8 shadow-[0_0_50px_rgba(255,183,0,0.2)] modal-content-wrapper overflow-y-auto no-scrollbar">
+      
+      <div class="flex justify-between items-center mb-4 md:mb-6 border-b border-yellow-600/60 pb-3">
+        <div>
+          <h3 id="manualModalTitle" class="text-yellow-500 font-bold tracking-widest text-lg md:text-2xl">人員健康手動建檔</h3>
+          <p class="text-[9px] text-yellow-700 tracking-tighter">MANUAL DATA INJECTION SYSTEM</p>
+        </div>
+        <button onclick="closeManualModal()" class="text-gray-400 text-3xl md:text-4xl hover:text-red-500 transition px-2">&times;</button>
       </div>
       
-      <div class="space-y-4">
-        <div>
-          <label class="text-[11px] text-yellow-600 font-bold block mb-1">任務日期 DATE</label>
-          <select id="m-day" class="fui-input-yellow w-full text-base font-bold"></select>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="col-span-2">
-            <label class="text-[11px] text-yellow-600 font-bold block mb-1">體溫 (℃)</label>
-            <input type="number" step="0.1" id="m-temp" class="fui-input-yellow w-full rounded-sm text-lg text-center" placeholder="ex. 36.5">
+      <div class="space-y-4 md:space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-[11px] md:text-xs text-yellow-600 font-bold block mb-1">任務日期 DATE</label>
+            <select id="m-day" class="fui-input-yellow w-full text-base md:text-lg font-bold"></select>
           </div>
           <div>
-            <label class="text-[11px] text-yellow-600 font-bold block mb-1">收縮壓 (高)</label>
-            <input type="number" id="m-sys" class="fui-input-yellow w-full rounded-sm text-lg text-center" placeholder="120">
+            <label class="text-[11px] md:text-xs text-yellow-600 font-bold block mb-1">體溫 (℃) TEMPERATURE</label>
+            <input type="number" step="0.1" id="m-temp" class="fui-input-yellow w-full rounded-sm text-lg md:text-xl text-center" placeholder="ex. 36.5">
           </div>
-          <div>
-            <label class="text-[11px] text-yellow-600 font-bold block mb-1">舒張壓 (低)</label>
-            <input type="number" id="m-dia" class="fui-input-yellow w-full rounded-sm text-lg text-center" placeholder="80">
-          </div>
-        </div>
-        
-        <div>
-          <label class="text-[11px] text-yellow-600 font-bold block mb-1">身體狀況狀態 STATUS</label>
-          <select id="m-discomfort" class="fui-input-yellow w-full text-base">
-            <option value="無明顯不適">無明顯不適</option>
-            <option value="咳嗽">咳嗽</option>
-            <option value="喉嚨痛">喉嚨痛</option>
-            <option value="頭暈/疲勞感">頭暈/疲勞感</option>
-            <option value="腹瀉/噁心">腹瀉/噁心</option>
-            <option value="呼吸困難/胸悶">呼吸困難/胸悶</option>
-            <option value="皮膚紅疹/割傷">皮膚紅疹/割傷</option>
-          </select>
-        </div>
-        
-        <div>
-          <label class="text-[11px] text-yellow-600 font-bold block mb-1">昨夜睡眠品質 SLEEP</label>
-          <select id="m-sleep" class="fui-input-yellow w-full text-base">
-            <option value="良好(>6H)">良好(>6H)</option>
-            <option value="一般(4~6H)">一般(4~6H)</option>
-            <option value="欠佳(<4H)">欠佳(<4H)</option>
-          </select>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 md:grid-cols-2 gap-4">
           <div>
-            <label class="text-[11px] text-yellow-600 font-bold block mb-1">是否執行勤務</label>
-            <select id="m-duty" class="fui-input-yellow w-full text-base"><option value="是">是</option><option value="否">否</option></select>
+            <label class="text-[11px] md:text-xs text-yellow-600 font-bold block mb-1">收縮壓 (高壓) SYS</label>
+            <input type="number" id="m-sys" class="fui-input-yellow w-full rounded-sm text-lg md:text-xl text-center" placeholder="120">
           </div>
           <div>
-            <label class="text-[11px] text-yellow-600 font-bold block mb-1">建議後續追蹤</label>
-            <select id="m-followup" class="fui-input-yellow w-full text-base"><option value="否">否</option><option value="是">是</option></select>
+            <label class="text-[11px] md:text-xs text-yellow-600 font-bold block mb-1">舒張壓 (低壓) DIA</label>
+            <input type="number" id="m-dia" class="fui-input-yellow w-full rounded-sm text-lg md:text-xl text-center" placeholder="80">
           </div>
         </div>
         
-        <div class="pt-2">
-          <button onclick="submitManual()" class="btn-neon-yellow w-full py-4 text-lg font-bold tracking-widest shadow-lg">寫入資料庫</button>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-[11px] md:text-xs text-yellow-600 font-bold block mb-1">身體狀況狀態 STATUS</label>
+            <select id="m-discomfort" class="fui-input-yellow w-full text-base md:text-lg">
+              <option value="無明顯不適">無明顯不適</option>
+              <option value="咳嗽">咳嗽</option>
+              <option value="喉嚨痛">喉嚨痛</option>
+              <option value="頭暈/疲勞感">頭暈/疲勞感</option>
+              <option value="腹瀉/噁心">腹瀉/噁心</option>
+              <option value="呼吸困難/胸悶">呼吸困難/胸悶</option>
+              <option value="皮膚紅疹/割傷">皮膚紅疹/割傷</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] md:text-xs text-yellow-600 font-bold block mb-1">昨夜睡眠品質 SLEEP</label>
+            <select id="m-sleep" class="fui-input-yellow w-full text-base md:text-lg">
+              <option value="良好(>6H)">良好(>6H)</option>
+              <option value="一般(4~6H)">一般(4~6H)</option>
+              <option value="欠佳(<4H)">欠佳(<4H)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-[11px] md:text-xs text-yellow-600 font-bold block mb-1">是否執行勤務</label>
+            <select id="m-duty" class="fui-input-yellow w-full text-base md:text-lg"><option value="是">是</option><option value="否">否</option></select>
+          </div>
+          <div>
+            <label class="text-[11px] md:text-xs text-yellow-600 font-bold block mb-1">建議後續追蹤</label>
+            <select id="m-followup" class="fui-input-yellow w-full text-base md:text-lg"><option value="否">否</option><option value="是">是</option></select>
+          </div>
+        </div>
+        
+        <div class="pt-4">
+          <button onclick="submitManual()" class="btn-neon-yellow w-full py-4 md:py-6 text-lg md:text-2xl font-bold tracking-[0.3em] shadow-lg">
+            CONFIRM / 注入資料庫
+          </button>
         </div>
       </div>
     </div>
